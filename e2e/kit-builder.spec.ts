@@ -64,8 +64,8 @@ test('full flow: appliances → window → kit, and the project survives a reloa
   await page.getByRole('button', { name: 'Build my kit' }).click()
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await expect(page.getByText('4,000 W pure sine, 48 V DC input')).toBeVisible()
-  await expect(page.getByText(/Batteries/)).toBeVisible()
-  await expect(page.getByText(/class T/)).toBeVisible()
+  await expect(page.getByRole('rowheader', { name: 'Batteries' })).toBeVisible()
+  await expect(page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Fuse' }) }).getByRole('cell').first()).toContainText('class T')
   await page.reload()
   await expect(page.getByText('4,000 W pure sine, 48 V DC input')).toBeVisible()
   await page.getByRole('button', { name: 'Edit appliances' }).click()
@@ -81,4 +81,18 @@ test('the language switch shows the app in Spanish and remembers it', async ({ p
   await expect(page.getByRole('heading', { name: '¿Qué aparatos deben seguir encendidos?' })).toBeVisible()
   await page.getByRole('button', { name: 'English' }).click()
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+})
+
+test.describe('on a device whose preferred languages put Spanish first among the supported ones', () => {
+  test.use({ locale: 'es-MX' })
+
+  test('opens in Spanish without touching the switch, and a manual choice still wins', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'es')
+    await expect(page.getByRole('heading', { name: '¿Qué aparatos deben seguir encendidos?' })).toBeVisible()
+    await page.getByRole('button', { name: 'English' }).click()
+    await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+  })
 })

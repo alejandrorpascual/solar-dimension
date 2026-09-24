@@ -1,9 +1,12 @@
 /* Header and stepper */
-.header { display: flex; flex-direction: column; gap: 12px; }
-.brand { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
-.header__tools { display: flex; align-items: center; gap: 8px; }
+/* Phone and tablet: brand and account share the top row, stepper and language the second. */
+.header { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'brand account' 'stepper lang'; align-items: center; gap: 12px; }
+.brand { grid-area: brand; font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+.header > .stepper { grid-area: stepper; }
+.header__lang { grid-area: lang; justify-self: end; }
+.header__account { grid-area: account; justify-self: end; min-width: 0; }
 .lang { display: flex; gap: 4px; }
-.lang .seg { flex: 0 0 auto; min-height: 36px; padding: 0 10px; font-size: 12px; }
+.lang .seg { flex: 0 0 auto; min-height: 38px; padding: 0 10px; font-size: 12px; }
 .stepper { display: flex; align-items: center; gap: 8px; }
 .stepper__item { display: flex; align-items: center; gap: 8px; }
 .stepper__line { width: 16px; height: 2px; background: var(--line-strong); }
@@ -13,7 +16,8 @@
 .step-label { display: none; font-size: 14px; font-weight: 600; color: var(--muted); }
 .step-label--on { color: var(--ink); }
 @media (min-width: 1024px) {
-  .header { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+  .header { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'brand stepper lang account'; column-gap: 24px; }
+  .header > .stepper { justify-self: center; }
   .stepper { gap: 12px; }
   .stepper__item { gap: 10px; }
   .stepper__line { width: 56px; }
@@ -22,7 +26,8 @@
 }
 
 /* Chips, buttons, inputs */
-.chip { flex-shrink: 0; font-size: 13px; font-weight: 600; padding: 0 14px; min-height: 38px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+/* inline-flex so a chip rendered as a link gets the same box, height and centring as a chip button. */
+.chip { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; text-decoration: none; font-size: 13px; font-weight: 600; line-height: 1; padding: 0 14px; min-height: 38px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip--on, .chip--on:hover { background: var(--accent); color: #FFFFFF; border-color: var(--accent); }
 .btn { flex: 1 1 0; font-size: 15px; font-weight: 600; min-height: 50px; padding: 0 18px; border-radius: 12px; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); }
@@ -150,15 +155,31 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .stat--accent { background: var(--accent-tint); border-color: #C9D3FF; }
 .stat--accent .lab, .stat--accent .stat__v { color: var(--accent); }
 .stat__v { font-family: var(--font-display); font-size: 22px; font-weight: 700; line-height: 1; }
-.parts { display: flex; flex-direction: column; padding: 4px 16px 0; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
-.parts__head { display: none; }
-.part { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+/* Parts list. Phone: each row stacks the part name over its spec, quantity on the right. */
+.parts { padding: 4px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.parts__table, .parts__table tbody { display: block; width: 100%; }
+.parts__table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.parts__table th, .parts__table td { padding: 0; text-align: left; }
+.part { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'name qty' 'body qty'; column-gap: 12px; row-gap: 2px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .part:last-child { border-bottom: 0; }
-.part__body { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.part__name { font-size: 15px; font-weight: 700; }
+.part > th, .part > td { display: block; }
+.parts__table .part__name { grid-area: name; font-size: 15px; font-weight: 700; }
+.part__body { grid-area: body; min-width: 0; }
 .part__spec { font-size: 13px; }
-.part__note { font-size: 12px; color: var(--muted); line-height: 1.4; }
-.part__qty { font-family: var(--font-display); font-size: 22px; font-weight: 700; flex-shrink: 0; }
+.part__note { margin-top: 2px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.parts__table .part__qty { grid-area: qty; align-self: center; text-align: right; font-family: var(--font-display); font-size: 22px; font-weight: 700; white-space: nowrap; }
+/* Tablet and up: a real table, so every spec starts in the same column and cells share the first-line baseline. */
+@media (min-width: 640px) {
+  .parts__table { display: table; border-collapse: collapse; }
+  .parts__table thead { display: table-header-group; position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+  .parts__table tbody { display: table-row-group; }
+  .part { display: table-row; border: 0; }
+  .part > th, .part > td, .parts__table thead th { display: table-cell; vertical-align: baseline; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .parts__table thead th { padding: 6px 0 10px; border-bottom: 2px solid var(--ink); }
+  .parts__table tbody tr:last-child > * { border-bottom: 0; }
+  .parts__table .part__name, .parts__col-part { width: 1%; white-space: nowrap; padding-right: 28px; }
+  .parts__table .part__qty, .parts__col-qty { width: 1%; padding-left: 28px; text-align: right; }
+}
 .warn { padding: 12px 14px; border-radius: 12px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-ink); font-size: 13px; line-height: 1.45; display: flex; flex-direction: column; gap: 6px; }
 .fine { font-size: 11px; line-height: 1.5; }
 @media (min-width: 1024px) {
@@ -168,18 +189,17 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
   .stat--accent { background: var(--accent-tint); }
   .stat__v { font-size: 28px; }
   .parts { padding: 0; border: 0; background: transparent; border-radius: 0; }
-  .parts__head { display: grid; grid-template-columns: 200px 1fr 120px; gap: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); }
-  .parts__qty { text-align: right; }
-  .part { display: grid; grid-template-columns: 200px 1fr 120px; gap: 20px; align-items: center; padding: 16px 0; }
-  .part__name { font-size: 16px; }
+  .part > th, .part > td { padding: 16px 0; }
+  .parts__table .part__name, .parts__col-part { min-width: 10rem; padding-right: 40px; }
+  .parts__table .part__name { font-size: 16px; }
   .part__spec { font-size: 15px; }
   .part__note { font-size: 13px; }
-  .part__qty { text-align: right; }
   .warn { font-size: 14px; padding: 14px 18px; border-radius: var(--radius-md); }
   .fine { font-size: 12px; }
 }
 
 .stage--narrow { max-width: 440px; }
 .form { display: flex; flex-direction: column; gap: 12px; }
-.account { display: flex; align-items: center; gap: 8px; }
-.account__email { font-size: 13px; }
+.account { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.account__email { min-width: 0; max-width: 20ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+@media (min-width: 1024px) { .account__email { max-width: 32ch; } }

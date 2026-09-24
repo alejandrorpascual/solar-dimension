@@ -27,6 +27,36 @@ function warningText(t: Dictionary, w: Warning): string {
   return t.warnings[w.code]({ ...w.params, itemName })
 }
 
+/**
+ * A real table so every spec shares one column; components.css restacks the rows on phones. The explicit roles look
+ * redundant but are not: Safari drops table semantics once CSS changes a table's `display`, as the phone layout does.
+ */
+function PartsTable({ parts, t }: { parts: Part[]; t: Dictionary }) {
+  return (
+    <table className="parts__table" role="table">
+      <thead role="rowgroup">
+        <tr role="row">
+          <th scope="col" role="columnheader" className="lab parts__col-part">{t.ui.part}</th>
+          <th scope="col" role="columnheader" className="lab">{t.ui.specification}</th>
+          <th scope="col" role="columnheader" className="lab parts__col-qty">{t.ui.quantity}</th>
+        </tr>
+      </thead>
+      <tbody role="rowgroup">
+        {parts.map((pt) => (
+          <tr key={pt.id} className="part" role="row">
+            <th scope="row" role="rowheader" className="part__name">{pt.name}</th>
+            <td role="cell" className="part__body">
+              <div className="part__spec">{pt.spec}</div>
+              <div className="part__note">{pt.note}</div>
+            </td>
+            <td role="cell" className="part__qty num"><span aria-hidden="true">×</span>{pt.qty}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
 interface Props { result: SizingResult; projectName: string; onEditAppliances: () => void; onEditWindow: () => void }
 
 export function KitSummary({ result: r, projectName, onEditAppliances, onEditWindow }: Props) {
@@ -50,15 +80,7 @@ export function KitSummary({ result: r, projectName, onEditAppliances, onEditWin
         <div className="stat stat--accent"><div className="lab">{t.ui.runtime}</div><div className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</div></div>
       </div>
       <div className="parts">
-        <div className="parts__head"><div className="lab">{t.ui.part}</div><div className="lab">{t.ui.specification}</div><div className="lab parts__qty">{t.ui.quantity}</div></div>
-        {parts.map((pt) => (
-          <div key={pt.id} className="part">
-            <div className="part__name">{pt.name}</div>
-            <div className="part__body"><div className="part__spec">{pt.spec}</div><div className="part__note">{pt.note}</div></div>
-            <div className="part__qty num">×{pt.qty}</div>
-          </div>
-        ))}
-        {parts.length === 0 && <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}
+        {parts.length > 0 ? <PartsTable parts={parts} t={t} /> : <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}
       </div>
       {r.warnings.length > 0 && (
         <div className="warn" role="status">

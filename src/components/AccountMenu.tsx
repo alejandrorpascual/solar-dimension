@@ -1,4 +1,5 @@
 import { Link, useRouter } from '@tanstack/react-router'
+import { LogIn } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import { signOut } from '../lib/auth-client'
@@ -13,10 +14,18 @@ interface Props {
 export function AccountMenu({ user, busy = false }: Props) {
   const { t } = useLocale()
   const router = useRouter()
-  if (!user) return <Link to="/login" className="chip">{t.ui.signIn}</Link>
+  if (!user) {
+    return (
+      <Link to="/login" className="chip">
+        <LogIn size={16} strokeWidth={2} aria-hidden="true" />
+        {t.ui.signIn}
+      </Link>
+    )
+  }
+  const signedInAs = tr(t, 'signedInAs', { email: user.email })
   return (
     <div className="account">
-      <span className="account__email muted">{tr(t, 'signedInAs', { email: user.email })}</span>
+      <span className="account__email muted" title={signedInAs}>{signedInAs}</span>
       <button type="button" className="chip" disabled={busy} aria-busy={busy} onClick={async () => { await signOut(); await router.invalidate() }}>{t.ui.signOut}</button>
     </div>
   )

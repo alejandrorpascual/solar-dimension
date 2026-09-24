@@ -64,6 +64,15 @@ describe('resolveLocale', () => {
     expect(resolveLocale({ cookie: 'lang=fr', acceptLanguage: 'fr-FR' })).toBe('en')
     expect(resolveLocale({})).toBe('en')
   })
+
+  test('walks the whole device language list by preference, not just the first entry', () => {
+    expect(resolveLocale({ acceptLanguage: 'pt-BR,pt;q=0.9,es;q=0.8,en;q=0.7' })).toBe('es')
+    expect(resolveLocale({ acceptLanguage: 'fr-FR,fr;q=0.9,en-GB;q=0.8' })).toBe('en')
+    expect(resolveLocale({ acceptLanguage: 'en;q=0.3, es;q=0.9' })).toBe('es')
+    expect(resolveLocale({ acceptLanguage: 'de-DE, *;q=0.5' })).toBe('en')
+    expect(resolveLocale({ acceptLanguage: 'es;q=0, en;q=0.5' })).toBe('en')
+    expect(resolveLocale({ acceptLanguage: ' ES-ar ' })).toBe('es')
+  })
 })
 
 test('applianceName translates catalog items and keeps custom names', () => {

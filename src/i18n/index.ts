@@ -23,11 +23,29 @@ function cookieValue(cookie: string | null | undefined, name: string): string | 
   return hit ? decodeURIComponent(hit.slice(name.length + 1)) : null
 }
 
+/**
+ * The best supported locale in an Accept-Language header, which browsers build from the device's language settings,
+ * e.g. "pt-BR,pt;q=0.9,es;q=0.8". Entries are ranked by their q weight (default 1, ties keep header order);
+ * q=0 means "not acceptable".
+ */
+function fromAcceptLanguage(header: string | null | undefined): Locale | null {
+  const ranked = (header ?? '')
+    .split(',')
+    .map((part, index) => {
+      const [tag = '', ...params] = part.trim().toLowerCase().split(';')
+      const q = params.map((p) => p.trim()).find((p) => p.startsWith('q='))
+      return { lang: tag.trim().slice(0, 2), q: q ? Number(q.slice(2)) : 1, index }
+    })
+    .filter((e) => Number.isFinite(e.q) && e.q > 0)
+    .sort((a, b) => b.q - a.q || a.index - b.index)
+  return ranked.map((e) => e.lang).find(isLocale) ?? null
+}
+
+/** A saved choice wins, then the device's language preferences, then English. */
 export function resolveLocale(input: { cookie?: string | null; acceptLanguage?: string | null }): Locale {
   const fromCookie = cookieValue(input.cookie, LOCALE_COOKIE)
   if (isLocale(fromCookie)) return fromCookie
-  const first = (input.acceptLanguage ?? '').split(',')[0]?.trim().toLowerCase().slice(0, 2)
-  return isLocale(first) ? first : DEFAULT_LOCALE
+  return fromAcceptLanguage(input.acceptLanguage) ?? DEFAULT_LOCALE
 }
 
 /** Replace `{key}` placeholders in a ui string. */
