@@ -25,14 +25,15 @@ describe('project store', () => {
 
   test('add, duplicate, select and delete keep ids unique and at least one project', () => {
     let s = addProject(initialStore(), 'Office')
-    expect(s.currentId).toBe('p2')
+    const officeId = s.currentId
+    expect(officeId).not.toBe('p1')
     s = duplicateProject(s)
     expect(currentProject(s).name).toBe('Office copy')
-    expect(s.projects.map((p) => p.id)).toEqual(['p1', 'p2', 'p3'])
+    expect(new Set(s.projects.map((p) => p.id)).size).toBe(3)
     s = selectProject(s, 'p1')
     s = deleteProject(s)
-    expect(s.projects.map((p) => p.id)).toEqual(['p2', 'p3'])
-    expect(s.currentId).toBe('p2')
+    expect(s.projects.map((p) => p.id)).not.toContain('p1')
+    expect(s.currentId).toBe(officeId)
     s = deleteProject(deleteProject(s))
     expect(s.projects).toHaveLength(1)
   })

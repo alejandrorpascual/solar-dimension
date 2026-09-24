@@ -4,19 +4,21 @@ import type { CustomLoad, Project, Store } from './schema'
 export const DEFAULT_QTY: Record<string, number> = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
 const DEFAULT_HOURS = 10
 const ID_PREFIX = 'p'
+const SEED_ID = `${ID_PREFIX}1`
+const SEED_NAME = 'Home'
 
 function nextId(projects: readonly Project[]): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
   const max = projects.reduce((m, p) => Math.max(m, Number(p.id.slice(ID_PREFIX.length)) || 0), 0)
   return `${ID_PREFIX}${max + 1}`
 }
 
-function newProject(projects: readonly Project[], name?: string): Project {
-  const id = nextId(projects)
-  return { id, name: name ?? `Project ${id.slice(ID_PREFIX.length)}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4' }
+function newProject(projects: readonly Project[], name?: string, id: string = nextId(projects)): Project {
+  return { id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4' }
 }
 
 export function initialStore(): Store {
-  const p = newProject([], 'Home')
+  const p = newProject([], SEED_NAME, SEED_ID)
   return { version: 1, projects: [p], currentId: p.id }
 }
 
