@@ -6,7 +6,7 @@ test('shell renders the stepper, a Home project and step navigation', async ({ p
   await expect(page.getByRole('button', { name: 'Home' })).toBeVisible()
   await page.getByRole('button', { name: 'Next: backup window' }).click()
   await expect(page).toHaveURL(/step=2/)
-  await page.getByRole('button', { name: 'Back' }).click()
+  await page.getByRole('button', { name: 'Back', exact: true }).click()
   await expect(page).toHaveURL(/step=1|\/$/)
 })
 
