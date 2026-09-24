@@ -2,7 +2,6 @@ import {
   APPLIANCES, CHEMISTRIES, FUSES, GAUGES, INVERTERS, SIZING, VOLTAGES,
   type CatalogItem, type Chemistry, type ChemistryId, type Inverter, type Voltage,
 } from './catalog'
-import { fmtInt, fmtW } from './format'
 
 export interface CustomLoadLike { id: string; name: string; watts: number; surge: number; note: string }
 
@@ -27,12 +26,18 @@ export interface CablePick {
   mainCount: number; mainLengthM: number; seriesLinks: number; parallelLinks: number; linkLengthM: number
   totalLengthM: number; fuseA: number; dropPct: number
 }
+export type WarningCode = 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad'
+export interface WarningParams {
+  inverterW?: number; volts?: number; voltsList?: string; amps?: number; nextVolts?: number | null
+  strings?: number; itemId?: string; itemName?: string; sharePct?: number
+}
+export interface Warning { code: WarningCode; params: WarningParams }
 export interface SizingResult {
   empty: boolean; items: SelectedItem[]; count: number
   hours: number; volts: Voltage; chemistry: ChemistryId; chemistryLabel: string
-  runningW: number; surgeW: number; largestSurgeName: string
+  runningW: number; surgeW: number; largestSurgeName: string; largestSurgeId: string
   loadWh: number; requiredWh: number; requiredAh: number
-  inverter: InverterPick; battery: BatteryPick | null; cable: CablePick; warnings: string[]
+  inverter: InverterPick; battery: BatteryPick | null; cable: CablePick; warnings: Warning[]
 }
 
 const HOURS_RANGE = [1, 72] as const
@@ -109,22 +114,21 @@ interface WarningContext {
   amps: number; volts: Voltage; battery: BatteryPick | null; loadWh: number
 }
 
-function buildWarnings(ctx: WarningContext): string[] {
+function buildWarnings(ctx: WarningContext): Warning[] {
   if (ctx.items.length === 0) return []
-  const w: string[] = []
+  const w: Warning[] = []
   if (!ctx.inverterVoltsOk) {
-    w.push(`${fmtW(ctx.inverter.w)} inverters are normally built for ${ctx.inverter.volts.join(' / ')} V. Change the battery voltage or trim the load.`)
+    w.push({ code: 'inverterVoltage', params: { inverterW: ctx.inverter.w, voltsList: ctx.inverter.volts.join(' / ') } })
   }
   if (ctx.amps > SIZING.MAX_PRACTICAL_AMPS) {
-    const next = VOLTAGES.find((v) => v > ctx.volts)
-    w.push(`${fmtInt(ctx.amps)} A on the DC side at ${ctx.volts} V is hard to wire safely${next ? `. Consider ${next} V.` : '.'}`)
+    w.push({ code: 'highCurrent', params: { amps: Math.round(ctx.amps), volts: ctx.volts, nextVolts: VOLTAGES.find((v) => v > ctx.volts) ?? null } })
   }
   if (ctx.battery && ctx.battery.parallel > SIZING.MAX_PARALLEL_STRINGS) {
-    w.push(`${ctx.battery.parallel} parallel strings drift out of balance. Prefer bigger units or a higher voltage.`)
+    w.push({ code: 'parallelStrings', params: { strings: ctx.battery.parallel } })
   }
   const dominant = ctx.items.find((i) => ctx.loadWh > 0 && i.wh / ctx.loadWh > SIZING.DOMINANT_SHARE)
   if (dominant) {
-    w.push(`${dominant.name} is ${Math.round((dominant.wh / ctx.loadWh) * 100)}% of the energy. Dropping it is the cheapest way to shrink the bank.`)
+    w.push({ code: 'dominantLoad', params: { itemId: dominant.id, itemName: dominant.name, sharePct: Math.round((dominant.wh / ctx.loadWh) * 100) } })
   }
   return w
 }
@@ -161,7 +165,7 @@ export function compute(input: SizingInput): SizingResult {
     items,
     count: sum(items, (i) => i.qty),
     hours, volts, chemistry: chem.id, chemistryLabel: chem.label,
-    runningW, surgeW, largestSurgeName: largest?.name ?? '',
+    runningW, surgeW, largestSurgeName: largest?.name ?? '', largestSurgeId: largest?.id ?? '',
     loadWh, requiredWh: Math.round(requiredWh), requiredAh: Math.round(requiredAh),
     inverter: { w: inverter.w, surge: inverter.surge, volts: inverter.volts, voltsOk: inverterVoltsOk },
     battery,

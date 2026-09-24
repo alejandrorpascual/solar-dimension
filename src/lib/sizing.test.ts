@@ -43,6 +43,7 @@ describe('compute', () => {
     expect(r.runningW).toBe(4000)
     expect(r.surgeW).toBe(8400)
     expect(r.largestSurgeName).toBe('2 ton AC · conventional')
+    expect(r.largestSurgeId).toBe('ac2c')
     expect(r.inverter.w).toBe(5000)
   })
 
@@ -50,10 +51,10 @@ describe('compute', () => {
     const r = compute({ qty: { fridge: 1, ac1c: 1, well: 1, micro: 1, lights: 1 }, hours: 10, volts: 12, chemistry: 'agm' })
     expect(r.inverter.voltsOk).toBe(false)
     expect(r.cable.runs).toBe(2)
-    expect(r.warnings.some((w) => w.includes('normally built for'))).toBe(true)
-    expect(r.warnings.some((w) => w.includes('hard to wire safely'))).toBe(true)
-    expect(r.warnings.some((w) => w.includes('parallel strings'))).toBe(true)
-    expect(r.warnings.some((w) => w.includes('1 ton AC · conventional is'))).toBe(true)
+    const codes = r.warnings.map((w) => w.code)
+    expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad'])
+    expect(r.warnings[3]?.params.itemId).toBe('ac1c')
+    expect(r.warnings[3]?.params.sharePct).toBeGreaterThan(50)
   })
 
   test('clamps hours, run length and unknown voltage to safe values', () => {

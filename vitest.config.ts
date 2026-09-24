@@ -6,8 +6,8 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       provider: 'v8',
-      include: ['src/lib/**/*.ts'],
-      exclude: ['src/lib/**/*.test.ts'],
+      include: ['src/lib/**/*.ts', 'src/i18n/**/*.ts'],
+      exclude: ['src/**/*.test.ts'],
       thresholds: { lines: 80, functions: 80, statements: 80, branches: 80 },
     },
   },

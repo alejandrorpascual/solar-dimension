@@ -51,7 +51,7 @@ export function KitSummary({ result: r, projectName, onEditAppliances, onEditWin
       </div>
       {r.warnings.length > 0 && (
         <div className="warn" role="status">
-          {r.warnings.map((w) => <div key={w}>{w}</div>)}
+          {r.warnings.map((w) => <div key={w.code}>{w.code}</div>)}
         </div>
       )}
       <p className="fine muted">Assumes 90% inverter efficiency, 25% inverter headroom, {dod}% depth of discharge, 1,100 W per ton of cooling and one motor starting at a time. Verify conductor sizes against local code.</p>
