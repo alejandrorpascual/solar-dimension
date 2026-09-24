@@ -8,13 +8,20 @@
     "preview": "vite preview --port 3000",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "start": "node .output/server/index.mjs",
+    "start": "node --env-file-if-exists=.env.local .output/server/index.mjs",
     "test:coverage": "vitest run --coverage",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.6",
+    "@neondatabase/serverless": "^1.1.0",
     "@tanstack/react-router": "^1.170.39",
     "@tanstack/react-start": "^1.168.58",
+    "better-auth": "^1.7.6",
+    "drizzle-orm": "^0.45.3",
     "lucide-react": "^1.48.0",
     "nitro": "^3.0.260903-beta",
     "react": "^19.3.0",
@@ -28,6 +35,8 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^5.0.1",
+    "dotenv": "^18.0.3",
+    "drizzle-kit": "^0.31.11",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
     "vitest": "^5.0.1"
