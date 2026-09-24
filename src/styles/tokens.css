@@ -1,0 +1,23 @@
+:root {
+  --ground: #F2F4F7;
+  --surface: #FFFFFF;
+  --ink: #12161C;
+  --muted: #5C6470;
+  --line: #DDE2E9;
+  --line-strong: #C9D0DA;
+  --accent: #2447E6;
+  --accent-hover: #1A36B8;
+  --accent-tint: #EEF2FF;
+  --accent-ring: rgba(36, 71, 230, 0.12);
+  --warn-bg: #FFF4E0;
+  --warn-border: #F0C36B;
+  --warn-ink: #6B4A00;
+  --error: #B3261E;
+  --font-display: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+  --font-body: 'Figtree', system-ui, sans-serif;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --shadow-card: 0 12px 40px rgba(18, 22, 28, 0.06);
+  --tap: 44px;
+}
