@@ -1,0 +1,79 @@
+import { describe, expect, test } from 'vitest'
+import { catalog, compute } from './sizing'
+
+const ESSENTIALS = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
+
+describe('compute', () => {
+  test('returns an empty result with no items selected', () => {
+    const r = compute({ qty: {}, hours: 10, volts: 24, chemistry: 'lifepo4' })
+    expect(r.empty).toBe(true)
+    expect(r.runningW).toBe(0)
+    expect(r.battery).not.toBeNull()
+    expect(r.warnings).toEqual([])
+  })
+
+  test('sizes essentials at 48 V with the smallest 48 V inverter', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    expect(r.runningW).toBe(465)
+    expect(r.surgeW).toBe(1515)
+    expect(r.largestSurgeName).toBe('Refrigerator')
+    expect(r.loadWh).toBe(3675)
+    expect(r.requiredWh).toBe(4804)
+    expect(r.inverter.w).toBe(3000)
+    expect(r.inverter.voltsOk).toBe(true)
+    expect(r.battery?.config).toBe('1S1P')
+    expect(r.battery?.unitLabel).toBe('48 V 200 Ah LiFePO₄')
+    expect(r.cable.gauge).toBe('8 AWG')
+    expect(r.cable.fuseA).toBe(80)
+    expect(r.warnings).toEqual([])
+  })
+
+  test('picks a 12 V inverter for the same load at 12 V', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4' })
+    expect(r.inverter.w).toBe(1000)
+    expect(r.inverter.voltsOk).toBe(true)
+    expect(r.battery?.config).toBe('1S2P')
+    expect(r.battery?.unitLabel).toBe('12 V 300 Ah LiFePO₄')
+    expect(r.cable.gauge).toBe('4 AWG')
+    expect(r.cable.fuseA).toBe(125)
+  })
+
+  test('a conventional AC drives the surge and the inverter pick', () => {
+    const r = compute({ qty: { fridge: 1, ac2c: 1, ac15i: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    expect(r.runningW).toBe(4000)
+    expect(r.surgeW).toBe(8400)
+    expect(r.largestSurgeName).toBe('2 ton AC · conventional')
+    expect(r.inverter.w).toBe(5000)
+  })
+
+  test('warns on a big load at 12 V with AGM and flags the dominant appliance', () => {
+    const r = compute({ qty: { fridge: 1, ac1c: 1, well: 1, micro: 1, lights: 1 }, hours: 10, volts: 12, chemistry: 'agm' })
+    expect(r.inverter.voltsOk).toBe(false)
+    expect(r.cable.runs).toBe(2)
+    expect(r.warnings.some((w) => w.includes('normally built for'))).toBe(true)
+    expect(r.warnings.some((w) => w.includes('hard to wire safely'))).toBe(true)
+    expect(r.warnings.some((w) => w.includes('parallel strings'))).toBe(true)
+    expect(r.warnings.some((w) => w.includes('1 ton AC · conventional is'))).toBe(true)
+  })
+
+  test('clamps hours, run length and unknown voltage to safe values', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 500, volts: 99 as never, chemistry: 'nope' as never, runLengthM: 0 })
+    expect(r.hours).toBe(72)
+    expect(r.volts).toBe(48)
+    expect(r.chemistry).toBe('lifepo4')
+    expect(r.cable.mainLengthM).toBe(0.5)
+  })
+
+  test('includes custom loads as continuous items', () => {
+    const custom = [{ id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 230 V × 4.5 A' }]
+    const r = compute({ qty: { custom1: 1 }, custom, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    expect(r.items[0]?.name).toBe('Pool pump')
+    expect(r.items[0]?.wh).toBe(10350)
+    expect(r.surgeW).toBe(2500)
+  })
+
+  test('catalog appends custom loads after the built-in list', () => {
+    const list = catalog([{ id: 'custom1', name: 'X', watts: 10, surge: 10, note: 'Custom · 10 W' }])
+    expect(list.at(-1)).toMatchObject({ id: 'custom1', cat: 'Custom', duty: 1, isCustom: true })
+  })
+})

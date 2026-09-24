@@ -1,0 +1,178 @@
+import {
+  APPLIANCES, CHEMISTRIES, FUSES, GAUGES, INVERTERS, SIZING, VOLTAGES,
+  type CatalogItem, type Chemistry, type ChemistryId, type Inverter, type Voltage,
+} from './catalog'
+import { fmtInt, fmtW } from './format'
+
+export interface CustomLoadLike { id: string; name: string; watts: number; surge: number; note: string }
+
+export interface SizingInput {
+  qty: Record<string, number>
+  custom?: readonly CustomLoadLike[]
+  hours: number
+  volts: Voltage
+  chemistry: ChemistryId
+  runLengthM?: number
+}
+
+export interface SelectedItem extends CatalogItem { qty: number; totalWatts: number; wh: number }
+export interface InverterPick { w: number; surge: number; volts: readonly Voltage[]; voltsOk: boolean }
+export interface BatteryPick {
+  unitLabel: string; unitV: number; unitAh: number; unitWh: number
+  series: number; parallel: number; count: number; config: string
+  bankWh: number; usableWh: number; bankAh: number; hoursActual: number
+}
+export interface CablePick {
+  amps: number; perRun: number; runs: number; gauge: string; mm2: number; ampacity: number
+  mainCount: number; mainLengthM: number; seriesLinks: number; parallelLinks: number; linkLengthM: number
+  totalLengthM: number; fuseA: number; dropPct: number
+}
+export interface SizingResult {
+  empty: boolean; items: SelectedItem[]; count: number
+  hours: number; volts: Voltage; chemistry: ChemistryId; chemistryLabel: string
+  runningW: number; surgeW: number; largestSurgeName: string
+  loadWh: number; requiredWh: number; requiredAh: number
+  inverter: InverterPick; battery: BatteryPick | null; cable: CablePick; warnings: string[]
+}
+
+const HOURS_RANGE = [1, 72] as const
+const RUN_LENGTH_RANGE = [0.5, 10] as const
+const DEFAULT_RUN_LENGTH_M = 1.5
+const FUSE_MARGIN = 1.1
+
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
+const finite = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
+const sum = <T>(list: readonly T[], f: (x: T) => number) => list.reduce((a, x) => a + f(x), 0)
+
+export function catalog(custom: readonly CustomLoadLike[] = []): CatalogItem[] {
+  const extra: CatalogItem[] = custom.map((c) => ({
+    id: c.id, name: c.name, cat: 'Custom', watts: c.watts, surge: c.surge, duty: 1, note: c.note, isCustom: true,
+  }))
+  return [...APPLIANCES, ...extra]
+}
+
+function selectItems(items: readonly CatalogItem[], qty: Record<string, number>, hours: number): SelectedItem[] {
+  return items
+    .filter((a) => (qty[a.id] ?? 0) > 0)
+    .map((a) => {
+      const n = Math.trunc(qty[a.id] ?? 0)
+      return { ...a, qty: n, totalWatts: a.watts * n, wh: Math.round(a.watts * a.duty * hours * n) }
+    })
+}
+
+function pickInverter(runningW: number, surgeW: number, volts: Voltage): Inverter {
+  const needW = runningW * SIZING.HEADROOM
+  const fits = (inv: Inverter) => inv.w >= needW && inv.surge >= surgeW
+  return (
+    INVERTERS.find((inv) => inv.volts.includes(volts) && fits(inv)) ??
+    INVERTERS.find(fits) ??
+    INVERTERS[INVERTERS.length - 1]!
+  )
+}
+
+function pickBattery(chem: Chemistry, volts: Voltage, requiredAh: number): BatteryPick | null {
+  const candidates = chem.units
+    .filter((u) => volts % u.v === 0)
+    .map((u) => {
+      const series = volts / u.v
+      const parallel = Math.max(1, Math.ceil(requiredAh / u.ah))
+      const count = series * parallel
+      const bankWh = u.v * u.ah * count
+      return {
+        unitLabel: `${u.v} V ${u.ah} Ah ${chem.short}`, unitV: u.v, unitAh: u.ah, unitWh: u.v * u.ah,
+        series, parallel, count, config: `${series}S${parallel}P`,
+        bankWh, usableWh: Math.round(bankWh * chem.dod), bankAh: u.ah * parallel, hoursActual: 0,
+      }
+    })
+    .sort((a, b) => a.count - b.count || a.bankWh - b.bankWh)
+  return candidates[0] ?? null
+}
+
+function sizeCable(inverterW: number, volts: Voltage, runLengthM: number) {
+  const amps = inverterW / volts / SIZING.INVERTER_EFF
+  const top = GAUGES[GAUGES.length - 1]!
+  let runs = 1
+  while (amps / runs > top.amps) runs++
+  const perRun = amps / runs
+  const dropPct = (ohmPerM: number) => ((2 * runLengthM * perRun * ohmPerM) / volts) * 100
+  let gi = GAUGES.findIndex((g) => g.amps >= perRun)
+  if (gi < 0) gi = GAUGES.length - 1
+  while (gi < GAUGES.length - 1 && dropPct(GAUGES[gi]!.ohmPerM) > SIZING.MAX_DROP_PCT) gi++
+  const fuseA = FUSES.find((f) => f >= perRun * FUSE_MARGIN) ?? FUSES[FUSES.length - 1]!
+  while (gi < GAUGES.length - 1 && fuseA > GAUGES[gi]!.amps) gi++
+  const g = GAUGES[gi]!
+  return { amps, perRun, runs, gauge: g.awg, mm2: g.mm2, ampacity: g.amps, fuseA: Math.min(fuseA, g.amps), dropPct: dropPct(g.ohmPerM) }
+}
+
+interface WarningContext {
+  items: SelectedItem[]; inverter: Inverter; inverterVoltsOk: boolean
+  amps: number; volts: Voltage; battery: BatteryPick | null; loadWh: number
+}
+
+function buildWarnings(ctx: WarningContext): string[] {
+  if (ctx.items.length === 0) return []
+  const w: string[] = []
+  if (!ctx.inverterVoltsOk) {
+    w.push(`${fmtW(ctx.inverter.w)} inverters are normally built for ${ctx.inverter.volts.join(' / ')} V. Change the battery voltage or trim the load.`)
+  }
+  if (ctx.amps > SIZING.MAX_PRACTICAL_AMPS) {
+    const next = VOLTAGES.find((v) => v > ctx.volts)
+    w.push(`${fmtInt(ctx.amps)} A on the DC side at ${ctx.volts} V is hard to wire safely${next ? `. Consider ${next} V.` : '.'}`)
+  }
+  if (ctx.battery && ctx.battery.parallel > SIZING.MAX_PARALLEL_STRINGS) {
+    w.push(`${ctx.battery.parallel} parallel strings drift out of balance. Prefer bigger units or a higher voltage.`)
+  }
+  const dominant = ctx.items.find((i) => ctx.loadWh > 0 && i.wh / ctx.loadWh > SIZING.DOMINANT_SHARE)
+  if (dominant) {
+    w.push(`${dominant.name} is ${Math.round((dominant.wh / ctx.loadWh) * 100)}% of the energy. Dropping it is the cheapest way to shrink the bank.`)
+  }
+  return w
+}
+
+export function compute(input: SizingInput): SizingResult {
+  const hours = clamp(finite(input.hours, 10), HOURS_RANGE[0], HOURS_RANGE[1])
+  const volts: Voltage = VOLTAGES.includes(input.volts) ? input.volts : 48
+  const chem = CHEMISTRIES[input.chemistry] ?? CHEMISTRIES.lifepo4
+  const runLengthM = clamp(finite(input.runLengthM, DEFAULT_RUN_LENGTH_M), RUN_LENGTH_RANGE[0], RUN_LENGTH_RANGE[1])
+
+  const items = selectItems(catalog(input.custom), input.qty ?? {}, hours)
+  const runningW = sum(items, (i) => i.totalWatts)
+  const largest = items.reduce<SelectedItem | null>(
+    (best, i) => (i.surge - i.watts > (best ? best.surge - best.watts : -1) ? i : best), null,
+  )
+  const surgeW = runningW + (largest ? largest.surge - largest.watts : 0)
+  const loadWh = sum(items, (i) => i.wh)
+  const requiredWh = loadWh / SIZING.INVERTER_EFF / chem.dod
+  const requiredAh = requiredWh / volts
+
+  const inverter = pickInverter(runningW, surgeW, volts)
+  const inverterVoltsOk = inverter.volts.includes(volts)
+  const picked = pickBattery(chem, volts, requiredAh)
+  const battery = picked
+    ? { ...picked, hoursActual: loadWh > 0 ? (picked.bankWh * chem.dod * SIZING.INVERTER_EFF) / (loadWh / hours) : 0 }
+    : null
+  const cable = sizeCable(inverter.w, volts, runLengthM)
+  const seriesLinks = battery ? (battery.series - 1) * battery.parallel : 0
+  const parallelLinks = battery ? 2 * (battery.parallel - 1) : 0
+  const linkLengthM = SIZING.LINK_LENGTH_M
+
+  return {
+    empty: items.length === 0,
+    items,
+    count: sum(items, (i) => i.qty),
+    hours, volts, chemistry: chem.id, chemistryLabel: chem.label,
+    runningW, surgeW, largestSurgeName: largest?.name ?? '',
+    loadWh, requiredWh: Math.round(requiredWh), requiredAh: Math.round(requiredAh),
+    inverter: { w: inverter.w, surge: inverter.surge, volts: inverter.volts, voltsOk: inverterVoltsOk },
+    battery,
+    cable: {
+      amps: Math.round(cable.amps), perRun: Math.round(cable.perRun), runs: cable.runs,
+      gauge: cable.gauge, mm2: cable.mm2, ampacity: cable.ampacity,
+      mainCount: 2 * cable.runs, mainLengthM: runLengthM,
+      seriesLinks, parallelLinks, linkLengthM,
+      totalLengthM: Math.round((2 * cable.runs * runLengthM + (seriesLinks + parallelLinks) * linkLengthM) * 10) / 10,
+      fuseA: cable.fuseA, dropPct: Math.round(cable.dropPct * 10) / 10,
+    },
+    warnings: buildWarnings({ items, inverter, inverterVoltsOk, amps: cable.amps, volts, battery, loadWh }),
+  }
+}
