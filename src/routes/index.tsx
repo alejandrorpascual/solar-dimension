@@ -37,13 +37,13 @@ function KitBuilderPage() {
   const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
   const { user } = Route.useRouteContext()
-  const { store, project, commit, syncing, syncError } = useProjectStore()
+  const { store, project, commit, syncing, saving, syncError } = useProjectStore()
   const result = compute({ qty: project.qty, custom: project.custom, hours: project.hours, volts: project.volts, chemistry: project.chemistry })
   const go = (next: Step) => navigate({ search: { step: next } })
 
   return (
     <main className="page">
-      <HeaderBar step={step} account={<AccountMenu user={user} />} />
+      <HeaderBar step={step} account={<AccountMenu user={user} busy={syncing || saving} />} />
       <ProjectBar store={store} commit={commit} />
       {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
       {syncing && <div className="muted">{t.ui.syncing}</div>}

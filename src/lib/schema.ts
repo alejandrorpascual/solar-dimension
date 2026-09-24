@@ -20,6 +20,8 @@ export const ProjectSchema = z.object({
   hours: z.number().int().min(HOURS_MIN).max(HOURS_MAX),
   volts: z.union([z.literal(12), z.literal(24), z.literal(36), z.literal(48)]),
   chemistry: z.enum(['lifepo4', 'agm']),
+  /** Milliseconds since epoch of the last edit on any device; the server only accepts writes that are not older than its copy. */
+  updatedAt: z.number().int().nonnegative().default(0),
 })
 
 export const StoreSchema = z.object({

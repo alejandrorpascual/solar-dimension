@@ -12,6 +12,16 @@ describe('project store', () => {
     expect(p.qty.fridge).toBe(1)
     expect(p.volts).toBe(48)
     expect(p.hours).toBe(10)
+    expect(p.updatedAt).toBe(0)
+  })
+
+  test('every edit stamps the project with a newer updatedAt', () => {
+    const s = initialStore()
+    const edited = patchCurrent(s, { hours: 24 })
+    expect(currentProject(edited).updatedAt).toBeGreaterThan(0)
+    expect(currentProject(addProject(s)).updatedAt).toBeGreaterThan(0)
+    expect(currentProject(duplicateProject(s)).updatedAt).toBeGreaterThan(0)
+    expect(currentProject(setQty(s, 'fridge', 2)).updatedAt).toBeGreaterThan(0)
   })
 
   test('setQty clamps between 0 and 20 and does not mutate the input', () => {

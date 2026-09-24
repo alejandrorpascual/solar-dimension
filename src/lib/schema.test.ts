@@ -13,6 +13,12 @@ test('rejects unknown voltage, out-of-range hours and empty project lists', () =
   expect(StoreSchema.safeParse({ version: 1, projects: [], currentId: 'p1' }).success).toBe(false)
 })
 
+test('defaults updatedAt to 0 and rejects negative stamps', () => {
+  const parsed = StoreSchema.parse({ version: 1, projects: [project], currentId: 'p1' })
+  expect(parsed.projects[0]?.updatedAt).toBe(0)
+  expect(StoreSchema.safeParse({ version: 1, projects: [{ ...project, updatedAt: -1 }], currentId: 'p1' }).success).toBe(false)
+})
+
 test('rejects quantities above the catalog maximum and unknown versions', () => {
   expect(StoreSchema.safeParse({ version: 1, projects: [{ ...project, qty: { fridge: 21 } }], currentId: 'p1' }).success).toBe(false)
   expect(StoreSchema.safeParse({ version: 2, projects: [project], currentId: 'p1' }).success).toBe(false)

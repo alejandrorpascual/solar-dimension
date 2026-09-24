@@ -14,6 +14,7 @@ const IdsInput = z.object({ ids: z.array(z.string().min(1)).max(MAX_BATCH) })
 function toProject(row: typeof projects.$inferSelect): Project {
   return ProjectSchema.parse({
     id: row.id, name: row.name, qty: row.qty, custom: row.custom, hours: row.hours, volts: row.volts, chemistry: row.chemistry,
+    updatedAt: row.updatedAt.getTime(),
   })
 }
 
@@ -22,11 +23,15 @@ async function listForUser(userId: string): Promise<Project[]> {
   return rows.map(toProject)
 }
 
+/**
+ * Last edit wins by the client's `updatedAt`, not by arrival order: a save that a reload cut off can still reach the
+ * database after a newer write, so the update only applies when the incoming stamp is not older than the stored one.
+ */
 async function upsertAll(userId: string, list: Project[]): Promise<void> {
   if (list.length === 0) return
   await db
     .insert(projects)
-    .values(list.map((p) => ({ ...p, userId, updatedAt: new Date() })))
+    .values(list.map((p) => ({ ...p, userId, updatedAt: new Date(p.updatedAt) })))
     .onConflictDoUpdate({
       target: [projects.userId, projects.id],
       set: {
@@ -36,8 +41,9 @@ async function upsertAll(userId: string, list: Project[]): Promise<void> {
         hours: sql`excluded.hours`,
         volts: sql`excluded.volts`,
         chemistry: sql`excluded.chemistry`,
-        updatedAt: new Date(),
+        updatedAt: sql`excluded.updated_at`,
       },
+      setWhere: sql`excluded.updated_at >= ${projects.updatedAt}`,
     })
 }
 

@@ -13,12 +13,15 @@ function nextId(projects: readonly Project[]): string {
   return `${ID_PREFIX}${max + 1}`
 }
 
-function newProject(projects: readonly Project[], name?: string, id: string = nextId(projects)): Project {
-  return { id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4' }
+const now = (): number => Date.now()
+
+function newProject(projects: readonly Project[], name?: string, id: string = nextId(projects), updatedAt: number = now()): Project {
+  return { id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4', updatedAt }
 }
 
+/** The seed project is stamped 0 so server and client render the same first store, and so any saved copy outranks it. */
 export function initialStore(): Store {
-  const p = newProject([], SEED_NAME, SEED_ID)
+  const p = newProject([], SEED_NAME, SEED_ID, 0)
   return { version: 1, projects: [p], currentId: p.id }
 }
 
@@ -28,7 +31,7 @@ export function currentProject(store: Store): Project {
 
 export function patchCurrent(store: Store, patch: Partial<Project>): Store {
   const id = currentProject(store).id
-  return { ...store, projects: store.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)) }
+  return { ...store, projects: store.projects.map((p) => (p.id === id ? { ...p, updatedAt: now(), ...patch } : p)) }
 }
 
 export function addProject(store: Store, name?: string): Store {
@@ -38,7 +41,7 @@ export function addProject(store: Store, name?: string): Store {
 
 export function duplicateProject(store: Store): Store {
   const src = currentProject(store)
-  const copy: Project = { ...src, id: nextId(store.projects), name: `${src.name} copy`, qty: { ...src.qty }, custom: [...src.custom] }
+  const copy: Project = { ...src, id: nextId(store.projects), name: `${src.name} copy`, qty: { ...src.qty }, custom: [...src.custom], updatedAt: now() }
   return { ...store, projects: [...store.projects, copy], currentId: copy.id }
 }
 
