@@ -178,3 +178,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
   .warn { font-size: 14px; padding: 14px 18px; border-radius: var(--radius-md); }
   .fine { font-size: 12px; }
 }
+
+.stage--narrow { max-width: 440px; }
+.form { display: flex; flex-direction: column; gap: 12px; }
+.account { display: flex; align-items: center; gap: 8px; }
+.account__email { font-size: 13px; }

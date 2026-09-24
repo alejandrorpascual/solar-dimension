@@ -3,13 +3,17 @@ import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { getDictionary, type Locale } from '../i18n'
 import { getLocale } from '../server/locale'
+import { getSession, type SessionUser } from '../server/session'
 import stylesheet from '../styles.css?url'
 
 const FONTS_URL =
   'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap'
 
 export const Route = createRootRoute({
-  beforeLoad: async (): Promise<{ locale: Locale; user: null }> => ({ locale: await getLocale(), user: null }),
+  beforeLoad: async (): Promise<{ locale: Locale; user: SessionUser | null }> => {
+    const [locale, session] = await Promise.all([getLocale(), getSession()])
+    return { locale, user: session?.user ?? null }
+  },
   head: ({ match }) => {
     const t = getDictionary(match.context.locale)
     return {

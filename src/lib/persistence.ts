@@ -1,6 +1,7 @@
 import { StoreSchema, type Store } from './schema'
 
 export const STORAGE_KEY = 'solar-dimension.projects.v1'
+export const SYNCED_KEY = 'solar-dimension.synced.v1'
 
 type Reader = Pick<Storage, 'getItem'>
 type Writer = Pick<Storage, 'setItem'>

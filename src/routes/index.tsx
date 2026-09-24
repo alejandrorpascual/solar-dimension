@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { AccountMenu } from '../components/AccountMenu'
 import { ApplianceGrid } from '../components/ApplianceGrid'
 import { BackupWindow } from '../components/BackupWindow'
 import { CustomApplianceForm } from '../components/CustomApplianceForm'
@@ -35,14 +36,17 @@ function KitBuilderPage() {
   const { step } = Route.useSearch()
   const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
-  const { store, project, commit } = useProjectStore()
+  const { user } = Route.useRouteContext()
+  const { store, project, commit, syncing, syncError } = useProjectStore()
   const result = compute({ qty: project.qty, custom: project.custom, hours: project.hours, volts: project.volts, chemistry: project.chemistry })
   const go = (next: Step) => navigate({ search: { step: next } })
 
   return (
     <main className="page">
-      <HeaderBar step={step} />
+      <HeaderBar step={step} account={<AccountMenu user={user} />} />
       <ProjectBar store={store} commit={commit} />
+      {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
+      {syncing && <div className="muted">{t.ui.syncing}</div>}
       <section className="stage">
         {step === 1 && (
           <>
