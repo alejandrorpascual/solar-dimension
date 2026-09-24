@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ApplianceGrid } from '../components/ApplianceGrid'
 import { BackupWindow } from '../components/BackupWindow'
 import { CustomApplianceForm } from '../components/CustomApplianceForm'
+import { KitSummary } from '../components/KitSummary'
 import { ProjectBar } from '../components/ProjectBar'
 import { Stepper, type Step } from '../components/Stepper'
 import { WizardFooter } from '../components/WizardFooter'
@@ -55,7 +56,12 @@ function KitBuilderPage() {
             <BackupWindow store={store} commit={commit} result={result} />
           </>
         )}
-        {step === 3 && <h2>Kit for {project.name}</h2>}
+        {step === 3 && (
+          <>
+            <h2>Kit for {project.name}</h2>
+            <KitSummary result={result} projectName={project.name} onEditAppliances={() => go(1)} onEditWindow={() => go(2)} />
+          </>
+        )}
       </section>
       <WizardFooter
         step={step}
