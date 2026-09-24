@@ -1,1 +1,60 @@
-/* Component classes are added in Task 6. */
+/* Header and stepper */
+.header { display: flex; flex-direction: column; gap: 12px; }
+.brand { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper__item { display: flex; align-items: center; gap: 8px; }
+.stepper__line { width: 16px; height: 2px; background: var(--line-strong); }
+.dot { width: 28px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 2px solid var(--line-strong); color: var(--muted); background: var(--surface); }
+.dot--cur { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+.dot--done { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.step-label { display: none; font-size: 14px; font-weight: 600; color: var(--muted); }
+.step-label--on { color: var(--ink); }
+@media (min-width: 1024px) {
+  .header { flex-direction: row; justify-content: space-between; align-items: center; }
+  .stepper { gap: 12px; }
+  .stepper__item { gap: 10px; }
+  .stepper__line { width: 56px; }
+  .dot { width: 32px; height: 32px; font-size: 14px; }
+  .step-label { display: block; }
+}
+
+/* Chips, buttons, inputs */
+.chip { flex-shrink: 0; font-size: 13px; font-weight: 600; padding: 0 14px; min-height: 38px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip--on, .chip--on:hover { background: var(--accent); color: #FFFFFF; border-color: var(--accent); }
+.btn { flex: 1 1 0; font-size: 15px; font-weight: 600; min-height: 50px; padding: 0 18px; border-radius: 12px; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); }
+.btn:hover { background: var(--ground); }
+.btn--primary { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+.btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.in { font-size: 15px; min-height: var(--tap); padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
+.in:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hs { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px; scrollbar-width: none; }
+.hs::-webkit-scrollbar { display: none; }
+@media (min-width: 1024px) {
+  .btn { flex: 0 0 auto; min-height: 48px; padding: 0 22px; }
+  .in { font-size: 14px; min-height: 40px; }
+  .hs { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+}
+
+/* Project bar */
+.project-bar { display: flex; flex-direction: column; gap: 8px; }
+.project-bar__tools { display: flex; gap: 8px; align-items: center; }
+@media (min-width: 1024px) {
+  .project-bar { flex-direction: row; align-items: center; gap: 12px; }
+  .project-bar__chips { flex: 1 1 0; min-width: 0; }
+  .project-bar__name { width: 220px; }
+}
+
+/* Stage and footer */
+.stage { display: flex; flex-direction: column; gap: 14px; }
+@media (min-width: 1024px) {
+  .stage { flex: 1 1 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 36px 40px; gap: 22px; box-shadow: var(--shadow-card); }
+}
+.footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px 28px; background: var(--ground); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.footer__summary { font-size: 13px; }
+.footer__actions { display: flex; gap: 8px; }
+@media (min-width: 1024px) {
+  .footer { position: static; padding: 0; border: 0; flex-direction: row; justify-content: space-between; align-items: center; gap: 24px; }
+  .footer__summary { font-size: 15px; }
+  .footer__actions { gap: 10px; }
+}
