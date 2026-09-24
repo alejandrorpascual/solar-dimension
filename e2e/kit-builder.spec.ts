@@ -46,3 +46,12 @@ test('the custom form explains what is missing', async ({ page }) => {
   await page.getByRole('button', { name: 'Add appliance' }).click()
   await expect(page.getByText('Give the appliance a name.')).toBeVisible()
 })
+
+test('hours, voltage and chemistry change the sizing summary', async ({ page }) => {
+  await page.goto('/?step=2')
+  await page.getByRole('button', { name: '24 h' }).click()
+  await page.getByRole('button', { name: /^12 V/ }).click()
+  await page.getByRole('button', { name: /AGM lead-acid/ }).click()
+  await expect(page.getByText(/24 h at 12 V/)).toBeVisible()
+  await expect(page.getByLabel('Hours without the grid')).toHaveValue('24')
+})

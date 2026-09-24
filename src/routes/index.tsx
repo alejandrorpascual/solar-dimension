@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ApplianceGrid } from '../components/ApplianceGrid'
+import { BackupWindow } from '../components/BackupWindow'
 import { CustomApplianceForm } from '../components/CustomApplianceForm'
 import { ProjectBar } from '../components/ProjectBar'
 import { Stepper, type Step } from '../components/Stepper'
@@ -48,7 +49,12 @@ function KitBuilderPage() {
             <CustomApplianceForm store={store} commit={commit} />
           </>
         )}
-        {step === 2 && <h2>How long should the backup last?</h2>}
+        {step === 2 && (
+          <>
+            <h2>How long should the backup last?</h2>
+            <BackupWindow store={store} commit={commit} result={result} />
+          </>
+        )}
         {step === 3 && <h2>Kit for {project.name}</h2>}
       </section>
       <WizardFooter

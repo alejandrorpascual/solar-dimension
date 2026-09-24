@@ -109,3 +109,31 @@
   .field--grow { flex: 1 1 0; }
   .custom__submit { flex: 0 0 auto; min-height: 40px; }
 }
+
+/* Step 2: backup window */
+.window { display: flex; flex-direction: column; gap: 14px; }
+.window__cols { display: flex; flex-direction: column; gap: 16px; }
+.window__hours { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.window__hours-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 600; }
+.hours-value { font-family: var(--font-display); font-size: 44px; font-weight: 700; line-height: 1; color: var(--accent); }
+input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(--tap); }
+.window__options { display: flex; flex-direction: column; gap: 8px; }
+.window__label { font-size: 14px; font-weight: 600; }
+.opt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.opt { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; text-align: left; padding: 12px 14px; min-height: 64px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); }
+.opt:hover { border-color: var(--accent); }
+.opt--on { border-color: var(--accent); background: var(--accent-tint); }
+.opt__t { font-size: 16px; font-weight: 700; }
+.opt__h { font-size: 12px; color: var(--muted); }
+.note-box { padding: 14px 16px; border-radius: var(--radius-md); background: var(--ground); font-size: 13px; line-height: 1.5; color: var(--muted); }
+@media (min-width: 1024px) {
+  .window__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+  .window__hours { padding: 0; border: 0; background: transparent; gap: 16px; }
+  .hours-value { font-size: 56px; }
+  .window__options { gap: 20px; }
+  .opt { padding: 16px; min-height: 76px; border-radius: var(--radius-md); }
+  .opt--on { box-shadow: 0 0 0 3px var(--accent-ring); }
+  .opt__t { font-size: 18px; }
+  .opt__h { font-size: 13px; }
+  .note-box { font-size: 14px; padding: 16px 18px; }
+}
