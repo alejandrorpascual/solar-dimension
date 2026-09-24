@@ -13,6 +13,7 @@ import { useProjectStore } from '../hooks/useProjectStore'
 import { tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
 import { compute, type SizingResult } from '../lib/sizing'
+import { patchCurrent } from '../lib/store'
 
 interface Search { step: Step }
 
@@ -38,7 +39,10 @@ function KitBuilderPage() {
   const navigate = useNavigate({ from: '/' })
   const { user } = Route.useRouteContext()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
-  const result = compute({ qty: project.qty, custom: project.custom, hours: project.hours, volts: project.volts, chemistry: project.chemistry })
+  const result = compute({
+    qty: project.qty, custom: project.custom, hours: project.hours, volts: project.volts, chemistry: project.chemistry,
+    batteryUnit: project.batteryUnit,
+  })
   const go = (next: Step) => navigate({ search: { step: next } })
 
   return (
@@ -64,7 +68,13 @@ function KitBuilderPage() {
         {step === 3 && (
           <>
             <h2>{tr(t, 'kitFor', { name: project.name })}</h2>
-            <KitSummary result={result} projectName={project.name} onEditAppliances={() => go(1)} onEditWindow={() => go(2)} />
+            <KitSummary
+              result={result}
+              projectName={project.name}
+              onEditAppliances={() => go(1)}
+              onEditWindow={() => go(2)}
+              onBatteryUnit={(id) => commit(patchCurrent(store, { batteryUnit: id }))}
+            />
           </>
         )}
       </section>

@@ -1,4 +1,5 @@
 import { useLocale } from '../hooks/useLocale'
+import { BatteryPicker } from './BatteryPicker'
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtHours, fmtInt, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
@@ -57,9 +58,15 @@ function PartsTable({ parts, t }: { parts: Part[]; t: Dictionary }) {
   )
 }
 
-interface Props { result: SizingResult; projectName: string; onEditAppliances: () => void; onEditWindow: () => void }
+interface Props {
+  result: SizingResult
+  projectName: string
+  onEditAppliances: () => void
+  onEditWindow: () => void
+  onBatteryUnit: (id: string | null) => void
+}
 
-export function KitSummary({ result: r, projectName, onEditAppliances, onEditWindow }: Props) {
+export function KitSummary({ result: r, projectName, onEditAppliances, onEditWindow, onBatteryUnit }: Props) {
   const { t, locale } = useLocale()
   const parts = buildParts(r, t, locale)
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
@@ -79,6 +86,7 @@ export function KitSummary({ result: r, projectName, onEditAppliances, onEditWin
         <div className="stat"><div className="lab">{t.ui.energyNeeded}</div><div className="stat__v num">{fmtKwh(r.requiredWh, locale)}</div></div>
         <div className="stat stat--accent"><div className="lab">{t.ui.runtime}</div><div className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</div></div>
       </div>
+      {!r.empty && <BatteryPicker options={r.batteryOptions} selected={r.batteryUnit} onSelect={onBatteryUnit} />}
       <div className="parts">
         {parts.length > 0 ? <PartsTable parts={parts} t={t} /> : <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}
       </div>

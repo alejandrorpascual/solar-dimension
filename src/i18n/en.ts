@@ -25,6 +25,7 @@ export const en: Dictionary = {
     mainCableSpec: '{gauge} ({mm2} mm²) copper, {length} m each', mainCableNote: 'Battery to inverter · {amps} A at full inverter load · {drop}% drop',
     interconnectsSpec: '{gauge} jumpers, {cm} cm each', interconnectsNote: '{series} series links · {parallel} parallel jumpers',
     fuseSpec: '{amps} A class T{perRun}', fuseNote: 'Inline on the positive lead, as close to the bank as possible', perRun: ' per run',
+    batterySize: 'Battery size', batterySizeHelp: 'Pick the battery you plan to buy. Auto uses the fewest batteries.', batteryAuto: 'Auto',
     fine: 'Assumes 90% inverter efficiency, 25% inverter headroom, {dod}% depth of discharge, 1,100 W per ton of cooling and one motor starting at a time. Verify conductor sizes against local code.',
     footer1: '{name} · {count} appliances · {running} running · {peak} peak', footer2: '{hours} h at {volts} V · {load} of load', footer3: '{count} batteries · {inverter} inverter · {gauge}', footerEmpty: 'Nothing selected yet',
     back: 'Back', next: 'Next: backup window', buildKit: 'Build my kit', startOver: 'Start over',

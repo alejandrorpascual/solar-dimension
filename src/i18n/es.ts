@@ -25,6 +25,7 @@ export const es: Dictionary = {
     mainCableSpec: '{gauge} ({mm2} mm²) de cobre, {length} m cada uno', mainCableNote: 'De batería a inversor · {amps} A a plena carga del inversor · {drop}% de caída',
     interconnectsSpec: 'Puentes {gauge}, {cm} cm cada uno', interconnectsNote: '{series} enlaces en serie · {parallel} puentes en paralelo',
     fuseSpec: '{amps} A clase T{perRun}', fuseNote: 'En línea en el cable positivo, lo más cerca posible del banco', perRun: ' por tramo',
+    batterySize: 'Tamaño de batería', batterySizeHelp: 'Elige la batería que piensas comprar. Automático usa la menor cantidad.', batteryAuto: 'Automático',
     fine: 'Supone 90% de eficiencia del inversor, 25% de margen, {dod}% de profundidad de descarga, 1,100 W por tonelada de refrigeración y un solo motor arrancando a la vez. Verifica los calibres con la normativa local.',
     footer1: '{name} · {count} aparatos · {running} en marcha · {peak} pico', footer2: '{hours} h a {volts} V · {load} de carga', footer3: '{count} baterías · inversor de {inverter} · {gauge}', footerEmpty: 'Nada seleccionado todavía',
     back: 'Atrás', next: 'Siguiente: horas de respaldo', buildKit: 'Armar mi kit', startOver: 'Empezar de nuevo',

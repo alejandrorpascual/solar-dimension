@@ -27,6 +27,7 @@ export type UiKey =
   | 'part' | 'specification' | 'quantity' | 'nothingSelected'
   | 'inverterSpec' | 'inverterNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'interconnectsNote' | 'fuseSpec' | 'fuseNote' | 'perRun'
   | 'fine'
+  | 'batterySize' | 'batterySizeHelp' | 'batteryAuto'
   | 'footer1' | 'footer2' | 'footer3' | 'footerEmpty'
   | 'back' | 'next' | 'buildKit' | 'startOver'
   | 'signIn' | 'signUp' | 'signOut' | 'email' | 'password' | 'noAccount' | 'haveAccount' | 'authFailed' | 'signedInAs' | 'syncing' | 'syncFailed' | 'language'

@@ -13,6 +13,14 @@ describe('project store', () => {
     expect(p.volts).toBe(48)
     expect(p.hours).toBe(10)
     expect(p.updatedAt).toBe(0)
+    expect(p.batteryUnit).toBeNull()
+  })
+
+  test('new and duplicated projects keep the battery choice rules', () => {
+    const chosen = patchCurrent(initialStore(), { batteryUnit: '12-200' })
+    expect(currentProject(chosen).batteryUnit).toBe('12-200')
+    expect(currentProject(duplicateProject(chosen)).batteryUnit).toBe('12-200')
+    expect(currentProject(addProject(chosen)).batteryUnit).toBeNull()
   })
 
   test('every edit stamps the project with a newer updatedAt', () => {

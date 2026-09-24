@@ -78,3 +78,40 @@ describe('compute', () => {
     expect(list.at(-1)).toMatchObject({ id: 'custom1', cat: 'Custom', duty: 1, isCustom: true })
   })
 })
+
+describe('battery unit choice', () => {
+  test('lists every unit sold at the bank voltage, bank-voltage units first, with the count each needs', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4' })
+    expect(r.batteryOptions.map((o) => [o.id, o.count, o.isAuto])).toEqual([
+      ['12-100', 5, false],
+      ['12-200', 3, false],
+      ['12-300', 2, true],
+    ])
+    expect(r.batteryUnit).toBeNull()
+    expect(r.battery?.unitLabel).toBe('12 V 300 Ah LiFePO₄')
+  })
+
+  test('orders 48 V units first at a 48 V bank, then 24 V, then 12 V', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    expect(r.batteryOptions.map((o) => o.id)).toEqual(['48-50', '48-100', '48-200', '24-100', '24-200', '12-100', '12-200', '12-300'])
+    expect(r.batteryOptions.find((o) => o.isAuto)?.id).toBe('48-200')
+  })
+
+  test('a chosen unit drives the bank, interconnects, runtime and warnings', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4', batteryUnit: '12-100' })
+    expect(r.batteryUnit).toBe('12-100')
+    expect(r.battery?.unitLabel).toBe('12 V 100 Ah LiFePO₄')
+    expect(r.battery?.config).toBe('1S5P')
+    expect(r.battery?.count).toBe(5)
+    expect(r.cable.parallelLinks).toBe(8)
+    expect(r.battery?.hoursActual).toBeGreaterThan(10)
+    expect(r.warnings.map((w) => w.code)).toContain('parallelStrings')
+  })
+
+  test('a unit that is not sold for this voltage or chemistry falls back to the automatic pick', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'agm', batteryUnit: '12-300' })
+    expect(r.batteryUnit).toBeNull()
+    expect(r.battery?.unitLabel).toBe(r.batteryOptions.find((o) => o.isAuto)?.label)
+    expect(compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: 'nonsense' }).batteryUnit).toBeNull()
+  })
+})

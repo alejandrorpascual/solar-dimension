@@ -13,6 +13,7 @@ export const projects = pgTable(
     hours: integer('hours').notNull(),
     volts: integer('volts').notNull(),
     chemistry: text('chemistry').notNull(),
+    batteryUnit: text('battery_unit'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

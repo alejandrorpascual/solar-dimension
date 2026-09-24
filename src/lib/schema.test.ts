@@ -13,6 +13,12 @@ test('rejects unknown voltage, out-of-range hours and empty project lists', () =
   expect(StoreSchema.safeParse({ version: 1, projects: [], currentId: 'p1' }).success).toBe(false)
 })
 
+test('battery unit defaults to automatic (null) and accepts a unit id', () => {
+  expect(StoreSchema.parse({ version: 1, projects: [project], currentId: 'p1' }).projects[0]?.batteryUnit).toBeNull()
+  expect(StoreSchema.parse({ version: 1, projects: [{ ...project, batteryUnit: '12-200' }], currentId: 'p1' }).projects[0]?.batteryUnit).toBe('12-200')
+  expect(StoreSchema.safeParse({ version: 1, projects: [{ ...project, batteryUnit: 'x'.repeat(40) }], currentId: 'p1' }).success).toBe(false)
+})
+
 test('defaults updatedAt to 0 and rejects negative stamps', () => {
   const parsed = StoreSchema.parse({ version: 1, projects: [project], currentId: 'p1' })
   expect(parsed.projects[0]?.updatedAt).toBe(0)

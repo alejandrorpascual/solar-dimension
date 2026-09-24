@@ -4,5 +4,5 @@ import { projects } from './schema'
 
 test('projects table has the columns the store needs', () => {
   const cols = Object.keys(getTableColumns(projects)).sort()
-  expect(cols).toEqual(['chemistry', 'createdAt', 'custom', 'hours', 'id', 'name', 'qty', 'updatedAt', 'userId', 'volts'])
+  expect(cols).toEqual(['batteryUnit', 'chemistry', 'createdAt', 'custom', 'hours', 'id', 'name', 'qty', 'updatedAt', 'userId', 'volts'])
 })

@@ -15,6 +15,13 @@
       "when": 1790281542314,
       "tag": "0001_lyrical_sumo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790292585121,
+      "tag": "0002_redundant_raza",
+      "breakpoints": true
     }
   ]
 }

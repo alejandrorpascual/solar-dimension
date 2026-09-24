@@ -12,6 +12,8 @@ export interface SizingInput {
   volts: Voltage
   chemistry: ChemistryId
   runLengthM?: number
+  /** A battery unit id such as "12-200" (volts-Ah); null or unavailable means the automatic pick. */
+  batteryUnit?: string | null
 }
 
 export interface SelectedItem extends CatalogItem { qty: number; totalWatts: number; wh: number }
@@ -20,6 +22,11 @@ export interface BatteryPick {
   unitLabel: string; unitV: number; unitAh: number; unitWh: number
   series: number; parallel: number; count: number; config: string
   bankWh: number; usableWh: number; bankAh: number; hoursActual: number
+}
+/** One battery unit that can build this bank, with the bank it would make. */
+export interface BatteryOption {
+  id: string; label: string; unitV: number; unitAh: number
+  count: number; config: string; bankWh: number; isAuto: boolean
 }
 export interface CablePick {
   amps: number; perRun: number; runs: number; gauge: string; mm2: number; ampacity: number
@@ -38,6 +45,9 @@ export interface SizingResult {
   runningW: number; surgeW: number; largestSurgeName: string; largestSurgeId: string
   loadWh: number; requiredWh: number; requiredAh: number
   inverter: InverterPick; battery: BatteryPick | null; cable: CablePick; warnings: Warning[]
+  batteryOptions: BatteryOption[]
+  /** The unit actually used when it came from the user's choice; null when the automatic pick is in effect. */
+  batteryUnit: string | null
 }
 
 const HOURS_RANGE = [1, 72] as const
@@ -75,8 +85,11 @@ function pickInverter(runningW: number, surgeW: number, volts: Voltage): Inverte
   )
 }
 
-function pickBattery(chem: Chemistry, volts: Voltage, requiredAh: number): BatteryPick | null {
-  const candidates = chem.units
+const unitId = (v: number, ah: number) => `${v}-${ah}`
+
+/** Every bank this chemistry can build at this voltage, ordered bank-voltage units first, then by capacity. */
+function batteryCandidates(chem: Chemistry, volts: Voltage, requiredAh: number): Array<BatteryPick & { id: string }> {
+  return chem.units
     .filter((u) => volts % u.v === 0)
     .map((u) => {
       const series = volts / u.v
@@ -84,13 +97,29 @@ function pickBattery(chem: Chemistry, volts: Voltage, requiredAh: number): Batte
       const count = series * parallel
       const bankWh = u.v * u.ah * count
       return {
+        id: unitId(u.v, u.ah),
         unitLabel: `${u.v} V ${u.ah} Ah ${chem.short}`, unitV: u.v, unitAh: u.ah, unitWh: u.v * u.ah,
         series, parallel, count, config: `${series}S${parallel}P`,
         bankWh, usableWh: Math.round(bankWh * chem.dod), bankAh: u.ah * parallel, hoursActual: 0,
       }
     })
-    .sort((a, b) => a.count - b.count || a.bankWh - b.bankWh)
-  return candidates[0] ?? null
+    .sort((a, b) => b.unitV - a.unitV || a.unitAh - b.unitAh)
+}
+
+/** Strip the candidate id and fill in how long this bank runs the load. */
+function toBatteryPick(
+  candidate: (BatteryPick & { id: string }) | null,
+  ctx: { chem: Chemistry; loadWh: number; hours: number },
+): BatteryPick | null {
+  if (!candidate) return null
+  const { id: _id, ...pick } = candidate
+  const hourlyWh = ctx.loadWh / ctx.hours
+  return { ...pick, hoursActual: ctx.loadWh > 0 ? (pick.bankWh * ctx.chem.dod * SIZING.INVERTER_EFF) / hourlyWh : 0 }
+}
+
+/** The automatic pick: fewest batteries, then the smallest bank that still covers the load. */
+function autoPick<T extends { count: number; bankWh: number }>(candidates: readonly T[]): T | null {
+  return [...candidates].sort((a, b) => a.count - b.count || a.bankWh - b.bankWh)[0] ?? null
 }
 
 function sizeCable(inverterW: number, volts: Voltage, runLengthM: number) {
@@ -151,10 +180,10 @@ export function compute(input: SizingInput): SizingResult {
 
   const inverter = pickInverter(runningW, surgeW, volts)
   const inverterVoltsOk = inverter.volts.includes(volts)
-  const picked = pickBattery(chem, volts, requiredAh)
-  const battery = picked
-    ? { ...picked, hoursActual: loadWh > 0 ? (picked.bankWh * chem.dod * SIZING.INVERTER_EFF) / (loadWh / hours) : 0 }
-    : null
+  const candidates = batteryCandidates(chem, volts, requiredAh)
+  const auto = autoPick(candidates)
+  const chosen = candidates.find((c) => c.id === input.batteryUnit) ?? null
+  const battery = toBatteryPick(chosen ?? auto, { chem, loadWh, hours })
   const cable = sizeCable(inverter.w, volts, runLengthM)
   const seriesLinks = battery ? (battery.series - 1) * battery.parallel : 0
   const parallelLinks = battery ? 2 * (battery.parallel - 1) : 0
@@ -178,5 +207,10 @@ export function compute(input: SizingInput): SizingResult {
       fuseA: cable.fuseA, dropPct: Math.round(cable.dropPct * 10) / 10,
     },
     warnings: buildWarnings({ items, inverter, inverterVoltsOk, amps: cable.amps, volts, battery, loadWh }),
+    batteryOptions: candidates.map((c) => ({
+      id: c.id, label: c.unitLabel, unitV: c.unitV, unitAh: c.unitAh,
+      count: c.count, config: c.config, bankWh: c.bankWh, isAuto: c.id === auto?.id,
+    })),
+    batteryUnit: chosen?.id ?? null,
   }
 }
