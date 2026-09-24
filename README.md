@@ -1,4 +1,5 @@
 # Solar Dimension · Kit builder
+![CI](https://github.com/alejandrorpascual/solar-dimension/actions/workflows/ci.yml/badge.svg)
 
 Pick the appliances that must stay on during an outage, set how long the backup must last, and get the inverter, the battery bank (12 / 24 / 36 / 48 V) and the DC cabling you need.
 
