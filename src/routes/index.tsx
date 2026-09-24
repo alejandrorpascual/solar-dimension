@@ -2,12 +2,15 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ApplianceGrid } from '../components/ApplianceGrid'
 import { BackupWindow } from '../components/BackupWindow'
 import { CustomApplianceForm } from '../components/CustomApplianceForm'
+import { HeaderBar } from '../components/HeaderBar'
 import { KitSummary } from '../components/KitSummary'
 import { ProjectBar } from '../components/ProjectBar'
-import { Stepper, type Step } from '../components/Stepper'
+import type { Step } from '../components/Stepper'
 import { WizardFooter } from '../components/WizardFooter'
+import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
-import { fmtKwh, fmtW } from '../lib/format'
+import { tr, type Dictionary, type Locale } from '../i18n'
+import { fmtKwh, fmtW } from '../i18n/format'
 import { compute, type SizingResult } from '../lib/sizing'
 
 interface Search { step: Step }
@@ -21,15 +24,16 @@ export const Route = createFileRoute('/')({
   component: KitBuilderPage,
 })
 
-function footerSummary(step: Step, projectName: string, r: SizingResult): string {
-  if (step === 1) return `${projectName} · ${r.count} appliances · ${fmtW(r.runningW)} running · ${fmtW(r.surgeW)} peak`
-  if (step === 2) return `${r.hours} h at ${r.volts} V · ${fmtKwh(r.loadWh)} of load`
-  if (r.empty || !r.battery) return 'Nothing selected yet'
-  return `${r.battery.count} batteries · ${fmtW(r.inverter.w)} inverter · ${r.cable.gauge}`
+function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary, locale: Locale): string {
+  if (step === 1) return tr(t, 'footer1', { name, count: r.count, running: fmtW(r.runningW, locale), peak: fmtW(r.surgeW, locale) })
+  if (step === 2) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) })
+  if (r.empty || !r.battery) return t.ui.footerEmpty
+  return tr(t, 'footer3', { count: r.battery.count, inverter: fmtW(r.inverter.w, locale), gauge: r.cable.gauge })
 }
 
 function KitBuilderPage() {
   const { step } = Route.useSearch()
+  const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
   const { store, project, commit } = useProjectStore()
   const result = compute({ qty: project.qty, custom: project.custom, hours: project.hours, volts: project.volts, chemistry: project.chemistry })
@@ -37,35 +41,32 @@ function KitBuilderPage() {
 
   return (
     <main className="page">
-      <header className="header">
-        <div className="brand">Kit Builder</div>
-        <Stepper step={step} />
-      </header>
+      <HeaderBar step={step} />
       <ProjectBar store={store} commit={commit} />
       <section className="stage">
         {step === 1 && (
           <>
-            <h2>Which appliances need to stay on?</h2>
+            <h2>{t.ui.q1}</h2>
             <ApplianceGrid store={store} commit={commit} />
             <CustomApplianceForm store={store} commit={commit} />
           </>
         )}
         {step === 2 && (
           <>
-            <h2>How long should the backup last?</h2>
+            <h2>{t.ui.q2}</h2>
             <BackupWindow store={store} commit={commit} result={result} />
           </>
         )}
         {step === 3 && (
           <>
-            <h2>Kit for {project.name}</h2>
+            <h2>{tr(t, 'kitFor', { name: project.name })}</h2>
             <KitSummary result={result} projectName={project.name} onEditAppliances={() => go(1)} onEditWindow={() => go(2)} />
           </>
         )}
       </section>
       <WizardFooter
         step={step}
-        summary={footerSummary(step, project.name, result)}
+        summary={footerSummary(step, project.name, result, t, locale)}
         onBack={() => go((step - 1) as Step)}
         onNext={() => go((step + 1) as Step)}
         onStartOver={() => go(1)}

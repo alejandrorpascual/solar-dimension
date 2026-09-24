@@ -71,3 +71,14 @@ test('full flow: appliances → window → kit, and the project survives a reloa
   await page.getByRole('button', { name: 'Edit appliances' }).click()
   await expect(page.getByRole('button', { name: 'Remove one 2 ton AC · conventional' })).toBeVisible()
 })
+
+test('the language switch shows the app in Spanish and remembers it', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Español' }).click()
+  await expect(page.getByRole('heading', { name: '¿Qué aparatos deben seguir encendidos?' })).toBeVisible()
+  await expect(page.getByText('Refrigerador')).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: '¿Qué aparatos deben seguir encendidos?' })).toBeVisible()
+  await page.getByRole('button', { name: 'English' }).click()
+  await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+})

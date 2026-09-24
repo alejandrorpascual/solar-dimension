@@ -13,15 +13,15 @@ describe('parseCustom', () => {
   })
 
   test('rejects an empty name', () => {
-    expect(parseCustom({ ...EMPTY_FORM, watts: '100' }, [])).toEqual({ ok: false, error: 'Give the appliance a name.' })
+    expect(parseCustom({ ...EMPTY_FORM, watts: '100' }, [])).toEqual({ ok: false, error: 'errName' })
   })
 
   test('rejects zero or non-numeric values per mode', () => {
-    expect(parseCustom({ ...EMPTY_FORM, name: 'X', mode: 'va', volts: '0', amps: '2' }, [])).toEqual({ ok: false, error: 'Enter volts and amps above zero.' })
-    expect(parseCustom({ ...EMPTY_FORM, name: 'X', mode: 'watts', watts: 'abc' }, [])).toEqual({ ok: false, error: 'Enter running watts above zero.' })
+    expect(parseCustom({ ...EMPTY_FORM, name: 'X', mode: 'va', volts: '0', amps: '2' }, [])).toEqual({ ok: false, error: 'errVa' })
+    expect(parseCustom({ ...EMPTY_FORM, name: 'X', mode: 'watts', watts: 'abc' }, [])).toEqual({ ok: false, error: 'errWatts' })
   })
 
   test('rejects a surge below running watts', () => {
-    expect(parseCustom({ ...EMPTY_FORM, name: 'X', watts: '500', surge: '100' }, [])).toEqual({ ok: false, error: 'Surge cannot be below running watts.' })
+    expect(parseCustom({ ...EMPTY_FORM, name: 'X', watts: '500', surge: '100' }, [])).toEqual({ ok: false, error: 'errSurge' })
   })
 })

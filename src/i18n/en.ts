@@ -7,7 +7,7 @@ export const en: Dictionary = {
     project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
     q1: 'Which appliances need to stay on?', q1Help: 'Add each one and set how many. Running watts drive the battery, surge watts drive the inverter.',
     search: 'Search appliances', nothingMatches: 'Nothing matches. Try another word or add it below.',
-    add: 'Add', addOne: 'Add one {name}', removeOne: 'Remove one {name}', remove: 'Remove {name}',
+    add: 'Add', addOne: 'Add {name}', removeOne: 'Remove one {name}', remove: 'Remove {name}',
     running: 'running', surge: 'surge', runningSurgeLine: '{watts} W running · {surge} surge',
     customTitle: 'Something not on the list?', customHelp: 'Type the watts from the label, or the volts and amps and we multiply them.',
     watts: 'Watts', voltsAmps: 'Volts × amps', name: 'Name', runningW: 'Running W', volts: 'Volts', amps: 'Amps', surgeOptional: 'Surge W (optional)', sameAsRunning: 'same as running', addAppliance: 'Add appliance',

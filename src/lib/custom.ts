@@ -1,3 +1,5 @@
+import type { UiKey } from '../i18n/types'
+
 export interface CustomForm {
   name: string
   mode: 'watts' | 'va'
@@ -10,7 +12,8 @@ export interface CustomForm {
 export const EMPTY_FORM: CustomForm = { name: '', mode: 'watts', watts: '', volts: '', amps: '', surge: '' }
 
 export interface ParsedCustomLoad { id: string; name: string; watts: number; surge: number; note: string }
-export type ParseResult = { ok: true; item: ParsedCustomLoad } | { ok: false; error: string }
+export type CustomError = Extract<UiKey, 'errName' | 'errVa' | 'errWatts' | 'errSurge'>
+export type ParseResult = { ok: true; item: ParsedCustomLoad } | { ok: false; error: CustomError }
 
 const ID_PREFIX = 'custom'
 
@@ -31,12 +34,12 @@ export function parseCustom(form: CustomForm, existingIds: readonly string[]): P
   const volts = num(form.volts)
   const amps = num(form.amps)
   const computed = isVa ? volts * amps : num(form.watts)
-  if (!name) return { ok: false, error: 'Give the appliance a name.' }
+  if (!name) return { ok: false, error: 'errName' }
   if (!(computed > 0)) {
-    return { ok: false, error: isVa ? 'Enter volts and amps above zero.' : 'Enter running watts above zero.' }
+    return { ok: false, error: isVa ? 'errVa' : 'errWatts' }
   }
   const surge = num(form.surge)
-  if (surge > 0 && surge < computed) return { ok: false, error: 'Surge cannot be below running watts.' }
+  if (surge > 0 && surge < computed) return { ok: false, error: 'errSurge' }
   const watts = Math.round(computed)
   return {
     ok: true,

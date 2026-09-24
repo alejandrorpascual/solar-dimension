@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { EMPTY_FORM, parseCustom, type CustomForm } from '../lib/custom'
+import { useLocale } from '../hooks/useLocale'
+import { EMPTY_FORM, parseCustom, type CustomError, type CustomForm } from '../lib/custom'
 import type { Store } from '../lib/schema'
 import { addCustom, currentProject } from '../lib/store'
 
 export function CustomApplianceForm({ store, commit }: { store: Store; commit: (s: Store) => void }) {
+  const { t } = useLocale()
   const [form, setForm] = useState<CustomForm>(EMPTY_FORM)
-  const [error, setError] = useState('')
-  const set = (patch: Partial<CustomForm>) => { setForm({ ...form, ...patch }); setError('') }
+  const [error, setError] = useState<CustomError | null>(null)
+  const set = (patch: Partial<CustomForm>) => { setForm({ ...form, ...patch }); setError(null) }
 
   function submit() {
     const res = parseCustom(form, currentProject(store).custom.map((c) => c.id))
@@ -20,28 +22,28 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
     <div className="custom">
       <div className="custom__head">
         <div>
-          <div className="custom__title">Something not on the list?</div>
-          <div className="muted custom__hint">Type the watts from the label, or the volts and amps and we multiply them.</div>
+          <div className="custom__title">{t.ui.customTitle}</div>
+          <div className="muted custom__hint">{t.ui.customHelp}</div>
         </div>
         <div className="custom__modes">
-          <button type="button" className={`seg${!isVa ? ' seg--on' : ''}`} onClick={() => set({ mode: 'watts' })}>Watts</button>
-          <button type="button" className={`seg${isVa ? ' seg--on' : ''}`} onClick={() => set({ mode: 'va' })}>Volts × amps</button>
+          <button type="button" className={`seg${!isVa ? ' seg--on' : ''}`} onClick={() => set({ mode: 'watts' })}>{t.ui.watts}</button>
+          <button type="button" className={`seg${isVa ? ' seg--on' : ''}`} onClick={() => set({ mode: 'va' })}>{t.ui.voltsAmps}</button>
         </div>
       </div>
       <div className="custom__row">
-        <label className="field field--grow"><span className="lab">Name</span><input className="in" type="text" placeholder="Pool pump" value={form.name} onChange={(e) => set({ name: e.target.value })} /></label>
+        <label className="field field--grow"><span className="lab">{t.ui.name}</span><input className="in" type="text" value={form.name} onChange={(e) => set({ name: e.target.value })} /></label>
         {isVa ? (
           <>
-            <label className="field"><span className="lab">Volts</span><input className="in" type="number" min="0" placeholder="230" value={form.volts} onChange={(e) => set({ volts: e.target.value })} /></label>
-            <label className="field"><span className="lab">Amps</span><input className="in" type="number" min="0" step="0.1" placeholder="3.5" value={form.amps} onChange={(e) => set({ amps: e.target.value })} /></label>
+            <label className="field"><span className="lab">{t.ui.volts}</span><input className="in" type="number" min="0" placeholder="230" value={form.volts} onChange={(e) => set({ volts: e.target.value })} /></label>
+            <label className="field"><span className="lab">{t.ui.amps}</span><input className="in" type="number" min="0" step="0.1" placeholder="3.5" value={form.amps} onChange={(e) => set({ amps: e.target.value })} /></label>
           </>
         ) : (
-          <label className="field"><span className="lab">Running W</span><input className="in" type="number" min="0" placeholder="750" value={form.watts} onChange={(e) => set({ watts: e.target.value })} /></label>
+          <label className="field"><span className="lab">{t.ui.runningW}</span><input className="in" type="number" min="0" placeholder="750" value={form.watts} onChange={(e) => set({ watts: e.target.value })} /></label>
         )}
-        <label className="field"><span className="lab">Surge W (optional)</span><input className="in" type="number" min="0" placeholder="same as running" value={form.surge} onChange={(e) => set({ surge: e.target.value })} /></label>
-        <button type="button" className="btn btn--primary custom__submit" onClick={submit}>Add appliance</button>
+        <label className="field"><span className="lab">{t.ui.surgeOptional}</span><input className="in" type="number" min="0" placeholder={t.ui.sameAsRunning} value={form.surge} onChange={(e) => set({ surge: e.target.value })} /></label>
+        <button type="button" className="btn btn--primary custom__submit" onClick={submit}>{t.ui.addAppliance}</button>
       </div>
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <div className="error" role="alert">{t.ui[error]}</div>}
     </div>
   )
 }

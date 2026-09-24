@@ -1,6 +1,9 @@
 /* Header and stepper */
 .header { display: flex; flex-direction: column; gap: 12px; }
 .brand { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+.header__tools { display: flex; align-items: center; gap: 8px; }
+.lang { display: flex; gap: 4px; }
+.lang .seg { flex: 0 0 auto; min-height: 36px; padding: 0 10px; font-size: 12px; }
 .stepper { display: flex; align-items: center; gap: 8px; }
 .stepper__item { display: flex; align-items: center; gap: 8px; }
 .stepper__line { width: 16px; height: 2px; background: var(--line-strong); }
@@ -10,7 +13,7 @@
 .step-label { display: none; font-size: 14px; font-weight: 600; color: var(--muted); }
 .step-label--on { color: var(--ink); }
 @media (min-width: 1024px) {
-  .header { flex-direction: row; justify-content: space-between; align-items: center; }
+  .header { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; }
   .stepper { gap: 12px; }
   .stepper__item { gap: 10px; }
   .stepper__line { width: 56px; }
