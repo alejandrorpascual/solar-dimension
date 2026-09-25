@@ -33,7 +33,7 @@ export const en: Dictionary = {
     footer1: '{name} · {count} appliances · {running} running · {peak} peak', footer2: '{hours} h at {volts} V · {load} of load', footer3: '{batteries} · {inverter} inverter · {gauge}', footerEmpty: 'Nothing selected yet',
     back: 'Back', next: 'Next: backup window', buildKit: 'Build my kit', startOver: 'Start over',
     signIn: 'Sign in', signUp: 'Create account', signOut: 'Sign out', email: 'Email', password: 'Password', noAccount: 'No account yet? Create one', haveAccount: 'Already have an account? Sign in', authFailed: 'That did not work. Check the email and password.', signedInAs: 'Signed in as {email}', syncing: 'Syncing your projects…', syncFailed: 'Could not save to your account. Changes are kept on this device.', language: 'Language',
-    notFound: 'Page not found', backHome: 'Back to the kit builder', errorTitle: 'Something interrupted the kit builder.', reload: 'Reload',
+    notFound: 'Page not found', backHome: 'Back to the kit builder', errorTitle: 'Something interrupted the kit builder.', reload: 'Reload', updating: 'Loading the latest version…',
   },
   categories: { All: 'All', Kitchen: 'Kitchen', Living: 'Living', Climate: 'Climate', 'Air conditioning': 'Air conditioning', Work: 'Work', Utility: 'Utility', Security: 'Security', Personal: 'Personal', Custom: 'Custom' },
   appliances: {

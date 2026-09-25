@@ -1,8 +1,9 @@
 import { HeadContent, Outlet, Scripts, createRootRoute, type ErrorComponentProps } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { useRootData, type RootData } from '../hooks/useRootData'
 import { DEFAULT_LOCALE, getDictionary } from '../i18n'
+import { shouldReloadForStaleChunk } from '../lib/stale-chunk'
 import { getLocale } from '../server/locale'
 import { getSession } from '../server/session'
 import stylesheet from '../styles.css?url'
@@ -50,10 +51,27 @@ function NotFound() {
   )
 }
 
-/** Shows the error's message so a report from a device we cannot inspect (a phone) says what actually failed. */
+/**
+ * A chunk that failed to load usually means the tab predates the current deploy, so it reloads once instead of
+ * showing an error. Anything else shows the error's message, so a report from a device we cannot inspect (a phone)
+ * says what actually failed.
+ */
 function ErrorScreen({ error }: ErrorComponentProps) {
   const { t } = useLocale()
-  console.error(error)
+  const [isReloading, setIsReloading] = useState(false)
+  useEffect(() => {
+    console.error(error)
+    if (!shouldReloadForStaleChunk(error)) return
+    setIsReloading(true)
+    window.location.reload()
+  }, [error])
+  if (isReloading) {
+    return (
+      <main className="page">
+        <p className="muted" role="status">{t.ui.updating}</p>
+      </main>
+    )
+  }
   return (
     <main className="page">
       <h1>{t.ui.errorTitle}</h1>

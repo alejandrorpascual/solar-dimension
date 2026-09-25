@@ -33,7 +33,7 @@ export const es: Dictionary = {
     footer1: '{name} · {count} aparatos · {running} en marcha · {peak} pico', footer2: '{hours} h a {volts} V · {load} de carga', footer3: '{batteries} · inversor de {inverter} · {gauge}', footerEmpty: 'Nada seleccionado todavía',
     back: 'Atrás', next: 'Siguiente: horas de respaldo', buildKit: 'Armar mi kit', startOver: 'Empezar de nuevo',
     signIn: 'Iniciar sesión', signUp: 'Crear cuenta', signOut: 'Cerrar sesión', email: 'Correo', password: 'Contraseña', noAccount: '¿No tienes cuenta? Crea una', haveAccount: '¿Ya tienes cuenta? Inicia sesión', authFailed: 'No funcionó. Revisa el correo y la contraseña.', signedInAs: 'Sesión iniciada como {email}', syncing: 'Sincronizando tus proyectos…', syncFailed: 'No se pudo guardar en tu cuenta. Los cambios quedan en este dispositivo.', language: 'Idioma',
-    notFound: 'Página no encontrada', backHome: 'Volver al kit', errorTitle: 'Algo interrumpió el armado del kit.', reload: 'Recargar',
+    notFound: 'Página no encontrada', backHome: 'Volver al kit', errorTitle: 'Algo interrumpió el armado del kit.', reload: 'Recargar', updating: 'Cargando la versión más reciente…',
   },
   categories: { All: 'Todos', Kitchen: 'Cocina', Living: 'Sala', Climate: 'Clima', 'Air conditioning': 'Aire acondicionado', Work: 'Trabajo', Utility: 'Servicios', Security: 'Seguridad', Personal: 'Personal', Custom: 'Personalizados' },
   appliances: {

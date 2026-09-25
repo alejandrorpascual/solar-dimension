@@ -33,4 +33,4 @@ export type UiKey =
   | 'footer1' | 'footer2' | 'footer3' | 'footerEmpty'
   | 'back' | 'next' | 'buildKit' | 'startOver'
   | 'signIn' | 'signUp' | 'signOut' | 'email' | 'password' | 'noAccount' | 'haveAccount' | 'authFailed' | 'signedInAs' | 'syncing' | 'syncFailed' | 'language'
-  | 'notFound' | 'backHome' | 'errorTitle' | 'reload'
+  | 'notFound' | 'backHome' | 'errorTitle' | 'reload' | 'updating'
