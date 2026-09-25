@@ -45,3 +45,11 @@ describe('catalog', () => {
     expect(CHEMISTRIES.agm.dod).toBe(0.5)
   })
 })
+
+test('Security lists a CCTV camera and two recorder sizes, all running continuously', () => {
+  const security = APPLIANCES.filter((a) => a.cat === 'Security')
+  expect(security.map((a) => [a.id, a.watts, a.surge, a.duty])).toEqual([
+    ['cctv', 7, 7, 1], ['nvr16', 20, 20, 1], ['nvr32', 50, 50, 1],
+  ])
+  expect(CATEGORIES.indexOf('Security')).toBe(CATEGORIES.indexOf('Utility') + 1)
+})

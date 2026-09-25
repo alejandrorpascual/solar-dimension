@@ -32,11 +32,11 @@ describe('project store', () => {
     expect(currentProject(setQty(s, 'fridge', 2)).updatedAt).toBeGreaterThan(0)
   })
 
-  test('setQty clamps between 0 and 20 and does not mutate the input', () => {
+  test('setQty clamps between 0 and 100 and does not mutate the input', () => {
     const s = initialStore()
     const before = JSON.stringify(s)
-    const s2 = setQty(setQty(s, 'ac2c', 25), 'fridge', -3)
-    expect(currentProject(s2).qty.ac2c).toBe(20)
+    const s2 = setQty(setQty(s, 'ac2c', 150), 'fridge', -3)
+    expect(currentProject(s2).qty.ac2c).toBe(100)
     expect(currentProject(s2).qty.fridge).toBe(0)
     expect(JSON.stringify(s)).toBe(before)
   })

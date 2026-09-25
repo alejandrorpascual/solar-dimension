@@ -1,5 +1,5 @@
 export type Category =
-  | 'Kitchen' | 'Living' | 'Climate' | 'Air conditioning' | 'Work' | 'Utility' | 'Personal' | 'Custom'
+  | 'Kitchen' | 'Living' | 'Climate' | 'Air conditioning' | 'Work' | 'Utility' | 'Security' | 'Personal' | 'Custom'
 export type Voltage = 12 | 24 | 36 | 48
 export type ChemistryId = 'lifepo4' | 'agm'
 export type CompressorType = 'inverter' | 'conventional'
@@ -26,11 +26,11 @@ export const SIZING = {
   MAX_PARALLEL_STRINGS: 4,
   DOMINANT_SHARE: 0.5,
   WATTS_PER_TON: 1100,
-  MAX_QTY: 20,
+  MAX_QTY: 100,
 } as const
 
 export const CATEGORIES: readonly Category[] = [
-  'Kitchen', 'Living', 'Climate', 'Air conditioning', 'Work', 'Utility', 'Personal', 'Custom',
+  'Kitchen', 'Living', 'Climate', 'Air conditioning', 'Work', 'Utility', 'Security', 'Personal', 'Custom',
 ]
 
 export const VOLTAGES: readonly Voltage[] = [12, 24, 36, 48]
@@ -107,6 +107,9 @@ const BASE: readonly CatalogItem[] = [
   { id: 'well', name: 'Well pump, 1/2 HP', cat: 'Utility', watts: 1000, surge: 3000, duty: 0.1, note: 'Runs ~6 min per hour' },
   { id: 'sump', name: 'Sump pump, 1/3 HP', cat: 'Utility', watts: 800, surge: 2000, duty: 0.1, note: 'Runs ~6 min per hour' },
   { id: 'wheater', name: 'Electric water heater', cat: 'Utility', watts: 4500, surge: 4500, duty: 0.25, note: 'Heavy: cycles ~25%' },
+  { id: 'cctv', name: 'CCTV camera', cat: 'Security', watts: 7, surge: 7, duty: 1, note: 'Continuous · includes IR night vision and PoE losses' },
+  { id: 'nvr16', name: 'Recorder (NVR/DVR), up to 16 cameras', cat: 'Security', watts: 20, surge: 20, duty: 1, note: 'Continuous · 1 hard drive' },
+  { id: 'nvr32', name: 'Recorder (NVR/DVR), 32+ cameras', cat: 'Security', watts: 50, surge: 50, duty: 1, note: 'Continuous · 4 hard drives' },
   { id: 'cpap', name: 'CPAP machine', cat: 'Personal', watts: 40, surge: 40, duty: 1, note: 'Continuous' },
   { id: 'dryer', name: 'Hair dryer', cat: 'Personal', watts: 1500, surge: 1500, duty: 0.05, note: '~3 min per hour' },
 ]

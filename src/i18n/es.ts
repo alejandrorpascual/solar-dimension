@@ -34,7 +34,7 @@ export const es: Dictionary = {
     signIn: 'Iniciar sesión', signUp: 'Crear cuenta', signOut: 'Cerrar sesión', email: 'Correo', password: 'Contraseña', noAccount: '¿No tienes cuenta? Crea una', haveAccount: '¿Ya tienes cuenta? Inicia sesión', authFailed: 'No funcionó. Revisa el correo y la contraseña.', signedInAs: 'Sesión iniciada como {email}', syncing: 'Sincronizando tus proyectos…', syncFailed: 'No se pudo guardar en tu cuenta. Los cambios quedan en este dispositivo.', language: 'Idioma',
     notFound: 'Página no encontrada', backHome: 'Volver al kit', errorTitle: 'Algo interrumpió el armado del kit.', reload: 'Recargar',
   },
-  categories: { All: 'Todos', Kitchen: 'Cocina', Living: 'Sala', Climate: 'Clima', 'Air conditioning': 'Aire acondicionado', Work: 'Trabajo', Utility: 'Servicios', Personal: 'Personal', Custom: 'Personalizados' },
+  categories: { All: 'Todos', Kitchen: 'Cocina', Living: 'Sala', Climate: 'Clima', 'Air conditioning': 'Aire acondicionado', Work: 'Trabajo', Utility: 'Servicios', Security: 'Seguridad', Personal: 'Personal', Custom: 'Personalizados' },
   appliances: {
     fridge: { name: 'Refrigerador', note: 'El compresor trabaja ~35% de cada hora' },
     freezer: { name: 'Congelador horizontal', note: 'Trabaja ~30% de cada hora' },
@@ -67,6 +67,9 @@ export const es: Dictionary = {
     well: { name: 'Bomba de pozo, 1/2 HP', note: 'Funciona ~6 min por hora' },
     sump: { name: 'Bomba de achique, 1/3 HP', note: 'Funciona ~6 min por hora' },
     wheater: { name: 'Calentador de agua eléctrico', note: 'Pesado: trabaja ~25%' },
+    cctv: { name: 'Cámara de CCTV', note: 'Continuo · incluye visión nocturna IR y pérdidas PoE' },
+    nvr16: { name: 'Grabador (NVR/DVR), hasta 16 cámaras', note: 'Continuo · 1 disco duro' },
+    nvr32: { name: 'Grabador (NVR/DVR), 32+ cámaras', note: 'Continuo · 4 discos duros' },
     cpap: { name: 'Equipo CPAP', note: 'Continuo' },
     dryer: { name: 'Secadora de cabello', note: '~3 min por hora' },
   },

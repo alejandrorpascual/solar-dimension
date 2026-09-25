@@ -34,7 +34,7 @@ export const en: Dictionary = {
     signIn: 'Sign in', signUp: 'Create account', signOut: 'Sign out', email: 'Email', password: 'Password', noAccount: 'No account yet? Create one', haveAccount: 'Already have an account? Sign in', authFailed: 'That did not work. Check the email and password.', signedInAs: 'Signed in as {email}', syncing: 'Syncing your projects…', syncFailed: 'Could not save to your account. Changes are kept on this device.', language: 'Language',
     notFound: 'Page not found', backHome: 'Back to the kit builder', errorTitle: 'Something interrupted the kit builder.', reload: 'Reload',
   },
-  categories: { All: 'All', Kitchen: 'Kitchen', Living: 'Living', Climate: 'Climate', 'Air conditioning': 'Air conditioning', Work: 'Work', Utility: 'Utility', Personal: 'Personal', Custom: 'Custom' },
+  categories: { All: 'All', Kitchen: 'Kitchen', Living: 'Living', Climate: 'Climate', 'Air conditioning': 'Air conditioning', Work: 'Work', Utility: 'Utility', Security: 'Security', Personal: 'Personal', Custom: 'Custom' },
   appliances: {
     fridge: { name: 'Refrigerator', note: 'Compressor cycles ~35% of each hour' },
     freezer: { name: 'Chest freezer', note: 'Cycles ~30% of each hour' },
@@ -67,6 +67,9 @@ export const en: Dictionary = {
     well: { name: 'Well pump, 1/2 HP', note: 'Runs ~6 min per hour' },
     sump: { name: 'Sump pump, 1/3 HP', note: 'Runs ~6 min per hour' },
     wheater: { name: 'Electric water heater', note: 'Heavy: cycles ~25%' },
+    cctv: { name: 'CCTV camera', note: 'Continuous · includes IR night vision and PoE losses' },
+    nvr16: { name: 'Recorder (NVR/DVR), up to 16 cameras', note: 'Continuous · 1 hard drive' },
+    nvr32: { name: 'Recorder (NVR/DVR), 32+ cameras', note: 'Continuous · 4 hard drives' },
     cpap: { name: 'CPAP machine', note: 'Continuous' },
     dryer: { name: 'Hair dryer', note: '~3 min per hour' },
   },

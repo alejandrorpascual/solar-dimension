@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { SIZING } from './catalog'
 import { StoreSchema } from './schema'
 
 const project = { id: 'p1', name: 'Home', qty: { fridge: 1 }, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4' }
@@ -26,6 +27,7 @@ test('defaults updatedAt to 0 and rejects negative stamps', () => {
 })
 
 test('rejects quantities above the catalog maximum and unknown versions', () => {
-  expect(StoreSchema.safeParse({ version: 1, projects: [{ ...project, qty: { fridge: 21 } }], currentId: 'p1' }).success).toBe(false)
+  expect(StoreSchema.safeParse({ version: 1, projects: [{ ...project, qty: { cctv: SIZING.MAX_QTY } }], currentId: 'p1' }).success).toBe(true)
+  expect(StoreSchema.safeParse({ version: 1, projects: [{ ...project, qty: { fridge: SIZING.MAX_QTY + 1 } }], currentId: 'p1' }).success).toBe(false)
   expect(StoreSchema.safeParse({ version: 2, projects: [project], currentId: 'p1' }).success).toBe(false)
 })
