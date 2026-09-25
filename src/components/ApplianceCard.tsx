@@ -3,16 +3,16 @@ import { applianceName, applianceNote, tr } from '../i18n'
 import { fmtInt, fmtW } from '../i18n/format'
 import type { CatalogItem } from '../lib/catalog'
 
-interface Props { item: CatalogItem; qty: number; onInc: () => void; onDec: () => void; onRemove?: () => void }
+interface Props { item: CatalogItem; title?: string; qty: number; onInc: () => void; onDec: () => void; onRemove?: () => void }
 
-export function ApplianceCard({ item, qty, onInc, onDec, onRemove }: Props) {
+export function ApplianceCard({ item, title, qty, onInc, onDec, onRemove }: Props) {
   const { t, locale } = useLocale()
   const on = qty > 0
   const name = applianceName(t, item)
   return (
     <div className={`card${on ? ' card--on' : ''}`}>
       <div className="card__body">
-        <div className="card__name">{name}</div>
+        <div className="card__name">{title ?? name}</div>
         <div className="card__spec num">{tr(t, 'runningSurgeLine', { watts: fmtInt(item.watts, locale), surge: fmtW(item.surge, locale) })}</div>
         {item.isCustom && <div className="card__spec">{applianceNote(t, item)}</div>}
       </div>

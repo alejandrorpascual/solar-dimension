@@ -17,7 +17,8 @@ export interface Dictionary {
 export type UiKey =
   | 'brand' | 'step1' | 'step2' | 'step3' | 'stepOf'
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
-  | 'q1' | 'q1Help' | 'search' | 'nothingMatches' | 'add' | 'addOne' | 'removeOne' | 'remove'
+  | 'q1' | 'q1Help' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'
+  | 'search' | 'nothingMatches' | 'add' | 'addOne' | 'removeOne' | 'remove'
   | 'running' | 'surge' | 'runningSurgeLine'
   | 'customTitle' | 'customHelp' | 'watts' | 'voltsAmps' | 'name' | 'runningW' | 'volts' | 'amps' | 'surgeOptional' | 'sameAsRunning' | 'addAppliance'
   | 'errName' | 'errVa' | 'errWatts' | 'errSurge'

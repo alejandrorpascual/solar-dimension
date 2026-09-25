@@ -71,6 +71,11 @@
 .grid-block { display: flex; flex-direction: column; gap: 12px; }
 .toolbar { display: flex; flex-direction: column; gap: 10px; }
 .grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+/* AC group header: spans the full row and names the compressor type the cards below share. */
+.grid__group { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 14px 2px 2px; }
+.grid__group:first-child { padding-top: 0; }
+.grid__group-title { margin: 0; font-size: 16px; }
+.grid__group-help { margin: 0; font-size: 13px; }
 .card { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 72px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface); border: 1.5px solid var(--line); }
 .card--on { border-color: var(--accent); background: var(--accent-tint); }
 .card__body { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }

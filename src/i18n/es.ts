@@ -5,6 +5,7 @@ export const es: Dictionary = {
   ui: {
     brand: 'Arma tu kit', step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Tu kit', stepOf: 'Paso {n} de 3',
     project: 'Proyecto', projectName: 'Nombre del proyecto', newProject: '+ Nuevo proyecto', duplicate: 'Duplicar', delete: 'Eliminar', untitled: 'Sin nombre',
+    acInverter: 'Inverter', acInverterHelp: 'Arranque suave. Cuida la batería y el inversor.', acConventional: 'Convencional', acConventionalHelp: 'Arranca con ~3× su potencia en marcha. Necesita un inversor más grande.', acSizeOne: '{tons} tonelada · {btu}k BTU', acSizeMany: '{tons} toneladas · {btu}k BTU',
     q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; los de arranque, el inversor.',
     search: 'Buscar aparatos', nothingMatches: 'Nada coincide. Prueba otra palabra o agrégalo abajo.',
     add: 'Agregar', addOne: 'Agregar {name}', removeOne: 'Quitar un {name}', remove: 'Quitar {name}',

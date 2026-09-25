@@ -5,6 +5,7 @@ export const en: Dictionary = {
   ui: {
     brand: 'Kit Builder', step1: 'Appliances', step2: 'Backup window', step3: 'Your kit', stepOf: 'Step {n} of 3',
     project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
+    acInverter: 'Inverter', acInverterHelp: 'Soft start. Easy on the battery and inverter.', acConventional: 'Conventional', acConventionalHelp: 'Starts at ~3× its running power. Needs a bigger inverter.', acSizeOne: '{tons} ton · {btu}k BTU', acSizeMany: '{tons} ton · {btu}k BTU',
     q1: 'Which appliances need to stay on?', q1Help: 'Add each one and set how many. Running watts drive the battery, surge watts drive the inverter.',
     search: 'Search appliances', nothingMatches: 'Nothing matches. Try another word or add it below.',
     add: 'Add', addOne: 'Add {name}', removeOne: 'Remove one {name}', remove: 'Remove {name}',
