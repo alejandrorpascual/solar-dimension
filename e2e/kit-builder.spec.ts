@@ -33,6 +33,15 @@ test('the full list is split into one labeled section per category', async ({ pa
   await expect(ac.getByRole('heading', { level: 4 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
   await expect(ac).not.toContainText('Wi-Fi router + modem')
   await expect(page.getByRole('region', { name: 'Work', exact: true })).toContainText('Wi-Fi router + modem')
+
+  const utility = page.getByRole('region', { name: 'Utility', exact: true })
+  await expect(utility).not.toContainText('added')
+  await utility.getByRole('button', { name: 'Add Washing machine' }).click()
+  await expect(utility).toContainText('1 added')
+  await page.getByRole('button', { name: 'Español' }).click()
+  await expect(page.getByRole('region', { name: 'Servicios', exact: true })).toContainText('Agregados: 1')
+  await page.getByRole('button', { name: 'English' }).click()
+
   await page.getByRole('button', { name: 'Kitchen', exact: true }).click()
   await expect(page.getByRole('region')).toHaveCount(0)
 })
