@@ -27,6 +27,32 @@ test('moving between steps does not wait on the server', async ({ page }) => {
   expect(serverCalls).toEqual([])
 })
 
+test('a condo can type 32 cameras, and the AC list is grouped by compressor type', async ({ page }) => {
+  await page.goto('/')
+  const footer = page.getByText(/^Home · \d+ appliances ·/)
+  const before = Number((await footer.textContent())!.match(/(\d+) appliances/)![1])
+  await page.getByRole('button', { name: 'Security', exact: true }).click()
+  await page.getByRole('button', { name: 'Add CCTV camera' }).click()
+  const field = page.getByRole('textbox', { name: 'Quantity of CCTV camera' })
+  await field.fill('32')
+  await field.press('Enter')
+  await expect(field).toHaveValue('32')
+  await expect(footer).toContainText(`${before + 32} appliances`)
+  await field.fill('500')
+  await field.blur()
+  await expect(field).toHaveValue('100')
+  await field.fill('lots')
+  await field.blur()
+  await expect(field).toHaveValue('100')
+
+  await page.getByRole('button', { name: 'Air conditioning', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 3 })).toHaveText(['Inverter', 'Conventional'])
+  await expect(page.getByText('1 ton · 12k BTU', { exact: true })).toHaveCount(2)
+  await page.getByRole('searchbox').fill('2 ton')
+  await expect(page.getByRole('heading', { level: 3 })).toHaveCount(0)
+  await expect(page.getByText('2 ton AC · inverter', { exact: true })).toBeVisible()
+})
+
 test('a new project can be created, renamed and deleted', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: '+ New project' }).click()
