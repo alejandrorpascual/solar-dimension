@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import {
-  addCustom, addProject, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, removeCustom, selectProject, setQty,
+  addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
+  removeCustom, restoreProject, selectProject, setHoursIn, setQty, setQtyIn,
 } from './store'
 
 describe('project store', () => {
@@ -78,5 +79,48 @@ describe('project store', () => {
     const s2 = patchCurrent(s, { hours: 24 })
     expect(s2.projects[0]?.hours).toBe(10)
     expect(s2.projects[1]?.hours).toBe(24)
+  })
+})
+
+describe('editing any project, not just the open one', () => {
+  const twoProjects = () => {
+    const s = addProject(initialStore(), 'Office')
+    return { s, homeId: s.projects[0]!.id, officeId: s.projects[1]!.id }
+  }
+
+  test('setQtyIn changes only the named project and stamps it', () => {
+    const { s, homeId, officeId } = twoProjects()
+    const next = setQtyIn(s, homeId, 'tv', 3)
+    const home = next.projects.find((p) => p.id === homeId)!
+    expect(home.qty.tv).toBe(3)
+    expect(home.updatedAt).toBeGreaterThan(0)
+    expect(next.projects.find((p) => p.id === officeId)).toBe(s.projects[1])
+    expect(next.currentId).toBe(officeId)
+  })
+
+  test('setQtyIn clamps to the allowed range and ignores unknown projects', () => {
+    const { s, homeId } = twoProjects()
+    expect(setQtyIn(s, homeId, 'tv', 500).projects[0]!.qty.tv).toBe(100)
+    expect(setQtyIn(s, homeId, 'tv', -2).projects[0]!.qty.tv).toBe(0)
+    expect(setQtyIn(s, 'nope', 'tv', 2)).toBe(s)
+  })
+
+  test('setHoursIn keeps the window between 1 and 72 whole hours', () => {
+    const { s, homeId } = twoProjects()
+    expect(setHoursIn(s, homeId, 0).projects[0]!.hours).toBe(1)
+    expect(setHoursIn(s, homeId, 99).projects[0]!.hours).toBe(72)
+    expect(setHoursIn(s, homeId, 10.7).projects[0]!.hours).toBe(10)
+    expect(clampHours(Number.NaN)).toBe(1)
+  })
+
+  test('restoreProject puts back quantities, custom loads and hours but keeps later renames', () => {
+    const { s, homeId } = twoProjects()
+    const snapshot = s.projects[0]!
+    const edited = patchProject(setHoursIn(setQtyIn(s, homeId, 'fridge', 4), homeId, 30), homeId, { name: 'Casa' })
+    const home = restoreProject(edited, snapshot).projects.find((p) => p.id === homeId)!
+    expect(home.qty).toEqual(snapshot.qty)
+    expect(home.hours).toBe(snapshot.hours)
+    expect(home.name).toBe('Casa')
+    expect(home.updatedAt).toBeGreaterThan(0)
   })
 })
