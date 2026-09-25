@@ -70,11 +70,17 @@
 /* Step 1: appliances */
 .grid-block { display: flex; flex-direction: column; gap: 12px; }
 .toolbar { display: flex; flex-direction: column; gap: 10px; }
+/* One section per category; a hairline and extra air mark where one category ends and the next begins. */
+.catalog { display: flex; flex-direction: column; gap: 28px; margin-top: 8px; }
+.catalog__section + .catalog__section { padding-top: 24px; border-top: 1px solid var(--line); }
+.catalog__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.catalog__title { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.catalog__added { flex-shrink: 0; font-size: 12px; font-weight: 600; line-height: 1; padding: 5px 10px; border-radius: 999px; color: var(--accent); background: var(--accent-tint); }
 .grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
 /* AC group header: spans the full row and names the compressor type the cards below share. */
-.grid__group { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 14px 2px 2px; }
+.grid__group { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 14px 0 2px; }
 .grid__group:first-child { padding-top: 0; }
-.grid__group-title { margin: 0; font-size: 16px; }
+.grid__group-title { margin: 0; font-size: 15px; }
 .grid__group-help { margin: 0; font-size: 13px; }
 .card { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 72px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface); border: 1.5px solid var(--line); }
 .card--on { border-color: var(--accent); background: var(--accent-tint); }

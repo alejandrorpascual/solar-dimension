@@ -1,33 +1,60 @@
 import { describe, expect, test } from 'vitest'
-import { gridEntries } from './appliance-groups'
-import { APPLIANCES } from './catalog'
+import { gridSections } from './appliance-groups'
+import { APPLIANCES, CATEGORIES, type CatalogItem } from './catalog'
 
-const ids = (entries: ReturnType<typeof gridEntries>) => entries.map((e) => (e.kind === 'item' ? e.item.id : `#${e.acType}`))
+const ids = (entries: ReturnType<typeof gridSections>[number]['entries']) =>
+  entries.map((e) => (e.kind === 'item' ? e.item.id : `#${e.acType}`))
 
-describe('gridEntries', () => {
-  test('puts inverter sizes under one header and conventional under another, ascending, where AC sat in the list', () => {
-    const e = ids(gridEntries(APPLIANCES, false))
-    const start = e.indexOf('#inverter')
-    expect(e.slice(start, start + 14)).toEqual([
+const custom: CatalogItem = { id: 'c1', name: 'Pond pump', cat: 'Custom', watts: 60, surge: 60, duty: 1, note: '', isCustom: true }
+
+describe('gridSections', () => {
+  test('groups every item under its category, in catalog category order, skipping empty categories', () => {
+    const sections = gridSections(APPLIANCES, false)
+    const cats = sections.map((s) => s.cat)
+    expect(cats).toEqual(CATEGORIES.filter((c) => c !== 'Custom'))
+    for (const s of sections) {
+      expect(s.entries.every((e) => e.kind === 'acHeader' || e.item.cat === s.cat)).toBe(true)
+    }
+    const itemCount = sections.flatMap((s) => s.entries).filter((e) => e.kind === 'item').length
+    expect(itemCount).toBe(APPLIANCES.length)
+  })
+
+  test('the air conditioning section holds the inverter then the conventional group, each smallest first', () => {
+    const ac = gridSections(APPLIANCES, false).find((s) => s.cat === 'Air conditioning')
+    expect(ids(ac?.entries ?? [])).toEqual([
       '#inverter', 'ac1i', 'ac15i', 'ac2i', 'ac3i', 'ac4i', 'ac5i',
       '#conventional', 'ac1c', 'ac15c', 'ac2c', 'ac3c', 'ac4c', 'ac5c',
     ])
-    expect(e[start - 1]).toBe('heater')
-    expect(e.length).toBe(APPLIANCES.length + 2)
   })
 
-  test('while searching, AC items keep their place and no headers appear', () => {
-    const e = gridEntries(APPLIANCES.filter((a) => a.id.startsWith('ac2')), true)
-    expect(e.every((x) => x.kind === 'item' && !x.isGrouped)).toBe(true)
+  test('items after the AC groups land in their own sections, not under "Conventional"', () => {
+    const sections = gridSections(APPLIANCES, false)
+    const acIndex = sections.findIndex((s) => s.cat === 'Air conditioning')
+    expect(sections[acIndex + 1]?.cat).toBe('Work')
+    expect(ids(sections[acIndex + 1]?.entries ?? [])).toContain('router')
   })
 
-  test('lists without AC pass through unchanged', () => {
-    const kitchen = APPLIANCES.filter((a) => a.cat === 'Kitchen')
-    expect(ids(gridEntries(kitchen, false))).toEqual(kitchen.map((a) => a.id))
+  test('custom loads get their own section at the end', () => {
+    const sections = gridSections([...APPLIANCES, custom], false)
+    expect(sections.at(-1)).toEqual({ cat: 'Custom', entries: [{ kind: 'item', item: custom, isGrouped: false }] })
   })
 
   test('a group with no matching items gets no header', () => {
     const onlyInverter = APPLIANCES.filter((a) => a.acType === 'inverter')
-    expect(ids(gridEntries(onlyInverter, false))).not.toContain('#conventional')
+    const [section] = gridSections(onlyInverter, false)
+    expect(ids(section?.entries ?? [])).not.toContain('#conventional')
+  })
+
+  test('while searching, results stay in one flat, unlabeled list and AC items keep their full names', () => {
+    const hits = APPLIANCES.filter((a) => a.id.startsWith('ac2') || a.cat === 'Kitchen')
+    const sections = gridSections(hits, true)
+    expect(sections).toHaveLength(1)
+    expect(sections[0]?.cat).toBeNull()
+    expect(sections[0]?.entries.every((x) => x.kind === 'item' && !x.isGrouped)).toBe(true)
+  })
+
+  test('no items means no sections', () => {
+    expect(gridSections([], false)).toEqual([])
+    expect(gridSections([], true)).toEqual([])
   })
 })
