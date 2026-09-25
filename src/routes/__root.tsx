@@ -1,4 +1,4 @@
-import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRoute, type ErrorComponentProps } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { useRootData, type RootData } from '../hooks/useRootData'
@@ -50,12 +50,15 @@ function NotFound() {
   )
 }
 
-function ErrorScreen() {
+/** Shows the error's message so a report from a device we cannot inspect (a phone) says what actually failed. */
+function ErrorScreen({ error }: ErrorComponentProps) {
   const { t } = useLocale()
+  console.error(error)
   return (
     <main className="page">
       <h1>{t.ui.errorTitle}</h1>
       <a href="/">{t.ui.reload}</a>
+      <p className="fine muted">{error instanceof Error ? `${error.name}: ${error.message}` : String(error)}</p>
     </main>
   )
 }
