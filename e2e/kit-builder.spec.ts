@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test'
+import { hideProjects, showProjects } from './projects'
 
 test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Home' })).toBeVisible()
+  await expect(page.getByLabel('Project name')).toHaveValue('Home')
   await page.getByRole('button', { name: 'Next: backup window' }).click()
   await expect(page).toHaveURL(/step=2/)
   await page.getByRole('button', { name: 'Back', exact: true }).click()
@@ -89,22 +90,52 @@ test('a condo can type 32 cameras, and the AC list is grouped by compressor type
   await expect(field).toHaveValue('100')
 
   await page.getByRole('button', { name: 'Air conditioning', exact: true }).click()
-  await expect(page.getByRole('heading', { level: 3 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
+  await expect(page.getByRole('main').getByRole('heading', { level: 3 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
   await expect(page.getByText('1 ton · 12k BTU', { exact: true })).toHaveCount(2)
   await page.getByRole('searchbox').fill('2 ton')
-  await expect(page.getByRole('heading', { level: 3 })).toHaveCount(0)
+  await expect(page.getByRole('main').getByRole('heading', { level: 3 })).toHaveCount(0)
   await expect(page.getByText('2 ton AC · inverter', { exact: true })).toBeVisible()
 })
 
 test('a new project can be created, renamed and deleted', async ({ page }) => {
   await page.goto('/')
+  await showProjects(page)
   await page.getByRole('button', { name: '+ New project' }).click()
+  await hideProjects(page)
   const name = page.getByLabel('Project name')
   await name.fill('Office')
   await name.blur()
-  await expect(page.getByRole('button', { name: 'Office' })).toBeVisible()
+  await showProjects(page)
+  await expect(page.getByRole('button', { name: 'Office', exact: true })).toBeVisible()
+  await hideProjects(page)
   await page.getByRole('button', { name: 'Delete' }).click()
-  await expect(page.getByRole('button', { name: 'Office' })).toHaveCount(0)
+  await showProjects(page)
+  await expect(page.getByRole('button', { name: 'Office', exact: true })).toHaveCount(0)
+})
+
+test('project cards show each kit and quick edit a project without opening it', async ({ page }) => {
+  await page.goto('/?step=3')
+  await showProjects(page)
+  await page.getByRole('button', { name: '+ New project' }).click()
+  await hideProjects(page)
+  await expect(page.getByLabel('Project name')).toHaveValue('Project 2')
+
+  await showProjects(page)
+  const home = page.getByRole('article', { name: 'Home' })
+  await expect(home).toContainText('48 V · 10 h · 6 appliances')
+  const runtime = home.locator('dd').first()
+  const before = await runtime.textContent()
+  await home.getByRole('button', { name: 'Quick edit' }).click()
+  await home.getByRole('button', { name: 'Add TV, 55-inch LED' }).click()
+  await home.getByRole('button', { name: 'Add TV, 55-inch LED' }).click()
+  await expect(home.getByLabel('Quantity of TV, 55-inch LED')).toHaveValue('3')
+  await expect(runtime).not.toHaveText(before ?? '')
+  await expect(home).toContainText('3× TV, 55-inch LED')
+  await expect(page.getByRole('article', { name: 'Project 2' }).getByRole('button', { name: 'Project 2' })).toHaveAttribute('aria-current', 'true')
+
+  await home.getByRole('button', { name: 'Home' }).click()
+  await hideProjects(page)
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
 })
 
 test('appliances can be added, filtered and a custom load created from volts × amps', async ({ page }) => {
@@ -114,7 +145,7 @@ test('appliances can be added, filtered and a custom load created from volts × 
   await expect(page.getByRole('button', { name: 'Remove one 2 ton AC · conventional' })).toBeVisible()
   await page.getByRole('button', { name: 'All' }).click()
   await page.getByLabel('Search appliances').fill('fridge')
-  await expect(page.getByText('Refrigerator')).toBeVisible()
+  await expect(page.getByText('Refrigerator', { exact: true })).toBeVisible()
   await expect(page.getByText('Chest freezer')).toHaveCount(0)
   await page.getByLabel('Search appliances').fill('')
   await page.getByRole('button', { name: 'Volts × amps' }).click()
@@ -162,7 +193,7 @@ test('the language switch shows the app in Spanish and remembers it', async ({ p
   await page.goto('/')
   await page.getByRole('button', { name: 'Español' }).click()
   await expect(page.getByRole('heading', { name: '¿Qué aparatos deben seguir encendidos?' })).toBeVisible()
-  await expect(page.getByText('Refrigerador')).toBeVisible()
+  await expect(page.getByText('Refrigerador', { exact: true })).toBeVisible()
   await page.reload()
   await expect(page.getByRole('heading', { name: '¿Qué aparatos deben seguir encendidos?' })).toBeVisible()
   await page.getByRole('button', { name: 'English' }).click()

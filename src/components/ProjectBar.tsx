@@ -1,21 +1,24 @@
+import { LayoutGrid } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale'
+import { tr } from '../i18n'
 import type { Store } from '../lib/schema'
-import { addProject, currentProject, deleteProject, duplicateProject, patchCurrent, selectProject } from '../lib/store'
+import { currentProject, deleteProject, duplicateProject, patchCurrent } from '../lib/store'
 
-export function ProjectBar({ store, commit }: { store: Store; commit: (s: Store) => void }) {
+interface Props {
+  store: Store
+  commit: (s: Store) => void
+  /** Opens the project list; the button only shows where the side rail is hidden. */
+  onOpenProjects: () => void
+}
+
+export function ProjectBar({ store, commit, onOpenProjects }: Props) {
   const { t } = useLocale()
   const current = currentProject(store)
   return (
     <div className="project-bar">
-      <div className="lab">{t.ui.project}</div>
-      <div className="hs project-bar__chips">
-        {store.projects.map((p) => (
-          <button key={p.id} type="button" className={`chip${p.id === current.id ? ' chip--on' : ''}`} onClick={() => commit(selectProject(store, p.id))}>
-            {p.name}
-          </button>
-        ))}
-        <button type="button" className="chip" onClick={() => commit(addProject(store))}>{t.ui.newProject}</button>
-      </div>
+      <button type="button" className="chip project-bar__open" aria-haspopup="dialog" onClick={onOpenProjects}>
+        <LayoutGrid size={16} aria-hidden="true" />{tr(t, 'projectsCount', { count: store.projects.length })}
+      </button>
       <div className="project-bar__tools">
         <input
           className="in project-bar__name"

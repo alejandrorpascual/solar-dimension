@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
 import { AccountMenu } from '../components/AccountMenu'
 import { ApplianceGrid } from '../components/ApplianceGrid'
 import { BackupWindow } from '../components/BackupWindow'
@@ -7,6 +8,7 @@ import { HeaderBar } from '../components/HeaderBar'
 import { KitQuickEdit } from '../components/KitQuickEdit'
 import { KitSummary } from '../components/KitSummary'
 import { ProjectBar } from '../components/ProjectBar'
+import { RailSheet, SideRail, type RailTab } from '../components/SideRail'
 import type { Step } from '../components/Stepper'
 import { WizardFooter } from '../components/WizardFooter'
 import { useLocale } from '../hooks/useLocale'
@@ -52,11 +54,19 @@ function KitBuilderPage() {
     undo.remember()
     commit(next)
   }
+  const [railTab, setRailTab] = useState<RailTab>('projects')
+  const [isSheetOpen, setSheetOpen] = useState(false)
+  const openSheet = (tab: RailTab) => {
+    setRailTab(tab)
+    setSheetOpen(true)
+  }
+  const rail = { store, commit, tab: railTab, onTab: setRailTab, download: null }
 
   return (
+    <div className="workspace">
     <main className="page">
       <HeaderBar step={step} account={<AccountMenu user={user} busy={syncing || saving} />} />
-      <ProjectBar store={store} commit={commit} />
+      <ProjectBar store={store} commit={commit} onOpenProjects={() => openSheet('projects')} />
       {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
       {syncing && <div className="muted">{t.ui.syncing}</div>}
       <section className="stage">
@@ -105,7 +115,13 @@ function KitBuilderPage() {
         onBack={() => go((step - 1) as Step)}
         onNext={() => go((step + 1) as Step)}
         onStartOver={() => go(1)}
+        onDownload={() => openSheet('download')}
       />
     </main>
+    <aside className="rail" aria-label={t.ui.projects}>
+      <SideRail {...rail} />
+    </aside>
+    <RailSheet {...rail} isOpen={isSheetOpen} onOpenChange={setSheetOpen} />
+    </div>
   )
 }

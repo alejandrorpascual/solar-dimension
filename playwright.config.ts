@@ -12,7 +12,8 @@ export default defineConfig({
     { name: 'phone', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' } },
   ],
   webServer: {
-    command: `npm run build && PORT=${PORT} npm run start`,
+    // Auth only trusts its own origin, so it has to follow the port.
+    command: `npm run build && PORT=${PORT} BETTER_AUTH_URL=http://localhost:${PORT} npm run start`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
