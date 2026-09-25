@@ -171,3 +171,23 @@ test('any other Google error asks to try again', async ({ page }) => {
 - [ ] Confirm names only: `vercel env ls | rg GOOGLE` shows both vars in Production and Development.
 - [ ] Push to `main` (owner approval), wait for Vercel success.
 - [ ] Manual on production (owner signs in; the agent never enters credentials): new Google user lands signed in on step 1; a password account's email via Google shows the "already has an account" message; that user signs in with password, clicks Connect Google, returns with the button gone; signs out and back in with Google.
+
+### Task 7: Privacy page, then publish the Google app (text needs owner approval)
+
+Google requires an External app's Branding page to list a home page and a public privacy policy before it can leave "Testing". Until then only listed test users (currently the owner) can use Google sign-in.
+
+**Files:** Create `src/routes/privacy.tsx`, `e2e/privacy.spec.ts`. Modify `src/i18n/types.ts`, `en.ts`, `es.ts` (a `privacy` dictionary section), `src/routes/login.tsx` (link under the form), `src/styles/components.css` (reuse `.stage--narrow`).
+
+- [ ] **Step 1: Owner approves the draft text** (en; es is a faithful translation):
+  - **What we store:** your email and name, and, if you sign in with Google, your Google account ID. We also store the projects you save: appliances, hours, voltage and battery choices.
+  - **Why:** to sign you in and keep your projects across devices. Nothing else.
+  - **Sharing:** we don't sell or share your data. It's stored with our hosting and database providers (Vercel and Neon) only to run the app.
+  - **Google data:** we only request your basic profile (name, email). We don't access Gmail, Drive or anything else.
+  - **Cookies:** one sign-in session cookie and one language cookie. No ads or tracking.
+  - **Delete your data:** email alexandros2707@gmail.com and we'll delete your account and projects.
+  - **Updated:** {date of deploy}.
+- [ ] **Step 2: Failing e2e:** `page.goto('/privacy')` shows heading "Privacy" and the text "We don't sell or share your data"; `/login` has a link "Privacy" pointing to `/privacy`; in Spanish the heading is "Privacidad".
+- [ ] **Step 3: Implement** the route (static, no loader beyond root data), dictionary section, and the login link. Run typecheck, unit, e2e.
+- [ ] **Step 4:** Commit `feat: privacy page`; push after owner approval; wait for Vercel success; confirm `https://solar-dimension.vercel.app/privacy` returns 200.
+- [ ] **Step 5: Google Branding (ask the owner before saving):** Application home page `https://solar-dimension.vercel.app`, privacy policy `https://solar-dimension.vercel.app/privacy`, authorized domain `solar-dimension.vercel.app`. Save. No logo (a logo forces verification review).
+- [ ] **Step 6:** Audience → Publish app → confirm "In production" (approved by the owner on 2026-09-25).
