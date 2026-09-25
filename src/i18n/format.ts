@@ -12,6 +12,9 @@ export function fmtW(w: number, locale: Locale): string {
 export function fmtKwh(wh: number, locale: Locale): string {
   return `${(wh / 1000).toLocaleString(TAGS[locale], { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh`
 }
+export function fmtDate(d: Date, locale: Locale): string {
+  return d.toLocaleDateString(TAGS[locale], { day: 'numeric', month: 'short', year: 'numeric' })
+}
 export function fmtHours(h: number, locale: Locale): string {
   return `${(Math.round(h * 10) / 10).toLocaleString(TAGS[locale])} h`
 }

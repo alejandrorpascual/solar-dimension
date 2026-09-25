@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { SIZING } from './catalog'
 
-const HOURS_MIN = 1
-const HOURS_MAX = 72
+export const HOURS_MIN = 1
+export const HOURS_MAX = 72
 
 export const CustomLoadSchema = z.object({
   id: z.string().min(1),

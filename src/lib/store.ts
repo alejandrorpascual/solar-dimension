@@ -1,5 +1,5 @@
 import { SIZING } from './catalog'
-import type { CustomLoad, Project, Store } from './schema'
+import { HOURS_MAX, HOURS_MIN, type CustomLoad, type Project, type Store } from './schema'
 
 export const DEFAULT_QTY: Record<string, number> = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
 const DEFAULT_HOURS = 10
@@ -29,9 +29,14 @@ export function currentProject(store: Store): Project {
   return store.projects.find((p) => p.id === store.currentId) ?? store.projects[0]!
 }
 
-export function patchCurrent(store: Store, patch: Partial<Project>): Store {
-  const id = currentProject(store).id
+/** Edit one project by id, open or not. An unknown id leaves the store as it was. */
+export function patchProject(store: Store, id: string, patch: Partial<Project>): Store {
+  if (!store.projects.some((p) => p.id === id)) return store
   return { ...store, projects: store.projects.map((p) => (p.id === id ? { ...p, updatedAt: now(), ...patch } : p)) }
+}
+
+export function patchCurrent(store: Store, patch: Partial<Project>): Store {
+  return patchProject(store, currentProject(store).id, patch)
 }
 
 export function addProject(store: Store, name?: string): Store {
@@ -67,10 +72,39 @@ export function parseQty(text: string): number | null {
   return /^\d+$/.test(s) ? Number(s) : null
 }
 
+/** A backup window as stored: whole hours from HOURS_MIN to HOURS_MAX. */
+export function clampHours(n: number): number {
+  if (!Number.isFinite(n)) return HOURS_MIN
+  return Math.max(HOURS_MIN, Math.min(HOURS_MAX, Math.trunc(n)))
+}
+
+export function setQtyIn(store: Store, id: string, itemId: string, n: number): Store {
+  const p = store.projects.find((x) => x.id === id)
+  if (!p) return store
+  return patchProject(store, id, { qty: { ...p.qty, [itemId]: clampQty(n) } })
+}
+
 export function setQty(store: Store, itemId: string, n: number): Store {
-  const p = currentProject(store)
-  const qty = { ...p.qty, [itemId]: clampQty(n) }
-  return patchCurrent(store, { qty })
+  return setQtyIn(store, currentProject(store).id, itemId, n)
+}
+
+export function setHoursIn(store: Store, id: string, hours: number): Store {
+  return patchProject(store, id, { hours: clampHours(hours) })
+}
+
+const activeQty = (qty: Record<string, number>) =>
+  Object.entries(qty).filter(([, n]) => n > 0).sort(([a], [b]) => a.localeCompare(b))
+
+/** Whether two versions of a project size the same kit: same window, same non-zero quantities, same custom loads. */
+export function hasSameLoads(a: Project, b: Project): boolean {
+  return a.hours === b.hours
+    && JSON.stringify(activeQty(a.qty)) === JSON.stringify(activeQty(b.qty))
+    && JSON.stringify(a.custom.map((c) => c.id)) === JSON.stringify(b.custom.map((c) => c.id))
+}
+
+/** Undo quick edits: bring back a snapshot's loads and window, keeping anything else changed since (a rename). */
+export function restoreProject(store: Store, snapshot: Project): Store {
+  return patchProject(store, snapshot.id, { qty: { ...snapshot.qty }, custom: [...snapshot.custom], hours: snapshot.hours })
 }
 
 export function addCustom(store: Store, item: CustomLoad): Store {

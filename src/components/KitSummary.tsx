@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
+import { kitDeltas } from '../lib/kit-deltas'
 import { BatteryPicker } from './BatteryPicker'
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtHours, fmtInt, fmtKwh, fmtW } from '../i18n/format'
@@ -60,35 +62,54 @@ function PartsTable({ parts, t }: { parts: Part[]; t: Dictionary }) {
 
 interface Props {
   result: SizingResult
+  /** The kit before the current quick edits; tiles show how far each figure moved from it. */
+  baseline: SizingResult | null
   projectName: string
-  onEditAppliances: () => void
-  onEditWindow: () => void
+  /** The edit bar (KitQuickEdit), placed under the summary line. */
+  quickEdit: ReactNode
   onBatteryUnit: (id: string | null) => void
 }
 
-export function KitSummary({ result: r, projectName, onEditAppliances, onEditWindow, onBatteryUnit }: Props) {
+const signed = (n: number, fmt: (abs: number) => string) => (n === 0 ? '' : `${n > 0 ? '+' : '−'}${fmt(Math.abs(n))}`)
+
+function Delta({ text }: { text: string }) {
+  return text ? <span className="stat__delta num">{text}</span> : null
+}
+
+export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatteryUnit }: Props) {
   const { t, locale } = useLocale()
   const parts = buildParts(r, t, locale)
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
   const summary = r.empty ? t.ui.kitEmpty : tr(t, 'kitSummary', { count: r.count, hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
+  const d = baseline ? kitDeltas(baseline, r) : null
+  const w = (n: number) => fmtW(n, locale)
   return (
     <div className="kit">
       <div className="kit__head">
         <p className="muted">{summary}</p>
-        <div className="kit__edit">
-          <button type="button" className="chip" onClick={onEditAppliances}>{t.ui.editAppliances}</button>
-          <button type="button" className="chip" onClick={onEditWindow}>{t.ui.editWindow}</button>
-        </div>
+        {quickEdit}
       </div>
       <div className="stats">
         <div className="stat">
           <div className="lab">{t.ui.runningLoad}</div>
-          <div className="stat__v num">{fmtW(r.runningW, locale)}</div>
+          <div className="stat__row"><span className="stat__v num">{fmtW(r.runningW, locale)}</span><Delta text={d ? signed(d.runningW, w) : ''} /></div>
           {!r.empty && <div className="stat__sub num">{tr(t, 'averageDraw', { w: fmtW(r.averageW, locale) })}</div>}
         </div>
-        <div className="stat"><div className="lab">{t.ui.startupPeak}</div><div className="stat__v num">{fmtW(r.surgeW, locale)}</div></div>
-        <div className="stat"><div className="lab">{t.ui.batteryNeeded}</div><div className="stat__v num">{fmtKwh(r.requiredWh, locale)}</div></div>
-        <div className="stat stat--accent"><div className="lab">{t.ui.runtime}</div><div className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</div></div>
+        <div className="stat">
+          <div className="lab">{t.ui.startupPeak}</div>
+          <div className="stat__row"><span className="stat__v num">{fmtW(r.surgeW, locale)}</span><Delta text={d ? signed(d.surgeW, w) : ''} /></div>
+        </div>
+        <div className="stat">
+          <div className="lab">{t.ui.batteryNeeded}</div>
+          <div className="stat__row"><span className="stat__v num">{fmtKwh(r.requiredWh, locale)}</span><Delta text={d ? signed(d.requiredWh, (n) => fmtKwh(n, locale)) : ''} /></div>
+        </div>
+        <div className="stat stat--accent">
+          <div className="lab">{t.ui.runtime}</div>
+          <div className="stat__row">
+            <span className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</span>
+            <Delta text={d ? signed(d.runtimeH, (n) => fmtHours(n, locale)) : ''} />
+          </div>
+        </div>
       </div>
       {!r.empty && <BatteryPicker options={r.batteryOptions} selected={r.batteryUnit} onSelect={onBatteryUnit} />}
       <div className="parts">

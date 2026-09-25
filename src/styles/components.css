@@ -162,7 +162,6 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 /* Step 3: kit */
 .kit { display: flex; flex-direction: column; gap: 14px; }
 .kit__head { display: flex; flex-direction: column; gap: 10px; }
-.kit__edit { display: flex; gap: 8px; }
 .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .stat { padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
 .stat--accent { background: var(--accent-tint); border-color: #C9D3FF; }
@@ -253,7 +252,6 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .warn { padding: 12px 14px; border-radius: 12px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-ink); font-size: 13px; line-height: 1.45; display: flex; flex-direction: column; gap: 6px; }
 .fine { font-size: 11px; line-height: 1.5; }
 @media (min-width: 1024px) {
-  .kit__head { flex-direction: row; justify-content: space-between; align-items: flex-end; gap: 32px; }
   .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
   .stat { padding: 16px 18px; border-radius: var(--radius-md); background: var(--ground); border: 0; }
   .stat--accent { background: var(--accent-tint); }
