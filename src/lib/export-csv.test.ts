@@ -14,6 +14,15 @@ describe('csvCell', () => {
     expect(csvCell(1515)).toBe('1515')
   })
 
+  test('neutralises text a spreadsheet would run as a formula', () => {
+    expect(csvCell('=HYPERLINK("http://x","y")')).toBe(`"'=HYPERLINK(""http://x"",""y"")"`)
+    expect(csvCell('+1 pump')).toBe("'+1 pump")
+    expect(csvCell('-cmd')).toBe("'-cmd")
+    expect(csvCell('@SUM(A1)')).toBe("'@SUM(A1)")
+    expect(csvCell('\tTab')).toBe("'\tTab")
+    expect(csvCell(-5)).toBe('-5')
+  })
+
   test('quotes commas, quotes and line breaks, doubling inner quotes', () => {
     expect(csvCell('TV, 55"')).toBe('"TV, 55"""')
     expect(csvCell('a\nb')).toBe('"a\nb"')

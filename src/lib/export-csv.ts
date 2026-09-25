@@ -13,9 +13,16 @@ export interface CsvInput {
   include: { appliances: boolean; parts: boolean }
 }
 
-/** One RFC 4180 cell: quoted only when it holds a comma, a quote or a line break. */
+/** Text starting like this runs as a formula in Excel, Sheets and LibreOffice (CSV injection). */
+const FORMULA_START = /^[=+\-@\t\r]/
+
+/**
+ * One RFC 4180 cell: quoted only when it holds a comma, a quote or a line break. Text that a spreadsheet would run
+ * as a formula (a custom appliance named "=HYPERLINK(…)") gets a leading apostrophe so it stays text. Numbers are ours
+ * and pass as they are.
+ */
 export function csvCell(value: string | number): string {
-  const s = String(value)
+  const s = typeof value === 'string' && FORMULA_START.test(value) ? `'${value}` : String(value)
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 

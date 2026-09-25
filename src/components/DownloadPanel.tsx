@@ -2,6 +2,7 @@ import { Download, Share2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { canShareFiles, renderPdf, renderPng, saveBlob, shareFile } from '../client/export-file'
 import { useLocale } from '../hooks/useLocale'
+import { usePreparedImage } from '../hooks/usePreparedImage'
 import { usePreviewScale } from '../hooks/usePreviewScale'
 import { applianceName, tr, type Dictionary } from '../i18n'
 import { fmtDate } from '../i18n/format'
@@ -51,6 +52,7 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
   // Unique per panel: the rail and the sheet can both be mounted, and same-named radios would share one group.
   const radioName = useId()
   useEffect(() => setCanShare(canShareFiles()), [])
+  const shareImage = usePreparedImage(preview.contentRef, canShare, `${project.id}:${project.updatedAt}:${locale}:${JSON.stringify(include)}`)
 
   const parts = buildParts(result, t, locale)
   const current = FORMATS.find((f) => f.id === format)!
@@ -80,10 +82,13 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
     }
     saveBlob(format === 'pdf' ? await renderPdf(sheetNode()) : await renderPng(sheetNode()), name)
   })
-  const share = () => run(async () => {
-    const blob = await renderPng(sheetNode())
-    await shareFile(new File([blob], exportFileName(project.name, 'png'), { type: 'image/png' }), project.name)
-  })
+  // `run` calls the task synchronously, so navigator.share starts inside the tap's activation window.
+  const share = () => {
+    if (!shareImage) return
+    void run(async () => {
+      await shareFile(new File([shareImage], exportFileName(project.name, 'png'), { type: 'image/png' }), project.name)
+    })
+  }
 
   return (
     <div className="dl">
@@ -130,7 +135,7 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
           <Download size={18} aria-hidden="true" />{isBusy ? t.ui.making : t.ui[current.action]}
         </button>
         {canShare && (
-          <button type="button" className="btn dl__go" disabled={isEmpty || isBusy} onClick={share}>
+          <button type="button" className="btn dl__go" disabled={isEmpty || isBusy || !shareImage} aria-busy={!shareImage} onClick={share}>
             <Share2 size={18} aria-hidden="true" />{t.ui.share}
           </button>
         )}

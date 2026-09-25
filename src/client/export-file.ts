@@ -2,6 +2,7 @@
  * Turning the export sheet into files, in the browser only. The two libraries are imported on demand, so they are
  * fetched the first time someone downloads, not with the page.
  */
+import { pageSlices, type SheetBlock } from '../lib/pdf-pages'
 
 const PIXEL_RATIO = 2
 const SHEET_BACKGROUND = '#FFFFFF'
@@ -29,19 +30,35 @@ export async function renderPng(node: HTMLElement): Promise<Blob> {
   return blob
 }
 
+/** Every `data-pdf-block` in sheet pixels. The node is shown scaled in the preview, so rects are divided by that scale. */
+function sheetBlocks(node: HTMLElement): SheetBlock[] {
+  const box = node.getBoundingClientRect()
+  const scale = box.width / node.offsetWidth || 1
+  return Array.from(node.querySelectorAll<HTMLElement>('[data-pdf-block]')).map((el) => {
+    const r = el.getBoundingClientRect()
+    return { top: (r.top - box.top) / scale, bottom: (r.bottom - box.top) / scale, keepWithNext: el.dataset.pdfBlock === 'keep' }
+  })
+}
+
 /**
- * The sheet as A4 pages: the image is scaled to the page width and, when it is taller than one page, placed again on
- * each extra page shifted up by a page height. One alias stores the image once however many pages there are.
+ * The sheet as A4 pages. The image is scaled to the page width; each page shows one slice of it, ending before any
+ * row that would be cut, and a white band hides whatever of the next slice would peek in under it. One alias stores
+ * the image once however many pages there are.
  */
 export async function renderPdf(node: HTMLElement): Promise<Blob> {
   const [dataUrl, { jsPDF }] = await Promise.all([toPngDataUrl(node), import('jspdf')])
   const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' })
-  const imageH = (node.offsetHeight / node.offsetWidth) * A4_PT.w
-  const pages = Math.max(1, Math.ceil(imageH / A4_PT.h - 0.01))
-  for (let i = 0; i < pages; i++) {
+  const ptPerPx = A4_PT.w / node.offsetWidth
+  const slices = pageSlices(sheetBlocks(node), node.offsetHeight, A4_PT.h / ptPerPx)
+  slices.forEach((slice, i) => {
     if (i > 0) doc.addPage()
-    doc.addImage(dataUrl, 'PNG', 0, -i * A4_PT.h, A4_PT.w, imageH, PAGE_IMAGE_ALIAS, 'FAST')
-  }
+    doc.addImage(dataUrl, 'PNG', 0, -slice.start * ptPerPx, A4_PT.w, node.offsetHeight * ptPerPx, PAGE_IMAGE_ALIAS, 'FAST')
+    const shown = (slice.end - slice.start) * ptPerPx
+    if (shown < A4_PT.h) {
+      doc.setFillColor(SHEET_BACKGROUND)
+      doc.rect(0, shown, A4_PT.w, A4_PT.h - shown, 'F')
+    }
+  })
   return doc.output('blob')
 }
 

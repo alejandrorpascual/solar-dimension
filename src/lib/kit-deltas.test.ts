@@ -21,17 +21,27 @@ describe('kitDeltas', () => {
     expect(hasDeltas(d)).toBe(true)
   })
 
-  test('compares runtime in whole hours, as the tile shows it', () => {
+  test('compares runtime in tenths of an hour, as the tile shows it', () => {
     const before = kit({ fridge: 1, tv: 1 })
     const after = kit({ fridge: 1, tv: 2 })
-    const expected = Math.round(after.battery!.hoursActual) - Math.round(before.battery!.hoursActual)
-    expect(kitDeltas(before, after).runtimeH).toBe(expected)
+    const tenths = (h: number) => Math.round(h * 10)
+    const expected = (tenths(after.battery!.hoursActual) - tenths(before.battery!.hoursActual)) / 10
+    const d = kitDeltas(before, after)
+    expect(d.runtimeH).toBe(expected)
+    expect(Number.isInteger(d.runtimeH * 10)).toBe(true)
+  })
+
+  test('a change too small to show on the tile is no change', () => {
+    const base = kit({ fridge: 1, tv: 1 }, 10)
+    const at = (hoursActual: number) => ({ ...base, battery: { ...base.battery!, hoursActual } })
+    expect(kitDeltas(at(10.41), at(10.44)).runtimeH).toBe(0)
+    expect(kitDeltas(at(10.4), at(10.6)).runtimeH).toBe(0.2)
   })
 
   test('an empty kit counts as zero runtime', () => {
     const before = kit({ tv: 1 })
     const d = kitDeltas(before, kit({}))
-    expect(d.runtimeH).toBe(-Math.round(before.battery!.hoursActual))
+    expect(d.runtimeH).toBe(-Math.round(before.battery!.hoursActual * 10) / 10)
     expect(d.runningW).toBe(-before.runningW)
   })
 })

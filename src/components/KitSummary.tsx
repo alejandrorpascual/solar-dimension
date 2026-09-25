@@ -107,7 +107,7 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
           <div className="lab">{t.ui.runtime}</div>
           <div className="stat__row">
             <span className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</span>
-            <Delta text={d ? signed(d.runtimeH, (n) => tr(t, 'hoursShort', { hours: n })) : ''} />
+            <Delta text={d ? signed(d.runtimeH, (n) => fmtHours(n, locale)) : ''} />
           </div>
         </div>
       </div>
