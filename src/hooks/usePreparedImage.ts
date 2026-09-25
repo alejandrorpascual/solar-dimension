@@ -13,19 +13,33 @@ export function usePreparedImage(ref: RefObject<HTMLElement | null>, enabled: bo
   const [ready, setReady] = useState<{ key: string; blob: Blob } | null>(null)
 
   useEffect(() => {
-    if (!enabled) return
+    const node = ref.current
+    if (!enabled || !node) return
     let isCancelled = false
-    const timer = setTimeout(() => {
-      const node = ref.current
-      // A panel that is mounted but not displayed (the rail on a phone) has nothing to capture.
-      if (!node || node.offsetWidth === 0) return
+    let isDone = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const capture = () => {
       renderPng(node)
-        .then((blob) => { if (!isCancelled) setReady({ key, blob }) })
+        .then((blob) => {
+          if (isCancelled) return
+          isDone = true
+          setReady({ key, blob })
+        })
         .catch((err: unknown) => { if (!isCancelled) console.error('Could not prepare the share image', { key, err }) })
-    }, PREPARE_DELAY_MS)
+    }
+    // A panel that is mounted but not displayed (the rail below 1280 px) has nothing to capture yet; it is tried
+    // again whenever its size changes, so rotating a tablet into the wide layout still prepares the image.
+    const schedule = () => {
+      clearTimeout(timer)
+      if (!isDone && node.offsetWidth > 0) timer = setTimeout(capture, PREPARE_DELAY_MS)
+    }
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule)
+    observer?.observe(node)
+    schedule()
     return () => {
       isCancelled = true
       clearTimeout(timer)
+      observer?.disconnect()
     }
   }, [enabled, key, ref])
 
