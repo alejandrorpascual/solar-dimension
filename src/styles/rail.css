@@ -1,0 +1,57 @@
+/* Quantity stepper shared by the kit's quick edit and the project cards. */
+.qstep { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.qstep__b { font-size: 0; color: var(--ink); }
+.qstep--sm .qstep__b { width: 34px; height: 34px; border-radius: 9px; }
+.qstep--sm .stepper-qty__n { width: 34px; height: 34px; font-size: 14px; }
+@media (max-width: 1023px) {
+  .qstep__b { width: var(--tap); height: var(--tap); }
+  .qstep--sm .qstep__b { width: 40px; height: 40px; }
+}
+
+/* Kit quick edit: bar with the appliance toggle, the window stepper and Undo; the list opens under it. */
+.qedit { display: flex; flex-direction: column; gap: 12px; }
+.qedit__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.qedit__toggle { min-height: var(--tap); padding: 0 16px; font-size: 14px; }
+.qedit__chev { transition: transform 160ms; }
+.qedit__toggle[aria-expanded='true'] .qedit__chev { transform: rotate(180deg); }
+.qedit__window { display: flex; align-items: center; gap: 2px; min-height: var(--tap); padding: 0 3px 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.qedit__window-label { font-size: 14px; font-weight: 600; margin-right: 4px; }
+.qedit__hour { width: 38px; height: 38px; border-radius: 999px; border: 0; background: transparent; display: grid; place-items: center; color: var(--ink); }
+.qedit__hour:hover:not(:disabled) { background: var(--accent-tint); color: var(--accent); }
+.qedit__hour:disabled { color: var(--line-strong); cursor: default; }
+.qedit__hours { min-width: 44px; text-align: center; font-weight: 700; font-size: 15px; }
+.qedit__status { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.qedit__dot { width: 8px; height: 8px; border-radius: 999px; background: #1F7A45; }
+.qedit__undo { border: 0; background: transparent; padding: 8px 4px; font-weight: 700; font-size: 13px; color: var(--accent); }
+.qedit__undo:hover { color: var(--accent-hover); text-decoration: underline; }
+.qedit__panel { display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: var(--radius-md); background: var(--ground); border: 1px solid var(--line); animation: qedit-open 160ms ease-out; }
+@keyframes qedit-open { from { opacity: 0; transform: translateY(-4px); } }
+.qedit__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 6px; }
+.qedit__row { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 8px 8px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.qedit__name { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.qedit__title { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.qedit__watts { font-size: 12px; color: var(--muted); }
+.qedit__add { position: relative; }
+.qedit__search { padding-left: 38px; }
+.qedit__search-icon { position: absolute; left: 13px; top: 14px; color: var(--muted); pointer-events: none; }
+.qedit__sugs { margin-top: 6px; padding: 4px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 12px 32px rgba(18, 22, 28, 0.1); display: flex; flex-direction: column; }
+.qedit__sug { display: flex; align-items: center; gap: 12px; min-height: var(--tap); padding: 0 12px; border: 0; border-radius: 9px; background: transparent; text-align: left; font-size: 14px; }
+.qedit__sug:hover, .qedit__sug:focus-visible { background: var(--accent-tint); outline: none; }
+.qedit__sug-name { flex: 1 1 0; font-weight: 600; }
+.qedit__sug-add { font-weight: 700; color: var(--accent); }
+.qedit__none { padding: 10px 12px; font-size: 13px; }
+.qedit__all { align-self: flex-start; border: 0; background: transparent; padding: 6px 2px; font-size: 14px; font-weight: 600; color: var(--accent); }
+.qedit__all:hover { color: var(--accent-hover); text-decoration: underline; }
+@media (min-width: 1024px) {
+  .qedit__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .qedit__panel { padding: 16px; }
+  .qedit__search { max-width: 440px; }
+  .qedit__sugs { max-width: 440px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qedit__panel { animation: none; }
+}
+
+/* Stat tiles: the figure and, after a quick edit, how far it moved. */
+.stat__row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.stat__delta { font-size: 12px; font-weight: 700; color: var(--accent); }

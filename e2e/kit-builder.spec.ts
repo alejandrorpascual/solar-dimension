@@ -19,12 +19,36 @@ test('moving between steps does not wait on the server', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Build my kit' })).toBeVisible()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
-  await page.getByRole('button', { name: 'Edit window' }).click()
-  await page.goBack()
-  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
-  await page.getByRole('button', { name: 'Edit appliances' }).click()
+  await page.getByRole('button', { name: /^Appliances · / }).click()
+  await page.getByRole('button', { name: 'All appliances' }).click()
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
   expect(serverCalls).toEqual([])
+})
+
+test('the kit edits appliances and the window in place, shows what moved, and undoes it', async ({ page }) => {
+  await page.goto('/?step=3')
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  const summary = page.getByText(/^Backs up \d+ appliances for/)
+  await expect(summary).toContainText('for 10 hours')
+  await page.getByRole('button', { name: /^Appliances · 6/ }).click()
+  const panel = page.locator('.qedit__panel')
+  await panel.getByRole('button', { name: 'Add Refrigerator' }).click()
+  await expect(panel.getByLabel('Quantity of Refrigerator')).toHaveValue('2')
+  await expect(page.locator('.stat__delta').first()).toHaveText('+150 W')
+
+  await panel.getByLabel('Add an appliance').fill('kettle')
+  await panel.getByRole('button', { name: /^Electric kettle/ }).click()
+  await expect(page.getByRole('button', { name: /^Appliances · 7/ })).toBeVisible()
+  await panel.getByRole('button', { name: 'Remove Electric kettle' }).click()
+  await expect(page.getByRole('button', { name: /^Appliances · 6/ })).toBeVisible()
+
+  await page.getByRole('button', { name: 'One hour more' }).click()
+  await expect(summary).toContainText('for 11 hours')
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(summary).toContainText('for 10 hours')
+  await expect(panel.getByLabel('Quantity of Refrigerator')).toHaveValue('1')
+  await expect(page.locator('.stat__delta')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
 })
 
 test('the full list is split into one labeled section per category', async ({ page }) => {
@@ -130,8 +154,8 @@ test('full flow: appliances → window → kit, and the project survives a reloa
   await expect(page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Fuse' }) }).getByRole('cell').first()).toContainText('class T')
   await page.reload()
   await expect(page.getByText('4,000 W pure sine, 48 V DC input')).toBeVisible()
-  await page.getByRole('button', { name: 'Edit appliances' }).click()
-  await expect(page.getByRole('button', { name: 'Remove one 2 ton AC · conventional' })).toBeVisible()
+  await page.getByRole('button', { name: /^Appliances · / }).click()
+  await expect(page.locator('.qedit__panel').getByRole('button', { name: 'Remove 2 ton AC · conventional' })).toBeVisible()
 })
 
 test('the language switch shows the app in Spanish and remembers it', async ({ page }) => {

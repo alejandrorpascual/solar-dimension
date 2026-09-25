@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import {
   addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
-  removeCustom, restoreProject, selectProject, setHoursIn, setQty, setQtyIn,
+  hasSameLoads, removeCustom, restoreProject, selectProject, setHoursIn, setQty, setQtyIn,
 } from './store'
 
 describe('project store', () => {
@@ -111,6 +111,19 @@ describe('editing any project, not just the open one', () => {
     expect(setHoursIn(s, homeId, 99).projects[0]!.hours).toBe(72)
     expect(setHoursIn(s, homeId, 10.7).projects[0]!.hours).toBe(10)
     expect(clampHours(Number.NaN)).toBe(1)
+  })
+
+  test('hasSameLoads ignores zero quantities and notices hours, quantities and custom loads', () => {
+    const { s, homeId } = twoProjects()
+    const home = s.projects[0]!
+    const zeroed = setQtyIn(setQtyIn(s, homeId, 'tv', 0), homeId, 'tv', 1).projects[0]!
+    const withEmptyKey = patchProject(s, homeId, { qty: { ...home.qty, kettle: 0 } }).projects[0]!
+    expect(hasSameLoads(home, zeroed)).toBe(true)
+    expect(hasSameLoads(home, withEmptyKey)).toBe(true)
+    expect(hasSameLoads(home, setQtyIn(s, homeId, 'tv', 2).projects[0]!)).toBe(false)
+    expect(hasSameLoads(home, setHoursIn(s, homeId, 11).projects[0]!)).toBe(false)
+    const custom = { id: 'c1', name: 'Pump', watts: 500, surge: 1500, note: '' }
+    expect(hasSameLoads(home, { ...home, custom: [custom] })).toBe(false)
   })
 
   test('restoreProject puts back quantities, custom loads and hours but keeps later renames', () => {

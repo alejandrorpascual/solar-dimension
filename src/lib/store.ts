@@ -92,6 +92,16 @@ export function setHoursIn(store: Store, id: string, hours: number): Store {
   return patchProject(store, id, { hours: clampHours(hours) })
 }
 
+const activeQty = (qty: Record<string, number>) =>
+  Object.entries(qty).filter(([, n]) => n > 0).sort(([a], [b]) => a.localeCompare(b))
+
+/** Whether two versions of a project size the same kit: same window, same non-zero quantities, same custom loads. */
+export function hasSameLoads(a: Project, b: Project): boolean {
+  return a.hours === b.hours
+    && JSON.stringify(activeQty(a.qty)) === JSON.stringify(activeQty(b.qty))
+    && JSON.stringify(a.custom.map((c) => c.id)) === JSON.stringify(b.custom.map((c) => c.id))
+}
+
 /** Undo quick edits: bring back a snapshot's loads and window, keeping anything else changed since (a rename). */
 export function restoreProject(store: Store, snapshot: Project): Store {
   return patchProject(store, snapshot.id, { qty: { ...snapshot.qty }, custom: [...snapshot.custom], hours: snapshot.hours })

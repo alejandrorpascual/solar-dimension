@@ -11,7 +11,7 @@ interface Props {
 }
 
 /** The count between − and +, typeable for large numbers (a condo's 40 cameras). Commits on blur or Enter. */
-function QtyField({ qty, label, onSet }: { qty: number; label: string; onSet: (n: number) => void }) {
+export function QtyField({ qty, label, onSet }: { qty: number; label: string; onSet: (n: number) => void }) {
   const [draft, setDraft] = useState(String(qty))
   const [shown, setShown] = useState(qty)
   if (shown !== qty) {

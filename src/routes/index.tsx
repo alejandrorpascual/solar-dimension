@@ -4,6 +4,7 @@ import { ApplianceGrid } from '../components/ApplianceGrid'
 import { BackupWindow } from '../components/BackupWindow'
 import { CustomApplianceForm } from '../components/CustomApplianceForm'
 import { HeaderBar } from '../components/HeaderBar'
+import { KitQuickEdit } from '../components/KitQuickEdit'
 import { KitSummary } from '../components/KitSummary'
 import { ProjectBar } from '../components/ProjectBar'
 import type { Step } from '../components/Stepper'
@@ -11,10 +12,13 @@ import { WizardFooter } from '../components/WizardFooter'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
 import { useRootData } from '../hooks/useRootData'
+import { useUndoSnapshot } from '../hooks/useUndoSnapshot'
 import { batteryCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
-import { compute, type SizingResult } from '../lib/sizing'
-import { patchCurrent } from '../lib/store'
+import { computeProject } from '../lib/project-summary'
+import type { Store } from '../lib/schema'
+import type { SizingResult } from '../lib/sizing'
+import { hasSameLoads, patchCurrent, restoreProject, setHoursIn, setQtyIn } from '../lib/store'
 
 interface Search { step: Step }
 
@@ -40,11 +44,14 @@ function KitBuilderPage() {
   const navigate = useNavigate({ from: '/' })
   const { user } = useRootData()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
-  const result = compute({
-    qty: project.qty, custom: project.custom, hours: project.hours, volts: project.volts, chemistry: project.chemistry,
-    batteryUnit: project.batteryUnit,
-  })
+  const result = computeProject(project)
   const go = (next: Step) => navigate({ search: { step: next } })
+  const undo = useUndoSnapshot(project, `${project.id}:${step}`)
+  const isDirty = undo.snapshot !== null && !hasSameLoads(undo.snapshot, project)
+  const quickEdit = (next: Store) => {
+    undo.remember()
+    commit(next)
+  }
 
   return (
     <main className="page">
@@ -71,9 +78,22 @@ function KitBuilderPage() {
             <h2>{tr(t, 'kitFor', { name: project.name })}</h2>
             <KitSummary
               result={result}
+              baseline={isDirty && undo.snapshot ? computeProject(undo.snapshot) : null}
               projectName={project.name}
-              onEditAppliances={() => go(1)}
-              onEditWindow={() => go(2)}
+              quickEdit={
+                <KitQuickEdit
+                  project={project}
+                  result={result}
+                  isDirty={isDirty}
+                  onQty={(itemId, n) => quickEdit(setQtyIn(store, project.id, itemId, n))}
+                  onHours={(hours) => quickEdit(setHoursIn(store, project.id, hours))}
+                  onUndo={() => {
+                    if (undo.snapshot) commit(restoreProject(store, undo.snapshot))
+                    undo.clear()
+                  }}
+                  onAllAppliances={() => go(1)}
+                />
+              }
               onBatteryUnit={(id) => commit(patchCurrent(store, { batteryUnit: id }))}
             />
           </>
