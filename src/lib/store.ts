@@ -56,9 +56,20 @@ export function selectProject(store: Store, id: string): Store {
   return store.projects.some((p) => p.id === id) ? { ...store, currentId: id } : store
 }
 
+/** A quantity as stored: a whole number from 0 to SIZING.MAX_QTY. */
+export function clampQty(n: number): number {
+  return Math.max(0, Math.min(SIZING.MAX_QTY, Math.trunc(n)))
+}
+
+/** A typed quantity: whole digits only, otherwise null so the field can put the previous value back. */
+export function parseQty(text: string): number | null {
+  const s = text.trim()
+  return /^\d+$/.test(s) ? Number(s) : null
+}
+
 export function setQty(store: Store, itemId: string, n: number): Store {
   const p = currentProject(store)
-  const qty = { ...p.qty, [itemId]: Math.max(0, Math.min(SIZING.MAX_QTY, Math.trunc(n))) }
+  const qty = { ...p.qty, [itemId]: clampQty(n) }
   return patchCurrent(store, { qty })
 }
 

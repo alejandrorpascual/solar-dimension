@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import {
-  addCustom, addProject, currentProject, deleteProject, duplicateProject, initialStore, patchCurrent, removeCustom, selectProject, setQty,
+  addCustom, addProject, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, removeCustom, selectProject, setQty,
 } from './store'
 
 describe('project store', () => {
@@ -39,6 +39,13 @@ describe('project store', () => {
     expect(currentProject(s2).qty.ac2c).toBe(100)
     expect(currentProject(s2).qty.fridge).toBe(0)
     expect(JSON.stringify(s)).toBe(before)
+  })
+
+  test('parseQty accepts whole numbers and rejects everything else', () => {
+    expect(parseQty('32')).toBe(32)
+    expect(parseQty(' 7 ')).toBe(7)
+    expect(parseQty('0')).toBe(0)
+    for (const bad of ['', ' ', '-1', '2.5', 'abc', '1e3']) expect(parseQty(bad)).toBeNull()
   })
 
   test('add, duplicate, select and delete keep ids unique and at least one project', () => {

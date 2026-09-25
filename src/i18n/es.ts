@@ -8,7 +8,7 @@ export const es: Dictionary = {
     acInverter: 'Inverter', acInverterHelp: 'Arranque suave. Cuida la batería y el inversor.', acConventional: 'Convencional', acConventionalHelp: 'Arranca con ~3× su potencia en marcha. Necesita un inversor más grande.', acSizeOne: '{tons} tonelada · {btu}k BTU', acSizeMany: '{tons} toneladas · {btu}k BTU',
     q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; los de arranque, el inversor.',
     search: 'Buscar aparatos', nothingMatches: 'Nada coincide. Prueba otra palabra o agrégalo abajo.',
-    add: 'Agregar', addOne: 'Agregar {name}', removeOne: 'Quitar un {name}', remove: 'Quitar {name}',
+    add: 'Agregar', addOne: 'Agregar {name}', qtyOf: 'Cantidad de {name}', removeOne: 'Quitar un {name}', remove: 'Quitar {name}',
     running: 'en marcha', surge: 'arranque', runningSurgeLine: '{watts} W en marcha · {surge} de arranque',
     customTitle: '¿No está en la lista?', customHelp: 'Escribe los vatios de la etiqueta, o los voltios y amperios y nosotros los multiplicamos.',
     watts: 'Vatios', voltsAmps: 'Voltios × amperios', name: 'Nombre', runningW: 'W en marcha', volts: 'Voltios', amps: 'Amperios', surgeOptional: 'W de arranque (opcional)', sameAsRunning: 'igual que en marcha', addAppliance: 'Agregar aparato',

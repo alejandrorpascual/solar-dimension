@@ -63,6 +63,7 @@ export function ApplianceGrid({ store, commit }: { store: Store; commit: (s: Sto
               qty={qty}
               onInc={() => commit(setQty(store, item.id, qty + 1))}
               onDec={() => commit(setQty(store, item.id, qty - 1))}
+              onSet={(n) => commit(setQty(store, item.id, n))}
               onRemove={item.isCustom ? () => commit(removeCustom(store, item.id)) : undefined}
             />
           )

@@ -1,11 +1,46 @@
+import { useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, applianceNote, tr } from '../i18n'
 import { fmtInt, fmtW } from '../i18n/format'
 import type { CatalogItem } from '../lib/catalog'
+import { clampQty, parseQty } from '../lib/store'
 
-interface Props { item: CatalogItem; title?: string; qty: number; onInc: () => void; onDec: () => void; onRemove?: () => void }
+interface Props {
+  item: CatalogItem; title?: string; qty: number
+  onInc: () => void; onDec: () => void; onSet: (n: number) => void; onRemove?: () => void
+}
 
-export function ApplianceCard({ item, title, qty, onInc, onDec, onRemove }: Props) {
+/** The count between − and +, typeable for large numbers (a condo's 40 cameras). Commits on blur or Enter. */
+function QtyField({ qty, label, onSet }: { qty: number; label: string; onSet: (n: number) => void }) {
+  const [draft, setDraft] = useState(String(qty))
+  const [shown, setShown] = useState(qty)
+  if (shown !== qty) {
+    setShown(qty)
+    setDraft(String(qty))
+  }
+  const commit = () => {
+    const n = parseQty(draft)
+    const next = n === null ? qty : clampQty(n)
+    setDraft(String(next))
+    if (next !== qty) onSet(next)
+  }
+  return (
+    <input
+      className="num stepper-qty__n"
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      aria-label={label}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onFocus={(e) => e.currentTarget.select()}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+    />
+  )
+}
+
+export function ApplianceCard({ item, title, qty, onInc, onDec, onSet, onRemove }: Props) {
   const { t, locale } = useLocale()
   const on = qty > 0
   const name = applianceName(t, item)
@@ -22,7 +57,7 @@ export function ApplianceCard({ item, title, qty, onInc, onDec, onRemove }: Prop
       {on ? (
         <div className="stepper-qty">
           <button type="button" className="st" aria-label={tr(t, 'removeOne', { name })} onClick={onDec}>−</button>
-          <div className="num stepper-qty__n">{qty}</div>
+          <QtyField qty={qty} label={tr(t, 'qtyOf', { name })} onSet={onSet} />
           <button type="button" className="st" aria-label={tr(t, 'addOne', { name })} onClick={onInc}>+</button>
         </div>
       ) : (
