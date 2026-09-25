@@ -5,7 +5,10 @@ import { useLocale } from '../hooks/useLocale'
 import { signIn, signUp } from '../lib/auth-client'
 
 export const Route = createFileRoute('/login')({
-  beforeLoad: ({ context }) => { if (context.user) throw redirect({ to: '/', search: { step: 1 } }) },
+  loader: async ({ parentMatchPromise }) => {
+    const root = await parentMatchPromise
+    if (root.loaderData?.user) throw redirect({ to: '/', search: { step: 1 } })
+  },
   component: LoginPage,
 })
 
@@ -27,7 +30,7 @@ function LoginPage() {
       : await signIn.email({ email, password })
     setBusy(false)
     if (res.error) { setError(t.ui.authFailed); return }
-    await router.invalidate()
+    await router.invalidate({ sync: true })
     await navigate({ to: '/', search: { step: 1 } })
   }
 

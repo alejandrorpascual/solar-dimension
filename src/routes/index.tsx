@@ -10,6 +10,7 @@ import type { Step } from '../components/Stepper'
 import { WizardFooter } from '../components/WizardFooter'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
+import { useRootData } from '../hooks/useRootData'
 import { batteryCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
 import { compute, type SizingResult } from '../lib/sizing'
@@ -37,7 +38,7 @@ function KitBuilderPage() {
   const { step } = Route.useSearch()
   const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
-  const { user } = Route.useRouteContext()
+  const { user } = useRootData()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
   const result = compute({
     qty: project.qty, custom: project.custom, hours: project.hours, volts: project.volts, chemistry: project.chemistry,

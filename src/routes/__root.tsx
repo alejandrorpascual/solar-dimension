@@ -1,21 +1,25 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
-import { getDictionary, type Locale } from '../i18n'
+import { useRootData, type RootData } from '../hooks/useRootData'
+import { DEFAULT_LOCALE, getDictionary } from '../i18n'
 import { getLocale } from '../server/locale'
-import { getSession, type SessionUser } from '../server/session'
+import { getSession } from '../server/session'
 import stylesheet from '../styles.css?url'
 
 const FONTS_URL =
   'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap'
 
 export const Route = createRootRoute({
-  beforeLoad: async (): Promise<{ locale: Locale; user: SessionUser | null }> => {
+  // A loader, not beforeLoad: beforeLoad reruns on every navigation, loader data is cached. Moving between
+  // steps only changes ?step, so this runs once per page load and again only on router.invalidate().
+  loader: async (): Promise<RootData> => {
     const [locale, session] = await Promise.all([getLocale(), getSession()])
     return { locale, user: session?.user ?? null }
   },
-  head: ({ match }) => {
-    const t = getDictionary(match.context.locale)
+  staleTime: Infinity,
+  head: ({ loaderData }) => {
+    const t = getDictionary(loaderData?.locale ?? DEFAULT_LOCALE)
     return {
       meta: [
         { charSet: 'utf-8' },
@@ -65,7 +69,7 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
-  const { locale } = Route.useRouteContext()
+  const { locale } = useRootData()
   return (
     <html lang={locale}>
       <head>

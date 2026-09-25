@@ -26,7 +26,7 @@ export function AccountMenu({ user, busy = false }: Props) {
   return (
     <div className="account">
       <span className="account__email muted" title={signedInAs}>{signedInAs}</span>
-      <button type="button" className="chip" disabled={busy} aria-busy={busy} onClick={async () => { await signOut(); await router.invalidate() }}>{t.ui.signOut}</button>
+      <button type="button" className="chip" disabled={busy} aria-busy={busy} onClick={async () => { await signOut(); await router.invalidate({ sync: true }) }}>{t.ui.signOut}</button>
     </div>
   )
 }

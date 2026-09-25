@@ -11,7 +11,7 @@ export function LanguageSwitch() {
   async function pick(next: Locale) {
     if (next === locale) return
     await setLocale({ data: { locale: next } })
-    await router.invalidate()
+    await router.invalidate({ sync: true })
   }
   return (
     <div className="lang" role="group" aria-label={t.ui.language}>

@@ -10,6 +10,23 @@ test('shell renders the stepper, a Home project and step navigation', async ({ p
   await expect(page).toHaveURL(/step=1|\/$/)
 })
 
+test('moving between steps does not wait on the server', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+  const serverCalls: string[] = []
+  page.on('request', (r) => { if (r.url().includes('/_serverFn/')) serverCalls.push(r.url()) })
+  await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await expect(page.getByRole('button', { name: 'Build my kit' })).toBeVisible()
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await page.getByRole('button', { name: 'Edit window' }).click()
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await page.getByRole('button', { name: 'Edit appliances' }).click()
+  await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+  expect(serverCalls).toEqual([])
+})
+
 test('a new project can be created, renamed and deleted', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: '+ New project' }).click()

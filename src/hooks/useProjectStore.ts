@@ -1,10 +1,10 @@
-import { useRouteContext } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clearPendingSave, hasPendingSave, loadStore, markPendingSave, saveStore, SYNCED_KEY } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
 import { currentProject, initialStore } from '../lib/store'
 import { applyChanges, diffProjects } from '../lib/sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
+import { useRootData } from './useRootData'
 
 function fromServer(list: Project[], prev: Store): Store {
   const projects = list.length ? list : prev.projects
@@ -13,7 +13,7 @@ function fromServer(list: Project[], prev: Store): Store {
 }
 
 export function useProjectStore() {
-  const { user } = useRouteContext({ from: '__root__' })
+  const { user } = useRootData()
   const [store, setStore] = useState<Store>(initialStore)
   const [syncing, setSyncing] = useState(false)
   const [saving, setSaving] = useState(false)
