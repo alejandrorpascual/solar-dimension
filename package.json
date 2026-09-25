@@ -22,6 +22,8 @@
     "@tanstack/react-start": "^1.168.58",
     "better-auth": "^1.7.6",
     "drizzle-orm": "^0.45.3",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.48.0",
     "nitro": "^3.0.260903-beta",
     "react": "^19.3.0",
