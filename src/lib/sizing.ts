@@ -43,7 +43,8 @@ export interface SizingResult {
   empty: boolean; items: SelectedItem[]; count: number
   hours: number; volts: Voltage; chemistry: ChemistryId; chemistryLabel: string
   runningW: number; surgeW: number; largestSurgeName: string; largestSurgeId: string
-  loadWh: number; requiredWh: number; requiredAh: number
+  /** Duty-weighted energy over the window, and the average draw it implies (what the runtime is based on). */
+  loadWh: number; averageW: number; requiredWh: number; requiredAh: number
   inverter: InverterPick; battery: BatteryPick | null; cable: CablePick; warnings: Warning[]
   batteryOptions: BatteryOption[]
   /** The unit actually used when it came from the user's choice; null when the automatic pick is in effect. */
@@ -199,7 +200,7 @@ export function compute(input: SizingInput): SizingResult {
     count: sum(items, (i) => i.qty),
     hours, volts, chemistry: chem.id, chemistryLabel: chem.label,
     runningW, surgeW, largestSurgeName: largest?.name ?? '', largestSurgeId: largest?.id ?? '',
-    loadWh, requiredWh: Math.round(requiredWh), requiredAh: Math.round(requiredAh),
+    loadWh, averageW: Math.round(loadWh / hours), requiredWh: Math.round(requiredWh), requiredAh: Math.round(requiredAh),
     inverter: { w: inverter.w, surge: inverter.surge, volts: inverter.volts, voltsOk: inverterVoltsOk },
     battery,
     cable: {

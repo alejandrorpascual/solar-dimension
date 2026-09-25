@@ -24,7 +24,7 @@ export type UiKey =
   | 'errName' | 'errVa' | 'errWatts' | 'errSurge'
   | 'q2' | 'q2Help' | 'hoursLabel' | 'step2Empty' | 'step2Summary' | 'batteryVoltage' | 'batteryChemistry' | 'usableCapacity'
   | 'kitFor' | 'kitEmpty' | 'kitSummary' | 'editAppliances' | 'editWindow'
-  | 'runningLoad' | 'startupPeak' | 'energyNeeded' | 'runtime'
+  | 'runningLoad' | 'averageDraw' | 'startupPeak' | 'batteryNeeded' | 'runtime'
   | 'part' | 'specification' | 'quantity' | 'nothingSelected'
   | 'inverterSpec' | 'inverterNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'interconnectsNote' | 'fuseSpec' | 'fuseNote' | 'perRun'
   | 'fine'

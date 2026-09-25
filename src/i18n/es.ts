@@ -19,7 +19,7 @@ export const es: Dictionary = {
     batteryVoltage: 'Voltaje del banco', batteryChemistry: 'Química de la batería', usableCapacity: '{pct}% de capacidad utilizable',
     kitFor: 'Kit para {name}', kitEmpty: 'Primero agrega aparatos.', kitSummary: 'Respalda {count} aparatos durante {hours} horas con un banco de {volts} V {chemistry}.',
     editAppliances: 'Editar aparatos', editWindow: 'Editar horas',
-    runningLoad: 'Carga en marcha', startupPeak: 'Pico de arranque', energyNeeded: 'Energía necesaria', runtime: 'Autonomía',
+    runningLoad: 'Carga en marcha', averageDraw: '~{w} de promedio', startupPeak: 'Pico de arranque', batteryNeeded: 'Batería necesaria', runtime: 'Autonomía',
     part: 'Parte', specification: 'Especificación', quantity: 'Cantidad', nothingSelected: '{name} aún no tiene nada seleccionado.',
     inverterSpec: '{w} onda pura, entrada {volts} V CC', inverterNote: '{surge} de arranque · cubre {running} en marcha, {peak} pico',
     batteriesNote: '{series} en serie × {parallel} en paralelo ({config}) · banco de {bank}, {usable} utilizables',

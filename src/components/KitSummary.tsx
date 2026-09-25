@@ -81,9 +81,13 @@ export function KitSummary({ result: r, projectName, onEditAppliances, onEditWin
         </div>
       </div>
       <div className="stats">
-        <div className="stat"><div className="lab">{t.ui.runningLoad}</div><div className="stat__v num">{fmtW(r.runningW, locale)}</div></div>
+        <div className="stat">
+          <div className="lab">{t.ui.runningLoad}</div>
+          <div className="stat__v num">{fmtW(r.runningW, locale)}</div>
+          {!r.empty && <div className="stat__sub num">{tr(t, 'averageDraw', { w: fmtW(r.averageW, locale) })}</div>}
+        </div>
         <div className="stat"><div className="lab">{t.ui.startupPeak}</div><div className="stat__v num">{fmtW(r.surgeW, locale)}</div></div>
-        <div className="stat"><div className="lab">{t.ui.energyNeeded}</div><div className="stat__v num">{fmtKwh(r.requiredWh, locale)}</div></div>
+        <div className="stat"><div className="lab">{t.ui.batteryNeeded}</div><div className="stat__v num">{fmtKwh(r.requiredWh, locale)}</div></div>
         <div className="stat stat--accent"><div className="lab">{t.ui.runtime}</div><div className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</div></div>
       </div>
       {!r.empty && <BatteryPicker options={r.batteryOptions} selected={r.batteryUnit} onSelect={onBatteryUnit} />}

@@ -19,7 +19,7 @@ export const en: Dictionary = {
     batteryVoltage: 'Battery voltage', batteryChemistry: 'Battery chemistry', usableCapacity: '{pct}% usable capacity',
     kitFor: 'Kit for {name}', kitEmpty: 'Add appliances first.', kitSummary: 'Backs up {count} appliances for {hours} hours on a {volts} V {chemistry} bank.',
     editAppliances: 'Edit appliances', editWindow: 'Edit window',
-    runningLoad: 'Running load', startupPeak: 'Start-up peak', energyNeeded: 'Energy needed', runtime: 'Runtime',
+    runningLoad: 'Running load', averageDraw: '~{w} average', startupPeak: 'Start-up peak', batteryNeeded: 'Battery needed', runtime: 'Runtime',
     part: 'Part', specification: 'Specification', quantity: 'Quantity', nothingSelected: '{name} has nothing selected yet.',
     inverterSpec: '{w} pure sine, {volts} V DC input', inverterNote: '{surge} surge · covers {running} running, {peak} peak',
     batteriesNote: '{series} in series × {parallel} in parallel ({config}) · {bank} bank, {usable} usable',
