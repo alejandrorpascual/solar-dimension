@@ -53,6 +53,11 @@ export function tr(t: Dictionary, key: UiKey, params: Record<string, string | nu
   return t.ui[key].replace(/\{(\w+)\}/g, (_, k: string) => String(params[k] ?? ''))
 }
 
+/** "1 battery" / "5 batteries" in the active language. */
+export function batteryCount(t: Dictionary, count: number): string {
+  return tr(t, count === 1 ? 'batteryCountOne' : 'batteryCountMany', { count })
+}
+
 export function applianceName(t: Dictionary, item: { id: string; name: string; isCustom?: boolean }): string {
   return item.isCustom ? item.name : (t.appliances[item.id]?.name ?? item.name)
 }

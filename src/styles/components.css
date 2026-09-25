@@ -155,18 +155,60 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .stat--accent { background: var(--accent-tint); border-color: #C9D3FF; }
 .stat--accent .lab, .stat--accent .stat__v { color: var(--accent); }
 .stat__v { font-family: var(--font-display); font-size: 22px; font-weight: 700; line-height: 1; }
-/* Battery size picker: each option shows the unit and how many it takes. */
-.units { display: flex; flex-direction: column; gap: 8px; }
-.units__head { display: flex; flex-direction: column; gap: 2px; }
-.units__title { margin: 0; font-family: var(--font-body); }
-.units__help { font-size: 13px; }
-.unit { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; min-width: 84px; min-height: var(--tap); padding: 8px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); text-align: left; }
-.unit:hover { border-color: var(--accent); }
-.unit--on { border-color: var(--accent); background: var(--accent-tint); box-shadow: 0 0 0 3px var(--accent-ring); }
-.unit__t { font-size: 15px; font-weight: 700; line-height: 1.2; }
-.unit__s { font-size: 12px; color: var(--muted); white-space: nowrap; }
-@media (min-width: 1024px) {
-  .units__head { flex-direction: row; align-items: baseline; gap: 12px; }
+/* Battery size picker: a select whose rows show count, bank energy and runtime. Phone: the list opens as a bottom sheet. */
+.bsel { display: flex; flex-direction: column; gap: 6px; }
+.bsel__label { font-family: var(--font-body); }
+.bsel__trigger { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 0 14px 0 16px; border-radius: var(--radius-md); border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; transition: border-color 120ms, box-shadow 120ms; }
+.bsel__trigger:hover { border-color: var(--accent); }
+.bsel__trigger[data-focus-visible], .bsel[data-open] .bsel__trigger { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
+.bsel__value { flex: 1; min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.bsel__unit { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bsel__count { font-size: 13px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.bsel__chev { flex-shrink: 0; color: var(--muted); transition: transform 160ms; }
+.bsel[data-open] .bsel__chev { transform: rotate(180deg); }
+
+.bsel__pop { width: max(var(--trigger-width), 380px); max-width: calc(100vw - 32px); overflow-y: auto; border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--surface); box-shadow: 0 18px 48px rgba(18, 22, 28, 0.16), 0 2px 6px rgba(18, 22, 28, 0.06); outline: none; }
+.bsel__pop[data-entering] { animation: bsel-drop 140ms ease-out; }
+.bsel__pop[data-exiting] { animation: bsel-drop 100ms ease-in reverse; }
+@keyframes bsel-drop { from { opacity: 0; transform: translateY(-4px); } }
+.bsel__sheet-head { display: none; }
+.bsel__list { padding: 6px; outline: none; }
+.bsel__section + .bsel__section { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.bsel__header { padding: 8px 10px 4px; }
+
+.bopt { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; grid-template-areas: 'mark t n' 'mark s n'; align-items: center; column-gap: 10px; row-gap: 1px; min-height: 48px; padding: 7px 10px; border-radius: var(--radius-sm); color: var(--ink); cursor: pointer; outline: none; }
+.bopt[data-hovered], .bopt[data-focused] { background: var(--ground); }
+.bopt[data-focus-visible] { box-shadow: inset 0 0 0 2px var(--accent); }
+.bopt[data-selected] { background: var(--accent-tint); }
+.bopt__mark { grid-area: mark; display: grid; place-items: center; color: var(--accent); visibility: hidden; }
+.bopt[data-selected] .bopt__mark { visibility: visible; }
+.bopt__t { grid-area: t; font-size: 15px; font-weight: 700; line-height: 1.25; }
+.bopt__s { grid-area: s; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12.5px; color: var(--muted); }
+.bopt__n { grid-area: n; font-family: var(--font-display); font-size: 17px; font-weight: 700; }
+.bopt[data-selected] .bopt__t, .bopt[data-selected] .bopt__n { color: var(--accent); }
+.bopt__tag { padding: 1px 7px; border-radius: 999px; border: 1px solid var(--warn-border); background: var(--warn-bg); color: var(--warn-ink); font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+@media (max-width: 639px) {
+  /* React Aria positions the popover inline; the sheet pins it to the bottom edge instead. */
+  .bsel__pop { position: fixed !important; top: auto !important; bottom: 0 !important; left: 0 !important; right: 0; width: 100%; max-width: none; max-height: 80dvh !important; border-radius: var(--radius-lg) var(--radius-lg) 0 0; border: 0; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 0 0 100vmax rgba(18, 22, 28, 0.4); }
+  .bsel__pop[data-entering] { animation: bsel-sheet 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .bsel__pop[data-exiting] { animation: bsel-sheet 160ms ease-in reverse; }
+  .bsel__sheet-head { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 20px 10px; text-align: center; }
+  .bsel__grab { width: 36px; height: 5px; margin-bottom: 8px; border-radius: 999px; background: var(--line-strong); }
+  .bsel__sheet-title { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+  .bsel__sheet-help { margin: 0; font-size: 13px; }
+  .bsel__list { padding: 0 10px 12px; }
+  .bopt { grid-template-columns: minmax(0, 1fr) auto 22px; grid-template-areas: 't n mark' 's n mark'; min-height: 56px; }
+  .bopt__mark { visibility: visible; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line-strong); }
+  .bopt__mark svg { display: none; }
+  .bopt[data-selected] .bopt__mark { border: 7px solid var(--accent); }
+}
+@keyframes bsel-sheet { from { transform: translateY(100%); } }
+@media (min-width: 640px) {
+  .bsel__trigger { max-width: 440px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bsel__pop[data-entering], .bsel__pop[data-exiting] { animation: none; }
 }
 
 /* Parts list. Phone: each row stacks the part name over its spec, quantity on the right. */

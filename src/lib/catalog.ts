@@ -47,9 +47,9 @@ export const CHEMISTRIES: Record<ChemistryId, Chemistry> = {
   lifepo4: {
     id: 'lifepo4', label: 'LiFePO₄ lithium', short: 'LiFePO₄', dod: 0.85,
     units: [
-      { v: 12, ah: 100 }, { v: 12, ah: 200 }, { v: 12, ah: 300 },
+      { v: 12, ah: 100 }, { v: 12, ah: 200 }, { v: 12, ah: 300 }, { v: 12, ah: 400 },
       { v: 24, ah: 100 }, { v: 24, ah: 200 },
-      { v: 48, ah: 50 }, { v: 48, ah: 100 }, { v: 48, ah: 200 },
+      { v: 48, ah: 50 }, { v: 48, ah: 100 }, { v: 48, ah: 200 }, { v: 48, ah: 280 }, { v: 48, ah: 300 }, { v: 48, ah: 314 },
     ],
   },
   agm: {

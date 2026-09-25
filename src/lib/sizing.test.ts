@@ -86,6 +86,7 @@ describe('battery unit choice', () => {
       ['12-100', 5, false],
       ['12-200', 3, false],
       ['12-300', 2, true],
+      ['12-400', 2, false],
     ])
     expect(r.batteryUnit).toBeNull()
     expect(r.battery?.unitLabel).toBe('12 V 300 Ah LiFePO₄')
@@ -93,8 +94,24 @@ describe('battery unit choice', () => {
 
   test('orders 48 V units first at a 48 V bank, then 24 V, then 12 V', () => {
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' })
-    expect(r.batteryOptions.map((o) => o.id)).toEqual(['48-50', '48-100', '48-200', '24-100', '24-200', '12-100', '12-200', '12-300'])
+    expect(r.batteryOptions.map((o) => o.id)).toEqual([
+      '48-50', '48-100', '48-200', '48-280', '48-300', '48-314', '24-100', '24-200', '12-100', '12-200', '12-300', '12-400',
+    ])
     expect(r.batteryOptions.find((o) => o.isAuto)?.id).toBe('48-200')
+  })
+
+  test('each option carries its own runtime and string layout, and runtime grows with capacity at a fixed load', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    const at48 = r.batteryOptions.filter((o) => o.unitV === 48)
+    const runtimes = at48.map((o) => o.hoursActual)
+    expect(runtimes).toEqual([...runtimes].sort((a, b) => a - b))
+    expect(at48[at48.length - 1]!.hoursActual).toBeGreaterThan(at48[0]!.hoursActual)
+    for (const o of r.batteryOptions) expect(o.hoursActual / o.bankWh).toBeCloseTo(at48[0]!.hoursActual / at48[0]!.bankWh)
+    const twelve = r.batteryOptions.find((o) => o.id === '12-100')
+    expect(twelve?.series).toBe(4)
+    expect(twelve?.parallel).toBe(twelve!.count / 4)
+    const auto = r.batteryOptions.find((o) => o.isAuto)
+    expect(auto?.hoursActual).toBeCloseTo(r.battery!.hoursActual)
   })
 
   test('a chosen unit drives the bank, interconnects, runtime and warnings', () => {

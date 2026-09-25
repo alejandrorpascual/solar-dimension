@@ -26,7 +26,7 @@ export interface BatteryPick {
 /** One battery unit that can build this bank, with the bank it would make. */
 export interface BatteryOption {
   id: string; label: string; unitV: number; unitAh: number
-  count: number; config: string; bankWh: number; isAuto: boolean
+  count: number; series: number; parallel: number; config: string; bankWh: number; hoursActual: number; isAuto: boolean
 }
 export interface CablePick {
   amps: number; perRun: number; runs: number; gauge: string; mm2: number; ampacity: number
@@ -106,15 +106,19 @@ function batteryCandidates(chem: Chemistry, volts: Voltage, requiredAh: number):
     .sort((a, b) => b.unitV - a.unitV || a.unitAh - b.unitAh)
 }
 
+interface RuntimeContext { chem: Chemistry; loadWh: number; hours: number }
+
+/** How many hours a bank of this size runs the load. */
+function runtimeHours(bankWh: number, ctx: RuntimeContext): number {
+  if (ctx.loadWh <= 0) return 0
+  return (bankWh * ctx.chem.dod * SIZING.INVERTER_EFF) / (ctx.loadWh / ctx.hours)
+}
+
 /** Strip the candidate id and fill in how long this bank runs the load. */
-function toBatteryPick(
-  candidate: (BatteryPick & { id: string }) | null,
-  ctx: { chem: Chemistry; loadWh: number; hours: number },
-): BatteryPick | null {
+function toBatteryPick(candidate: (BatteryPick & { id: string }) | null, ctx: RuntimeContext): BatteryPick | null {
   if (!candidate) return null
   const { id: _id, ...pick } = candidate
-  const hourlyWh = ctx.loadWh / ctx.hours
-  return { ...pick, hoursActual: ctx.loadWh > 0 ? (pick.bankWh * ctx.chem.dod * SIZING.INVERTER_EFF) / hourlyWh : 0 }
+  return { ...pick, hoursActual: runtimeHours(pick.bankWh, ctx) }
 }
 
 /** The automatic pick: fewest batteries, then the smallest bank that still covers the load. */
@@ -209,7 +213,8 @@ export function compute(input: SizingInput): SizingResult {
     warnings: buildWarnings({ items, inverter, inverterVoltsOk, amps: cable.amps, volts, battery, loadWh }),
     batteryOptions: candidates.map((c) => ({
       id: c.id, label: c.unitLabel, unitV: c.unitV, unitAh: c.unitAh,
-      count: c.count, config: c.config, bankWh: c.bankWh, isAuto: c.id === auto?.id,
+      count: c.count, series: c.series, parallel: c.parallel, config: c.config, bankWh: c.bankWh,
+      hoursActual: runtimeHours(c.bankWh, { chem, loadWh, hours }), isAuto: c.id === auto?.id,
     })),
     batteryUnit: chosen?.id ?? null,
   }

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { APPLIANCES, CATEGORIES } from '../lib/catalog'
 import { en } from './en'
 import { es } from './es'
-import { applianceName, applianceNote, getDictionary, isLocale, resolveLocale, tr } from './index'
+import { applianceName, applianceNote, batteryCount, getDictionary, isLocale, resolveLocale, tr } from './index'
 
 describe('dictionaries', () => {
   test('es has every ui key that en has, and nothing extra', () => {
@@ -34,6 +34,15 @@ describe('dictionaries', () => {
       expect(text.endsWith('.')).toBe(true)
       expect(text).not.toContain('null')
     }
+  })
+})
+
+describe('batteryCount', () => {
+  test('uses the singular for one battery and the plural otherwise, in both languages', () => {
+    expect(batteryCount(en, 1)).toBe('1 battery')
+    expect(batteryCount(en, 5)).toBe('5 batteries')
+    expect(batteryCount(es, 1)).toBe('1 batería')
+    expect(batteryCount(es, 2)).toBe('2 baterías')
   })
 })
 

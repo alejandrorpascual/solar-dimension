@@ -10,7 +10,7 @@ import type { Step } from '../components/Stepper'
 import { WizardFooter } from '../components/WizardFooter'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
-import { tr, type Dictionary, type Locale } from '../i18n'
+import { batteryCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
 import { compute, type SizingResult } from '../lib/sizing'
 import { patchCurrent } from '../lib/store'
@@ -30,7 +30,7 @@ function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary,
   if (step === 1) return tr(t, 'footer1', { name, count: r.count, running: fmtW(r.runningW, locale), peak: fmtW(r.surgeW, locale) })
   if (step === 2) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) })
   if (r.empty || !r.battery) return t.ui.footerEmpty
-  return tr(t, 'footer3', { count: r.battery.count, inverter: fmtW(r.inverter.w, locale), gauge: r.cable.gauge })
+  return tr(t, 'footer3', { batteries: batteryCount(t, r.battery.count), inverter: fmtW(r.inverter.w, locale), gauge: r.cable.gauge })
 }
 
 function KitBuilderPage() {
