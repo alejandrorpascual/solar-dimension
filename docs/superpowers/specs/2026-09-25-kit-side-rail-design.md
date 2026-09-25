@@ -44,7 +44,7 @@ One card per project, in store order. Each card:
 - Three figures: runtime, bank energy, inverter size. Empty projects show "Nothing selected yet" instead.
 - A load bar: running watts relative to the heaviest project.
 - Up to three heaviest appliances by running watts ("Refrigerator, TV, 4× LED lighting and 3 more").
-- **Quick edit** toggle revealing a stepper per selected appliance, editing that project in place without selecting it.
+- **Quick edit** toggle revealing a stepper per selected appliance, editing that project in place without selecting it. The open project's card has no Quick edit: the main area already edits it, and the kit's Undo only tracks edits made there.
 
 A "+ New project" button sits above the list.
 

@@ -131,7 +131,9 @@ test('project cards show each kit and quick edit a project without opening it', 
   await expect(home.getByLabel('Quantity of TV, 55-inch LED')).toHaveValue('3')
   await expect(runtime).not.toHaveText(before ?? '')
   await expect(home).toContainText('3× TV, 55-inch LED')
-  await expect(page.getByRole('article', { name: 'Project 2' }).getByRole('button', { name: 'Project 2' })).toHaveAttribute('aria-current', 'true')
+  const open = page.getByRole('article', { name: 'Project 2' })
+  await expect(open.getByRole('button', { name: 'Project 2' })).toHaveAttribute('aria-current', 'true')
+  await expect(open.getByRole('button', { name: 'Quick edit' })).toHaveCount(0)
 
   await home.getByRole('button', { name: 'Home' }).click()
   await hideProjects(page)

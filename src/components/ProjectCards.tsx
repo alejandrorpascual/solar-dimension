@@ -57,7 +57,7 @@ function ProjectCard({ summary: s, isCurrent, isEditing, onOpen, onToggleEdit, o
           <p className="pcard__items">{heaviestLine(s, t)}</p>
         </>
       )}
-      {isEditing && r.items.length > 0 && (
+      {isEditing && !isCurrent && r.items.length > 0 && (
         <ul id={editId} className="pcard__edit">
           {r.items.map((item) => (
             <li key={item.id} className="pcard__row">
@@ -67,7 +67,8 @@ function ProjectCard({ summary: s, isCurrent, isEditing, onOpen, onToggleEdit, o
           ))}
         </ul>
       )}
-      {r.items.length > 0 && (
+      {/* The open project is edited in the main area (grid or kit quick edit, which owns Undo); one path, not two. */}
+      {!isCurrent && r.items.length > 0 && (
         <button type="button" className={`chip pcard__toggle${isEditing ? ' chip--on' : ''}`} aria-expanded={isEditing} aria-controls={isEditing ? editId : undefined} onClick={onToggleEdit}>
           {isEditing ? t.ui.done : t.ui.quickEdit}
         </button>
