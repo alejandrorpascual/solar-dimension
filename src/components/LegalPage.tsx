@@ -3,6 +3,7 @@ import { Fragment } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import type { LegalPage as LegalText } from '../i18n'
 import { fmtDate } from '../i18n/format'
+import { APP_NAME } from '../lib/brand'
 import { HeaderBar } from './HeaderBar'
 
 export const CONTACT_EMAIL = 'alexandros2707@gmail.com'
@@ -23,12 +24,12 @@ function withEmailLink(body: string) {
  * time zones west of UTC; change it whenever the text changes.
  */
 export function LegalPage({ text, updated }: { text: LegalText; updated: Date }) {
-  const { t, locale } = useLocale()
+  const { locale } = useLocale()
   return (
     <main className="page">
       <HeaderBar />
       <article className="stage stage--narrow prose">
-        <Link to="/" search={{ step: 1 }} className="prose__back">← {t.ui.brand}</Link>
+        <Link to="/" search={{ step: 1 }} className="prose__back">← {APP_NAME}</Link>
         <h1>{text.title}</h1>
         <p className="muted">{text.updated.replace('{date}', fmtDate(updated, locale))}</p>
         {text.sections.map((s) => (

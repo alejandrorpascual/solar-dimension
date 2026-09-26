@@ -3,7 +3,7 @@ import type { Dictionary } from './types'
 export const en: Dictionary = {
   locale: 'en',
   ui: {
-    brand: 'Kit Builder', step1: 'Appliances', step2: 'Backup window', step3: 'Your kit', stepOf: 'Step {n} of 3',
+    step1: 'Appliances', step2: 'Backup window', step3: 'Your kit', stepOf: 'Step {n} of 3',
     project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
     acInverter: 'Inverter air conditioning', acInverterHelp: 'Soft start. Easy on the battery and inverter.', acConventional: 'Conventional air conditioning', acConventionalHelp: 'Starts at ~3× its running power. Needs a bigger inverter.', acSizeOne: '{tons} ton · {btu}k BTU', acSizeMany: '{tons} ton · {btu}k BTU',
     q1: 'Which appliances need to stay on?', q1Help: 'Add each one and set how many. Running watts drive the battery, surge watts drive the inverter.',
