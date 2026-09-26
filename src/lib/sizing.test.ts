@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'vitest'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { catalog, compute } from './sizing'
 
 const ESSENTIALS = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
 
 describe('compute', () => {
   test('returns an empty result with no items selected', () => {
-    const r = compute({ qty: {}, hours: 10, volts: 24, chemistry: 'lifepo4' })
+    const r = compute({ qty: {}, hours: 10, volts: 24, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.empty).toBe(true)
     expect(r.runningW).toBe(0)
     expect(r.averageW).toBe(0)
@@ -14,7 +15,7 @@ describe('compute', () => {
   })
 
   test('sizes essentials at 48 V with the smallest 48 V inverter', () => {
-    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.runningW).toBe(465)
     expect(r.surgeW).toBe(1515)
     expect(r.largestSurgeName).toBe('Refrigerator')
@@ -31,7 +32,7 @@ describe('compute', () => {
   })
 
   test('picks a 12 V inverter for the same load at 12 V', () => {
-    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4' })
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.inverter.w).toBe(1000)
     expect(r.inverter.voltsOk).toBe(true)
     expect(r.battery?.config).toBe('1S2P')
@@ -41,7 +42,7 @@ describe('compute', () => {
   })
 
   test('a conventional AC drives the surge and the inverter pick', () => {
-    const r = compute({ qty: { fridge: 1, ac2c: 1, ac15i: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    const r = compute({ qty: { fridge: 1, ac2c: 1, ac15i: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.runningW).toBe(4000)
     expect(r.surgeW).toBe(8400)
     expect(r.largestSurgeName).toBe('2 ton AC · conventional')
@@ -50,7 +51,7 @@ describe('compute', () => {
   })
 
   test('warns on a big load at 12 V with AGM and flags the dominant appliance', () => {
-    const r = compute({ qty: { fridge: 1, ac1c: 1, well: 1, micro: 1, lights: 1 }, hours: 10, volts: 12, chemistry: 'agm' })
+    const r = compute({ qty: { fridge: 1, ac1c: 1, well: 1, micro: 1, lights: 1 }, hours: 10, volts: 12, chemistry: 'agm' }, CATALOG_SNAPSHOT)
     expect(r.inverter.voltsOk).toBe(false)
     expect(r.cable.runs).toBe(2)
     const codes = r.warnings.map((w) => w.code)
@@ -60,7 +61,7 @@ describe('compute', () => {
   })
 
   test('clamps hours, run length and unknown voltage to safe values', () => {
-    const r = compute({ qty: ESSENTIALS, hours: 500, volts: 99 as never, chemistry: 'nope' as never, runLengthM: 0 })
+    const r = compute({ qty: ESSENTIALS, hours: 500, volts: 99 as never, chemistry: 'nope' as never, runLengthM: 0 }, CATALOG_SNAPSHOT)
     expect(r.hours).toBe(72)
     expect(r.volts).toBe(48)
     expect(r.chemistry).toBe('lifepo4')
@@ -69,21 +70,27 @@ describe('compute', () => {
 
   test('includes custom loads as continuous items', () => {
     const custom = [{ id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 230 V × 4.5 A' }]
-    const r = compute({ qty: { custom1: 1 }, custom, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    const r = compute({ qty: { custom1: 1 }, custom, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.items[0]?.name).toBe('Pool pump')
     expect(r.items[0]?.wh).toBe(10350)
     expect(r.surgeW).toBe(2500)
   })
 
   test('catalog appends custom loads after the built-in list', () => {
-    const list = catalog([{ id: 'custom1', name: 'X', watts: 10, surge: 10, note: 'Custom · 10 W' }])
+    const list = catalog(CATALOG_SNAPSHOT, [{ id: 'custom1', name: 'X', watts: 10, surge: 10, note: 'Custom · 10 W' }])
     expect(list.at(-1)).toMatchObject({ id: 'custom1', cat: 'Custom', duty: 1, isCustom: true })
+  })
+
+  test('skips quantities for ids that are not in the catalog, and counts retired items', () => {
+    const retired = CATALOG_SNAPSHOT.map((a) => (a.id === 'fridge' ? { ...a, retired: true } : a))
+    const withGhost = compute({ qty: { fridge: 1, 'no-such-thing': 3 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, retired)
+    expect(withGhost.items.map((i) => i.id)).toEqual(['fridge'])
   })
 })
 
 describe('battery unit choice', () => {
   test('lists every unit sold at the bank voltage, bank-voltage units first, with the count each needs', () => {
-    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4' })
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.batteryOptions.map((o) => [o.id, o.count, o.isAuto])).toEqual([
       ['12-100', 5, false],
       ['12-200', 3, false],
@@ -95,7 +102,7 @@ describe('battery unit choice', () => {
   })
 
   test('orders 48 V units first at a 48 V bank, then 24 V, then 12 V', () => {
-    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.batteryOptions.map((o) => o.id)).toEqual([
       '48-50', '48-100', '48-200', '48-280', '48-300', '48-314', '24-100', '24-200', '12-100', '12-200', '12-300', '12-400',
     ])
@@ -103,7 +110,7 @@ describe('battery unit choice', () => {
   })
 
   test('each option carries its own runtime and string layout, and runtime grows with capacity at a fixed load', () => {
-    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' })
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     const at48 = r.batteryOptions.filter((o) => o.unitV === 48)
     const runtimes = at48.map((o) => o.hoursActual)
     expect(runtimes).toEqual([...runtimes].sort((a, b) => a - b))
@@ -117,7 +124,7 @@ describe('battery unit choice', () => {
   })
 
   test('a chosen unit drives the bank, interconnects, runtime and warnings', () => {
-    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4', batteryUnit: '12-100' })
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4', batteryUnit: '12-100' }, CATALOG_SNAPSHOT)
     expect(r.batteryUnit).toBe('12-100')
     expect(r.battery?.unitLabel).toBe('12 V 100 Ah LiFePO₄')
     expect(r.battery?.config).toBe('1S5P')
@@ -128,9 +135,9 @@ describe('battery unit choice', () => {
   })
 
   test('a unit that is not sold for this voltage or chemistry falls back to the automatic pick', () => {
-    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'agm', batteryUnit: '12-300' })
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'agm', batteryUnit: '12-300' }, CATALOG_SNAPSHOT)
     expect(r.batteryUnit).toBeNull()
     expect(r.battery?.unitLabel).toBe(r.batteryOptions.find((o) => o.isAuto)?.label)
-    expect(compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: 'nonsense' }).batteryUnit).toBeNull()
+    expect(compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: 'nonsense' }, CATALOG_SNAPSHOT).batteryUnit).toBeNull()
   })
 })

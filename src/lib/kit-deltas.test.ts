@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { hasDeltas, kitDeltas } from './kit-deltas'
 import { compute } from './sizing'
 
-const kit = (qty: Record<string, number>, hours = 10) => compute({ qty, hours, volts: 48, chemistry: 'lifepo4' })
+const kit = (qty: Record<string, number>, hours = 10) => compute({ qty, hours, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
 
 describe('kitDeltas', () => {
   test('is all zero when nothing changed', () => {

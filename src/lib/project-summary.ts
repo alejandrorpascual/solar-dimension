@@ -1,3 +1,4 @@
+import type { CatalogItem } from './catalog'
 import type { Project } from './schema'
 import { compute, type SelectedItem, type SizingResult } from './sizing'
 
@@ -14,13 +15,16 @@ export interface ProjectSummary {
   moreCount: number
 }
 
-export function computeProject(p: Project): SizingResult {
-  return compute({ qty: p.qty, custom: p.custom, hours: p.hours, volts: p.volts, chemistry: p.chemistry, batteryUnit: p.batteryUnit })
+export function computeProject(p: Project, appliances: readonly CatalogItem[]): SizingResult {
+  return compute(
+    { qty: p.qty, custom: p.custom, hours: p.hours, volts: p.volts, chemistry: p.chemistry, batteryUnit: p.batteryUnit },
+    appliances,
+  )
 }
 
 /** Every project with its sized kit, in store order, for side-by-side cards. */
-export function summarizeProjects(projects: readonly Project[], topN: number = DEFAULT_TOP): ProjectSummary[] {
-  const results = projects.map(computeProject)
+export function summarizeProjects(projects: readonly Project[], appliances: readonly CatalogItem[], topN: number = DEFAULT_TOP): ProjectSummary[] {
+  const results = projects.map((p) => computeProject(p, appliances))
   const maxW = Math.max(0, ...results.map((r) => r.runningW))
   return projects.map((project, i) => {
     const result = results[i]!

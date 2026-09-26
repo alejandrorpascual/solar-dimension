@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { searchAppliances } from './appliance-search'
 import type { CatalogItem } from './catalog'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { catalog } from './sizing'
 
-const items = catalog([{ id: 'c1', name: 'Pool pump', watts: 1000, surge: 3000, note: '' }])
+const items = catalog(CATALOG_SNAPSHOT, [{ id: 'c1', name: 'Pool pump', watts: 1000, surge: 3000, note: '' }])
 const spanish: Record<string, string> = { fridge: 'Refrigerador' }
 const nameOf = (i: CatalogItem) => spanish[i.id] ?? i.name
 const ids = (list: CatalogItem[]) => list.map((i) => i.id)

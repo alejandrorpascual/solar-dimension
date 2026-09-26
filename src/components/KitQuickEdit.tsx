@@ -1,9 +1,11 @@
 import { ChevronDown, ListChecks, Minus, Plus, Search } from 'lucide-react'
 import { useId, useState } from 'react'
+import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, tr } from '../i18n'
 import { fmtW } from '../i18n/format'
 import { searchAppliances } from '../lib/appliance-search'
+import { forPicker } from '../lib/catalog'
 import { HOURS_MAX, HOURS_MIN, type Project } from '../lib/schema'
 import { catalog, type SizingResult } from '../lib/sizing'
 import { QtyStepper } from './QtyStepper'
@@ -22,12 +24,13 @@ interface Props {
 /** The kit's edit bar: an appliance list that opens in place, the backup window stepper, and Undo. */
 export function KitQuickEdit({ project, result, isDirty, onQty, onHours, onUndo, onAllAppliances }: Props) {
   const { t, locale } = useLocale()
+  const appliances = useCatalog()
   const [isOpen, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const panelId = useId()
   const searchId = useId()
   const nameOf = (item: { id: string; name: string; isCustom?: boolean }) => applianceName(t, item)
-  const suggestions = searchAppliances(catalog(project.custom), query, nameOf, new Set(result.items.map((i) => i.id)))
+  const suggestions = searchAppliances(catalog(forPicker(appliances), project.custom), query, nameOf, new Set(result.items.map((i) => i.id)))
   const add = (id: string) => {
     onQty(id, 1)
     setQuery('')

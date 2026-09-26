@@ -1,5 +1,5 @@
 import {
-  APPLIANCES, CHEMISTRIES, FUSES, GAUGES, INVERTERS, SIZING, VOLTAGES,
+  CHEMISTRIES, FUSES, GAUGES, INVERTERS, SIZING, VOLTAGES,
   type CatalogItem, type Chemistry, type ChemistryId, type Inverter, type Voltage,
 } from './catalog'
 
@@ -60,11 +60,11 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 const finite = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
 const sum = <T>(list: readonly T[], f: (x: T) => number) => list.reduce((a, x) => a + f(x), 0)
 
-export function catalog(custom: readonly CustomLoadLike[] = []): CatalogItem[] {
+export function catalog(appliances: readonly CatalogItem[], custom: readonly CustomLoadLike[] = []): CatalogItem[] {
   const extra: CatalogItem[] = custom.map((c) => ({
     id: c.id, name: c.name, cat: 'Custom', watts: c.watts, surge: c.surge, duty: 1, note: c.note, isCustom: true,
   }))
-  return [...APPLIANCES, ...extra]
+  return [...appliances, ...extra]
 }
 
 function selectItems(items: readonly CatalogItem[], qty: Record<string, number>, hours: number): SelectedItem[] {
@@ -167,13 +167,13 @@ function buildWarnings(ctx: WarningContext): Warning[] {
   return w
 }
 
-export function compute(input: SizingInput): SizingResult {
+export function compute(input: SizingInput, appliances: readonly CatalogItem[]): SizingResult {
   const hours = clamp(finite(input.hours, 10), HOURS_RANGE[0], HOURS_RANGE[1])
   const volts: Voltage = VOLTAGES.includes(input.volts) ? input.volts : 48
   const chem = CHEMISTRIES[input.chemistry] ?? CHEMISTRIES.lifepo4
   const runLengthM = clamp(finite(input.runLengthM, DEFAULT_RUN_LENGTH_M), RUN_LENGTH_RANGE[0], RUN_LENGTH_RANGE[1])
 
-  const items = selectItems(catalog(input.custom), input.qty ?? {}, hours)
+  const items = selectItems(catalog(appliances, input.custom), input.qty ?? {}, hours)
   const runningW = sum(items, (i) => i.totalWatts)
   const largest = items.reduce<SelectedItem | null>(
     (best, i) => (i.surge - i.watts > (best ? best.surge - best.watts : -1) ? i : best), null,

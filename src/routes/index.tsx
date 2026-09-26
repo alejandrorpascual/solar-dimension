@@ -11,6 +11,7 @@ import { ProjectBar } from '../components/ProjectBar'
 import { RailSheet, SideRail, type RailTab } from '../components/SideRail'
 import type { Step } from '../components/Stepper'
 import { WizardFooter } from '../components/WizardFooter'
+import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
 import { useRootData } from '../hooks/useRootData'
@@ -42,8 +43,9 @@ function KitBuilderPage() {
   const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
   const { user } = useRootData()
+  const appliances = useCatalog()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
-  const result = computeProject(project)
+  const result = computeProject(project, appliances)
   const go = (next: Step) => navigate({ search: { step: next } })
   // The rail sits beside the page on wide screens; narrower ones open the same content in a sheet.
   const [railTab, setRailTab] = useState<RailTab>('projects')

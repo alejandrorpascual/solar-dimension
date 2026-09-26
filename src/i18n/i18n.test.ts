@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { APPLIANCES, CATEGORIES } from '../lib/catalog'
+import { CATEGORIES } from '../lib/catalog'
+import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
 import { en } from './en'
 import { es } from './es'
 import { applianceName, applianceNote, batteryCount, getDictionary, isLocale, resolveLocale, tr } from './index'
@@ -9,7 +10,7 @@ describe('dictionaries', () => {
     expect(Object.keys(es.ui).sort()).toEqual(Object.keys(en.ui).sort())
   })
   test('every catalog appliance and category is translated in both languages', () => {
-    for (const a of APPLIANCES) {
+    for (const a of CATALOG_SNAPSHOT) {
       expect(en.appliances[a.id]?.name, a.id).toBeTruthy()
       expect(es.appliances[a.id]?.name, a.id).toBeTruthy()
     }
