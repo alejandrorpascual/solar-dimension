@@ -4,6 +4,9 @@ export type Voltage = 12 | 24 | 36 | 48
 export type ChemistryId = 'lifepo4' | 'agm'
 export type CompressorType = 'inverter' | 'conventional'
 
+export interface ApplianceLabel { name: string; note: string }
+export interface ApplianceLabels { en: ApplianceLabel; es: ApplianceLabel }
+
 export interface CatalogItem {
   id: string
   name: string
@@ -15,6 +18,10 @@ export interface CatalogItem {
   tons?: number
   acType?: CompressorType
   isCustom?: boolean
+  /** Per-locale name and note; catalog items have them, custom loads do not. */
+  labels?: ApplianceLabels
+  /** Hidden from the picker; still counted in projects that use it. */
+  retired?: boolean
 }
 
 export const SIZING = {
