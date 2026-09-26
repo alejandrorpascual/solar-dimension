@@ -268,6 +268,12 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 
 .stage--narrow { max-width: 440px; }
 .form { display: flex; flex-direction: column; gap: 12px; }
+/* Google button: white with a neutral border and the four-colour mark, per Google's sign-in branding. */
+.btn--google { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; flex: 0 0 auto; border-color: var(--line-strong); background: #FFFFFF; color: var(--ink); }
+.btn--google:hover { background: var(--ground); }
+.btn--google svg { flex-shrink: 0; }
+.or { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: var(--muted); font-size: 13px; }
+.or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .account { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .account__email { min-width: 0; max-width: 20ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 @media (min-width: 1024px) { .account__email { max-width: 32ch; } }

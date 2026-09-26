@@ -32,6 +32,7 @@ export type UiKey =
   | 'batteryCountOne' | 'batteryCountMany'
   | 'footer1' | 'footer2' | 'footer3' | 'footerEmpty'
   | 'back' | 'next' | 'buildKit' | 'startOver'
+  | 'continueGoogle' | 'orDivider' | 'googleExists' | 'googleFailed' | 'connectGoogle'
   | 'signIn' | 'signUp' | 'signOut' | 'email' | 'password' | 'noAccount' | 'haveAccount' | 'authFailed' | 'signedInAs' | 'syncing' | 'syncFailed' | 'language'
   | 'notFound' | 'backHome' | 'errorTitle' | 'reload' | 'updating'
   | 'projects' | 'projectsCount' | 'current' | 'quickEdit' | 'done' | 'projectMeta' | 'heaviestMore' | 'bank' | 'inverter' | 'close'
