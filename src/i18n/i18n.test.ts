@@ -9,11 +9,7 @@ describe('dictionaries', () => {
   test('es has every ui key that en has, and nothing extra', () => {
     expect(Object.keys(es.ui).sort()).toEqual(Object.keys(en.ui).sort())
   })
-  test('every catalog appliance and category is translated in both languages', () => {
-    for (const a of CATALOG_SNAPSHOT) {
-      expect(en.appliances[a.id]?.name, a.id).toBeTruthy()
-      expect(es.appliances[a.id]?.name, a.id).toBeTruthy()
-    }
+  test('every catalog category is translated in both languages', () => {
     for (const c of [...CATEGORIES, 'All'] as const) {
       expect(en.categories[c]).toBeTruthy()
       expect(es.categories[c]).toBeTruthy()
@@ -85,16 +81,21 @@ describe('resolveLocale', () => {
   })
 })
 
-test('applianceName translates catalog items and keeps custom names', () => {
-  const t = getDictionary('es')
-  expect(applianceName(t, { id: 'fridge', name: 'Refrigerator' })).toBe('Refrigerador')
-  expect(applianceName(t, { id: 'custom1', name: 'Bomba', isCustom: true })).toBe('Bomba')
-  expect(applianceName(t, { id: 'unknown', name: 'Fallback' })).toBe('Fallback')
+test('applianceName reads the item labels in the active language and keeps custom names', () => {
+  const fridge = CATALOG_SNAPSHOT.find((a) => a.id === 'fridge')!
+  expect(applianceName(getDictionary('es'), fridge)).toBe('Refrigerador')
+  expect(applianceName(getDictionary('en'), fridge)).toBe('Refrigerator')
+  expect(applianceName(getDictionary('es'), { id: 'custom1', name: 'Bomba', isCustom: true })).toBe('Bomba')
+  expect(applianceName(getDictionary('es'), { id: 'unknown', name: 'Fallback' })).toBe('Fallback')
 })
 
-test('applianceNote translates catalog notes and keeps custom notes', () => {
-  const t = getDictionary('es')
-  expect(applianceNote(t, { id: 'fridge', note: 'Compressor cycles ~35% of each hour' })).toBe('El compresor trabaja ~35% de cada hora')
-  expect(applianceNote(t, { id: 'custom1', note: 'Custom · 230 V × 4.5 A', isCustom: true })).toBe('Custom · 230 V × 4.5 A')
-  expect(applianceNote(t, { id: 'unknown', note: 'Fallback' })).toBe('Fallback')
+test('applianceNote reads the item labels and keeps custom notes', () => {
+  const fridge = CATALOG_SNAPSHOT.find((a) => a.id === 'fridge')!
+  expect(applianceNote(getDictionary('es'), fridge)).toBe('El compresor trabaja ~35% de cada hora')
+  expect(applianceNote(getDictionary('es'), { id: 'custom1', note: 'Custom · 230 V × 4.5 A', isCustom: true })).toBe('Custom · 230 V × 4.5 A')
+  expect(applianceNote(getDictionary('es'), { id: 'unknown', note: 'Fallback' })).toBe('Fallback')
+})
+
+test('dictionaries no longer carry appliance names', () => {
+  expect('appliances' in getDictionary('en')).toBe(false)
 })

@@ -7,7 +7,6 @@ export interface Dictionary {
   locale: Locale
   ui: Record<UiKey, string>
   categories: Record<Category | 'All', string>
-  appliances: Record<string, { name: string; note: string }>
   chemistries: Record<ChemistryId, string>
   voltageHints: Record<Voltage, string>
   warnings: Record<WarningCode, (p: WarningParams) => string>
