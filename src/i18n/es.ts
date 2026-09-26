@@ -109,4 +109,17 @@ export const es: Dictionary = {
       { heading: 'Borrar tus datos', body: 'Escribe a {email} y borraremos tu cuenta y tus proyectos.' },
     ],
   },
+  terms: {
+    title: 'Términos de uso',
+    updated: 'Última actualización: {date}',
+    sections: [
+      { heading: 'Qué es esto', body: 'Solar Dimension estima el inversor, las baterías, los cables y los fusibles de un sistema de respaldo a partir de los aparatos y las horas que indiques. Es de uso gratuito.' },
+      { heading: 'Estimaciones, no un plan de instalación', body: 'Los resultados son estimaciones basadas en consumos típicos de los aparatos y en los supuestos que se muestran en la página del kit. Pide a un electricista matriculado que revise el diseño según la normativa eléctrica local antes de comprar o instalar nada. Las baterías y el cableado de corriente continua pueden causar incendios o lesiones si se instalan mal.' },
+      { heading: 'Sin garantía', body: 'La app se ofrece "tal cual", sin garantías de ningún tipo. No garantizamos que los resultados sean exactos, completos o adecuados para tu caso.' },
+      { heading: 'Limitación de responsabilidad', body: 'En la medida en que la ley lo permita, no somos responsables de ninguna pérdida o daño derivado del uso de la app o de confiar en sus resultados.' },
+      { heading: 'Tu cuenta', body: 'Mantén tu contraseña en privado. Puedes pedirnos que borremos tu cuenta en cualquier momento (ver Privacidad).' },
+      { heading: 'Cambios', body: 'Podemos actualizar estos términos. La fecha de arriba indica la versión vigente.' },
+      { heading: 'Contacto', body: '{email}' },
+    ],
+  },
 }

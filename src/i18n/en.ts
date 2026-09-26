@@ -109,4 +109,17 @@ export const en: Dictionary = {
       { heading: 'Deleting your data', body: "Email {email} and we'll delete your account and projects." },
     ],
   },
+  terms: {
+    title: 'Terms of use',
+    updated: 'Last updated {date}',
+    sections: [
+      { heading: 'What this is', body: "Solar Dimension estimates the inverter, batteries, cables and fuses for a backup power system from the appliances and hours you enter. It's free to use." },
+      { heading: 'Estimates, not an installation plan', body: 'Results are estimates based on typical appliance ratings and the assumptions shown on the kit page. Have a licensed electrician check the design against your local electrical code before you buy or install anything. Batteries and DC wiring can cause fire or injury if installed incorrectly.' },
+      { heading: 'No warranty', body: 'The app is provided "as is", without warranties of any kind. We don\'t guarantee that results are accurate, complete or right for your situation.' },
+      { heading: 'Limitation of liability', body: "To the extent the law allows, we aren't liable for any loss or damage from using the app or relying on its results." },
+      { heading: 'Your account', body: 'Keep your password private. You can ask us to delete your account at any time (see Privacy).' },
+      { heading: 'Changes', body: 'We may update these terms. The date at the top shows the current version.' },
+      { heading: 'Contact', body: '{email}' },
+    ],
+  },
 }

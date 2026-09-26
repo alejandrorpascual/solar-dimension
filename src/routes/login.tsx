@@ -67,7 +67,11 @@ function LoginPage() {
           <button type="submit" className="btn btn--primary" disabled={busy}>{mode === 'up' ? t.ui.signUp : t.ui.signIn}</button>
           <button type="button" className="chip" onClick={() => setMode(mode === 'up' ? 'in' : 'up')}>{mode === 'up' ? t.ui.haveAccount : t.ui.noAccount}</button>
         </form>
-        <Link to="/privacy" className="fine muted login__privacy">{t.privacy.title}</Link>
+        <nav className="fine muted login__legal">
+          <Link to="/privacy">{t.privacy.title}</Link>
+          <span aria-hidden="true">·</span>
+          <Link to="/terms">{t.terms.title}</Link>
+        </nav>
       </section>
     </main>
   )

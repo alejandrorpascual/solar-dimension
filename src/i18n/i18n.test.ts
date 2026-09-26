@@ -98,11 +98,11 @@ test('applianceNote translates catalog notes and keeps custom notes', () => {
   expect(applianceNote(t, { id: 'unknown', note: 'Fallback' })).toBe('Fallback')
 })
 
-describe('privacy page', () => {
+describe.each(['privacy', 'terms'] as const)('%s page', (page) => {
   test('both languages have the same sections, each with a heading and a body', () => {
-    expect(es.privacy.sections).toHaveLength(en.privacy.sections.length)
+    expect(es[page].sections).toHaveLength(en[page].sections.length)
     for (const d of [en, es]) {
-      for (const s of d.privacy.sections) {
+      for (const s of d[page].sections) {
         expect(s.heading.trim()).not.toBe('')
         expect(s.body.trim()).not.toBe('')
       }

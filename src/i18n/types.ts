@@ -12,9 +12,12 @@ export interface Dictionary {
   voltageHints: Record<Voltage, string>
   warnings: Record<WarningCode, (p: WarningParams) => string>
   parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'fuse', string>
-  /** `{email}` in a body is replaced with the contact address as a mailto link; `{date}` in `updated` with the date. */
-  privacy: { title: string; updated: string; sections: readonly { heading: string; body: string }[] }
+  privacy: LegalPage
+  terms: LegalPage
 }
+
+/** `{email}` in a body is replaced with the contact address as a mailto link; `{date}` in `updated` with the date. */
+export interface LegalPage { title: string; updated: string; sections: readonly { heading: string; body: string }[] }
 
 export type UiKey =
   | 'brand' | 'step1' | 'step2' | 'step3' | 'stepOf'

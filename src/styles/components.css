@@ -267,7 +267,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 }
 
 .stage--narrow { max-width: 440px; }
-.login__privacy { align-self: center; }
+.login__legal { display: flex; gap: 8px; align-self: center; }
+.login__legal a { color: inherit; }
 /* Long-form text pages (privacy): readable measure, calm hierarchy. */
 .prose { max-width: 640px; }
 .prose h1 { font-size: 32px; }
