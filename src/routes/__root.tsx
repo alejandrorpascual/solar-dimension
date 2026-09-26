@@ -3,8 +3,8 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { useRootData, type RootData } from '../hooks/useRootData'
 import { DEFAULT_LOCALE, getDictionary } from '../i18n'
-import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
 import { shouldReloadForStaleChunk } from '../lib/stale-chunk'
+import { getCatalog } from '../server/catalog'
 import { getLocale } from '../server/locale'
 import { getAuthFeatures, getSession } from '../server/session'
 import stylesheet from '../styles.css?url'
@@ -16,8 +16,8 @@ export const Route = createRootRoute({
   // A loader, not beforeLoad: beforeLoad reruns on every navigation, loader data is cached. Moving between
   // steps only changes ?step, so this runs once per page load and again only on router.invalidate().
   loader: async (): Promise<RootData> => {
-    const [locale, session, features] = await Promise.all([getLocale(), getSession(), getAuthFeatures()])
-    return { locale, user: session?.user ?? null, googleEnabled: features.googleEnabled, catalog: [...CATALOG_SNAPSHOT] }
+    const [locale, session, features, catalog] = await Promise.all([getLocale(), getSession(), getAuthFeatures(), getCatalog()])
+    return { locale, user: session?.user ?? null, googleEnabled: features.googleEnabled, catalog }
   },
   staleTime: Infinity,
   head: ({ loaderData }) => {
