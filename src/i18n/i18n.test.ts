@@ -97,3 +97,15 @@ test('applianceNote translates catalog notes and keeps custom notes', () => {
   expect(applianceNote(t, { id: 'custom1', note: 'Custom · 230 V × 4.5 A', isCustom: true })).toBe('Custom · 230 V × 4.5 A')
   expect(applianceNote(t, { id: 'unknown', note: 'Fallback' })).toBe('Fallback')
 })
+
+describe('privacy page', () => {
+  test('both languages have the same sections, each with a heading and a body', () => {
+    expect(es.privacy.sections).toHaveLength(en.privacy.sections.length)
+    for (const d of [en, es]) {
+      for (const s of d.privacy.sections) {
+        expect(s.heading.trim()).not.toBe('')
+        expect(s.body.trim()).not.toBe('')
+      }
+    }
+  })
+})

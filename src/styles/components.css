@@ -267,6 +267,14 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 }
 
 .stage--narrow { max-width: 440px; }
+.login__privacy { align-self: center; }
+/* Long-form text pages (privacy): readable measure, calm hierarchy. */
+.prose { max-width: 640px; }
+.prose h1 { font-size: 32px; }
+.prose h2 { font-size: 18px; margin-bottom: 4px; }
+.prose p { margin: 0; line-height: 1.6; }
+.prose a { color: var(--accent); }
+.prose__back { align-self: flex-start; font-size: 14px; font-weight: 600; text-decoration: none; }
 .form { display: flex; flex-direction: column; gap: 12px; }
 /* .field's flex basis sizes the custom-load row horizontally; in this vertical form it would become a 120px height. */
 .form .field { flex: 0 0 auto; }

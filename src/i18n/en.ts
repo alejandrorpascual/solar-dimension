@@ -97,4 +97,16 @@ export const en: Dictionary = {
     dominantLoad: (p) => `${p.itemName} is ${p.sharePct}% of the energy. Dropping it is the cheapest way to shrink the bank.`,
   },
   parts: { inverter: 'Inverter', batteries: 'Batteries', mainCable: 'Main cable', interconnects: 'Interconnects', fuse: 'Fuse' },
+  privacy: {
+    title: 'Privacy',
+    updated: 'Last updated {date}',
+    sections: [
+      { heading: 'What we store', body: 'Your email and name, and, if you sign in with Google, your Google account ID. We also store the projects you save: appliances, hours, voltage and battery choices.' },
+      { heading: 'Why', body: 'To sign you in and keep your projects across devices. Nothing else.' },
+      { heading: 'Sharing', body: "We don't sell or share your data. It's stored with our hosting and database providers (Vercel and Neon) only to run the app." },
+      { heading: 'Google data', body: "We only request your basic profile (name and email). We don't access Gmail, Drive or anything else in your Google account." },
+      { heading: 'Cookies', body: 'One sign-in session cookie and one language cookie. No ads or tracking.' },
+      { heading: 'Deleting your data', body: "Email {email} and we'll delete your account and projects." },
+    ],
+  },
 }

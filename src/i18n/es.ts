@@ -97,4 +97,16 @@ export const es: Dictionary = {
     dominantLoad: (p) => `${p.itemName} es el ${p.sharePct}% de la energía. Quitarlo es la forma más barata de reducir el banco.`,
   },
   parts: { inverter: 'Inversor', batteries: 'Baterías', mainCable: 'Cable principal', interconnects: 'Interconexiones', fuse: 'Fusible' },
+  privacy: {
+    title: 'Privacidad',
+    updated: 'Última actualización: {date}',
+    sections: [
+      { heading: 'Qué guardamos', body: 'Tu correo y tu nombre y, si inicias sesión con Google, el identificador de tu cuenta de Google. También guardamos los proyectos que guardes: aparatos, horas, voltaje y elección de baterías.' },
+      { heading: 'Para qué', body: 'Para iniciar tu sesión y mantener tus proyectos en todos tus dispositivos. Nada más.' },
+      { heading: 'Con quién lo compartimos', body: 'No vendemos ni compartimos tus datos. Se guardan con nuestros proveedores de alojamiento y base de datos (Vercel y Neon) solo para que la app funcione.' },
+      { heading: 'Datos de Google', body: 'Solo pedimos tu perfil básico (nombre y correo). No accedemos a Gmail, Drive ni a nada más de tu cuenta de Google.' },
+      { heading: 'Cookies', body: 'Una cookie de sesión para iniciar sesión y una de idioma. Sin anuncios ni rastreo.' },
+      { heading: 'Borrar tus datos', body: 'Escribe a {email} y borraremos tu cuenta y tus proyectos.' },
+    ],
+  },
 }
