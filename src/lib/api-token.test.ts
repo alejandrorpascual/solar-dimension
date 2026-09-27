@@ -35,3 +35,28 @@ test('throttles a key after the limit within the window, then forgets', () => {
   now = 1000
   expect(t.isBlocked('ip')).toBe(false)
 })
+
+test('evicts stale keys when recording a new failure after window expires', () => {
+  let now = 0
+  const t = failureThrottle({ limit: 1, windowMs: 1000, now: () => now })
+  t.recordFailure('old')
+  expect(t.isBlocked('old')).toBe(true)
+  now = 1000 // window expires
+  expect(t.isBlocked('old')).toBe(false) // stale entry filtered out
+  t.recordFailure('new') // recording new failure cleans up stale keys
+  expect(t.isBlocked('old')).toBe(false) // old is gone from tracking
+  expect(t.isBlocked('new')).toBe(true)
+})
+
+test('evicts oldest keys when exceeding maxKeys', () => {
+  let now = 0
+  const t = failureThrottle({ limit: 1, windowMs: 1000, now: () => now, maxKeys: 2 })
+  t.recordFailure('a')
+  expect(t.isBlocked('a')).toBe(true)
+  t.recordFailure('b')
+  expect(t.isBlocked('b')).toBe(true)
+  t.recordFailure('c') // exceeds maxKeys, evicts 'a' (oldest)
+  expect(t.isBlocked('c')).toBe(true)
+  expect(t.isBlocked('a')).toBe(false) // 'a' was evicted
+  expect(t.isBlocked('b')).toBe(true)  // 'b' still tracked
+})

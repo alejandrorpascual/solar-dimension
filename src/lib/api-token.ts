@@ -16,14 +16,35 @@ export function tokenMatches(given: string | null, expected: string | undefined)
   return timingSafeEqual(digest(given), digest(expected!))
 }
 
-export function failureThrottle(opts: { limit: number; windowMs: number; now?: () => number }) {
+const MAX_TRACKED_KEYS = 10_000
+
+export function failureThrottle(opts: { limit: number; windowMs: number; now?: () => number; maxKeys?: number }) {
   const now = opts.now ?? Date.now
+  const maxKeys = opts.maxKeys ?? MAX_TRACKED_KEYS
   let hits = new Map<string, readonly number[]>()
   const recent = (key: string) => (hits.get(key) ?? []).filter((t) => now() - t < opts.windowMs)
   return {
     isBlocked: (key: string): boolean => recent(key).length >= opts.limit,
     recordFailure: (key: string): void => {
-      hits = new Map(hits).set(key, [...recent(key), now()])
+      const recentHits = recent(key)
+      const newHits = [...recentHits, now()]
+
+      // Housekeeping: remove stale keys and track new key
+      let newMap = new Map<string, readonly number[]>()
+      for (const [k, v] of hits) {
+        const kr = v.filter((t) => now() - t < opts.windowMs)
+        if (kr.length > 0) newMap.set(k, kr)
+      }
+
+      // Evict oldest key if adding a new key would exceed maxKeys
+      const isNewKey = !newMap.has(key)
+      if (isNewKey && newMap.size >= maxKeys) {
+        const firstKey = newMap.keys().next().value!
+        newMap.delete(firstKey)
+      }
+
+      newMap.set(key, newHits)
+      hits = newMap
     },
   }
 }
