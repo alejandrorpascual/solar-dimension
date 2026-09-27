@@ -1,4 +1,7 @@
+import { config as loadEnv } from 'dotenv'
 import { defineConfig, devices } from '@playwright/test'
+
+loadEnv({ path: '.env.local' })
 
 // E2E_PORT lets a second checkout (a worktree) run its own build while another dev server holds :3000.
 const PORT = Number(process.env.E2E_PORT ?? 3000)
