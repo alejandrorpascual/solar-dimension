@@ -8,7 +8,9 @@ const throttle = failureThrottle({ limit: FAILURE_LIMIT, windowMs: FAILURE_WINDO
 export const API_ACTOR = 'api-token'
 export const json = (body: unknown, status = 200): Response => Response.json(body, { status })
 
-const clientIp = (request: Request) => request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+// Defense-in-depth behind a >=32-char token; relies on the host (Vercel) setting x-real-ip / x-forwarded-for.
+const clientIp = (request: Request) =>
+  request.headers.get('x-real-ip')?.trim() || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 
 /** Null when the request may proceed; otherwise the response to send. Unconfigured = the API does not exist. */
 export function authorize(request: Request): Response | null {
