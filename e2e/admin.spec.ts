@@ -37,6 +37,11 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
   const name = `E2E hot plate ${Date.now()}`
   await page.goto('/admin/appliances')
   await page.getByRole('button', { name: 'New appliance' }).click()
+  // A one-letter name slugifies to a one-character id, which fails the schema's id pattern: the error must surface.
+  await page.getByLabel('Name (EN)').fill('A')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('The English name must give an id of at least 2 letters or digits')).toBeVisible()
+
   await page.getByLabel('Name (EN)').fill(name)
   await page.getByLabel('Name (ES)').fill(`Parrilla ${name}`)
   await page.getByLabel('Category').selectOption('Kitchen')

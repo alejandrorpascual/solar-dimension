@@ -19,7 +19,12 @@ function toInput(d: Draft, id: string) {
   }
 }
 
-export function ApplianceForm({ initial, onSaved, onCancel }: { initial: ApplianceRecord | null; onSaved: () => void; onCancel: () => void }) {
+/** Fields the form renders its own inline error for; anything else falls back to a generic line so no issue is silently dropped. */
+const MAPPED_ERROR_KEYS = new Set([
+  'id', 'labels.en.name', 'labels.en.note', 'labels.es.name', 'labels.es.note', 'category', 'watts', 'surge', 'duty', 'tons',
+])
+
+export function ApplianceForm({ initial, onSaved, onCancel }: { initial: ApplianceRecord | null; onSaved: () => Promise<void> | void; onCancel: () => void }) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -28,6 +33,7 @@ export function ApplianceForm({ initial, onSaved, onCancel }: { initial: Applian
   const set = (k: keyof Draft) => (e: { target: { value: string } }) => setDraft({ ...draft, [k]: e.target.value })
   const parsed = ApplianceSchema.safeParse(toInput(draft, id))
   const warnings = parsed.success ? applianceWarnings(parsed.data) : []
+  const unmappedErrors = Object.entries(errors).filter(([k]) => !MAPPED_ERROR_KEYS.has(k))
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -39,7 +45,7 @@ export function ApplianceForm({ initial, onSaved, onCancel }: { initial: Applian
     setSaving(true)
     try {
       await adminSaveAppliance({ data: parsed.data })
-      onSaved()
+      await onSaved()
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Could not save')
     } finally {
@@ -57,7 +63,10 @@ export function ApplianceForm({ initial, onSaved, onCancel }: { initial: Applian
 
   return (
     <form className="admin__form" onSubmit={submit} noValidate>
-      <p className="admin__id">id: <code>{id || '—'}</code>{!initial && ' (fixed after saving)'}</p>
+      <p className="admin__id">
+        id: <code>{id || '—'}</code>{!initial && ' (fixed after saving)'}
+        {errors.id && <><br /><small className="admin__error">The English name must give an id of at least 2 letters or digits</small></>}
+      </p>
       {field('Name (EN)', 'nameEn', 'labels.en.name')}
       {field('Note (EN)', 'noteEn', 'labels.en.note')}
       {field('Name (ES)', 'nameEs', 'labels.es.name')}
@@ -84,6 +93,9 @@ export function ApplianceForm({ initial, onSaved, onCancel }: { initial: Applian
         </>
       )}
       {warnings.map((w) => <p key={w} className="admin__warn">{w}</p>)}
+      {unmappedErrors.length > 0 && (
+        <p role="alert" className="admin__error">{unmappedErrors.map(([k, msg]) => `${k || 'form'}: ${msg}`).join('; ')}</p>
+      )}
       {saveError && <p role="alert" className="admin__error">{saveError}</p>}
       <div className="admin__actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
