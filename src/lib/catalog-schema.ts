@@ -75,6 +75,11 @@ export function parseItems(body: unknown): ParsedItems {
   return { ok: true, items: results.map((r) => r.data!) }
 }
 
+/** Pure check for the id the admin form is about to create; the server re-checks against the database before writing. */
+export function idTakenMessage(id: string, existingIds: ReadonlySet<string>): string | null {
+  return existingIds.has(id) ? `The id "${id}" is already used by another appliance. Change the English name.` : null
+}
+
 export function slugify(name: string): string {
   return name
     .normalize('NFD')

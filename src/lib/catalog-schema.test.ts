@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { CATEGORIES } from './catalog'
-import { APPLIANCE_CATEGORIES, ApplianceSchema, applianceWarnings, parseItems, slugify, toCatalogItem, type ApplianceInput } from './catalog-schema'
+import { APPLIANCE_CATEGORIES, ApplianceSchema, applianceWarnings, idTakenMessage, parseItems, slugify, toCatalogItem, type ApplianceInput } from './catalog-schema'
 import { APPLIANCE_SEED, CATALOG_SNAPSHOT } from './catalog-snapshot'
 
 const stove: ApplianceInput = {
@@ -59,6 +59,14 @@ describe('applianceWarnings', () => {
     expect(applianceWarnings(stove)).toEqual([])
     expect(applianceWarnings({ ...stove, watts: 7000, surge: 7000 })).toHaveLength(1)
     expect(applianceWarnings({ ...stove, duty: 1 })).toHaveLength(1)
+  })
+})
+
+describe('idTakenMessage', () => {
+  test('flags an id already in use and passes a free one', () => {
+    const ids = new Set(['toaster', 'fridge'])
+    expect(idTakenMessage('toaster', ids)).toBe('The id "toaster" is already used by another appliance. Change the English name.')
+    expect(idTakenMessage('new-thing', ids)).toBeNull()
   })
 })
 

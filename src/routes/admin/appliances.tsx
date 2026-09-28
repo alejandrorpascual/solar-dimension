@@ -18,6 +18,7 @@ function AdminAppliances() {
   const router = useRouter()
   const [editing, setEditing] = useState<ApplianceRecord | 'new' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const existingIds = new Set(items.map((r) => r.id))
   // The root loader caches the catalog for the visit; invalidate so the picker sees the change.
   const refresh = () => router.invalidate()
   const toggleRetired = async (r: ApplianceRecord) => {
@@ -39,6 +40,7 @@ function AdminAppliances() {
       {editing && (
         <ApplianceForm
           initial={editing === 'new' ? null : editing}
+          existingIds={existingIds}
           onSaved={async () => { setEditing(null); await refresh() }}
           onCancel={() => setEditing(null)}
         />

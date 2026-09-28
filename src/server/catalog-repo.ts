@@ -29,6 +29,12 @@ export async function listRecords(): Promise<ApplianceRecord[]> {
   return rows.map(toRecord).filter((r): r is ApplianceRecord => r !== null)
 }
 
+/** Checks the table directly (unlike listRecords, includes retired rows and rows that no longer pass the schema). */
+export async function applianceExists(id: string): Promise<boolean> {
+  const rows = await db.select({ id: appliances.id }).from(appliances).where(eq(appliances.id, id)).limit(1)
+  return rows.length > 0
+}
+
 export async function queryCatalog(): Promise<CatalogItem[]> {
   return (await listRecords()).map(toCatalogItem)
 }

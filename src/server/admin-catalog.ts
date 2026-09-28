@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { isAdmin } from '../lib/admin'
 import { auth } from '../lib/auth'
 import { ApplianceSchema, type ApplianceRecord } from '../lib/catalog-schema'
-import { listRecords, setRetired, upsertAppliances } from './catalog-repo'
+import { applianceExists, listRecords, setRetired, upsertAppliances } from './catalog-repo'
 
 async function adminUser() {
   const session = await auth.api.getSession({ headers: getRequestHeaders() })
@@ -25,11 +25,21 @@ export const adminListAppliances = createServerFn({ method: 'GET' }).handler(asy
   return listRecords()
 })
 
+const SaveApplianceInput = z.object({ mode: z.enum(['create', 'update']), item: ApplianceSchema }).strict()
+
 export const adminSaveAppliance = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => ApplianceSchema.parse(d))
+  .validator((d: unknown) => d)
   .handler(async ({ data }) => {
     const user = await requireAdmin()
-    return upsertAppliances([data], user.id)
+    const { mode, item } = SaveApplianceInput.parse(data)
+    if (mode === 'create') {
+      if (await applianceExists(item.id)) {
+        throw new Error(`The id "${item.id}" is already used by another appliance. Change the English name.`)
+      }
+    } else if (!(await applianceExists(item.id))) {
+      throw new Error('Not found')
+    }
+    return upsertAppliances([item], user.id)
   })
 
 export const adminSetRetired = createServerFn({ method: 'POST' })

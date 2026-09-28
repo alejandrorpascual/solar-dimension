@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type InputHTMLAttributes } from 'react'
-import { APPLIANCE_CATEGORIES, ApplianceSchema, applianceWarnings, slugify, type ApplianceRecord } from '../../lib/catalog-schema'
+import { APPLIANCE_CATEGORIES, ApplianceSchema, applianceWarnings, idTakenMessage, slugify, type ApplianceRecord } from '../../lib/catalog-schema'
 import { adminSaveAppliance } from '../../server/admin-catalog'
 
 type Draft = Record<'nameEn' | 'noteEn' | 'nameEs' | 'noteEs' | 'category' | 'watts' | 'surge' | 'duty' | 'tons' | 'acType', string>
@@ -21,14 +21,25 @@ function toInput(d: Draft, id: string) {
 
 /** Fields the form renders its own inline error for; anything else falls back to a generic line so no issue is silently dropped. */
 const MAPPED_ERROR_KEYS = new Set([
-  'id', 'labels.en.name', 'labels.en.note', 'labels.es.name', 'labels.es.note', 'category', 'watts', 'surge', 'duty', 'tons',
+  'id', 'idTaken', 'labels.en.name', 'labels.en.note', 'labels.es.name', 'labels.es.note', 'category', 'watts', 'surge', 'duty', 'tons',
 ])
 
-export function ApplianceForm({ initial, onSaved, onCancel }: { initial: ApplianceRecord | null; onSaved: () => Promise<void> | void; onCancel: () => void }) {
+export function ApplianceForm({
+  initial,
+  existingIds,
+  onSaved,
+  onCancel,
+}: {
+  initial: ApplianceRecord | null
+  existingIds: ReadonlySet<string>
+  onSaved: () => Promise<void> | void
+  onCancel: () => void
+}) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isSaving, setSaving] = useState(false)
+  const mode: 'create' | 'update' = initial ? 'update' : 'create'
   const id = initial?.id ?? slugify(draft.nameEn)
   const set = (k: keyof Draft) => (e: { target: { value: string } }) => setDraft({ ...draft, [k]: e.target.value })
   const parsed = ApplianceSchema.safeParse(toInput(draft, id))
@@ -42,9 +53,16 @@ export function ApplianceForm({ initial, onSaved, onCancel }: { initial: Applian
       setErrors(Object.fromEntries(parsed.error.issues.map((i) => [i.path.join('.'), i.message])))
       return
     }
+    if (mode === 'create') {
+      const taken = idTakenMessage(id, existingIds)
+      if (taken) {
+        setErrors({ idTaken: taken })
+        return
+      }
+    }
     setSaving(true)
     try {
-      await adminSaveAppliance({ data: parsed.data })
+      await adminSaveAppliance({ data: { mode, item: parsed.data } })
       await onSaved()
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Could not save')
@@ -66,6 +84,7 @@ export function ApplianceForm({ initial, onSaved, onCancel }: { initial: Applian
       <p className="admin__id">
         id: <code>{id || '—'}</code>{!initial && ' (fixed after saving)'}
         {errors.id && <><br /><small className="admin__error">The English name must give an id of at least 2 letters or digits</small></>}
+        {errors.idTaken && <><br /><small className="admin__error">{errors.idTaken}</small></>}
       </p>
       {field('Name (EN)', 'nameEn', 'labels.en.name')}
       {field('Note (EN)', 'noteEn', 'labels.en.note')}

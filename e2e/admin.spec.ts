@@ -66,3 +66,20 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
   await page.goto('/?step=1')
   await expect(page.getByText(name)).toHaveCount(0)
 })
+
+test('"New appliance" refuses an id that already belongs to another appliance', async ({ page }) => {
+  await signInOrUp(page, ADMIN.email, ADMIN.password)
+  await markEmailVerified(ADMIN.email)
+  await page.context().clearCookies()
+  await signInOrUp(page, ADMIN.email, ADMIN.password)
+
+  await page.goto('/admin/appliances')
+  await page.getByRole('button', { name: 'New appliance' }).click()
+  // "Toaster" slugifies to the seeded id "toaster"; saving must not silently overwrite it.
+  await page.getByLabel('Name (EN)').fill('Toaster')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('The id "toaster" is already used by another appliance. Change the English name.')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByRole('row', { name: /Toaster/ })).toContainText('1000')
+})
