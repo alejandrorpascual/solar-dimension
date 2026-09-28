@@ -84,8 +84,14 @@ test('"New appliance" refuses an id that already belongs to another appliance', 
 
   await page.goto('/admin/appliances')
   await page.getByRole('button', { name: 'New appliance' }).click()
-  // "Toaster" slugifies to the seeded id "toaster"; saving must not silently overwrite it.
+  // "Toaster" slugifies to the seeded id "toaster"; saving must not silently overwrite it. Every other field has to be
+  // valid too, otherwise the form reports the schema error instead of ever reaching the duplicate-id check.
   await page.getByLabel('Name (EN)').fill('Toaster')
+  await page.getByLabel('Name (ES)').fill('Tostadora duplicada')
+  await page.getByLabel('Category').selectOption('Kitchen')
+  await page.getByLabel('Running watts').fill('1000')
+  await page.getByLabel('Surge watts').fill('1000')
+  await page.getByLabel('Duty').fill('0.04')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText('The id "toaster" is already used by another appliance. Change the English name.')).toBeVisible()
 
