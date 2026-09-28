@@ -5,7 +5,7 @@ import { BatteryPicker } from './BatteryPicker'
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtHours, fmtInt, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
-import type { SizingResult, Warning } from '../lib/sizing'
+import type { SelectedItem, SizingResult, Warning } from '../lib/sizing'
 
 export interface Part { id: string; name: string; spec: string; note: string; qty: string }
 
@@ -25,8 +25,9 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
   ]
 }
 
-function warningText(t: Dictionary, w: Warning): string {
-  const itemName = w.params.itemId ? applianceName(t, { id: w.params.itemId, name: w.params.itemName ?? '' }) : w.params.itemName
+function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[]): string {
+  const item = items.find((i) => i.id === w.params.itemId)
+  const itemName = item ? applianceName(t, item) : w.params.itemName
   return t.warnings[w.code]({ ...w.params, itemName })
 }
 
@@ -117,7 +118,7 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
       </div>
       {r.warnings.length > 0 && (
         <div className="warn" role="status">
-          {r.warnings.map((w) => <div key={w.code}>{warningText(t, w)}</div>)}
+          {r.warnings.map((w) => <div key={w.code}>{warningText(t, w, r.items)}</div>)}
         </div>
       )}
       <p className="fine muted">{tr(t, 'fine', { dod })}</p>

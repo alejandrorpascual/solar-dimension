@@ -1,0 +1,16 @@
+.admin { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+.admin__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.admin__form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; padding: 16px; margin-bottom: 24px; border: 1px solid var(--line, #d4d4d8); border-radius: 12px; }
+.admin__id, .admin__actions, .admin__warn, .admin__form > [role='alert'] { grid-column: 1 / -1; }
+.admin__field { display: grid; gap: 4px; }
+.admin__actions { display: flex; gap: 8px; }
+.admin__error { color: var(--error, #b91c1c); }
+.admin__warn { color: var(--warn-ink, #b45309); margin: 0; }
+.admin__table { width: 100%; border-collapse: collapse; }
+.admin__table th, .admin__table td { padding: 8px; border-bottom: 1px solid var(--line, #e4e4e7); text-align: left; vertical-align: top; }
+.admin__table tbody th { padding-top: 20px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted, #71717a); }
+.admin__table .is-retired td { opacity: 0.5; }
+@media (max-width: 640px) {
+  .admin__form { grid-template-columns: 1fr; }
+  .admin__table { display: block; overflow-x: auto; }
+}

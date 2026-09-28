@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, applianceNote, tr } from '../i18n'
 import { fmtInt, fmtW } from '../i18n/format'
-import type { CatalogItem } from '../lib/catalog'
+import { needsSplitPhase, type CatalogItem } from '../lib/catalog'
 import { clampQty, parseQty } from '../lib/store'
 
 interface Props {
@@ -49,6 +49,7 @@ export function ApplianceCard({ item, title, qty, onInc, onDec, onSet, onRemove 
       <div className="card__body">
         <div className="card__name">{title ?? name}</div>
         <div className="card__spec num">{tr(t, 'runningSurgeLine', { watts: fmtInt(item.watts, locale), surge: fmtW(item.surge, locale) })}</div>
+        {needsSplitPhase(item) && <div className="card__spec card__spec--warn">{t.ui.splitPhase}</div>}
         {item.isCustom && <div className="card__spec">{applianceNote(t, item)}</div>}
       </div>
       {onRemove && (

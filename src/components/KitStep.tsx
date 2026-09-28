@@ -1,3 +1,4 @@
+import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useUndoSnapshot } from '../hooks/useUndoSnapshot'
 import { tr } from '../i18n'
@@ -19,6 +20,7 @@ interface Props {
 /** Step 3: the kit, edited in place. Quick edits remember the project as it was before them, for the deltas and Undo. */
 export function KitStep({ store, commit, project, result, onAllAppliances }: Props) {
   const { t } = useLocale()
+  const appliances = useCatalog()
   const undo = useUndoSnapshot(project, project.id)
   const isDirty = undo.snapshot !== null && !hasSameLoads(undo.snapshot, project)
   const quickEdit = (next: Store) => {
@@ -35,7 +37,7 @@ export function KitStep({ store, commit, project, result, onAllAppliances }: Pro
       <h2>{tr(t, 'kitFor', { name: project.name })}</h2>
       <KitSummary
         result={result}
-        baseline={isDirty && undo.snapshot ? computeProject(undo.snapshot) : null}
+        baseline={isDirty && undo.snapshot ? computeProject(undo.snapshot, appliances) : null}
         projectName={project.name}
         quickEdit={
           <KitQuickEdit

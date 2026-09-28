@@ -13,7 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AdminAppliancesRouteImport } from './routes/admin/appliances'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiCatalogAppliancesRouteImport } from './routes/api/catalog/appliances'
+import { Route as ApiCatalogAppliancesIdRestoreRouteImport } from './routes/api/catalog/appliances.$id.restore'
+import { Route as ApiCatalogAppliancesIdRetireRouteImport } from './routes/api/catalog/appliances.$id.retire'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -35,25 +39,55 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAppliancesRoute = AdminAppliancesRouteImport.update({
+  id: '/admin/appliances',
+  path: '/admin/appliances',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCatalogAppliancesRoute = ApiCatalogAppliancesRouteImport.update({
+  id: '/api/catalog/appliances',
+  path: '/api/catalog/appliances',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCatalogAppliancesIdRestoreRoute =
+  ApiCatalogAppliancesIdRestoreRouteImport.update({
+    id: '/$id/restore',
+    path: '/$id/restore',
+    getParentRoute: () => ApiCatalogAppliancesRoute,
+  } as any)
+const ApiCatalogAppliancesIdRetireRoute =
+  ApiCatalogAppliancesIdRetireRouteImport.update({
+    id: '/$id/retire',
+    path: '/$id/retire',
+    getParentRoute: () => ApiCatalogAppliancesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/admin/appliances': typeof AdminAppliancesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
+  '/api/catalog/appliances/$id/restore': typeof ApiCatalogAppliancesIdRestoreRoute
+  '/api/catalog/appliances/$id/retire': typeof ApiCatalogAppliancesIdRetireRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/admin/appliances': typeof AdminAppliancesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
+  '/api/catalog/appliances/$id/restore': typeof ApiCatalogAppliancesIdRestoreRoute
+  '/api/catalog/appliances/$id/retire': typeof ApiCatalogAppliancesIdRetireRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,14 +95,46 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/admin/appliances': typeof AdminAppliancesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
+  '/api/catalog/appliances/$id/restore': typeof ApiCatalogAppliancesIdRestoreRoute
+  '/api/catalog/appliances/$id/retire': typeof ApiCatalogAppliancesIdRetireRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/privacy' | '/terms' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/privacy'
+    | '/terms'
+    | '/admin/appliances'
+    | '/api/auth/$'
+    | '/api/catalog/appliances'
+    | '/api/catalog/appliances/$id/restore'
+    | '/api/catalog/appliances/$id/retire'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/privacy' | '/terms' | '/api/auth/$'
-  id: '__root__' | '/' | '/login' | '/privacy' | '/terms' | '/api/auth/$'
+  to:
+    | '/'
+    | '/login'
+    | '/privacy'
+    | '/terms'
+    | '/admin/appliances'
+    | '/api/auth/$'
+    | '/api/catalog/appliances'
+    | '/api/catalog/appliances/$id/restore'
+    | '/api/catalog/appliances/$id/retire'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/privacy'
+    | '/terms'
+    | '/admin/appliances'
+    | '/api/auth/$'
+    | '/api/catalog/appliances'
+    | '/api/catalog/appliances/$id/restore'
+    | '/api/catalog/appliances/$id/retire'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,7 +142,9 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  AdminAppliancesRoute: typeof AdminAppliancesRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCatalogAppliancesRoute: typeof ApiCatalogAppliancesRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -109,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/appliances': {
+      id: '/admin/appliances'
+      path: '/admin/appliances'
+      fullPath: '/admin/appliances'
+      preLoaderRoute: typeof AdminAppliancesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -116,15 +191,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/catalog/appliances': {
+      id: '/api/catalog/appliances'
+      path: '/api/catalog/appliances'
+      fullPath: '/api/catalog/appliances'
+      preLoaderRoute: typeof ApiCatalogAppliancesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/catalog/appliances/$id/restore': {
+      id: '/api/catalog/appliances/$id/restore'
+      path: '/$id/restore'
+      fullPath: '/api/catalog/appliances/$id/restore'
+      preLoaderRoute: typeof ApiCatalogAppliancesIdRestoreRouteImport
+      parentRoute: typeof ApiCatalogAppliancesRoute
+    }
+    '/api/catalog/appliances/$id/retire': {
+      id: '/api/catalog/appliances/$id/retire'
+      path: '/$id/retire'
+      fullPath: '/api/catalog/appliances/$id/retire'
+      preLoaderRoute: typeof ApiCatalogAppliancesIdRetireRouteImport
+      parentRoute: typeof ApiCatalogAppliancesRoute
+    }
   }
 }
+
+interface ApiCatalogAppliancesRouteChildren {
+  ApiCatalogAppliancesIdRestoreRoute: typeof ApiCatalogAppliancesIdRestoreRoute
+  ApiCatalogAppliancesIdRetireRoute: typeof ApiCatalogAppliancesIdRetireRoute
+}
+
+const ApiCatalogAppliancesRouteChildren: ApiCatalogAppliancesRouteChildren = {
+  ApiCatalogAppliancesIdRestoreRoute: ApiCatalogAppliancesIdRestoreRoute,
+  ApiCatalogAppliancesIdRetireRoute: ApiCatalogAppliancesIdRetireRoute,
+}
+
+const ApiCatalogAppliancesRouteWithChildren =
+  ApiCatalogAppliancesRoute._addFileChildren(ApiCatalogAppliancesRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  AdminAppliancesRoute: AdminAppliancesRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCatalogAppliancesRoute: ApiCatalogAppliancesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

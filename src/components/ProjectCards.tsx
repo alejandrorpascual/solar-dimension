@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, batteryCount, tr, type Dictionary } from '../i18n'
 import { fmtHours, fmtKwh, fmtW } from '../i18n/format'
@@ -80,6 +81,7 @@ function ProjectCard({ summary: s, isCurrent, isEditing, onOpen, onToggleEdit, o
 /** Every saved project with its kit at a glance; quick edit changes a project without opening it. */
 export function ProjectCards({ store, commit, onPicked }: Props) {
   const { t } = useLocale()
+  const appliances = useCatalog()
   const [editingId, setEditingId] = useState<string | null>(null)
   return (
     <div className="pcards">
@@ -87,7 +89,7 @@ export function ProjectCards({ store, commit, onPicked }: Props) {
         <span className="lab">{t.ui.projects}</span>
         <button type="button" className="pcards__new" onClick={() => { commit(addProject(store)); onPicked?.() }}>{t.ui.newProject}</button>
       </div>
-      {summarizeProjects(store.projects).map((s) => (
+      {summarizeProjects(store.projects, appliances).map((s) => (
         <ProjectCard
           key={s.project.id}
           summary={s}

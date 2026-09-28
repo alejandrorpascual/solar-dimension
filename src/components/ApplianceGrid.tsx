@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, tr, type Dictionary } from '../i18n'
 import { gridSections, type GridEntry, type GridSection } from '../lib/appliance-groups'
-import { CATEGORIES, type CatalogItem, type Category, type CompressorType } from '../lib/catalog'
+import { CATEGORIES, forPicker, type CatalogItem, type Category, type CompressorType } from '../lib/catalog'
 import type { Store } from '../lib/schema'
 import { catalog } from '../lib/sizing'
 import { currentProject, removeCustom, setQty } from '../lib/store'
@@ -43,13 +44,14 @@ const addedIn = (section: GridSection, qty: Record<string, number>) =>
 
 export function ApplianceGrid({ store, commit }: { store: Store; commit: (s: Store) => void }) {
   const { t } = useLocale()
+  const appliances = useCatalog()
   const [filter, setFilter] = useState<Filter>('All')
   const [query, setQuery] = useState('')
   const project = currentProject(store)
   const needle = query.trim().toLowerCase()
   const matches = (a: CatalogItem) =>
     !needle || a.name.toLowerCase().includes(needle) || applianceName(t, a).toLowerCase().includes(needle) || a.id.toLowerCase().includes(needle)
-  const items = catalog(project.custom).filter((a) => (filter === 'All' || a.cat === filter) && matches(a))
+  const items = catalog(forPicker(appliances), project.custom).filter((a) => (filter === 'All' || a.cat === filter) && matches(a))
   const filters: Filter[] = ['All', ...CATEGORIES]
   // A single-category filter already names the section, so its header would only repeat the chip.
   const hasSectionHeaders = filter === 'All'

@@ -1,6 +1,7 @@
 import { en } from './en'
 import { es } from './es'
 import type { Dictionary, Locale, UiKey } from './types'
+import type { ApplianceLabels } from '../lib/catalog'
 
 export type { Dictionary, LegalPage, Locale, UiKey } from './types'
 export const LOCALES: readonly Locale[] = ['en', 'es']
@@ -58,10 +59,12 @@ export function batteryCount(t: Dictionary, count: number): string {
   return tr(t, count === 1 ? 'batteryCountOne' : 'batteryCountMany', { count })
 }
 
-export function applianceName(t: Dictionary, item: { id: string; name: string; isCustom?: boolean }): string {
-  return item.isCustom ? item.name : (t.appliances[item.id]?.name ?? item.name)
+type Labelled = { id: string; name?: string; isCustom?: boolean; labels?: ApplianceLabels }
+
+export function applianceName(t: Dictionary, item: Labelled & { name: string }): string {
+  return item.isCustom ? item.name : (item.labels?.[t.locale]?.name ?? item.name)
 }
 
-export function applianceNote(t: Dictionary, item: { id: string; note: string; isCustom?: boolean }): string {
-  return item.isCustom ? item.note : (t.appliances[item.id]?.note ?? item.note)
+export function applianceNote(t: Dictionary, item: Labelled & { note: string }): string {
+  return item.isCustom ? item.note : (item.labels?.[t.locale]?.note ?? item.note)
 }

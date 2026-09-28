@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { APPLIANCES, CATEGORIES, CHEMISTRIES, GAUGES, INVERTERS, SIZING, VOLTAGES } from './catalog'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
+import { CATEGORIES, CHEMISTRIES, forPicker, GAUGES, INVERTERS, needsSplitPhase, SIZING, VOLTAGES } from './catalog'
 
 describe('catalog', () => {
   test('lists every tonnage twice, once per compressor type, with tonnage-based watts', () => {
-    const ac = APPLIANCES.filter((a) => a.cat === 'Air conditioning')
+    const ac = CATALOG_SNAPSHOT.filter((a) => a.cat === 'Air conditioning')
     expect(ac).toHaveLength(12)
     const twoTonInverter = ac.find((a) => a.id === 'ac2i')
     const twoTonConventional = ac.find((a) => a.id === 'ac2c')
@@ -14,18 +15,18 @@ describe('catalog', () => {
   })
 
   test('places air conditioning right after the climate items', () => {
-    const ids = APPLIANCES.map((a) => a.id)
+    const ids = CATALOG_SNAPSHOT.map((a) => a.id)
     expect(ids.indexOf('ac1i')).toBe(ids.indexOf('heater') + 1)
   })
 
   test('has unique ids and a known category on every item', () => {
-    const ids = APPLIANCES.map((a) => a.id)
+    const ids = CATALOG_SNAPSHOT.map((a) => a.id)
     expect(new Set(ids).size).toBe(ids.length)
-    for (const a of APPLIANCES) expect(CATEGORIES).toContain(a.cat)
+    for (const a of CATALOG_SNAPSHOT) expect(CATEGORIES).toContain(a.cat)
   })
 
   test('every item has surge >= watts and a duty between 0 and 1', () => {
-    for (const a of APPLIANCES) {
+    for (const a of CATALOG_SNAPSHOT) {
       expect(a.surge).toBeGreaterThanOrEqual(a.watts)
       expect(a.duty).toBeGreaterThan(0)
       expect(a.duty).toBeLessThanOrEqual(1)
@@ -47,9 +48,21 @@ describe('catalog', () => {
 })
 
 test('Security lists a CCTV camera and two recorder sizes, all running continuously', () => {
-  const security = APPLIANCES.filter((a) => a.cat === 'Security')
+  const security = CATALOG_SNAPSHOT.filter((a) => a.cat === 'Security')
   expect(security.map((a) => [a.id, a.watts, a.surge, a.duty])).toEqual([
     ['cctv', 7, 7, 1], ['nvr16', 20, 20, 1], ['nvr32', 50, 50, 1],
   ])
   expect(CATEGORIES.indexOf('Security')).toBe(CATEGORIES.indexOf('Utility') + 1)
+})
+
+test('forPicker hides retired items and keeps the rest in order', () => {
+  const items = CATALOG_SNAPSHOT.map((a) => (a.id === 'tv' ? { ...a, retired: true } : a))
+  const picked = forPicker(items)
+  expect(picked.map((a) => a.id)).not.toContain('tv')
+  expect(picked).toHaveLength(CATALOG_SNAPSHOT.length - 1)
+})
+
+test('needsSplitPhase starts at 3 kW', () => {
+  expect(needsSplitPhase({ watts: 2999 })).toBe(false)
+  expect(needsSplitPhase({ watts: 3000 })).toBe(true)
 })
