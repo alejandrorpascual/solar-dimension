@@ -29,6 +29,14 @@ test('appends new items after the highest sort order and keeps existing ones in 
   expect(out.map((r) => [r.id, r.sortOrder, r.retired])).toEqual([['a-new', max + 10, false], ['b-new', max + 20, false], ['fridge', fridge.sortOrder, false]])
 })
 
+test('a requested sort order counts as a change; leaving it out never does', () => {
+  expect(diffAppliances(APPLIANCE_SEED, [{ ...fridgeInput, sortOrder: 5 }])).toEqual([
+    { id: 'fridge', kind: 'changed', fields: [{ field: 'sortOrder', from: fridge.sortOrder, to: 5 }] },
+  ])
+  expect(diffAppliances(APPLIANCE_SEED, [{ ...fridgeInput, sortOrder: fridge.sortOrder }])).toEqual([{ id: 'fridge', kind: 'unchanged' }])
+  expect(diffAppliances(APPLIANCE_SEED, [fridgeInput])).toEqual([{ id: 'fridge', kind: 'unchanged' }])
+})
+
 test('an explicit sortOrder wins', () => {
   expect(assignSortOrders(APPLIANCE_SEED, [{ ...fridgeInput, sortOrder: 5 }])[0]!.sortOrder).toBe(5)
 })

@@ -25,26 +25,13 @@ export function failureThrottle(opts: { limit: number; windowMs: number; now?: (
   const recent = (key: string) => (hits.get(key) ?? []).filter((t) => now() - t < opts.windowMs)
   return {
     isBlocked: (key: string): boolean => recent(key).length >= opts.limit,
+    // Only this key is trimmed; stale keys are harmless (isBlocked filters by time) and the cap bounds memory,
+    // so a failure never has to scan every tracked key.
     recordFailure: (key: string): void => {
-      const recentHits = recent(key)
-      const newHits = [...recentHits, now()]
-
-      // Housekeeping: remove stale keys and track new key
-      let newMap = new Map<string, readonly number[]>()
-      for (const [k, v] of hits) {
-        const kr = v.filter((t) => now() - t < opts.windowMs)
-        if (kr.length > 0) newMap.set(k, kr)
-      }
-
-      // Evict oldest key if adding a new key would exceed maxKeys
-      const isNewKey = !newMap.has(key)
-      if (isNewKey && newMap.size >= maxKeys) {
-        const firstKey = newMap.keys().next().value!
-        newMap.delete(firstKey)
-      }
-
-      newMap.set(key, newHits)
-      hits = newMap
+      const next = new Map(hits)
+      next.delete(key)
+      if (next.size >= maxKeys) next.delete(next.keys().next().value!)
+      hits = next.set(key, [...recent(key), now()])
     },
   }
 }

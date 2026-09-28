@@ -33,10 +33,10 @@ export interface CablePick {
   mainCount: number; mainLengthM: number; seriesLinks: number; parallelLinks: number; linkLengthM: number
   totalLengthM: number; fuseA: number; dropPct: number
 }
-export type WarningCode = 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase'
+export type WarningCode = 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase' | 'missingAppliances'
 export interface WarningParams {
   inverterW?: number; volts?: number; voltsList?: string; amps?: number; nextVolts?: number | null
-  strings?: number; itemId?: string; itemName?: string; sharePct?: number
+  strings?: number; itemId?: string; itemName?: string; sharePct?: number; count?: number
 }
 export interface Warning { code: WarningCode; params: WarningParams }
 export interface SizingResult {
@@ -171,13 +171,24 @@ function buildWarnings(ctx: WarningContext): Warning[] {
   return w
 }
 
+/**
+ * Appliances the project counts that this catalog does not have, e.g. while the fallback snapshot is served or a
+ * row failed validation. They cannot be sized, so the kit says how many it left out instead of hiding them.
+ */
+function missingCount(list: readonly CatalogItem[], qty: Record<string, number>): number {
+  const known = new Set(list.map((i) => i.id))
+  return Object.entries(qty).filter(([id, n]) => n > 0 && !known.has(id)).length
+}
+
 export function compute(input: SizingInput, appliances: readonly CatalogItem[]): SizingResult {
   const hours = clamp(finite(input.hours, 10), HOURS_RANGE[0], HOURS_RANGE[1])
   const volts: Voltage = VOLTAGES.includes(input.volts) ? input.volts : 48
   const chem = CHEMISTRIES[input.chemistry] ?? CHEMISTRIES.lifepo4
   const runLengthM = clamp(finite(input.runLengthM, DEFAULT_RUN_LENGTH_M), RUN_LENGTH_RANGE[0], RUN_LENGTH_RANGE[1])
 
-  const items = selectItems(catalog(appliances, input.custom), input.qty ?? {}, hours)
+  const list = catalog(appliances, input.custom)
+  const items = selectItems(list, input.qty ?? {}, hours)
+  const missing = missingCount(list, input.qty ?? {})
   const runningW = sum(items, (i) => i.totalWatts)
   const largest = items.reduce<SelectedItem | null>(
     (best, i) => (i.surge - i.watts > (best ? best.surge - best.watts : -1) ? i : best), null,
@@ -215,7 +226,10 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[]):
       totalLengthM: Math.round((2 * cable.runs * runLengthM + (seriesLinks + parallelLinks) * linkLengthM) * 10) / 10,
       fuseA: cable.fuseA, dropPct: Math.round(cable.dropPct * 10) / 10,
     },
-    warnings: buildWarnings({ items, inverter, inverterVoltsOk, amps: cable.amps, volts, battery, loadWh }),
+    warnings: [
+      ...buildWarnings({ items, inverter, inverterVoltsOk, amps: cable.amps, volts, battery, loadWh }),
+      ...(missing > 0 ? [{ code: 'missingAppliances' as const, params: { count: missing } }] : []),
+    ],
     batteryOptions: candidates.map((c) => ({
       id: c.id, label: c.unitLabel, unitV: c.unitV, unitAh: c.unitAh,
       count: c.count, series: c.series, parallel: c.parallel, config: c.config, bankWh: c.bankWh,

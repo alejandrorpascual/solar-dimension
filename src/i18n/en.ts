@@ -58,6 +58,9 @@ export const en: Dictionary = {
     parallelStrings: (p) => `${p.strings} parallel strings drift out of balance. Prefer bigger units or a higher voltage.`,
     dominantLoad: (p) => `${p.itemName} is ${p.sharePct}% of the energy. Dropping it is the cheapest way to shrink the bank.`,
     splitPhase: (p) => `${p.itemName} usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.`,
+    missingAppliances: (p) => p.count === 1
+      ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute to include it.'
+      : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute to include them.`,
   },
   parts: { inverter: 'Inverter', batteries: 'Batteries', mainCable: 'Main cable', interconnects: 'Interconnects', fuse: 'Fuse' },
   privacy: {

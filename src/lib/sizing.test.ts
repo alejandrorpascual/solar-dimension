@@ -93,6 +93,17 @@ describe('compute', () => {
     const withGhost = compute({ qty: { fridge: 1, 'no-such-thing': 3 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, retired)
     expect(withGhost.items.map((i) => i.id)).toEqual(['fridge'])
   })
+
+  test('says how many counted appliances the catalog could not resolve, even when nothing else is left', () => {
+    const partial = compute({ qty: { fridge: 1, 'no-such-thing': 3, 'gone-too': 1, zeroed: 0 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(partial.warnings.filter((w) => w.code === 'missingAppliances')).toEqual([{ code: 'missingAppliances', params: { count: 2 } }])
+    const onlyMissing = compute({ qty: { 'no-such-thing': 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(onlyMissing.empty).toBe(true)
+    expect(onlyMissing.warnings).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
+    const custom = [{ id: 'custom1', name: 'Pump', watts: 500, surge: 500, note: '' }]
+    const withCustom = compute({ qty: { custom1: 1 }, custom, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(withCustom.warnings.some((w) => w.code === 'missingAppliances')).toBe(false)
+  })
 })
 
 describe('battery unit choice', () => {

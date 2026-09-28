@@ -3,7 +3,7 @@ import type { ApplianceInput, ApplianceRecord } from './catalog-schema'
 const COMPARED = ['category', 'watts', 'surge', 'duty', 'tons', 'acType', 'labels'] as const
 const SORT_STEP = 10
 
-export interface FieldChange { field: (typeof COMPARED)[number]; from: unknown; to: unknown }
+export interface FieldChange { field: (typeof COMPARED)[number] | 'sortOrder'; from: unknown; to: unknown }
 export type ApplianceChange =
   | { id: string; kind: 'new' }
   | { id: string; kind: 'changed'; fields: FieldChange[] }
@@ -21,7 +21,10 @@ export function diffAppliances(existing: readonly ApplianceRecord[], incoming: r
   return incoming.map((item): ApplianceChange => {
     const current = byId.get(item.id)
     if (!current) return { id: item.id, kind: 'new' }
-    const fields = COMPARED.filter((f) => stable(current[f]) !== stable(item[f])).map((field) => ({ field, from: current[field], to: item[field] }))
+    const content: FieldChange[] = COMPARED.filter((f) => stable(current[f]) !== stable(item[f])).map((field) => ({ field, from: current[field], to: item[field] }))
+    // Order is only compared when the caller asks for one; otherwise an item keeps its place.
+    const isReordered = item.sortOrder !== undefined && item.sortOrder !== current.sortOrder
+    const fields = isReordered ? [...content, { field: 'sortOrder' as const, from: current.sortOrder, to: item.sortOrder }] : content
     return fields.length > 0 ? { id: item.id, kind: 'changed', fields } : { id: item.id, kind: 'unchanged' }
   })
 }

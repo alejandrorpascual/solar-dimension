@@ -58,6 +58,9 @@ export const es: Dictionary = {
     parallelStrings: (p) => `${p.strings} ramas en paralelo se desbalancean. Prefiere unidades más grandes o un voltaje mayor.`,
     dominantLoad: (p) => `${p.itemName} es el ${p.sharePct}% de la energía. Quitarlo es la forma más barata de reducir el banco.`,
     splitPhase: (p) => `${p.itemName} normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.`,
+    missingAppliances: (p) => p.count === 1
+      ? 'No se pudo cargar 1 aparato de este proyecto, así que este kit lo deja fuera. Recarga en un minuto para incluirlo.'
+      : `No se pudieron cargar ${p.count} aparatos de este proyecto, así que este kit los deja fuera. Recarga en un minuto para incluirlos.`,
   },
   parts: { inverter: 'Inversor', batteries: 'Baterías', mainCable: 'Cable principal', interconnects: 'Interconexiones', fuse: 'Fusible' },
   privacy: {

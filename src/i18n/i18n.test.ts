@@ -96,6 +96,13 @@ test('applianceNote reads the item labels and keeps custom notes', () => {
   expect(applianceNote(getDictionary('es'), { id: 'unknown', note: 'Fallback' })).toBe('Fallback')
 })
 
+test('the missing-appliances warning agrees in number in both languages', () => {
+  expect(en.warnings.missingAppliances({ count: 1 })).toContain('1 appliance in this project')
+  expect(en.warnings.missingAppliances({ count: 3 })).toContain('3 appliances')
+  expect(es.warnings.missingAppliances({ count: 1 })).toContain('No se pudo cargar 1 aparato')
+  expect(es.warnings.missingAppliances({ count: 3 })).toContain('No se pudieron cargar 3 aparatos')
+})
+
 test('dictionaries no longer carry appliance names', () => {
   expect('appliances' in getDictionary('en')).toBe(false)
 })

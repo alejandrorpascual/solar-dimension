@@ -39,6 +39,8 @@ function AdminAppliances() {
       {error && <p role="alert" className="admin__error">{error}</p>}
       {editing && (
         <ApplianceForm
+          // A new key per target remounts the form, so its draft never carries one appliance's values to another.
+          key={editing === 'new' ? 'new' : editing.id}
           initial={editing === 'new' ? null : editing}
           existingIds={existingIds}
           onSaved={async () => { setEditing(null); await refresh() }}

@@ -97,4 +97,12 @@ test('"New appliance" refuses an id that already belongs to another appliance', 
 
   await page.getByRole('button', { name: 'Cancel' }).click()
   await expect(page.getByRole('row', { name: /Toaster/ })).toContainText('1000')
+
+  // Switching the edit target without closing the form must show the new target's values, not keep the old draft.
+  await page.getByRole('row', { name: /Toaster/ }).getByRole('button', { name: 'Edit' }).click()
+  await expect(page.getByLabel('Name (EN)')).toHaveValue('Toaster')
+  await page.getByRole('row', { name: /Coffee maker/ }).getByRole('button', { name: 'Edit' }).click()
+  await expect(page.getByLabel('Name (EN)')).toHaveValue('Coffee maker')
+  await expect(page.getByLabel('Running watts')).toHaveValue('900')
+  await page.getByRole('button', { name: 'Cancel' }).click()
 })
