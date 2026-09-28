@@ -3,7 +3,7 @@ import type { Dictionary } from './types'
 export const es: Dictionary = {
   locale: 'es',
   ui: {
-    brand: 'Arma tu kit', step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Tu kit', stepOf: 'Paso {n} de 3',
+    step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Tu kit', stepOf: 'Paso {n} de 3',
     project: 'Proyecto', projectName: 'Nombre del proyecto', newProject: '+ Nuevo proyecto', duplicate: 'Duplicar', delete: 'Eliminar', untitled: 'Sin nombre',
     acInverter: 'Aire acondicionado inverter', acInverterHelp: 'Arranque suave. Cuida la batería y el inversor.', acConventional: 'Aire acondicionado convencional', acConventionalHelp: 'Arranca con ~3× su potencia en marcha. Necesita un inversor más grande.', acSizeOne: '{tons} tonelada · {btu}k BTU', acSizeMany: '{tons} toneladas · {btu}k BTU',
     q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; los de arranque, el inversor.',
@@ -60,4 +60,29 @@ export const es: Dictionary = {
     splitPhase: (p) => `${p.itemName} normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.`,
   },
   parts: { inverter: 'Inversor', batteries: 'Baterías', mainCable: 'Cable principal', interconnects: 'Interconexiones', fuse: 'Fusible' },
+  privacy: {
+    title: 'Privacidad',
+    updated: 'Última actualización: {date}',
+    sections: [
+      { heading: 'Qué guardamos', body: 'Tu correo y tu nombre y, si inicias sesión con Google, el identificador de tu cuenta de Google. También guardamos los proyectos que guardes: aparatos, horas, voltaje y elección de baterías.' },
+      { heading: 'Para qué', body: 'Para iniciar tu sesión y mantener tus proyectos en todos tus dispositivos. Nada más.' },
+      { heading: 'Con quién lo compartimos', body: 'No vendemos ni compartimos tus datos. Se guardan con nuestros proveedores de alojamiento y base de datos (Vercel y Neon) solo para que la app funcione.' },
+      { heading: 'Datos de Google', body: 'Solo pedimos tu perfil básico (nombre y correo). No accedemos a Gmail, Drive ni a nada más de tu cuenta de Google.' },
+      { heading: 'Cookies', body: 'Una cookie de sesión para iniciar sesión y una de idioma. Sin anuncios ni rastreo.' },
+      { heading: 'Borrar tus datos', body: 'Escribe a {email} y borraremos tu cuenta y tus proyectos.' },
+    ],
+  },
+  terms: {
+    title: 'Términos de uso',
+    updated: 'Última actualización: {date}',
+    sections: [
+      { heading: 'Qué es esto', body: 'Solar Dimension estima el inversor, las baterías, los cables y los fusibles de un sistema de respaldo a partir de los aparatos y las horas que indiques. Es de uso gratuito.' },
+      { heading: 'Estimaciones, no un plan de instalación', body: 'Los resultados son estimaciones basadas en consumos típicos de los aparatos y en los supuestos que se muestran en la página del kit. Pide a un electricista matriculado que revise el diseño según la normativa eléctrica local antes de comprar o instalar nada. Las baterías y el cableado de corriente continua pueden causar incendios o lesiones si se instalan mal.' },
+      { heading: 'Sin garantía', body: 'La app se ofrece "tal cual", sin garantías de ningún tipo. No garantizamos que los resultados sean exactos, completos o adecuados para tu caso.' },
+      { heading: 'Limitación de responsabilidad', body: 'En la medida en que la ley lo permita, no somos responsables de ninguna pérdida o daño derivado del uso de la app o de confiar en sus resultados.' },
+      { heading: 'Tu cuenta', body: 'Mantén tu contraseña en privado. Puedes pedirnos que borremos tu cuenta en cualquier momento (ver Privacidad).' },
+      { heading: 'Cambios', body: 'Podemos actualizar estos términos. La fecha de arriba indica la versión vigente.' },
+      { heading: 'Contacto', body: '{email}' },
+    ],
+  },
 }

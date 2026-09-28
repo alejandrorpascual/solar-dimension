@@ -3,7 +3,7 @@ import { es } from './es'
 import type { Dictionary, Locale, UiKey } from './types'
 import type { ApplianceLabels } from '../lib/catalog'
 
-export type { Dictionary, Locale, UiKey } from './types'
+export type { Dictionary, LegalPage, Locale, UiKey } from './types'
 export const LOCALES: readonly Locale[] = ['en', 'es']
 export const DEFAULT_LOCALE: Locale = 'en'
 export const LOCALE_COOKIE = 'lang'

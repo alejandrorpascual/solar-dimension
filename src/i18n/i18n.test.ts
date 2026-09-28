@@ -99,3 +99,15 @@ test('applianceNote reads the item labels and keeps custom notes', () => {
 test('dictionaries no longer carry appliance names', () => {
   expect('appliances' in getDictionary('en')).toBe(false)
 })
+
+describe.each(['privacy', 'terms'] as const)('%s page', (page) => {
+  test('both languages have the same sections, each with a heading and a body', () => {
+    expect(es[page].sections).toHaveLength(en[page].sections.length)
+    for (const d of [en, es]) {
+      for (const s of d[page].sections) {
+        expect(s.heading.trim()).not.toBe('')
+        expect(s.body.trim()).not.toBe('')
+      }
+    }
+  })
+})

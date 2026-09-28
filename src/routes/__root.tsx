@@ -3,11 +3,14 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { useRootData, type RootData } from '../hooks/useRootData'
 import { DEFAULT_LOCALE, getDictionary } from '../i18n'
+import { APP_NAME } from '../lib/brand'
 import { shouldReloadForStaleChunk } from '../lib/stale-chunk'
 import { getCatalog } from '../server/catalog'
 import { getLocale } from '../server/locale'
 import { getAuthFeatures, getSession } from '../server/session'
 import stylesheet from '../styles.css?url'
+
+const SEARCH_CONSOLE_TOKEN = 'G9yqTKOqSP1tOS4jjC6xGCcsVFT7J3iZC5AzXQ2LNFY'
 
 const FONTS_URL =
   'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap'
@@ -26,8 +29,10 @@ export const Route = createRootRoute({
       meta: [
         { charSet: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { title: `Solar Dimension · ${t.ui.brand}` },
+        { title: APP_NAME },
         { name: 'description', content: t.ui.q1Help },
+        // Proves ownership of solar-dimension.vercel.app to Google Search Console (needed for OAuth branding review).
+        { name: 'google-site-verification', content: SEARCH_CONSOLE_TOKEN },
       ],
       links: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

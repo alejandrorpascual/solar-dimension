@@ -3,7 +3,7 @@ import type { Dictionary } from './types'
 export const en: Dictionary = {
   locale: 'en',
   ui: {
-    brand: 'Kit Builder', step1: 'Appliances', step2: 'Backup window', step3: 'Your kit', stepOf: 'Step {n} of 3',
+    step1: 'Appliances', step2: 'Backup window', step3: 'Your kit', stepOf: 'Step {n} of 3',
     project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
     acInverter: 'Inverter air conditioning', acInverterHelp: 'Soft start. Easy on the battery and inverter.', acConventional: 'Conventional air conditioning', acConventionalHelp: 'Starts at ~3× its running power. Needs a bigger inverter.', acSizeOne: '{tons} ton · {btu}k BTU', acSizeMany: '{tons} ton · {btu}k BTU',
     q1: 'Which appliances need to stay on?', q1Help: 'Add each one and set how many. Running watts drive the battery, surge watts drive the inverter.',
@@ -60,4 +60,29 @@ export const en: Dictionary = {
     splitPhase: (p) => `${p.itemName} usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.`,
   },
   parts: { inverter: 'Inverter', batteries: 'Batteries', mainCable: 'Main cable', interconnects: 'Interconnects', fuse: 'Fuse' },
+  privacy: {
+    title: 'Privacy',
+    updated: 'Last updated {date}',
+    sections: [
+      { heading: 'What we store', body: 'Your email and name, and, if you sign in with Google, your Google account ID. We also store the projects you save: appliances, hours, voltage and battery choices.' },
+      { heading: 'Why', body: 'To sign you in and keep your projects across devices. Nothing else.' },
+      { heading: 'Sharing', body: "We don't sell or share your data. It's stored with our hosting and database providers (Vercel and Neon) only to run the app." },
+      { heading: 'Google data', body: "We only request your basic profile (name and email). We don't access Gmail, Drive or anything else in your Google account." },
+      { heading: 'Cookies', body: 'One sign-in session cookie and one language cookie. No ads or tracking.' },
+      { heading: 'Deleting your data', body: "Email {email} and we'll delete your account and projects." },
+    ],
+  },
+  terms: {
+    title: 'Terms of use',
+    updated: 'Last updated {date}',
+    sections: [
+      { heading: 'What this is', body: "Solar Dimension estimates the inverter, batteries, cables and fuses for a backup power system from the appliances and hours you enter. It's free to use." },
+      { heading: 'Estimates, not an installation plan', body: 'Results are estimates based on typical appliance ratings and the assumptions shown on the kit page. Have a licensed electrician check the design against your local electrical code before you buy or install anything. Batteries and DC wiring can cause fire or injury if installed incorrectly.' },
+      { heading: 'No warranty', body: 'The app is provided "as is", without warranties of any kind. We don\'t guarantee that results are accurate, complete or right for your situation.' },
+      { heading: 'Limitation of liability', body: "To the extent the law allows, we aren't liable for any loss or damage from using the app or relying on its results." },
+      { heading: 'Your account', body: 'Keep your password private. You can ask us to delete your account at any time (see Privacy).' },
+      { heading: 'Changes', body: 'We may update these terms. The date at the top shows the current version.' },
+      { heading: 'Contact', body: '{email}' },
+    ],
+  },
 }
