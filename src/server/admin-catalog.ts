@@ -42,10 +42,13 @@ export const adminSaveAppliance = createServerFn({ method: 'POST' })
     return upsertAppliances([item], user.id)
   })
 
+const SetRetiredInput = z.object({ id: z.string().min(1), retired: z.boolean() })
+
 export const adminSetRetired = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => z.object({ id: z.string().min(1), retired: z.boolean() }).parse(d))
+  .validator((d: unknown) => d)
   .handler(async ({ data }) => {
     const user = await requireAdmin()
-    if (!(await setRetired(data.id, data.retired, user.id))) throw new Error('Not found')
+    const { id, retired } = SetRetiredInput.parse(data)
+    if (!(await setRetired(id, retired, user.id))) throw new Error('Not found')
     return { ok: true as const }
   })
