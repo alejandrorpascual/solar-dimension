@@ -21,6 +21,20 @@ test('clear forces the next read to reload', async () => {
   expect(await cache.get(load)).toBe(2)
 })
 
+test('a read that started before a clear does not re-cache its stale result', async () => {
+  const cache = ttlCache<number>(60_000, () => 0)
+  let resolveLoad!: (v: number) => void
+  const inFlight = new Promise<number>((resolve) => { resolveLoad = resolve })
+  const staleLoad = vi.fn().mockReturnValue(inFlight)
+  const getPromise = cache.get(staleLoad)
+  cache.clear()
+  resolveLoad(1)
+  expect(await getPromise).toBe(1)
+  const freshLoad = vi.fn().mockResolvedValue(2)
+  expect(await cache.get(freshLoad)).toBe(2)
+  expect(freshLoad).toHaveBeenCalledTimes(1)
+})
+
 test('a failed load is not cached', async () => {
   const cache = ttlCache<number>(60_000, () => 0)
   await expect(cache.get(() => Promise.reject(new Error('db down')))).rejects.toThrow('db down')
