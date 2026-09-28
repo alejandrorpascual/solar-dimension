@@ -30,6 +30,12 @@ export function retiredHandler(retired: boolean) {
   return async ({ request, params }: { request: Request; params: { id: string } }): Promise<Response> => {
     const denied = authorize(request)
     if (denied) return denied
-    return (await setRetired(params.id, retired, API_ACTOR)) ? json({ id: params.id, retired }) : json({ error: 'Not found' }, 404)
+    const { id } = params
+    try {
+      return (await setRetired(id, retired, API_ACTOR)) ? json({ id, retired }) : json({ error: 'Not found' }, 404)
+    } catch (error) {
+      console.error('[catalog-api] retire/restore failed', { id, retired, error })
+      return json({ error: 'Could not update the appliance' }, 500)
+    }
   }
 }
