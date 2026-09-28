@@ -60,6 +60,16 @@ describe('parseItems', () => {
     expect(parseItems([]).ok).toBe(false)
     expect(parseItems(Array.from({ length: 101 }, (_, i) => ({ ...stove, id: `s-${i}` }))).ok).toBe(false)
   })
+  test('rejects a duplicate id in the same request instead of crashing the upsert', () => {
+    const r = parseItems([stove, { ...stove }])
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors).toEqual([{ index: 1, issues: [{ path: 'id', message: 'duplicate id in this request' }] }])
+  })
+  test('flags every repeat after the first when an id appears more than twice', () => {
+    const r = parseItems([stove, { ...stove }, { ...stove }])
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors.map((e) => e.index)).toEqual([1, 2])
+  })
 })
 
 describe('applianceWarnings', () => {

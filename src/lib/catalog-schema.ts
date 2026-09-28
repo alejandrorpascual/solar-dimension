@@ -76,7 +76,15 @@ export function parseItems(body: unknown): ParsedItems {
     r.success ? [] : [{ index, issues: r.error.issues.map((i) => ({ path: i.path.map(String).join('.'), message: i.message })) }],
   )
   if (errors.length > 0) return { ok: false, errors }
-  return { ok: true, items: results.map((r) => r.data!) }
+  const items = results.map((r) => r.data!)
+  const seenIds = new Set<string>()
+  const duplicateErrors = items.flatMap((item, index) => {
+    if (seenIds.has(item.id)) return [{ index, issues: [{ path: 'id', message: 'duplicate id in this request' }] }]
+    seenIds.add(item.id)
+    return []
+  })
+  if (duplicateErrors.length > 0) return { ok: false, errors: duplicateErrors }
+  return { ok: true, items }
 }
 
 /** Pure check for the id the admin form is about to create; the server re-checks against the database before writing. */
