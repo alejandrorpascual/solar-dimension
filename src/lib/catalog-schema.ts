@@ -9,12 +9,16 @@ const MAX_BATCH = 100
 const LARGE_LOAD_W = 5000
 const NONSTOP_HEAVY_W = 1000
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,47}$/
+const CUSTOM_LOAD_ID_PATTERN = /^custom\d+$/
 
 const Label = z.object({ name: z.string().trim().min(1).max(80), note: z.string().trim().max(160) }).strict()
 
 export const ApplianceSchema = z
   .object({
-    id: z.string().regex(ID_PATTERN, 'lowercase letters, digits and dashes'),
+    id: z
+      .string()
+      .regex(ID_PATTERN, 'lowercase letters, digits and dashes')
+      .refine((id) => !CUSTOM_LOAD_ID_PATTERN.test(id), 'ids like "custom1" are reserved for custom loads'),
     category: z.enum(APPLIANCE_CATEGORIES),
     watts: z.number().int().min(1).max(MAX_APPLIANCE_WATTS),
     surge: z.number().int().min(1).max(MAX_APPLIANCE_WATTS * 4),

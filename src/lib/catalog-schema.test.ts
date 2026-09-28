@@ -19,6 +19,7 @@ describe('ApplianceSchema', () => {
     ['watts above 30 kW', { watts: 30_001, surge: 30_001 }],
     ['non-integer watts', { watts: 10.5 }],
     ['bad id', { id: 'Induction 2' }],
+    ['a custom-load-shaped id', { id: 'custom1' }],
     ['Custom category', { category: 'Custom' }],
     ['AC fields outside Air conditioning', { tons: 1 }],
     ['missing Spanish name', { labels: { en: stove.labels.en, es: { name: '', note: '' } } }],
@@ -31,6 +32,13 @@ describe('ApplianceSchema', () => {
   })
   test('rejects unknown keys', () => {
     expect(ApplianceSchema.safeParse({ ...stove, price: 10 }).success).toBe(false)
+  })
+  test('reserves custom-load-shaped ids with a specific message', () => {
+    const result = ApplianceSchema.safeParse({ ...stove, id: 'custom12' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path.join('.') === 'id' && i.message === 'ids like "custom1" are reserved for custom loads')).toBe(true)
+    }
   })
 })
 
