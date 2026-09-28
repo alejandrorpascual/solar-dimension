@@ -8,7 +8,10 @@ async function signInOrUp(page: Page, email: string, password: string) {
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  if (await page.getByText(`Signed in as ${email}`).isVisible({ timeout: 3000 }).catch(() => false)) return
+  const signedIn = page.getByText(`Signed in as ${email}`)
+  const failed = page.getByText('That did not work. Check the email and password.')
+  await expect(signedIn.or(failed)).toBeVisible()
+  if (await signedIn.isVisible()) return
   await page.getByRole('button', { name: 'No account yet? Create one' }).click()
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
