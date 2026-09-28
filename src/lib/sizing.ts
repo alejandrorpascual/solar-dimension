@@ -1,5 +1,5 @@
 import {
-  CHEMISTRIES, FUSES, GAUGES, INVERTERS, SIZING, VOLTAGES,
+  CHEMISTRIES, FUSES, GAUGES, INVERTERS, needsSplitPhase, SIZING, VOLTAGES,
   type CatalogItem, type Chemistry, type ChemistryId, type Inverter, type Voltage,
 } from './catalog'
 
@@ -33,7 +33,7 @@ export interface CablePick {
   mainCount: number; mainLengthM: number; seriesLinks: number; parallelLinks: number; linkLengthM: number
   totalLengthM: number; fuseA: number; dropPct: number
 }
-export type WarningCode = 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad'
+export type WarningCode = 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase'
 export interface WarningParams {
   inverterW?: number; volts?: number; voltsList?: string; amps?: number; nextVolts?: number | null
   strings?: number; itemId?: string; itemName?: string; sharePct?: number
@@ -163,6 +163,10 @@ function buildWarnings(ctx: WarningContext): Warning[] {
   const dominant = ctx.items.find((i) => ctx.loadWh > 0 && i.wh / ctx.loadWh > SIZING.DOMINANT_SHARE)
   if (dominant) {
     w.push({ code: 'dominantLoad', params: { itemId: dominant.id, itemName: dominant.name, sharePct: Math.round((dominant.wh / ctx.loadWh) * 100) } })
+  }
+  const heavy = ctx.items.find(needsSplitPhase)
+  if (heavy) {
+    w.push({ code: 'splitPhase', params: { itemId: heavy.id, itemName: heavy.name } })
   }
   return w
 }

@@ -9,7 +9,7 @@ export const en: Dictionary = {
     q1: 'Which appliances need to stay on?', q1Help: 'Add each one and set how many. Running watts drive the battery, surge watts drive the inverter.',
     search: 'Search appliances', nothingMatches: 'Nothing matches. Try another word or add it below.', sectionAdded: '{count} added',
     add: 'Add', addOne: 'Add {name}', qtyOf: 'Quantity of {name}', removeOne: 'Remove one {name}', remove: 'Remove {name}',
-    running: 'running', surge: 'surge', runningSurgeLine: '{watts} W running · {surge} surge',
+    running: 'running', surge: 'surge', runningSurgeLine: '{watts} W running · {surge} surge', splitPhase: 'Needs a 240 V / split-phase inverter',
     customTitle: 'Something not on the list?', customHelp: 'Type the watts from the label, or the volts and amps and we multiply them.',
     watts: 'Watts', voltsAmps: 'Volts × amps', name: 'Name', runningW: 'Running W', volts: 'Volts', amps: 'Amps', surgeOptional: 'Surge W (optional)', sameAsRunning: 'same as running', addAppliance: 'Add appliance',
     errName: 'Give the appliance a name.', errVa: 'Enter volts and amps above zero.', errWatts: 'Enter running watts above zero.', errSurge: 'Surge cannot be below running watts.',
@@ -57,6 +57,7 @@ export const en: Dictionary = {
     highCurrent: (p) => `${p.amps?.toLocaleString('en-US')} A on the DC side at ${p.volts} V is hard to wire safely${p.nextVolts ? `. Consider ${p.nextVolts} V.` : '.'}`,
     parallelStrings: (p) => `${p.strings} parallel strings drift out of balance. Prefer bigger units or a higher voltage.`,
     dominantLoad: (p) => `${p.itemName} is ${p.sharePct}% of the energy. Dropping it is the cheapest way to shrink the bank.`,
+    splitPhase: (p) => `${p.itemName} usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.`,
   },
   parts: { inverter: 'Inverter', batteries: 'Batteries', mainCable: 'Main cable', interconnects: 'Interconnects', fuse: 'Fuse' },
 }

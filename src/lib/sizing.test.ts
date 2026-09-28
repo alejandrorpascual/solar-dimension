@@ -60,6 +60,13 @@ describe('compute', () => {
     expect(r.warnings[3]?.params.sharePct).toBeGreaterThan(50)
   })
 
+  test('warns once about a split-phase inverter when a selected appliance draws 3 kW or more', () => {
+    const r = compute({ qty: { wheater: 1, fridge: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.warnings.filter((w) => w.code === 'splitPhase')).toEqual([{ code: 'splitPhase', params: { itemId: 'wheater', itemName: 'Electric water heater' } }])
+    const light = compute({ qty: { fridge: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(light.warnings.some((w) => w.code === 'splitPhase')).toBe(false)
+  })
+
   test('clamps hours, run length and unknown voltage to safe values', () => {
     const r = compute({ qty: ESSENTIALS, hours: 500, volts: 99 as never, chemistry: 'nope' as never, runLengthM: 0 }, CATALOG_SNAPSHOT)
     expect(r.hours).toBe(72)

@@ -18,7 +18,7 @@ export type UiKey =
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
   | 'q1' | 'q1Help' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'
   | 'search' | 'nothingMatches' | 'sectionAdded' | 'add' | 'addOne' | 'qtyOf' | 'removeOne' | 'remove'
-  | 'running' | 'surge' | 'runningSurgeLine'
+  | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase'
   | 'customTitle' | 'customHelp' | 'watts' | 'voltsAmps' | 'name' | 'runningW' | 'volts' | 'amps' | 'surgeOptional' | 'sameAsRunning' | 'addAppliance'
   | 'errName' | 'errVa' | 'errWatts' | 'errSurge'
   | 'q2' | 'q2Help' | 'hoursLabel' | 'step2Empty' | 'step2Summary' | 'batteryVoltage' | 'batteryChemistry' | 'usableCapacity'

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { CATEGORIES, CHEMISTRIES, forPicker, GAUGES, INVERTERS, SIZING, VOLTAGES } from './catalog'
+import { CATEGORIES, CHEMISTRIES, forPicker, GAUGES, INVERTERS, needsSplitPhase, SIZING, VOLTAGES } from './catalog'
 
 describe('catalog', () => {
   test('lists every tonnage twice, once per compressor type, with tonnage-based watts', () => {
@@ -60,4 +60,9 @@ test('forPicker hides retired items and keeps the rest in order', () => {
   const picked = forPicker(items)
   expect(picked.map((a) => a.id)).not.toContain('tv')
   expect(picked).toHaveLength(CATALOG_SNAPSHOT.length - 1)
+})
+
+test('needsSplitPhase starts at 3 kW', () => {
+  expect(needsSplitPhase({ watts: 2999 })).toBe(false)
+  expect(needsSplitPhase({ watts: 3000 })).toBe(true)
 })

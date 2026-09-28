@@ -9,7 +9,7 @@ export const es: Dictionary = {
     q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; los de arranque, el inversor.',
     search: 'Buscar aparatos', nothingMatches: 'Nada coincide. Prueba otra palabra o agrégalo abajo.', sectionAdded: 'Agregados: {count}',
     add: 'Agregar', addOne: 'Agregar {name}', qtyOf: 'Cantidad de {name}', removeOne: 'Quitar un {name}', remove: 'Quitar {name}',
-    running: 'en marcha', surge: 'arranque', runningSurgeLine: '{watts} W en marcha · {surge} de arranque',
+    running: 'en marcha', surge: 'arranque', runningSurgeLine: '{watts} W en marcha · {surge} de arranque', splitPhase: 'Requiere un inversor de 240 V / fase partida',
     customTitle: '¿No está en la lista?', customHelp: 'Escribe los vatios de la etiqueta, o los voltios y amperios y nosotros los multiplicamos.',
     watts: 'Vatios', voltsAmps: 'Voltios × amperios', name: 'Nombre', runningW: 'W en marcha', volts: 'Voltios', amps: 'Amperios', surgeOptional: 'W de arranque (opcional)', sameAsRunning: 'igual que en marcha', addAppliance: 'Agregar aparato',
     errName: 'Ponle un nombre al aparato.', errVa: 'Ingresa voltios y amperios mayores que cero.', errWatts: 'Ingresa vatios en marcha mayores que cero.', errSurge: 'El arranque no puede ser menor que los vatios en marcha.',
@@ -57,6 +57,7 @@ export const es: Dictionary = {
     highCurrent: (p) => `${p.amps?.toLocaleString('es-419')} A en el lado de CC a ${p.volts} V es difícil de cablear con seguridad${p.nextVolts ? `. Considera ${p.nextVolts} V.` : '.'}`,
     parallelStrings: (p) => `${p.strings} ramas en paralelo se desbalancean. Prefiere unidades más grandes o un voltaje mayor.`,
     dominantLoad: (p) => `${p.itemName} es el ${p.sharePct}% de la energía. Quitarlo es la forma más barata de reducir el banco.`,
+    splitPhase: (p) => `${p.itemName} normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.`,
   },
   parts: { inverter: 'Inversor', batteries: 'Baterías', mainCable: 'Cable principal', interconnects: 'Interconexiones', fuse: 'Fusible' },
 }

@@ -34,6 +34,7 @@ export const SIZING = {
   DOMINANT_SHARE: 0.5,
   WATTS_PER_TON: 1100,
   MAX_QTY: 100,
+  SPLIT_PHASE_W: 3000,
 } as const
 
 export const CATEGORIES: readonly Category[] = [
@@ -96,3 +97,6 @@ export const FUSES: readonly number[] = [60, 80, 100, 125, 150, 175, 200, 225, 2
 
 /** What the appliance picker offers: the catalog without retired items. The engine still counts retired ones. */
 export const forPicker = (items: readonly CatalogItem[]): CatalogItem[] => items.filter((i) => !i.retired)
+
+/** Whether an appliance needs a 240 V split-phase inverter (3 kW or more). */
+export const needsSplitPhase = (item: { watts: number }): boolean => item.watts >= SIZING.SPLIT_PHASE_W
