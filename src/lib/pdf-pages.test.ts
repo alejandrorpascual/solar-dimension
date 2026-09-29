@@ -4,6 +4,26 @@ import { pageSlices } from './pdf-pages'
 const row = (top: number, height = 40) => ({ top, bottom: top + height })
 
 describe('pageSlices', () => {
+  test('trailing padding does not create an empty page', () => {
+    expect(pageSlices([row(0), row(950)], 1038, 1000)).toEqual([{ start: 0, end: 1000 }])
+  })
+
+  test('content ending exactly at the page edge does not add a blank page', () => {
+    expect(pageSlices([row(960)], 1048, 1000)).toEqual([{ start: 0, end: 1000 }])
+  })
+
+  test('only trailing whitespace is trimmed in a multipage document', () => {
+    expect(pageSlices([row(0), row(1000), row(1960)], 2048, 1000)).toEqual([
+      { start: 0, end: 1000 }, { start: 1000, end: 2000 },
+    ])
+  })
+
+  test('an unpaired keep block at the end is still content', () => {
+    expect(pageSlices([row(0), { top: 990, bottom: 1050, keepWithNext: true }], 1098, 1000)).toEqual([
+      { start: 0, end: 990 }, { start: 990, end: 1098 },
+    ])
+  })
+
   test('a sheet that fits is one slice', () => {
     expect(pageSlices([row(0), row(40)], 900, 1000)).toEqual([{ start: 0, end: 900 }])
   })

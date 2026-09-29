@@ -113,6 +113,24 @@ test('a new project can be created, renamed and deleted', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Office', exact: true })).toHaveCount(0)
 })
 
+test('project names can be erased with backspace and replaced', async ({ page }) => {
+  await page.goto('/')
+  const name = page.getByLabel('Project name')
+  await name.fill('Casa')
+  await name.press('End')
+  for (let i = 0; i < 4; i++) await name.press('Backspace')
+  await expect(name).toHaveValue('')
+  await name.pressSequentially('Portón principal')
+  await name.press('Enter')
+  await page.reload()
+  await expect(name).toHaveValue('Portón principal')
+  await name.fill('   ')
+  await name.blur()
+  await expect(name).toHaveValue('Untitled')
+  await page.reload()
+  await expect(name).toHaveValue('Untitled')
+})
+
 test('project cards show each kit and quick edit a project without opening it', async ({ page }) => {
   await page.goto('/?step=3')
   await showProjects(page)

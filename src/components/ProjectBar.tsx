@@ -1,4 +1,5 @@
 import { LayoutGrid } from 'lucide-react'
+import { useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import type { Store } from '../lib/schema'
@@ -14,6 +15,7 @@ interface Props {
 export function ProjectBar({ store, commit, onOpenProjects }: Props) {
   const { t } = useLocale()
   const current = currentProject(store)
+  const [draft, setDraft] = useState<{ id: string; name: string } | null>(null)
   return (
     <div className="project-bar">
       <button type="button" className="chip project-bar__open" aria-haspopup="dialog" onClick={onOpenProjects}>
@@ -21,12 +23,24 @@ export function ProjectBar({ store, commit, onOpenProjects }: Props) {
       </button>
       <div className="project-bar__tools">
         <input
+          key={current.id}
           className="in project-bar__name"
           type="text"
           aria-label={t.ui.projectName}
-          value={current.name}
+          value={draft?.id === current.id ? draft.name : current.name}
+          placeholder={t.ui.untitled}
           maxLength={60}
-          onChange={(e) => commit(patchCurrent(store, { name: e.target.value || t.ui.untitled }))}
+          onChange={(e) => {
+            const name = e.target.value
+            setDraft({ id: current.id, name })
+            if (name.trim()) commit(patchCurrent(store, { name }))
+          }}
+          onBlur={(e) => {
+            const name = e.target.value.trim() || t.ui.untitled
+            if (name !== current.name) commit(patchCurrent(store, { name }))
+            setDraft(null)
+          }}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
         />
         <button type="button" className="chip" onClick={() => commit(duplicateProject(store))}>{t.ui.duplicate}</button>
         {store.projects.length > 1 && (

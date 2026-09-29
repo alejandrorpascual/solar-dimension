@@ -7,10 +7,11 @@ export interface PageSlice { start: number; end: number }
 /** A heading glued to the block after it, so it never ends a page alone. */
 function mergeKeepWithNext(blocks: readonly SheetBlock[]): SheetBlock[] {
   const sorted = [...blocks].sort((a, b) => a.top - b.top)
-  return sorted.reduce<{ out: SheetBlock[]; held: SheetBlock | null }>(({ out, held }, b) => {
+  const { out, held } = sorted.reduce<{ out: SheetBlock[]; held: SheetBlock | null }>(({ out, held }, b) => {
     const joined = held ? { top: held.top, bottom: Math.max(held.bottom, b.bottom), keepWithNext: b.keepWithNext } : b
     return joined.keepWithNext ? { out, held: joined } : { out: [...out, joined], held: null }
-  }, { out: [], held: null }).out
+  }, { out: [], held: null })
+  return held ? [...out, held] : out
 }
 
 /**
@@ -19,14 +20,16 @@ function mergeKeepWithNext(blocks: readonly SheetBlock[]): SheetBlock[] {
  */
 export function pageSlices(blocks: readonly SheetBlock[], totalHeight: number, pageHeight: number): PageSlice[] {
   const merged = mergeKeepWithNext(blocks)
+  // Bottom padding can extend beyond A4 even when all content fits. It must never create a page of its own.
+  const contentHeight = merged.length ? Math.min(totalHeight, Math.max(...merged.map((b) => b.bottom))) : totalHeight
   const slices: PageSlice[] = []
   let start = 0
-  while (totalHeight - start > pageHeight) {
+  while (contentHeight - start > pageHeight) {
     const limit = start + pageHeight
     const crossing = merged.find((b) => b.top > start && b.top < limit && b.bottom > limit)
     const end = crossing ? crossing.top : limit
     slices.push({ start, end })
     start = end
   }
-  return [...slices, { start, end: totalHeight }]
+  return [...slices, { start, end: Math.min(totalHeight, start + pageHeight) }]
 }

@@ -1,4 +1,4 @@
-import { Download, Share2 } from 'lucide-react'
+import { CircleCheck, Download, LoaderCircle, Share2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { canShareFiles, renderPdf, renderPng, saveBlob, shareFile } from '../client/export-file'
 import { useLocale } from '../hooks/useLocale'
@@ -13,7 +13,7 @@ import { KitSheet, type ExportInclude } from './KitSheet'
 import { buildParts, type Part } from './KitSummary'
 
 type Format = 'pdf' | 'png' | 'csv'
-type Status = 'idle' | 'busy' | 'error'
+type Status = 'idle' | 'busy' | 'error' | 'success'
 
 const SHEET_WIDTH = 794
 const PREVIEW_MAX_HEIGHT = 420
@@ -59,11 +59,11 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
   const isEmpty = result.empty
   const isBusy = status === 'busy'
 
-  const run = async (task: () => Promise<void>) => {
+  const run = async (task: () => Promise<void>, completed: 'idle' | 'success' = 'idle') => {
     setStatus('busy')
     try {
       await task()
-      setStatus('idle')
+      setStatus(completed)
     } catch (err) {
       console.error('Kit export failed', { format, project: project.id, err })
       setStatus('error')
@@ -75,13 +75,15 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
     return node
   }
   const download = () => run(async () => {
+    // Paint the busy state before capture/encoding can occupy the main thread.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => { setTimeout(resolve, 0) }))
     const name = exportFileName(project.name, format)
     if (format === 'csv') {
       saveBlob(new Blob([csvFor(result, parts, include, t)], { type: 'text/csv;charset=utf-8' }), name)
       return
     }
     saveBlob(format === 'pdf' ? await renderPdf(sheetNode()) : await renderPng(sheetNode()), name)
-  })
+  }, 'success')
   // `run` calls the task synchronously, so navigator.share starts inside the tap's activation window.
   const share = () => {
     if (!shareImage) return
@@ -103,7 +105,7 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
         </div>
       </div>
 
-      <fieldset className="dl__group">
+      <fieldset className="dl__group" disabled={isBusy}>
         <legend className="lab">{t.ui.format}</legend>
         {FORMATS.map((f) => (
           <label key={f.id} className={`dl__fmt${format === f.id ? ' dl__fmt--on' : ''}`}>
@@ -113,7 +115,7 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
         ))}
       </fieldset>
 
-      <fieldset className="dl__group">
+      <fieldset className="dl__group" disabled={isBusy}>
         <legend className="lab">{t.ui.include}</legend>
         {INCLUDES.map((inc) => (
           <label key={inc.key} className="dl__check">
@@ -130,9 +132,16 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
 
       {isEmpty && <p className="muted dl__empty">{t.ui.footerEmpty}</p>}
       {status === 'error' && <p className="error dl__error" role="alert">{t.ui.exportFailed}</p>}
+      {status === 'success' && <p className="dl__success" role="status"><CircleCheck size={18} aria-hidden="true" />{t.ui.downloadReady}</p>}
+      {isBusy && (
+        <div className="dl__progress" role="status">
+          <span>{t.ui.making}</span>
+          <progress aria-label={t.ui.making} />
+        </div>
+      )}
       <div className="dl__actions">
         <button type="button" className="btn btn--primary dl__go" disabled={isEmpty || isBusy} onClick={download}>
-          <Download size={18} aria-hidden="true" />{isBusy ? t.ui.making : t.ui[current.action]}
+          {isBusy ? <LoaderCircle className="dl__spinner" size={18} aria-hidden="true" /> : <Download size={18} aria-hidden="true" />}{isBusy ? t.ui.making : t.ui[current.action]}
         </button>
         {canShare && (
           <button type="button" className="btn dl__go" disabled={isEmpty || isBusy || !shareImage} aria-busy={!shareImage} onClick={share}>

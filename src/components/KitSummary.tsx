@@ -15,14 +15,18 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
   const c = r.cable
   const cm = Math.round(c.linkLengthM * 100)
   const perRun = c.runs > 1 ? t.ui.perRun : ''
+  const interconnectsNote = [
+    c.seriesLinks > 0 ? tr(t, 'seriesLinksNote', { count: c.seriesLinks }) : '',
+    c.parallelLinks > 0 ? tr(t, 'parallelLinksNote', { count: c.parallelLinks }) : '',
+  ].filter(Boolean).join(' · ')
   const w = (n: number) => fmtW(n, locale)
   return [
     { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: tr(t, 'inverterNote', { surge: w(r.inverter.surge), running: w(r.runningW), peak: w(r.surgeW) }), qty: '1' },
     { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: tr(t, 'batteriesNote', { series: b.series, parallel: b.parallel, config: b.config, bank: fmtKwh(b.bankWh, locale), usable: fmtKwh(b.usableWh, locale) }), qty: String(b.count) },
     { id: 'mainCable', name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }), note: tr(t, 'mainCableNote', { amps: fmtInt(c.amps, locale), drop: c.dropPct }), qty: String(c.mainCount) },
-    { id: 'interconnects', name: t.parts.interconnects, spec: tr(t, 'interconnectsSpec', { gauge: c.gauge, cm }), note: tr(t, 'interconnectsNote', { series: c.seriesLinks, parallel: c.parallelLinks }), qty: String(c.seriesLinks + c.parallelLinks) },
+    { id: 'interconnects', name: t.parts.interconnects, spec: tr(t, 'interconnectsSpec', { gauge: c.gauge, cm }), note: interconnectsNote, qty: String(c.seriesLinks + c.parallelLinks) },
     { id: 'fuse', name: t.parts.fuse, spec: tr(t, 'fuseSpec', { amps: c.fuseA, perRun }), note: t.ui.fuseNote, qty: String(c.runs) },
-  ]
+  ].filter((part) => Number(part.qty) > 0)
 }
 
 function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[]): string {

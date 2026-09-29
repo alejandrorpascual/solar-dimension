@@ -148,6 +148,13 @@
 .dl__go { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
 .dl__go:disabled { opacity: 0.55; cursor: default; }
 .dl__empty, .dl__error { font-size: 13px; }
+.dl__progress { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--muted); }
+.dl__progress progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.dl__success { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--accent); }
+.dl__success svg { flex-shrink: 0; }
+.dl__spinner { animation: dl-spin 900ms linear infinite; }
+@keyframes dl-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .dl__spinner { animation: none; } }
 
 /* The export sheet: fixed sizes, since it is captured as an image at 794 px wide. */
 .ksheet { width: 794px; padding: 56px 60px 48px; background: #FFFFFF; color: var(--ink); font-family: var(--font-body); display: flex; flex-direction: column; gap: 28px; }
