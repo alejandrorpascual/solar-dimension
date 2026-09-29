@@ -14,6 +14,11 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Migrations and e2e both write to this database: stop here if the secret is the production one.
+      - name: Refuse the production database
+        run: node --input-type=module -e "import('./e2e/test-env.ts').then((m) => m.assertTestDatabase(process.env.DATABASE_URL))"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - run: npm run db:migrate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

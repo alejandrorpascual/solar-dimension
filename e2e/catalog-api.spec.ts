@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
-import { catalogAuthHeader as auth, retireTestAppliance } from './catalog-token'
+import { catalogAuthHeader as auth } from './catalog-token'
+import { deleteTestAppliance } from './db'
 
 test.beforeEach(({}, info) => {
   test.skip(info.project.name !== 'desktop', 'API checks run once')
@@ -39,7 +40,7 @@ test('dry run, create, show in the picker in both languages, then retire', async
     await expect(page.getByText(`Anafe E2E ${id}`)).toHaveCount(0)
     expect((await request.post('/api/catalog/appliances/no-such-id/retire', { headers: auth })).status()).toBe(404)
   } finally {
-    // Runs even if an assertion above throws midway, so a failed run never leaves an active e2e-* row in the shared DB.
-    await retireTestAppliance(request, id)
+    // Runs even if an assertion above throws midway, so no run leaves its e2e-* row behind.
+    await deleteTestAppliance(id)
   }
 })
