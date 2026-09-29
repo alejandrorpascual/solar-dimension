@@ -28,9 +28,9 @@
   - 10 quotes per project and 20 per user per calendar month (UTC).
   - PDF, JPEG, PNG and WebP only, checked by the file's first bytes.
 - **Models:** `QUOTES_MODEL_PRIMARY` (default `gpt-6-luna`) and `QUOTES_MODEL_FALLBACK` (default `gpt-6-sol`). At most 3 processing attempts.
-- **UI follows DESIGN.md** (in the `worktree-admin-design-system` branch; the tokens are copied in Task 12):
+- **UI follows DESIGN.md** (in the `worktree-admin-design-system` branch; the tokens are copied in Task 13):
   - sentence case, and no "Please"
-  - amber for caution, and `--error` only for the irreversible Delete
+  - amber for caution (save failures included, through `.qerr`), and `--error` only for the irreversible Delete
   - every status shown as colour plus a word or icon
   - 44 px tap targets on phones
   - every animation switched off under `prefers-reduced-motion`
@@ -47,13 +47,14 @@
 
 | File | Responsibility |
 |---|---|
-| `src/lib/quote-schema.ts` | `QuoteExtraction` Zod schema, `QuoteStatus`, `QuoteUsage`, `normalizeExtraction` |
+| `src/lib/quote-schema.ts` | `QuoteExtraction` Zod schema, `QuoteStatus`, `FINISHED`, `isPending`, `QuoteUsage`, `normalizeExtraction` |
 | `src/lib/quote-checks.ts` | Consistency checks on an extraction |
-| `src/lib/quote-fixtures.ts` | Line and extraction builders, and the four `SAMPLE_QUOTES` (tests and the stub model) |
+| `src/lib/quote-fixtures.ts` | Line and extraction builders, the four `SAMPLE_QUOTES` (tests and the stub model) and `SAMPLE_KIT` (the kit every unit test uses) |
 | `src/lib/quote-items.ts` | `ItemId`, must-haves, overrides, `KitNeeds`, the per-item rules (`checkItems`) |
 | `src/lib/quote-compare.ts` | `QuoteView`, `compareQuotes` → `Verdict` |
 | `src/lib/quote-jobs.ts` | `summarizeProject`, `pickTray`, `etaSeconds`, `nextPollDelay` |
 | `src/lib/quote-limits.ts` | Limits, MIME sniffing, rejections, `cleanFileName`, `monthStart` |
+| `src/lib/quote-guards.ts` | The rules the server functions apply, as pure code: `uploadRejection` (ownership, 10 per project, 20 per month), `inspectUpload`, `RETRYABLE`, and the Zod inputs for overrides, totals and must-haves |
 | `src/lib/pdf-info.ts` | Page count and encryption check with pdf-lib |
 | `src/lib/quote-plot.ts` | `plotScale` for the price-vs-fit plot |
 | `src/lib/parse-amount.ts` | Parses "6.480,50" or "6,480.50" into a number |
@@ -63,8 +64,8 @@
 | `src/server/quotes/storage.ts` | `QuoteStorage` (Blob or local disk), `quotePath` |
 | `src/server/quotes/model.ts` | `QuoteModel`, OpenAI client, prompt, error classes |
 | `src/server/quotes/stub-model.ts` | Fixture model for development and E2E |
-| `src/server/quotes/process.ts` | `processQuote`, `decide` (pure orchestration over injected dependencies) |
-| `src/server/quotes/repo.ts` | Drizzle implementation of the job repo, `staleQuoteIds` |
+| `src/server/quotes/process.ts` | `processQuote`, `decide`, `planStale` (pure orchestration over injected dependencies) |
+| `src/server/quotes/repo.ts` | Drizzle implementation of the job repo, `recoverStaleQuotes` |
 | `src/server/quotes/deps.ts` | The default storage, model and repo |
 | `src/server/quotes/kick.ts` | `kickQuotes`, starting jobs with `waitUntil` |
 | `src/server/quotes/api.ts` | All quote server functions |
@@ -89,10 +90,11 @@
 **Interfaces:**
 - Produces:
   - `QuoteExtractionSchema`, `QuoteExtraction`, `QuoteLine`, `LineSpecs`, `LineKind`, `LINE_KINDS`
-  - `QUOTE_STATUSES`, `QuoteStatus`, `QuoteUsage { model: string; input: number; output: number }`
+  - `QUOTE_STATUSES`, `QuoteStatus`, `FINISHED: readonly QuoteStatus[]`, `isPending(status)`, `QuoteUsage { model: string; input: number; output: number }`
   - `normalizeExtraction(x): QuoteExtraction`
   - `checkExtraction(x): CheckFailure[]`
   - `line(kind, lineTotal, over?)`, `extraction(lines, over?)`, `SAMPLE_QUOTES: Record<'solartec' | 'voltia' | 'grupoluz' | 'enerhogar', QuoteExtraction>`
+  - `SAMPLE_KIT`: the kit (`KitNeeds`, Task 2) that every unit test judges quotes against
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -101,7 +103,7 @@
 ```ts
 import { describe, expect, test } from 'vitest'
 import { extraction, line, SAMPLE_QUOTES } from './quote-fixtures'
-import { normalizeExtraction, QuoteExtractionSchema } from './quote-schema'
+import { FINISHED, isPending, normalizeExtraction, QUOTE_STATUSES, QuoteExtractionSchema } from './quote-schema'
 
 describe('QuoteExtractionSchema', () => {
   test('accepts every sample quote', () => {
@@ -131,6 +133,15 @@ describe('normalizeExtraction', () => {
     const n = normalizeExtraction(x)
     expect(n).not.toBe(x)
     expect(x.currency).toBe('usd')
+  })
+})
+
+describe('FINISHED and isPending', () => {
+  test('every status is either pending or finished, never both', () => {
+    for (const s of QUOTE_STATUSES) expect(isPending(s)).toBe(!FINISHED.includes(s))
+  })
+  test('queued and processing are the pending ones', () => {
+    expect(QUOTE_STATUSES.filter(isPending)).toEqual(['queued', 'processing'])
   })
 })
 ```
@@ -189,6 +200,10 @@ export const WARRANTY_KINDS = ['inverter', 'battery', 'panel', 'labor', 'other']
 
 export const QUOTE_STATUSES = ['queued', 'processing', 'ready', 'needs_review', 'failed'] as const
 export type QuoteStatus = (typeof QUOTE_STATUSES)[number]
+/** Statuses where the reading is over, whatever the outcome. */
+export const FINISHED: readonly QuoteStatus[] = ['ready', 'needs_review', 'failed']
+/** Still waiting for the model, or being read by it. */
+export const isPending = (s: QuoteStatus): boolean => s === 'queued' || s === 'processing'
 
 /** Tokens spent by one model call, stored per attempt so the real cost can be read from the database. */
 export interface QuoteUsage { model: string; input: number; output: number }
@@ -335,6 +350,14 @@ export function extraction(lines: QuoteLine[], over: Partial<QuoteExtraction> = 
   }
 }
 
+/**
+ * The kit the unit tests judge quotes against: 3.9 kW running, 9.4 kW at start-up, 8 kWh of battery, 2/0 cable and a
+ * 200 A fuse. Typed structurally, so it is a `KitNeeds` (quote-items.ts) without importing the type.
+ */
+export const SAMPLE_KIT = {
+  runningW: 3860, surgeW: 9400, usableWh: 8000, chemistry: 'lifepo4', cableMm2: 67.4, cableGauge: '2/0 AWG', fuseA: 200,
+} as const
+
 const said = (page: number, text: string) => ({ description: text, source: { page, text } })
 
 const battery = (qty: number, lineTotal: number, kWh = 5.12) =>
@@ -391,7 +414,7 @@ export type SampleQuoteId = keyof typeof SAMPLE_QUOTES
 - [ ] **Step 6: Run the tests and watch them pass**
 
 Run: `npx vitest run src/lib/quote-schema.test.ts src/lib/quote-checks.test.ts`
-Expected: PASS (11 tests).
+Expected: PASS (13 tests).
 
 - [ ] **Step 7: Commit**
 
@@ -409,7 +432,7 @@ git commit -m "feat: quote extraction schema, consistency checks and sample quot
 - Test: `src/lib/quote-items.test.ts`
 
 **Interfaces:**
-- Consumes: `QuoteExtraction`, `QuoteLine`, `LineKind` (Task 1); `CHEMISTRIES`, `GAUGES`, `SIZING`, `ChemistryId` from `src/lib/catalog.ts`; `SizingResult` from `src/lib/sizing.ts`.
+- Consumes: `QuoteExtraction`, `QuoteLine`, `LineKind` (Task 1; its tests also use `SAMPLE_KIT`); `CHEMISTRIES`, `GAUGES`, `SIZING`, `ChemistryId` from `src/lib/catalog.ts`; `SizingResult` from `src/lib/sizing.ts`.
 - Produces:
   - `ITEM_IDS`, `ItemId`, `STRIP_ITEMS`
   - `ItemStatus = 'ok' | 'short' | 'missing' | 'unknown'`
@@ -427,11 +450,10 @@ git commit -m "feat: quote extraction schema, consistency checks and sample quot
 ```ts
 import { describe, expect, test } from 'vitest'
 import { CHEMISTRIES } from './catalog'
-import { extraction, line, SAMPLE_QUOTES } from './quote-fixtures'
-import { checkItems, DEFAULT_MUSTS, gaugeMm2, resolveMusts, setOverride, type ItemCheck, type ItemId, type KitNeeds } from './quote-items'
+import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
+import { checkItems, DEFAULT_MUSTS, gaugeMm2, resolveMusts, setOverride, type ItemCheck, type ItemId } from './quote-items'
 import type { QuoteExtraction } from './quote-schema'
 
-const KIT: KitNeeds = { runningW: 3860, surgeW: 9400, usableWh: 8000, chemistry: 'lifepo4', cableMm2: 67.4, cableGauge: '2/0 AWG', fuseA: 200 }
 const item = (x: QuoteExtraction, id: ItemId, overrides = {}): ItemCheck => checkItems(x, KIT, overrides).find((c) => c.id === id)!
 
 describe('must-haves and overrides', () => {
@@ -776,7 +798,7 @@ git commit -m "feat: per-item rules for installer quotes against the kit"
 - Test: `src/lib/quote-compare.test.ts`
 
 **Interfaces:**
-- Consumes: `checkItems`, `ITEM_IDS`, `ItemCheck`, `ItemId`, `KitNeeds`, `Musts`, `Overrides`, `DEFAULT_MUSTS` (Task 2); `QuoteExtraction`, `QuoteStatus` (Task 1).
+- Consumes: `checkItems`, `ITEM_IDS`, `ItemCheck`, `ItemId`, `KitNeeds`, `Musts`, `Overrides` (Task 2; its tests also use `DEFAULT_MUSTS`); `QuoteExtraction`, `QuoteStatus`, `isPending` (Task 1; its tests also use `SAMPLE_KIT`).
 - Produces:
   - `QuoteView { id; fileName; label: string | null; status: QuoteStatus; extraction: QuoteExtraction | null; overrides: Overrides; totalOverride: number | null; createdAt: number }`
   - `Fit = 'fits' | 'unclear' | 'short'`
@@ -793,10 +815,8 @@ git commit -m "feat: per-item rules for installer quotes against the kit"
 ```ts
 import { describe, expect, test } from 'vitest'
 import { compareQuotes, quoteName, type QuoteView } from './quote-compare'
-import { extraction, line, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
-import { DEFAULT_MUSTS, type KitNeeds } from './quote-items'
-
-const KIT: KitNeeds = { runningW: 3860, surgeW: 9400, usableWh: 8000, chemistry: 'lifepo4', cableMm2: 67.4, cableGauge: '2/0 AWG', fuseA: 200 }
+import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
+import { DEFAULT_MUSTS } from './quote-items'
 
 const view = (id: string, over: Partial<QuoteView> = {}): QuoteView => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready',
@@ -880,6 +900,11 @@ describe('what is not ranked', () => {
     const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), view('grupoluz'), eur])
     expect(v.unranked).toMatchObject([{ quote: { id: 'voltia' }, reason: 'other_currency', currency: 'EUR' }])
   })
+  test('a needs_review quote with a corrected total, in another currency, is other_currency and not needs_review', () => {
+    const eur = view('voltia', { status: 'needs_review', totalOverride: 7000, extraction: { ...SAMPLE_QUOTES.voltia, currency: 'EUR' } })
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), view('grupoluz'), eur])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'voltia' }, reason: 'other_currency', currency: 'EUR' }])
+  })
 })
 
 describe('ties and names', () => {
@@ -905,7 +930,7 @@ Expected: FAIL with "Failed to resolve import './quote-compare'".
 
 ```ts
 import { checkItems, ITEM_IDS, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
-import type { QuoteExtraction, QuoteStatus } from './quote-schema'
+import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
 
 export interface QuoteView {
   id: string; fileName: string; label: string | null
@@ -957,11 +982,12 @@ function mainCurrency(quotes: readonly QuoteView[]): string | null {
   return best
 }
 
+/** Why a quote is not ranked. A rankable quote that got here can only be in another currency, whatever its status. */
 function unrankedReason(q: QuoteView): UnrankedReason {
-  if (q.status === 'queued' || q.status === 'processing') return 'reading'
+  if (isPending(q.status)) return 'reading'
+  if (isRankable(q)) return 'other_currency'
   if (q.status === 'needs_review') return 'needs_review'
-  if (q.status === 'failed') return 'failed'
-  return 'other_currency'
+  return 'failed'
 }
 
 function score(q: QuoteView, kit: KitNeeds, musts: Musts, currency: string): Scored {
@@ -1010,7 +1036,7 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
   return {
     currency, ranked, unranked, best, nextFit, worthAsking, closest,
     mustCount: ITEM_IDS.filter((id) => musts[id]).length,
-    readCount: quotes.filter((q) => q.status !== 'queued' && q.status !== 'processing').length,
+    readCount: quotes.filter((q) => !isPending(q.status)).length,
   }
 }
 ```
@@ -1036,12 +1062,12 @@ git commit -m "feat: quote verdict, cheapest quote that meets every must-have"
 - Test: `src/lib/quote-jobs.test.ts`
 
 **Interfaces:**
-- Consumes: `compareQuotes`, `QuoteView` (Task 3); `KitNeeds`, `Musts` (Task 2); `QuoteStatus` (Task 1).
+- Consumes: `compareQuotes`, `QuoteView` (Task 3); `KitNeeds`, `Musts` (Task 2); `QuoteStatus`, `FINISHED`, `isPending` (Task 1; its tests also use `SAMPLE_KIT`).
 - Produces:
   - `JobQuote extends QuoteView { seenAt: number | null }`
   - `JobFile { id; name; status: QuoteStatus }`
-  - `ProjectJobs { projectId; projectName; files: JobFile[]; total; done; pending; failed; needsReview; unseen: boolean; best: { name: string; total: number; currency: string } | null }`
-  - `summarizeProject(projectId, projectName, quotes: JobQuote[], kit: KitNeeds | null, musts: Musts): ProjectJobs`
+  - `ProjectJobs { projectId; projectName; files: JobFile[]; total; done; pending; failed; needsReview; kitEmpty: boolean; unseen: boolean; best: { name: string; total: number; currency: string } | null }`
+  - `summarizeProject(projectId, projectName, quotes: JobQuote[], kit: KitNeeds | null, musts: Musts): ProjectJobs`. A `null` kit means the project's kit is empty: its quotes can't be compared, so `kitEmpty` is true, `best` is null and `unseen` is false (nothing to announce until appliances are added).
   - `TrayState = { mode: 'reading' | 'ready'; project: ProjectJobs } | null`, `pickTray(jobs, hiddenProjectId): TrayState`
   - `SECONDS_PER_QUOTE = 30`, `etaSeconds(j): number | null`
   - `POLL_MS = 3000`, `POLL_BACKOFF_MS = 10000`, `nextPollDelay(jobs, failures): number | null`
@@ -1052,17 +1078,16 @@ git commit -m "feat: quote verdict, cheapest quote that meets every must-have"
 
 ```ts
 import { describe, expect, test } from 'vitest'
-import { SAMPLE_QUOTES } from './quote-fixtures'
-import { DEFAULT_MUSTS, type KitNeeds } from './quote-items'
+import { SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
+import { DEFAULT_MUSTS } from './quote-items'
 import { etaSeconds, nextPollDelay, pickTray, summarizeProject, type JobQuote, type ProjectJobs } from './quote-jobs'
 
-const KIT: KitNeeds = { runningW: 3860, surgeW: 9400, usableWh: 8000, chemistry: 'lifepo4', cableMm2: 67.4, cableGauge: '2/0 AWG', fuseA: 200 }
 const jq = (id: string, over: Partial<JobQuote> = {}): JobQuote => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES.solartec, overrides: {}, totalOverride: null,
   createdAt: 1, seenAt: null, ...over,
 })
 const jobs = (over: Partial<ProjectJobs>): ProjectJobs => ({
-  projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, unseen: false, best: null, ...over,
+  projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null, ...over,
 })
 
 describe('summarizeProject', () => {
@@ -1077,8 +1102,9 @@ describe('summarizeProject', () => {
     expect(summarizeProject('p', 'Home', [jq('a'), jq('b', { status: 'queued', extraction: null })], KIT, DEFAULT_MUSTS).best).toBeNull()
     expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).best).toEqual({ name: 'SolarTec Caribe', total: 6480, currency: 'USD' })
   })
-  test('no best without a kit', () => {
-    expect(summarizeProject('p', 'Home', [jq('a')], null, DEFAULT_MUSTS).best).toBeNull()
+  test('an empty kit (null) is flagged, has no best, and is never an unseen verdict', () => {
+    expect(summarizeProject('p', 'Home', [jq('a')], null, DEFAULT_MUSTS)).toMatchObject({ kitEmpty: true, best: null, unseen: false })
+    expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).kitEmpty).toBe(false)
   })
   test('unseen while a finished quote has no seenAt', () => {
     expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).unseen).toBe(true)
@@ -1126,7 +1152,7 @@ Expected: FAIL with "Failed to resolve import './quote-jobs'".
 ```ts
 import { compareQuotes, type QuoteView } from './quote-compare'
 import type { KitNeeds, Musts } from './quote-items'
-import type { QuoteStatus } from './quote-schema'
+import { FINISHED, isPending, type QuoteStatus } from './quote-schema'
 
 export interface JobQuote extends QuoteView { seenAt: number | null }
 export interface JobFile { id: string; name: string; status: QuoteStatus }
@@ -1134,17 +1160,17 @@ export interface ProjectJobs {
   projectId: string; projectName: string
   files: JobFile[]
   total: number; done: number; pending: number; failed: number; needsReview: number
-  /** A finished quote the user hasn't looked at yet: the tray shows "Verdict ready" until they do. */
+  /** The kit has no appliances, so the quotes can't be compared yet. */
+  kitEmpty: boolean
+  /** A finished quote the user hasn't looked at yet: the tray shows "Verdict ready" until they do. Never true for an empty kit. */
   unseen: boolean
   best: { name: string; total: number; currency: string } | null
 }
 
-const FINISHED: readonly QuoteStatus[] = ['ready', 'needs_review', 'failed']
-const isPending = (s: QuoteStatus) => s === 'queued' || s === 'processing'
-
 /** One project's quote jobs for the tray, the kit card and the project card. `kit` is null for an empty kit. */
 export function summarizeProject(projectId: string, projectName: string, quotes: readonly JobQuote[], kit: KitNeeds | null, musts: Musts): ProjectJobs {
   const pending = quotes.filter((q) => isPending(q.status)).length
+  const kitEmpty = kit === null
   const verdict = kit !== null && pending === 0 ? compareQuotes(kit, musts, quotes) : null
   const best = verdict?.best ? { name: verdict.best.name, total: verdict.best.total, currency: verdict.best.currency } : null
   return {
@@ -1155,7 +1181,8 @@ export function summarizeProject(projectId: string, projectName: string, quotes:
     pending,
     failed: quotes.filter((q) => q.status === 'failed').length,
     needsReview: quotes.filter((q) => q.status === 'needs_review' && q.totalOverride === null).length,
-    unseen: quotes.some((q) => FINISHED.includes(q.status) && q.seenAt === null),
+    kitEmpty,
+    unseen: !kitEmpty && quotes.some((q) => FINISHED.includes(q.status) && q.seenAt === null),
     best,
   }
 }
@@ -1674,7 +1701,8 @@ export const quotesEn = {
   mustHave: 'Must have',
   niceToHave: 'Nice to have',
   mustsDone: 'Done',
-  kitEmptyNote: 'Add appliances to the kit first. Until then every quote fits.',
+  kitEmptyTitle: 'Add appliances to compare your quotes',
+  kitEmptyNote: "Your quotes are saved. Add appliances to the kit and we'll compare them.",
 } as const
 
 export const quoteItemsEn: Record<ItemId, string> = {
@@ -1827,7 +1855,8 @@ export const quotesEs: Record<QuoteKey, string> = {
   mustHave: 'Imprescindible',
   niceToHave: 'Deseable',
   mustsDone: 'Listo',
-  kitEmptyNote: 'Primero agrega aparatos al kit. Hasta entonces, todas las cotizaciones cumplen.',
+  kitEmptyTitle: 'Agrega aparatos para comparar tus cotizaciones',
+  kitEmptyNote: 'Tus cotizaciones están guardadas. Agrega aparatos al kit y las compararemos.',
 }
 
 export const quoteItemsEs: Record<ItemId, string> = {
@@ -1931,7 +1960,7 @@ git commit -m "feat: English and Spanish strings for quotes, money and list form
 - Test: `src/lib/quote-text.test.ts`
 
 **Interfaces:**
-- Consumes: `Verdict`, `RankedQuote` (Task 3); `ItemCheck`, `ItemId`, `ItemStatus`, `KitNeeds` (Task 2); `ProjectJobs` (Task 4); `Rejection`, `QUOTE_LIMITS`, `MAX_MB` (Task 5); `trq`, `fmtMoney`, `fmtList`, `fmtW`, `fmtKwh` (Task 6).
+- Consumes: `Verdict`, `RankedQuote` (Task 3); `ItemCheck`, `ItemId`, `ItemStatus`, `KitNeeds` (Task 2); `ProjectJobs` (Task 4); `Rejection`, `QUOTE_LIMITS`, `MAX_MB` (Task 5); `trq`, `fmtMoney`, `fmtList` (Task 6); `fmtW`, `fmtKwh` (already in `src/i18n/format.ts`); `SAMPLE_KIT` (Task 1, tests only).
 - Produces:
   - `money(t, amount, currency)`
   - `verdictHeading(t, v)`, `verdictSubline(t, v, kit)`
@@ -1951,14 +1980,13 @@ import { describe, expect, test } from 'vitest'
 import { en } from '../i18n/en'
 import { es } from '../i18n/es'
 import { compareQuotes, type QuoteView, type RankedQuote } from './quote-compare'
-import { SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
-import { checkItems, DEFAULT_MUSTS, type KitNeeds } from './quote-items'
+import { SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
+import { checkItems, DEFAULT_MUSTS } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import {
   askText, deltaText, etaText, fitLabel, itemText, projectLine, questionText, reasonLine, rejectionText, verdictHeading, verdictSubline,
 } from './quote-text'
 
-const KIT: KitNeeds = { runningW: 3860, surgeW: 9400, usableWh: 8000, chemistry: 'lifepo4', cableMm2: 67.4, cableGauge: '2/0 AWG', fuseA: 200 }
 const view = (id: SampleQuoteId, i: number): QuoteView => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES[id], overrides: {}, totalOverride: null, createdAt: i,
 })
@@ -2020,10 +2048,12 @@ describe('itemText', () => {
 
 describe('status and progress text', () => {
   const jobs = (over: Partial<ProjectJobs>): ProjectJobs => ({
-    projectId: 'p', projectName: 'Home', files: [], total: 4, done: 4, pending: 0, failed: 0, needsReview: 0, unseen: false, best: null, ...over,
+    projectId: 'p', projectName: 'Home', files: [], total: 4, done: 4, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null, ...over,
   })
   test('project line', () => {
     expect(projectLine(en, jobs({ done: 2, pending: 2 }))).toBe('Reading quotes 2/4')
+    expect(projectLine(en, jobs({ kitEmpty: true }))).toBe('Add appliances to compare your quotes')
+    expect(projectLine(es, jobs({ kitEmpty: true }))).toBe('Agrega aparatos para comparar tus cotizaciones')
     expect(projectLine(en, jobs({ best: { name: 'SolarTec Caribe', total: 6480, currency: 'USD' } }))).toBe('Verdict ready · SolarTec Caribe · $6,480')
     expect(projectLine(en, jobs({ failed: 1 }))).toBe('Check 1 of your quotes')
     expect(projectLine(en, jobs({}))).toBe('Verdict ready · none fits yet')
@@ -2193,6 +2223,7 @@ export function rejectionText(t: Dictionary, r: Rejection): string {
 /** One line for a project's quotes, on the kit card and the project card. */
 export function projectLine(t: Dictionary, j: ProjectJobs): string {
   if (j.pending > 0) return trq(t, 'lineReading', { done: j.done, total: j.total })
+  if (j.kitEmpty) return t.quotes.kitEmptyTitle
   if (j.best) return trq(t, 'lineReady', { best: `${j.best.name} · ${money(t, j.best.total, j.best.currency)}` })
   const toCheck = j.failed + j.needsReview
   return toCheck > 0 ? trq(t, 'lineCheck', { count: toCheck }) : t.quotes.lineNoFit
@@ -2231,7 +2262,7 @@ git commit -m "feat: verdict, reason, question and status text for quotes"
 
 **Interfaces:**
 - Consumes: `QUOTE_STATUSES`, `QuoteStatus`, `QuoteExtraction`, `QuoteUsage` (Task 1); `Musts`, `Overrides` (Task 2).
-- Produces: Drizzle tables `quotes` and `quoteSettings`; `typeof quotes.$inferSelect` is used by Tasks 10 and 11.
+- Produces: Drizzle tables `quotes` and `quoteSettings`; `typeof quotes.$inferSelect` is used by Task 12 (`toJobQuote`), and Task 11's repo reads and updates the same table.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2733,14 +2764,15 @@ git commit -m "feat: OpenAI structured extraction for quotes, with a fixture stu
 - Modify: `package.json` (via `npm install @vercel/functions`)
 
 **Interfaces:**
-- Consumes: `checkExtraction` (Task 1); `normalizeExtraction`, `QuoteUsage`, `QuoteExtraction` (Task 1); `QuoteStorage`, `quoteStorage` (Task 9); `QuoteModel`, `ModelError`, `openAiModel`, `modelNames` (Task 10); `stubModel` (Task 10); `quotes` table (Task 8).
+- Consumes: `checkExtraction` (Task 1); `normalizeExtraction`, `QuoteUsage`, `QuoteExtraction`, `QuoteStatus` (Task 1); `QuoteStorage`, `quoteStorage` (Task 9); `QuoteModel`, `ModelError`, `openAiModel`, `modelNames` (Task 10); `stubModel` (Task 10); `quotes` table (Task 8).
 - Produces:
-  - `MAX_ATTEMPTS = 3`
+  - `MAX_ATTEMPTS = 3`, `STALE_CLAIM_MS` (10 min), `STALE_QUEUE_MS` (1 min)
   - `ClaimedQuote { id; blobPathname; mime: QuoteMime; fileName; attempts }`
   - `Finish` union, `QuoteJobRepo { claim(id); finish(id, f) }`
   - `ProcessDeps { repo; storage; model; models }`
   - `processQuote(id, deps): Promise<'skipped' | Finish['status']>`, `decide(primary, fallback, attempts, models): Finish`
-  - `dbJobRepo`, `staleQuoteIds(userId?, limit?)`
+  - `JobClock`, `planStale(jobs, now): { kick: string[]; fail: string[] }`: which stuck jobs to start again and which to give up on
+  - `dbJobRepo`, `recoverStaleQuotes(userId?, limit?)`: fails the exhausted stuck jobs and returns the ids to kick
   - `defaultDeps()`, `kickQuotes(ids)`
 
 - [ ] **Step 1: Install `@vercel/functions`**
@@ -2757,7 +2789,9 @@ import { describe, expect, test } from 'vitest'
 import { extraction, line, SAMPLE_QUOTES } from '../../lib/quote-fixtures'
 import type { QuoteExtraction } from '../../lib/quote-schema'
 import { ModelError, type QuoteModel } from './model'
-import { MAX_ATTEMPTS, processQuote, type ClaimedQuote, type Finish, type ProcessDeps } from './process'
+import {
+  MAX_ATTEMPTS, planStale, processQuote, STALE_CLAIM_MS, STALE_QUEUE_MS, type ClaimedQuote, type Finish, type JobClock, type ProcessDeps,
+} from './process'
 import type { QuoteStorage } from './storage'
 
 type Step = QuoteExtraction | ModelError
@@ -2835,6 +2869,34 @@ describe('processQuote', () => {
     expect(s.calls).toEqual([])
   })
 })
+
+describe('planStale', () => {
+  const now = new Date('2026-09-29T12:00:00Z')
+  const ago = (ms: number) => new Date(now.getTime() - ms)
+  const job = (over: Partial<JobClock>): JobClock => ({
+    id: 'q', status: 'processing', attempts: 1, claimedAt: ago(0), createdAt: ago(60 * 60_000), ...over,
+  })
+
+  test('a claim younger than the worst-case run is left alone', () => {
+    expect(planStale([job({ claimedAt: ago(STALE_CLAIM_MS - 1000) })], now)).toEqual({ kick: [], fail: [] })
+  })
+  test('a dead claim with attempts left is started again', () => {
+    expect(planStale([job({ claimedAt: ago(STALE_CLAIM_MS + 1000), attempts: MAX_ATTEMPTS - 1 })], now)).toEqual({ kick: ['q'], fail: [] })
+  })
+  test('a dead claim on the last attempt is given up on, not left processing forever', () => {
+    expect(planStale([job({ claimedAt: ago(STALE_CLAIM_MS + 1000), attempts: MAX_ATTEMPTS })], now)).toEqual({ kick: [], fail: ['q'] })
+  })
+  test('a queued job waits from its last claim, or from its upload when it was never claimed', () => {
+    const queued = (over: Partial<JobClock>) => job({ status: 'queued', ...over })
+    expect(planStale([queued({ claimedAt: null, createdAt: ago(STALE_QUEUE_MS + 1000) })], now).kick).toEqual(['q'])
+    expect(planStale([queued({ claimedAt: null, createdAt: ago(STALE_QUEUE_MS - 1000) })], now).kick).toEqual([])
+    expect(planStale([queued({ claimedAt: ago(1000), createdAt: ago(60 * 60_000) })], now).kick).toEqual([])
+  })
+  test('finished jobs are never touched', () => {
+    const done = (['ready', 'needs_review', 'failed'] as const).map((status, i) => job({ id: `d${i}`, status, claimedAt: ago(60 * 60_000), attempts: MAX_ATTEMPTS }))
+    expect(planStale(done, now)).toEqual({ kick: [], fail: [] })
+  })
+})
 ```
 
 - [ ] **Step 3: Run the tests and watch them fail**
@@ -2847,11 +2909,18 @@ Expected: FAIL with "Failed to resolve import './process'".
 ```ts
 import { checkExtraction } from '../../lib/quote-checks'
 import type { QuoteMime } from '../../lib/quote-limits'
-import { normalizeExtraction, type QuoteExtraction, type QuoteUsage } from '../../lib/quote-schema'
+import { normalizeExtraction, type QuoteExtraction, type QuoteStatus, type QuoteUsage } from '../../lib/quote-schema'
 import { ModelError, type ModelInput, type QuoteModel } from './model'
 import type { QuoteStorage } from './storage'
 
 export const MAX_ATTEMPTS = 3
+/**
+ * One job can run 2 models x (a try and a retry) x the 120 s request timeout in model.ts = 8 min, so a claim older
+ * than 10 min belongs to a worker that died. This plan sets no maxDuration; a platform limit only makes that more likely.
+ */
+export const STALE_CLAIM_MS = 10 * 60_000
+/** A queued job that no worker picked up (or that went back to the queue) waits this long before a re-kick. */
+export const STALE_QUEUE_MS = 60_000
 
 export interface ClaimedQuote { id: string; blobPathname: string; mime: QuoteMime; fileName: string; attempts: number }
 export type Finish =
@@ -2910,6 +2979,27 @@ export function decide(primary: Attempt, fallback: Attempt | null, attempts: num
   }
 }
 
+/** The columns that say whether an in-flight job is stuck. */
+export interface JobClock { id: string; status: QuoteStatus; attempts: number; claimedAt: Date | null; createdAt: Date }
+
+/**
+ * Which stuck jobs to start again (`kick`) and which to give up on (`fail`). A job with no attempts left can't be
+ * claimed again, so it would stay in flight forever, and the client would poll for it forever.
+ */
+export function planStale(jobs: readonly JobClock[], now: Date): { kick: string[]; fail: string[] } {
+  const ageMs = (d: Date): number => now.getTime() - d.getTime()
+  const kick: string[] = []
+  const fail: string[] = []
+  for (const j of jobs) {
+    const isStale =
+      j.status === 'processing' ? j.claimedAt !== null && ageMs(j.claimedAt) > STALE_CLAIM_MS
+      : j.status === 'queued' ? ageMs(j.claimedAt ?? j.createdAt) > STALE_QUEUE_MS
+      : false
+    if (isStale) (j.attempts >= MAX_ATTEMPTS ? fail : kick).push(j.id)
+  }
+  return { kick, fail }
+}
+
 export async function processQuote(id: string, deps: ProcessDeps): Promise<Outcome> {
   const job = await deps.repo.claim(id)
   if (!job) return 'skipped'
@@ -2937,25 +3027,25 @@ export async function processQuote(id: string, deps: ProcessDeps): Promise<Outco
 - [ ] **Step 5: Write `src/server/quotes/repo.ts`**
 
 ```ts
-import { and, eq, lt, or, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, or, sql } from 'drizzle-orm'
 import { db } from '../../db/client'
 import { quotes } from '../../db/schema'
 import type { QuoteMime } from '../../lib/quote-limits'
-import { MAX_ATTEMPTS, type ClaimedQuote, type Finish, type QuoteJobRepo } from './process'
+import { MAX_ATTEMPTS, planStale, STALE_CLAIM_MS, type ClaimedQuote, type Finish, type QuoteJobRepo } from './process'
 
-/** A worker that dies mid-read leaves the job "processing"; after this long another may take it over. */
-const STALE_CLAIM = sql`now() - interval '5 minutes'`
-/** A queued job that no worker picked up (or that went back to the queue) waits this long before a re-kick. */
-const STALE_QUEUE = sql`now() - interval '1 minute'`
-
-const claimable = or(eq(quotes.status, 'queued'), and(eq(quotes.status, 'processing'), lt(quotes.claimedAt, STALE_CLAIM)))
+/** A worker that dies mid-read leaves the job "processing"; after STALE_CLAIM_MS another may take it over. */
+const claimable = () =>
+  or(eq(quotes.status, 'queued'), and(eq(quotes.status, 'processing'), lt(quotes.claimedAt, new Date(Date.now() - STALE_CLAIM_MS))))
+/** The most in-flight jobs one recovery pass looks at, oldest first. */
+const IN_FLIGHT_SCAN_LIMIT = 200
+const GAVE_UP = 'gave up: the reading stopped and its attempts are used up'
 
 export const dbJobRepo: QuoteJobRepo = {
   async claim(id) {
     const rows = await db
       .update(quotes)
       .set({ status: 'processing', claimedAt: sql`now()`, attempts: sql`${quotes.attempts} + 1` })
-      .where(and(eq(quotes.id, id), lt(quotes.attempts, MAX_ATTEMPTS), claimable))
+      .where(and(eq(quotes.id, id), lt(quotes.attempts, MAX_ATTEMPTS), claimable()))
       .returning({ id: quotes.id, blobPathname: quotes.blobPathname, mime: quotes.mime, fileName: quotes.fileName, attempts: quotes.attempts })
     const row = rows[0]
     return row ? ({ ...row, mime: row.mime as QuoteMime } satisfies ClaimedQuote) : null
@@ -2975,15 +3065,23 @@ export const dbJobRepo: QuoteJobRepo = {
   },
 }
 
-/** Jobs that should be running but aren't: queued a while ago, or claimed by a worker that went quiet. */
-export async function staleQuoteIds(userId?: string, limit = 10): Promise<string[]> {
-  const stale = or(
-    and(eq(quotes.status, 'queued'), lt(sql`coalesce(${quotes.claimedAt}, ${quotes.createdAt})`, STALE_QUEUE)),
-    and(eq(quotes.status, 'processing'), lt(quotes.claimedAt, STALE_CLAIM)),
-  )
-  const where = userId ? and(lt(quotes.attempts, MAX_ATTEMPTS), stale, eq(quotes.userId, userId)) : and(lt(quotes.attempts, MAX_ATTEMPTS), stale)
-  const rows = await db.select({ id: quotes.id }).from(quotes).where(where).limit(limit)
-  return rows.map((r) => r.id)
+/**
+ * Looks at the queued and processing jobs (one user's, or everyone's for the cron), marks as failed the stuck ones
+ * with no attempts left, and returns the ids of the stuck ones that should be started again.
+ */
+export async function recoverStaleQuotes(userId?: string, limit = 10): Promise<string[]> {
+  const inFlight = inArray(quotes.status, ['queued', 'processing'])
+  const rows = await db
+    .select({ id: quotes.id, status: quotes.status, attempts: quotes.attempts, claimedAt: quotes.claimedAt, createdAt: quotes.createdAt })
+    .from(quotes)
+    .where(userId ? and(inFlight, eq(quotes.userId, userId)) : inFlight)
+    .orderBy(asc(quotes.createdAt))
+    .limit(IN_FLIGHT_SCAN_LIMIT)
+  const { kick, fail } = planStale(rows, new Date())
+  if (fail.length > 0) {
+    await db.update(quotes).set({ status: 'failed', error: GAVE_UP, processedAt: new Date() }).where(and(inArray(quotes.id, fail), inFlight))
+  }
+  return kick.slice(0, limit)
 }
 ```
 
@@ -3046,18 +3144,23 @@ git commit -m "feat: background quote reading with fallback model, retries and s
 
 ---
 
-### Task 12: Server functions, file route, sweep route, project cleanup
+### Task 12: Guards, server functions, file route, sweep route, project cleanup
 
 **Files:**
-- Create: `src/server/quotes/api.ts`, `src/routes/api/quotes/$id.file.ts`, `src/routes/api/quotes/sweep.ts`
+- Create: `src/lib/quote-guards.ts`, `src/server/quotes/api.ts`, `src/routes/api/quotes/$id.file.ts`, `src/routes/api/quotes/sweep.ts`
 - Modify:
   - `src/server/catalog.ts` (export `loadCatalog`)
   - `src/server/projects.ts` (export `toProject`; delete quote files with their projects)
   - `vercel.json` (cron)
-- Test: this task has no unit tests; its pure pieces are tested in Tasks 1–7, and Task 17's E2E covers the whole path. The gate is the type check plus a manual call through the dev server (Step 7).
+- Test: `src/lib/quote-guards.test.ts`. The rules the server functions apply (who may upload, the 10 and 20 limits, what a file must be, what may be retried, what an override, a total and the must-haves may contain) live in `quote-guards.ts` as pure code and are unit-tested there. `api.ts` only wires them to the database, and Task 18's E2E covers the whole path, including another account getting 404. The gate for the wiring is the type check plus a manual call through the dev server (Step 11).
 
 **Interfaces:**
 - Consumes: everything in Tasks 1–11; `requireUserId` from `src/server/session.ts`; `computeProject` from `src/lib/project-summary.ts`; `tokenMatches`, `bearerToken` from `src/lib/api-token.ts`; `auth` from `src/lib/auth.ts`.
+- Produces from `src/lib/quote-guards.ts`:
+  - `uploadRejection({ ownsProject, counts }): Rejection | null`
+  - `inspectUpload(bytes): Promise<{ ok: true; mime: QuoteMime; pages: number | null } | { ok: false; rejection: Rejection }>`
+  - `RETRYABLE: readonly QuoteStatus[]`
+  - `MAX_TOTAL`, and the Zod inputs `ProjectId`, `QuoteId`, `OverrideInput`, `TotalInput`, `MustsInput`
 - Produces (all `createServerFn`, called as `fn({ data })`):
   - `uploadQuote(FormData{ projectId, file }) → UploadResult = { ok: true; id: string } | { ok: false; rejection: Rejection }`
   - `getQuoteJobs() → ProjectJobs[]`
@@ -3066,12 +3169,145 @@ git commit -m "feat: background quote reading with fallback model, retries and s
   - `setQuoteTotal({ quoteId, total })`
   - `setQuoteMusts({ projectId, musts: Musts })`
   - `markQuotesSeen({ projectId })`
-  - `retryQuote({ quoteId })`
+  - `retryQuote({ quoteId })` (only a failed quote)
   - `deleteQuote({ quoteId })`
   - `GET /api/quotes/:id/file` (owner only, otherwise 404)
   - `GET /api/quotes/sweep` (Bearer `CRON_SECRET`)
 
-- [ ] **Step 1: Export `loadCatalog` from `src/server/catalog.ts`**
+- [ ] **Step 1: Write the failing guard tests**
+
+`src/lib/quote-guards.test.ts`:
+
+```ts
+import { PDFDocument } from 'pdf-lib'
+import { describe, expect, test } from 'vitest'
+import { inspectUpload, MAX_TOTAL, MustsInput, OverrideInput, QuoteId, RETRYABLE, TotalInput, uploadRejection } from './quote-guards'
+import { DEFAULT_MUSTS } from './quote-items'
+import { QUOTE_LIMITS } from './quote-limits'
+
+const ID = '0f8fad5b-d9cb-469f-a165-70867728950e'
+const pdf = async (pages: number): Promise<Uint8Array> => {
+  const doc = await PDFDocument.create()
+  for (let i = 0; i < pages; i++) doc.addPage()
+  return new Uint8Array(await doc.save())
+}
+
+describe('uploadRejection', () => {
+  test('a project the user does not own is not_saved, whatever the counts', () => {
+    expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 } })).toEqual({ code: 'not_saved' })
+    expect(uploadRejection({ ownsProject: false, counts: { project: 10, month: 20 } })).toEqual({ code: 'not_saved' })
+  })
+  test('refuses at 10 quotes in the project and at 20 this month, the project first', () => {
+    const { perProject, perMonth } = QUOTE_LIMITS
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject - 1, month: perMonth - 1 } })).toBeNull()
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 } })).toEqual({ code: 'project_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: perMonth } })).toEqual({ code: 'month_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: perMonth } })).toEqual({ code: 'project_limit' })
+  })
+})
+
+describe('inspectUpload', () => {
+  test('a real PDF within the page limit is accepted with its page count', async () => {
+    expect(await inspectUpload(await pdf(3))).toEqual({ ok: true, mime: 'application/pdf', pages: 3 })
+  })
+  test('a PDF over the page limit is refused with its page count', async () => {
+    const pages = QUOTE_LIMITS.maxPages + 1
+    expect(await inspectUpload(await pdf(pages))).toEqual({ ok: false, rejection: { code: 'pages', pages } })
+  })
+  test('a photo is accepted without a page count', async () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0])
+    expect(await inspectUpload(png)).toEqual({ ok: true, mime: 'image/png', pages: null })
+  })
+  test('bytes of another type, or a broken PDF, are refused as the wrong type', async () => {
+    const text = (s: string) => new TextEncoder().encode(s)
+    expect(await inspectUpload(text('<html></html>'))).toEqual({ ok: false, rejection: { code: 'type' } })
+    expect(await inspectUpload(text('%PDF-1.4 this is not a real pdf'))).toEqual({ ok: false, rejection: { code: 'type' } })
+  })
+})
+
+describe('inputs', () => {
+  test('a quote id must be a UUID', () => {
+    expect(QuoteId.safeParse(ID).success).toBe(true)
+    expect(QuoteId.safeParse('not-a-uuid').success).toBe(false)
+  })
+  test('an override needs a known item and a known value, or null to remove it', () => {
+    expect(OverrideInput.safeParse({ quoteId: ID, item: 'charger', value: 'included' }).success).toBe(true)
+    expect(OverrideInput.safeParse({ quoteId: ID, item: 'charger', value: null }).success).toBe(true)
+    expect(OverrideInput.safeParse({ quoteId: ID, item: 'toaster', value: 'included' }).success).toBe(false)
+    expect(OverrideInput.safeParse({ quoteId: ID, item: 'charger', value: 'maybe' }).success).toBe(false)
+  })
+  test('a corrected total is a positive, finite amount up to the cap', () => {
+    const total = (n: number) => TotalInput.safeParse({ quoteId: ID, total: n }).success
+    expect(total(6480.5)).toBe(true)
+    expect(total(MAX_TOTAL)).toBe(true)
+    for (const bad of [0, -5, Number.NaN, Number.POSITIVE_INFINITY, MAX_TOTAL + 1]) expect(total(bad)).toBe(false)
+  })
+  test('must-haves need every item as a boolean, for a real project id', () => {
+    expect(MustsInput.safeParse({ projectId: 'p1', musts: DEFAULT_MUSTS }).success).toBe(true)
+    const { fuse: _fuse, ...withoutFuse } = DEFAULT_MUSTS
+    expect(MustsInput.safeParse({ projectId: 'p1', musts: withoutFuse }).success).toBe(false)
+    expect(MustsInput.safeParse({ projectId: 'p1', musts: { ...DEFAULT_MUSTS, fuse: 'yes' } }).success).toBe(false)
+    expect(MustsInput.safeParse({ projectId: '', musts: DEFAULT_MUSTS }).success).toBe(false)
+  })
+  test('only a failed quote can be retried', () => {
+    expect(RETRYABLE).toEqual(['failed'])
+  })
+})
+```
+
+- [ ] **Step 2: Run the tests and watch them fail**
+
+Run: `npx vitest run src/lib/quote-guards.test.ts`
+Expected: FAIL with "Failed to resolve import './quote-guards'".
+
+- [ ] **Step 3: Write `src/lib/quote-guards.ts`**
+
+```ts
+import { z } from 'zod'
+import { pdfInfo } from './pdf-info'
+import { ITEM_IDS, OVERRIDES } from './quote-items'
+import { limitRejection, QUOTE_LIMITS, sniffMime, type QuoteMime, type Rejection } from './quote-limits'
+import type { QuoteStatus } from './quote-schema'
+
+/** The largest total a user can type for a quote, in the quote's own currency. */
+export const MAX_TOTAL = 10_000_000
+
+export const ProjectId = z.string().min(1).max(64)
+export const QuoteId = z.string().uuid()
+export const OverrideInput = z.object({ quoteId: QuoteId, item: z.enum(ITEM_IDS), value: z.enum(OVERRIDES).nullable() })
+export const TotalInput = z.object({ quoteId: QuoteId, total: z.number().positive().max(MAX_TOTAL) })
+/** Zod 4 makes a record over an enum exhaustive: all eight items must be there. The client always sends the full `Musts`. */
+export const MustsInput = z.object({ projectId: ProjectId, musts: z.record(z.enum(ITEM_IDS), z.boolean()) })
+
+/** Only a quote the model gave up on can be retried; a read one stays until it is deleted. */
+export const RETRYABLE: readonly QuoteStatus[] = ['failed']
+
+/** Whether an upload may go ahead: the project must be the user's own and the limits not reached. */
+export function uploadRejection(input: { ownsProject: boolean; counts: { project: number; month: number } }): Rejection | null {
+  if (!input.ownsProject) return { code: 'not_saved' }
+  return limitRejection(input.counts)
+}
+
+export type Inspection = { ok: true; mime: QuoteMime; pages: number | null } | { ok: false; rejection: Rejection }
+
+/** What the file really is, from its first bytes, and for a PDF its page count. The browser's checks are only a hint. */
+export async function inspectUpload(bytes: Uint8Array): Promise<Inspection> {
+  const mime = sniffMime(bytes)
+  if (!mime) return { ok: false, rejection: { code: 'type' } }
+  if (mime !== 'application/pdf') return { ok: true, mime, pages: null }
+  const info = await pdfInfo(bytes)
+  if (!info.ok) return { ok: false, rejection: info.reason === 'encrypted' ? { code: 'encrypted' } : { code: 'type' } }
+  if (info.pages > QUOTE_LIMITS.maxPages) return { ok: false, rejection: { code: 'pages', pages: info.pages } }
+  return { ok: true, mime, pages: info.pages }
+}
+```
+
+- [ ] **Step 4: Run the tests and watch them pass**
+
+Run: `npx vitest run src/lib/quote-guards.test.ts`
+Expected: PASS (11 tests).
+
+- [ ] **Step 5: Export `loadCatalog` from `src/server/catalog.ts`**
 
 Replace the file's body below the imports with the code below. Also add `createServerOnlyFn` to its `@tanstack/react-start` import.
 
@@ -3087,7 +3323,7 @@ export const loadCatalog = createServerOnlyFn((): Promise<CatalogItem[]> =>
 export const getCatalog = createServerFn({ method: 'GET' }).handler(async (): Promise<CatalogItem[]> => loadCatalog())
 ```
 
-- [ ] **Step 2: Update `src/server/projects.ts`**
+- [ ] **Step 6: Update `src/server/projects.ts`**
 
 1. Change `function toProject(` to `export function toProject(`.
 2. Add these imports:
@@ -3107,15 +3343,19 @@ export const getCatalog = createServerFn({ method: 'GET' }).handler(async (): Pr
     const files = await db.select({ path: quotes.blobPathname }).from(quotes)
       .where(and(eq(quotes.userId, userId), inArray(quotes.projectId, data.ids)))
     await db.delete(projects).where(and(eq(projects.userId, userId), inArray(projects.id, data.ids)))
+    // The delete above already happened, so a storage problem (a missing Blob token, a Blob outage) is logged, never thrown.
     if (files.length) {
-      await quoteStorage().remove(files.map((f) => f.path))
-        .catch((error) => console.error('[projects] removing quote files failed', { userId, count: files.length, error }))
+      try {
+        await quoteStorage().remove(files.map((f) => f.path))
+      } catch (error) {
+        console.error('[projects] removing quote files failed', { userId, count: files.length, error })
+      }
     }
     return { ok: true }
   })
 ```
 
-- [ ] **Step 3: Write `src/server/quotes/api.ts`**
+- [ ] **Step 7: Write `src/server/quotes/api.ts`**
 
 ```ts
 import { notFound } from '@tanstack/react-router'
@@ -3125,24 +3365,20 @@ import type { PgUpdateSetSource } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { db } from '../../db/client'
 import { projects, quotes, quoteSettings } from '../../db/schema'
-import { pdfInfo } from '../../lib/pdf-info'
 import { computeProject } from '../../lib/project-summary'
-import { ITEM_IDS, kitNeeds, OVERRIDES, resolveMusts, type Musts } from '../../lib/quote-items'
+import { inspectUpload, MustsInput, OverrideInput, ProjectId, QuoteId, RETRYABLE, TotalInput, uploadRejection } from '../../lib/quote-guards'
+import { kitNeeds, resolveMusts, type Musts } from '../../lib/quote-items'
 import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quote-jobs'
-import { checkBasics, cleanFileName, limitRejection, monthStart, QUOTE_LIMITS, sniffMime, type Rejection } from '../../lib/quote-limits'
+import { checkBasics, cleanFileName, monthStart, type Rejection } from '../../lib/quote-limits'
+import { FINISHED, type QuoteStatus } from '../../lib/quote-schema'
 import type { Project } from '../../lib/schema'
 import { loadCatalog } from '../catalog'
 import { toProject } from '../projects'
 import { requireUserId } from '../session'
 import { defaultDeps } from './deps'
 import { kickQuotes } from './kick'
-import { staleQuoteIds } from './repo'
+import { recoverStaleQuotes } from './repo'
 import { quotePath } from './storage'
-
-const MAX_TOTAL = 10_000_000
-const ProjectId = z.string().min(1).max(64)
-const QuoteId = z.string().uuid()
-const FINISHED = ['ready', 'needs_review', 'failed'] as const
 
 export type UploadResult = { ok: true; id: string } | { ok: false; rejection: Rejection }
 export interface ProjectQuotes { project: Project; quotes: JobQuote[]; musts: Musts }
@@ -3184,20 +3420,14 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     const basic = checkBasics(data.file)
     if (basic) return reject(basic)
     const [project] = await db.select({ id: projects.id }).from(projects).where(ownProject(userId, data.projectId)).limit(1)
-    if (!project) return reject({ code: 'not_saved' })
-    const limit = limitRejection(await quoteCounts(userId, data.projectId))
-    if (limit) return reject(limit)
+    const counts = project ? await quoteCounts(userId, data.projectId) : { project: 0, month: 0 }
+    const blocked = uploadRejection({ ownsProject: project !== undefined, counts })
+    if (blocked) return reject(blocked)
 
     const bytes = new Uint8Array(await data.file.arrayBuffer())
-    const mime = sniffMime(bytes)
-    if (!mime) return reject({ code: 'type' })
-    let pages: number | null = null
-    if (mime === 'application/pdf') {
-      const info = await pdfInfo(bytes)
-      if (!info.ok) return reject(info.reason === 'encrypted' ? { code: 'encrypted' } : { code: 'type' })
-      if (info.pages > QUOTE_LIMITS.maxPages) return reject({ code: 'pages', pages: info.pages })
-      pages = info.pages
-    }
+    const inspected = await inspectUpload(bytes)
+    if (!inspected.ok) return reject(inspected.rejection)
+    const { mime, pages } = inspected
 
     const id = crypto.randomUUID()
     const blobPathname = quotePath(userId, id, mime)
@@ -3219,7 +3449,7 @@ export const uploadQuote = createServerFn({ method: 'POST' })
 /** Every project of the user that has quotes, for the tray and the cards. Also re-kicks jobs that went quiet. */
 export const getQuoteJobs = createServerFn({ method: 'GET' }).handler(async (): Promise<ProjectJobs[]> => {
   const userId = await requireUserId()
-  const stale = await staleQuoteIds(userId)
+  const stale = await recoverStaleQuotes(userId)
   if (stale.length) kickQuotes(stale)
   const rows = await db.select().from(quotes).where(eq(quotes.userId, userId)).orderBy(quotes.createdAt)
   if (rows.length === 0) return []
@@ -3250,13 +3480,15 @@ export const getProjectQuotes = createServerFn({ method: 'GET' })
     return { project: toProject(p), quotes: rows.map(toJobQuote), musts: resolveMusts(settings[0]?.musts) }
   })
 
-async function updateOwn(userId: string, quoteId: string, set: PgUpdateSetSource<typeof quotes>) {
-  const rows = await db.update(quotes).set(set).where(ownQuote(userId, quoteId)).returning({ id: quotes.id })
+/** Updates the user's own quote, only when it is in one of the `only` statuses if given. Throws when nothing matched. */
+async function updateOwn(userId: string, quoteId: string, set: PgUpdateSetSource<typeof quotes>, only?: readonly QuoteStatus[]) {
+  const where = and(ownQuote(userId, quoteId), only ? inArray(quotes.status, [...only]) : undefined)
+  const rows = await db.update(quotes).set(set).where(where).returning({ id: quotes.id })
   if (rows.length === 0) throw new Error('Not found')
 }
 
 export const setQuoteOverride = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => z.object({ quoteId: QuoteId, item: z.enum(ITEM_IDS), value: z.enum(OVERRIDES).nullable() }).parse(d))
+  .validator((d: unknown) => OverrideInput.parse(d))
   .handler(async ({ data }) => {
     const userId = await requireUserId()
     const overrides = data.value === null
@@ -3267,14 +3499,14 @@ export const setQuoteOverride = createServerFn({ method: 'POST' })
   })
 
 export const setQuoteTotal = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => z.object({ quoteId: QuoteId, total: z.number().positive().max(MAX_TOTAL) }).parse(d))
+  .validator((d: unknown) => TotalInput.parse(d))
   .handler(async ({ data }) => {
     await updateOwn(await requireUserId(), data.quoteId, { totalOverride: data.total })
     return { ok: true as const }
   })
 
 export const setQuoteMusts = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => z.object({ projectId: ProjectId, musts: z.record(z.enum(ITEM_IDS), z.boolean()) }).parse(d))
+  .validator((d: unknown) => MustsInput.parse(d))
   .handler(async ({ data }) => {
     const userId = await requireUserId()
     const [p] = await db.select({ id: projects.id }).from(projects).where(ownProject(userId, data.projectId)).limit(1)
@@ -3299,7 +3531,7 @@ export const retryQuote = createServerFn({ method: 'POST' })
   .validator((d: unknown) => z.object({ quoteId: QuoteId }).parse(d))
   .handler(async ({ data }) => {
     const userId = await requireUserId()
-    await updateOwn(userId, data.quoteId, { status: 'queued', attempts: 0, error: null, claimedAt: null, seenAt: null })
+    await updateOwn(userId, data.quoteId, { status: 'queued', attempts: 0, error: null, claimedAt: null, seenAt: null }, RETRYABLE)
     kickQuotes([data.quoteId])
     return { ok: true as const }
   })
@@ -3316,9 +3548,9 @@ export const deleteQuote = createServerFn({ method: 'POST' })
   })
 ```
 
-`z.record(z.enum(ITEM_IDS), z.boolean())` in Zod 4 requires every key. The client always sends all eight: the full `Musts` object. `defaultDeps()` builds the model client too, and needs `OPENAI_API_KEY`, or `QUOTES_MODEL_STUB=1` off Vercel.
+`MustsInput` (in `quote-guards.ts`) requires every item, so the client always sends the full `Musts` object. `defaultDeps()` builds the model client too, and needs `OPENAI_API_KEY`, or `QUOTES_MODEL_STUB=1` off Vercel.
 
-- [ ] **Step 4: Write `src/routes/api/quotes/$id.file.ts`**
+- [ ] **Step 8: Write `src/routes/api/quotes/$id.file.ts`**
 
 ```ts
 import { createFileRoute } from '@tanstack/react-router'
@@ -3363,18 +3595,21 @@ export const Route = createFileRoute('/api/quotes/$id/file')({
 })
 ```
 
-- [ ] **Step 5: Write `src/routes/api/quotes/sweep.ts` and add the cron**
+- [ ] **Step 9: Write `src/routes/api/quotes/sweep.ts` and add the cron**
 
 ```ts
 import { createFileRoute } from '@tanstack/react-router'
 import { bearerToken, tokenMatches } from '../../../lib/api-token'
 import { defaultDeps } from '../../../server/quotes/deps'
 import { processQuote } from '../../../server/quotes/process'
-import { staleQuoteIds } from '../../../server/quotes/repo'
+import { recoverStaleQuotes } from '../../../server/quotes/repo'
 
 const SWEEP_LIMIT = 20
 
-/** Safety net for jobs no poll re-kicked (the user left for good). Vercel Cron calls it with CRON_SECRET. */
+/**
+ * Safety net for jobs no poll re-kicked (the user left for good). It also gives up on stuck jobs with no attempts left.
+ * Vercel Cron calls it with CRON_SECRET.
+ */
 export const Route = createFileRoute('/api/quotes/sweep')({
   server: {
     handlers: {
@@ -3383,7 +3618,7 @@ export const Route = createFileRoute('/api/quotes/sweep')({
         if (!secret || !tokenMatches(bearerToken(request.headers.get('authorization')), secret)) {
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
-        const ids = await staleQuoteIds(undefined, SWEEP_LIMIT)
+        const ids = await recoverStaleQuotes(undefined, SWEEP_LIMIT)
         const outcomes = []
         for (const id of ids) outcomes.push(await processQuote(id, defaultDeps()).catch((error) => {
           console.error('[quotes] sweep failed on a job', { id, error })
@@ -3407,12 +3642,12 @@ Change `vercel.json` to the following. Daily is the Hobby plan's cron limit; the
 }
 ```
 
-- [ ] **Step 6: Type check and unit tests**
+- [ ] **Step 10: Type check and unit tests**
 
 Run: `npm run typecheck && npm test`
 Expected: PASS. The route tree regenerates on the next `npm run dev` or build, so run `npm run build` once if the type check can't find the new routes. Check that `tokenMatches` and `bearerToken` are exported from `src/lib/api-token.ts` with those names; the catalog API already imports both.
 
-- [ ] **Step 7: Build and check the routes exist**
+- [ ] **Step 11: Build and check the routes exist**
 
 Run: `npm run build && QUOTES_STORAGE=local QUOTES_MODEL_STUB=1 PORT=3137 npm run start`, then in a second terminal:
 
@@ -3421,12 +3656,12 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3137/api/quotes/0f8fad
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3137/api/quotes/sweep
 ```
 
-Expected: `404` (no session), then `401` (no cron secret). Stop the server afterwards. The upload path is covered end to end in Task 17.
+Expected: `404` (no session), then `401` (no cron secret). Stop the server afterwards. The upload path is covered end to end in Task 18.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 12: Commit**
 
 ```bash
-git add src/server/quotes/api.ts src/routes/api/quotes src/server/catalog.ts src/server/projects.ts vercel.json src/routeTree.gen.ts
+git add src/lib/quote-guards.ts src/lib/quote-guards.test.ts src/server/quotes/api.ts src/routes/api/quotes src/server/catalog.ts src/server/projects.ts vercel.json src/routeTree.gen.ts
 git commit -m "feat: quote server functions, owner-only file route and cron sweep"
 ```
 
@@ -3479,6 +3714,8 @@ Append `@import './styles/quotes.css';` to `src/styles.css`, then create `src/st
 
 /* Shared pieces */
 .qmeta { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+/* A save that failed is caution, so amber; --error is kept for the irreversible Delete alone. */
+.qerr { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--warn-ink); }
 .qpill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
 .qpill--best { background: var(--accent); color: #FFFFFF; }
 .qpill--ok { background: var(--success-tint); color: var(--success); }
@@ -3664,7 +3901,12 @@ Append `@import './styles/quotes.css';` to `src/styles.css`, then create `src/st
 .qmust[aria-checked='true'] { border-color: var(--ink); background: var(--ink); color: #FFFFFF; }
 .qfoot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
 .qfoot__actions { display: flex; flex-wrap: wrap; gap: 10px; }
-@media (max-width: 1023px) { .qseg__b, .qmust { min-height: var(--tap); } }
+/* Phones: every control is at least --tap (44 px) high. This block comes last so it wins over the base rules above. */
+@media (max-width: 1023px) {
+  .qseg__b, .qmust, .qlink, .qask__copy, .pcard__quotes { min-height: var(--tap); }
+  .qask__copy { display: inline-flex; align-items: center; }
+  .qdialog__close { width: var(--tap); height: var(--tap); }
+}
 @media (prefers-reduced-motion: reduce) {
   .qtray, .qdialog, .qdialog__overlay { animation: none !important; }
   .qtray__chev, .qrow__toggle svg, .qtray__bar > span, .qcard, .qbtn { transition: none !important; }
@@ -3791,7 +4033,7 @@ git commit -m "feat: quote styles, design tokens and the quote-jobs polling prov
   - Task 13: `useQuoteJobs`, `useProjectJobs`
 - Produces:
   - route `/projects/$projectId/quotes`, with route id `'/projects/$projectId/quotes'` (Task 15's tray hides on it)
-  - `VerdictView` with a `footerExtra?: ReactNode` slot, which Task 16 fills with the upload button
+  - `VerdictView` with a `footerExtra?: ReactNode` slot, which Task 16 fills with the upload button. With an empty kit it skips `compareQuotes` and every best-fit element and shows only the back link, `kitEmptyTitle` and `kitEmptyNote`.
 
 - [ ] **Step 1: `src/components/quotes/ItemMark.tsx`**
 
@@ -3983,7 +4225,7 @@ export function BestCard({ best, nextFit, kit, error, onOverride, onDelete }: Pr
       </button>
       {isOpen && <div id={bodyId}><ItemList items={best.items} kit={kit} currency={best.currency} onOverride={onOverride} /></div>}
       <QuoteActions quoteId={best.quote.id} onDelete={onDelete} />
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && <p className="qerr" role="alert">{error}</p>}
     </section>
   )
 }
@@ -4109,7 +4351,7 @@ export function QuoteRow({ r, verdict, kit, error, onOverride, onDelete }: Props
           <QuoteActions quoteId={r.quote.id} onDelete={onDelete} />
         </div>
       )}
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && <p className="qerr" role="alert">{error}</p>}
     </article>
   )
 }
@@ -4168,7 +4410,7 @@ export function UnrankedRow({ u, error, onRetry, onDelete, onTotal }: Props) {
           <QuoteActions quoteId={u.quote.id} onDelete={onDelete} />
         </div>
       )}
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && <p className="qerr" role="alert">{error}</p>}
     </article>
   )
 }
@@ -4214,7 +4456,7 @@ export function MustsSheet({ isOpen, onOpenChange, musts, onChange, error }: Pro
               <ul className="qmusts">
                 {ITEM_IDS.map((id) => <MustRow key={id} id={id} isOn={musts[id]} onChange={(v) => onChange(id, v)} />)}
               </ul>
-              {error && <p className="error" role="alert">{error}</p>}
+              {error && <p className="qerr" role="alert">{error}</p>}
               <div className="qdialog__actions">
                 <button type="button" className="btn btn--primary" onClick={close}>{t.quotes.mustsDone}</button>
               </div>
@@ -4309,6 +4551,23 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   }, [data])
 
   const result = computeProject(data.project, catalog)
+  const back = (
+    <Link className="qlink qv__back" to="/" search={{ step: 3 }}>
+      <ArrowLeft size={16} aria-hidden="true" />{trq(t, 'backToKit', { project: data.project.name })}
+    </Link>
+  )
+  // An empty kit asks nothing of a quote, so there is nothing to compare against: no ranking, no best fit, only a note.
+  if (result.empty) {
+    return (
+      <div className="qv">
+        {back}
+        <header className="qv__head">
+          <h1 className="qv__title">{t.quotes.kitEmptyTitle}</h1>
+          <p className="qv__sub">{t.quotes.kitEmptyNote}</p>
+        </header>
+      </div>
+    )
+  }
   const kit = kitNeeds(result)
   const verdict = compareQuotes(kit, musts, data.quotes.map((q) => ({ ...q, overrides: overrides[q.id] ?? q.overrides })))
   const failed = (key: string) => setError({ key, text: t.quotes.saveFailed })
@@ -4355,11 +4614,8 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
 
   return (
     <div className="qv">
-      <Link className="qlink qv__back" to="/" search={{ step: 3 }}>
-        <ArrowLeft size={16} aria-hidden="true" />{trq(t, 'backToKit', { project: data.project.name })}
-      </Link>
+      {back}
       <VerdictHeader verdict={verdict} kit={kit} progress={progress} />
-      {result.empty && <p className="warn">{t.quotes.kitEmptyNote}</p>}
       {verdict.best && (
         <div className="qv__grid">
           <BestCard best={verdict.best} nextFit={verdict.nextFit} kit={kit} error={errorFor(verdict.best.quote.id)}
@@ -4579,7 +4835,7 @@ import { useProjectJobs } from '../hooks/useQuoteJobs'
 import { projectLine } from '../lib/quote-text'
 ```
 
-In `ProjectCard`, after `const editId = useId()`, add:
+In `ProjectCard`, after the destructuring line `const { project: p, result: r } = s`, add:
 
 ```ts
   const jobs = useProjectJobs(p.id)
@@ -4595,7 +4851,7 @@ Then, right after the `{r.empty || !r.battery ? (…) : (…)}` block and before
       )}
 ```
 
-`p` is destructured from `summary` a few lines above as `const { project: p, result: r } = s`, so `p.id` is in scope. Move the `useProjectJobs` call below that destructuring line.
+`p` is destructured from `s` by that line, so `p.id` is in scope for the hook call and for the link. For a project with an empty kit, `projectLine` reads "Add appliances to compare your quotes" instead of a verdict.
 
 - [ ] **Step 4: Type check and tests**
 
@@ -4964,11 +5220,23 @@ git commit -m "feat: quote upload on the kit step with the hand-off dialog"
 
 **Files:**
 - Modify: `src/i18n/en.ts`, `src/i18n/es.ts` (`privacy.sections`), `.env.example`, `README.md`
-- Test: `e2e/privacy.spec.ts` keeps passing. The privacy page renders every section, so nothing new is needed there.
+- Test: `e2e/privacy.spec.ts` keeps passing (it looks for "We don't sell or share your data", which the new Sharing text still contains). The privacy page renders every section, so nothing new is needed there.
 
-- [ ] **Step 1: Add a Quotes section to the privacy page**
+- [ ] **Step 1: Update the Sharing section and add a Quotes section to the privacy page**
 
-In `src/i18n/en.ts`, insert this entry into `privacy.sections`, right after the `Sharing` section:
+The existing Sharing text says the data goes nowhere but Vercel and Neon, which stops being true once quotes go to OpenAI. The new English text keeps the phrase "We don't sell or share your data", which `e2e/privacy.spec.ts` looks for. In `src/i18n/en.ts`, replace the `Sharing` entry with:
+
+```ts
+      { heading: 'Sharing', body: "We don't sell or share your data except with the providers that run the app: Vercel and Neon for hosting and the database, and, if you upload installer quotes, OpenAI to read them (see Quotes below)." },
+```
+
+In `src/i18n/es.ts`, replace the `Con quién lo compartimos` entry with:
+
+```ts
+      { heading: 'Con quién lo compartimos', body: 'No vendemos ni compartimos tus datos, salvo con los proveedores que hacen funcionar la app: Vercel y Neon para el alojamiento y la base de datos y, si subes cotizaciones de instaladores, OpenAI para leerlas (mira Cotizaciones más abajo).' },
+```
+
+Then, in `src/i18n/en.ts`, insert this entry into `privacy.sections`, right after the `Sharing` section:
 
 ```ts
       { heading: 'Quotes', body: "If you upload installer quotes, we store the files privately with Vercel and send each one to OpenAI once, to read its prices and items. OpenAI doesn't train on data sent through its API. Deleting a quote, or the project it belongs to, deletes the file." },
@@ -5131,10 +5399,15 @@ test('must-haves and confirmations change the winner, and stick', async ({ page 
   await page.reload()
   await expect(verdictHeading(page)).toHaveText('Grupo Luz fits your kit for the least')
 
+  // Un-confirming the charger on the best-fit card drops Grupo Luz back to "unclear": it stops being the best fit at once,
+  // so its card is replaced by SolarTec's and Grupo Luz becomes a row in the list, with its checks closed.
   const best = page.getByRole('region', { name: 'Grupo Luz' })
   await best.getByRole('button', { name: 'Show every check for Grupo Luz', exact: true }).click()
   await best.getByRole('group', { name: 'Battery charger', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
-  await best.getByRole('group', { name: 'Class T fuse', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  const row = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
+  await row.getByRole('button', { name: 'Show every check for Grupo Luz', exact: true }).click()
+  await row.getByRole('group', { name: 'Class T fuse', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
 
   await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
