@@ -14,8 +14,13 @@ Arguments: `<description> [--target local|prod]` (default `local`).
 ## Which database a target writes to
 `--target` picks the server, not the database. The local dev server writes to whatever database `DATABASE_URL` in `.env.local` points at, and `vercel env pull .env.local` fills it with the **production** database. So `--target local` is a production write unless local dev has been moved to its own Neon branch.
 
-Before any write, find out which database the local target uses: take the Neon endpoint id (the first label of the `DATABASE_URL` host, without `-pooler`, e.g. `ep-round-sea-auutoq9o`) and print only that id, never the URL. The production database is `ep-round-sea-auutoq9o`.
-- Same id (or you can't tell): treat `--target local` as production. Say "this writes to PRODUCTION" in the step 5 table and in the question in step 6.
+Before any write, find out which database the **running** local server uses, as a Neon endpoint id (the first label of the `DATABASE_URL` host, without `-pooler`). Print only that id, never the URL. The production database is `ep-round-sea-auutoq9o`.
+1. A `DATABASE_URL` exported in the shell that started the server wins over `.env.local` (dotenv never overrides it). This prints the endpoint from the server's startup environment, or nothing if it isn't there:
+   ```bash
+   pid=$(lsof -ti tcp:3000 -sTCP:LISTEN | head -1); ps eww -o command= -p "$pid" | tr ' ' '\n' | sed -n 's/^DATABASE_URL=.*@\(ep-[a-z0-9-]*\)\..*/\1/p' | sed 's/-pooler$//' | head -1
+   ```
+2. If it printed nothing, the server took `DATABASE_URL` from `.env.local`: read the endpoint id from there.
+- Production id, no server on :3000, or you can't tell: treat `--target local` as production. Say "this writes to PRODUCTION" in the step 5 table and in the question in step 6. If `.env.local` was edited after the server started, the server still uses the old value: ask the user to restart it, or treat the write as production.
 - Different id: local is a separate branch. Say which one, and remember that the item still has to go to prod separately (`--target prod`) to reach real users.
 
 `--target prod` always writes to production.
