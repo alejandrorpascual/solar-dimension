@@ -37,3 +37,34 @@ test('sign up, keep a project across reload and sign-out/sign-in', async ({ page
   await showProjects(page)
   await expect(page.getByRole('button', { name: 'Beach house' })).toBeVisible()
 })
+
+test('the account menu holds off sign-out and Google linking while a project save is in flight', async ({ page }) => {
+  const email = `e2e-busy-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
+  await page.goto('/login')
+  await page.getByRole('button', { name: 'No account yet? Create one' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill('correct-horse-battery')
+  await page.getByRole('button', { name: 'Create account' }).click()
+  const account = page.getByRole('button', { name: `Signed in as ${email}` })
+  await expect(account).toBeVisible()
+  await expect(page.getByText('Syncing your projects…')).toBeHidden()
+  // Hold every server-function write so the save below stays in flight until released.
+  let release!: () => void
+  const held = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/_serverFn/**', async route => {
+    if (route.request().method() === 'POST') await held
+    await route.continue()
+  })
+  await page.getByRole('button', { name: 'Add Chest freezer' }).click()
+  await account.click()
+  try {
+    await expect(page.getByRole('menuitem', { name: 'Sign out' })).toBeDisabled()
+    await expect(page.getByRole('menuitem', { name: 'Connect Google' })).toBeDisabled()
+  } finally {
+    release()
+  }
+  await page.keyboard.press('Escape')
+  await account.click()
+  await expect(page.getByRole('menuitem', { name: 'Sign out' })).toBeEnabled()
+  await expect(page.getByRole('menuitem', { name: 'Connect Google' })).toBeEnabled()
+})
