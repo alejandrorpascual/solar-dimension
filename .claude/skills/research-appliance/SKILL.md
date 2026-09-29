@@ -9,7 +9,16 @@ Arguments: `<description> [--target local|prod]` (default `local`).
 
 ## Setup
 - Read `CATALOG_API_TOKEN` from `.env.local`. Base URL: `http://localhost:3000` for local; for prod, `CATALOG_API_URL` from `.env.local`.
-- Never print, echo or log the token. Pass it only in the `Authorization: Bearer` header.
+- Never print, echo or log the token or any database URL. Pass the token only in the `Authorization: Bearer` header.
+
+## Which database a target writes to
+`--target` picks the server, not the database. The local dev server writes to whatever database `DATABASE_URL` in `.env.local` points at, and `vercel env pull .env.local` fills it with the **production** database. So `--target local` is a production write unless local dev has been moved to its own Neon branch.
+
+Before any write, find out which database the local target uses: take the Neon endpoint id (the first label of the `DATABASE_URL` host, without `-pooler`, e.g. `ep-round-sea-auutoq9o`) and print only that id, never the URL. The production database is `ep-round-sea-auutoq9o`.
+- Same id (or you can't tell): treat `--target local` as production. Say "this writes to PRODUCTION" in the step 5 table and in the question in step 6.
+- Different id: local is a separate branch. Say which one, and remember that the item still has to go to prod separately (`--target prod`) to reach real users.
+
+`--target prod` always writes to production.
 
 ## Steps
 1. **Research** typical values for the described appliance (one row per distinct size or type the user asked for):
