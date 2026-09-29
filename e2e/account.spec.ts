@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { accountAction } from './header'
 import { hideProjects, showProjects } from './projects'
 
 test('sign up, keep a project across reload and sign-out/sign-in', async ({ page }) => {
@@ -9,7 +10,7 @@ test('sign up, keep a project across reload and sign-out/sign-in', async ({ page
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
   await showProjects(page)
   await page.getByRole('button', { name: '+ New project' }).click()
   await hideProjects(page)
@@ -23,8 +24,8 @@ test('sign up, keep a project across reload and sign-out/sign-in', async ({ page
   await hideProjects(page)
   await page.goto('/login')
   await expect(page).not.toHaveURL(/\/login/)
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible()
-  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  await accountAction(page, 'Sign out')
   await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
   await page.context().clearCookies()
   await page.evaluate(() => localStorage.clear())
@@ -32,7 +33,7 @@ test('sign up, keep a project across reload and sign-out/sign-in', async ({ page
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
   await showProjects(page)
   await expect(page.getByRole('button', { name: 'Beach house' })).toBeVisible()
 })

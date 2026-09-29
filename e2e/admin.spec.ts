@@ -10,7 +10,7 @@ async function signInOrUp(page: Page, email: string, password: string) {
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  const signedIn = page.getByText(`Signed in as ${email}`)
+  const signedIn = page.getByRole('button', { name: `Signed in as ${email}` })
   const failed = page.getByText('That did not work. Check the email and password.')
   await expect(signedIn.or(failed)).toBeVisible()
   if (await signedIn.isVisible()) return
@@ -18,7 +18,7 @@ async function signInOrUp(page: Page, email: string, password: string) {
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
 }
 
 test.beforeEach(({}, info) => {
