@@ -2,8 +2,9 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client'
-import { projects } from '../db/schema'
+import { projects, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
+import { quoteStorage } from './quotes/storage'
 import { requireUserId } from './session'
 
 const MAX_BATCH = 200
@@ -11,7 +12,7 @@ const MAX_BATCH = 200
 const ProjectsInput = z.object({ projects: z.array(ProjectSchema).max(MAX_BATCH) })
 const IdsInput = z.object({ ids: z.array(z.string().min(1)).max(MAX_BATCH) })
 
-function toProject(row: typeof projects.$inferSelect): Project {
+export function toProject(row: typeof projects.$inferSelect): Project {
   return ProjectSchema.parse({
     id: row.id, name: row.name, qty: row.qty, custom: row.custom, hours: row.hours, volts: row.volts, chemistry: row.chemistry,
     batteryUnit: row.batteryUnit,
@@ -64,7 +65,19 @@ export const deleteProjects = createServerFn({ method: 'POST' })
   .validator((d: unknown) => IdsInput.parse(d))
   .handler(async ({ data }) => {
     const userId = await requireUserId()
-    if (data.ids.length) await db.delete(projects).where(and(eq(projects.userId, userId), inArray(projects.id, data.ids)))
+    if (data.ids.length === 0) return { ok: true }
+    // Rows go with the project (foreign key cascade); the files in storage don't, so they are removed here.
+    const files = await db.select({ path: quotes.blobPathname }).from(quotes)
+      .where(and(eq(quotes.userId, userId), inArray(quotes.projectId, data.ids)))
+    await db.delete(projects).where(and(eq(projects.userId, userId), inArray(projects.id, data.ids)))
+    // The delete above already happened, so a storage problem (a missing Blob token, a Blob outage) is logged, never thrown.
+    if (files.length) {
+      try {
+        await quoteStorage().remove(files.map((f) => f.path))
+      } catch (error) {
+        console.error('[projects] removing quote files failed', { userId, count: files.length, error })
+      }
+    }
     return { ok: true }
   })
 
