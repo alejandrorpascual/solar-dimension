@@ -20,6 +20,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "@tanstack/react-router": "^1.170.39",
     "@tanstack/react-start": "^1.168.58",
+    "@vercel/blob": "^2.8.0",
     "better-auth": "^1.7.6",
     "drizzle-orm": "^0.45.3",
     "html-to-image": "^1.11.13",

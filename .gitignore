@@ -10,3 +10,4 @@ playwright-report/
 .vercel/
 coverage/
 .vercel
+.data/
