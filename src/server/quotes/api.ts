@@ -6,10 +6,10 @@ import { z } from 'zod'
 import { db } from '../../db/client'
 import { projects, quotes, quoteSettings } from '../../db/schema'
 import { computeProject } from '../../lib/project-summary'
-import { inspectUpload, MustsInput, OverrideInput, ProjectId, QuoteId, RETRYABLE, TotalInput, uploadRejection } from '../../lib/quote-guards'
+import { inspectUpload, MustsInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, RETRYABLE, TotalInput, uploadRejection } from '../../lib/quote-guards'
 import { kitNeeds, resolveMusts, type Musts } from '../../lib/quote-items'
 import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quote-jobs'
-import { checkBasics, cleanFileName, monthStart, type Rejection } from '../../lib/quote-limits'
+import { checkBasics, cleanFileName, type Rejection } from '../../lib/quote-limits'
 import { FINISHED, type QuoteStatus } from '../../lib/quote-schema'
 import type { Project } from '../../lib/schema'
 import { loadCatalog } from '../catalog'
@@ -17,6 +17,7 @@ import { toProject } from '../projects'
 import { requireUserId } from '../session'
 import { defaultDeps } from './deps'
 import { kickQuotes } from './kick'
+import { insertWithinLimits, quoteCounts } from './limits'
 import { recoverStaleQuotes } from './repo'
 import { quotePath } from './storage'
 
@@ -35,19 +36,10 @@ const ownProject = (userId: string, projectId: string) => and(eq(projects.userId
 const ownQuote = (userId: string, quoteId: string) => and(eq(quotes.id, quoteId), eq(quotes.userId, userId))
 const reject = (rejection: Rejection): UploadResult => ({ ok: false, rejection })
 
-async function quoteCounts(userId: string, projectId: string): Promise<{ project: number; month: number }> {
-  const since = monthStart(new Date()).toISOString()
-  const [row] = await db
-    .select({
-      project: sql<number>`count(*) filter (where ${quotes.projectId} = ${projectId})`.mapWith(Number),
-      month: sql<number>`count(*) filter (where ${quotes.createdAt} >= ${since}::timestamptz)`.mapWith(Number),
-    })
-    .from(quotes)
-    .where(eq(quotes.userId, userId))
-  return row ?? { project: 0, month: 0 }
-}
-
-/** One file per call: the client uploads a batch one by one, so the limit counts stay exact. */
+/**
+ * One file per call. The counts are checked first so an over-limit upload is refused before any work; the real guard is
+ * `insertWithinLimits`, which the server runs after the file is stored, so parallel uploads cannot exceed the limits.
+ */
 export const uploadQuote = createServerFn({ method: 'POST' })
   .validator((d: unknown) => {
     if (!(d instanceof FormData)) throw new Error('Expected FormData')
@@ -72,14 +64,20 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     const id = crypto.randomUUID()
     const blobPathname = quotePath(userId, id, mime)
     const { storage } = defaultDeps()
+    const dropFile = () => storage.remove([blobPathname]).catch((error) => console.error('[quotes] removing an unused file failed', { userId, id, error }))
     try {
       await storage.put(blobPathname, bytes, mime)
-      await db.insert(quotes).values({
+      const added = await insertWithinLimits({
         id, userId, projectId: data.projectId, fileName: cleanFileName(data.file.name), blobPathname, mime, sizeBytes: bytes.byteLength, pages,
       })
+      if (!added) {
+        // Another upload took the last slot while this file was being read and stored.
+        await dropFile()
+        return reject(refusedInsertRejection(await quoteCounts(userId, data.projectId)))
+      }
     } catch (error) {
       console.error('[quotes] upload failed', { userId, id, error })
-      await storage.remove([blobPathname]).catch(() => undefined)
+      await dropFile()
       return reject({ code: 'upload' })
     }
     kickQuotes([id])

@@ -23,6 +23,11 @@ export function uploadRejection(input: { ownsProject: boolean; counts: { project
   return limitRejection(input.counts)
 }
 
+/** Why the atomic insert took no row: the limit the fresh counts show, or a plain failure if a slot has opened since. */
+export function refusedInsertRejection(counts: { project: number; month: number }): Rejection {
+  return limitRejection(counts) ?? { code: 'upload' }
+}
+
 export type Inspection = { ok: true; mime: QuoteMime; pages: number | null } | { ok: false; rejection: Rejection }
 
 /** What the file really is, from its first bytes, and for a PDF its page count. The browser's checks are only a hint. */

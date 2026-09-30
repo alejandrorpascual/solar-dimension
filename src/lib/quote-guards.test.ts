@@ -1,6 +1,6 @@
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, test } from 'vitest'
-import { inspectUpload, MAX_TOTAL, MustsInput, OverrideInput, QuoteId, RETRYABLE, TotalInput, uploadRejection } from './quote-guards'
+import { inspectUpload, MAX_TOTAL, MustsInput, OverrideInput, QuoteId, RETRYABLE, refusedInsertRejection, TotalInput, uploadRejection } from './quote-guards'
 import { DEFAULT_MUSTS } from './quote-items'
 import { QUOTE_LIMITS } from './quote-limits'
 
@@ -22,6 +22,18 @@ describe('uploadRejection', () => {
     expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 } })).toEqual({ code: 'project_limit' })
     expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: perMonth } })).toEqual({ code: 'month_limit' })
     expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: perMonth } })).toEqual({ code: 'project_limit' })
+  })
+})
+
+describe('refusedInsertRejection', () => {
+  const { perProject, perMonth } = QUOTE_LIMITS
+  test('names the limit the counts show, the project first', () => {
+    expect(refusedInsertRejection({ project: perProject, month: 0 })).toEqual({ code: 'project_limit' })
+    expect(refusedInsertRejection({ project: 0, month: perMonth })).toEqual({ code: 'month_limit' })
+    expect(refusedInsertRejection({ project: perProject, month: perMonth })).toEqual({ code: 'project_limit' })
+  })
+  test('is a plain upload failure when the counts no longer show a limit', () => {
+    expect(refusedInsertRejection({ project: 0, month: 0 })).toEqual({ code: 'upload' })
   })
 })
 

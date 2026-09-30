@@ -1,9 +1,11 @@
 import { sql } from 'drizzle-orm'
-import { check, doublePrecision, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { check, date, doublePrecision, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import type { ApplianceLabels } from '../lib/catalog'
 import { APPLIANCE_CATEGORIES } from '../lib/catalog-schema'
 import type { Musts, Overrides } from '../lib/quote-items'
 import { QUOTE_STATUSES, type QuoteExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
+
+import { user } from './auth-schema'
 
 export * from './auth-schema'
 
@@ -101,4 +103,18 @@ export const quoteSettings = pgTable(
     primaryKey({ columns: [t.userId, t.projectId] }),
     foreignKey({ name: 'quote_settings_project_fk', columns: [t.userId, t.projectId], foreignColumns: [projects.userId, projects.id] }).onDelete('cascade'),
   ],
+)
+
+/**
+ * How many quotes a user has uploaded in a UTC month (`month` is its first day). It only ever goes up: deleting a
+ * quote or a project does not give the monthly allowance back. Retries of a failed quote are not counted.
+ */
+export const quoteUsage = pgTable(
+  'quote_usage',
+  {
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    month: date('month', { mode: 'string' }).notNull(),
+    uploads: integer('uploads').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.month] })],
 )

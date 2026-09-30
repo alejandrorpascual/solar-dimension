@@ -1,6 +1,6 @@
 import { getTableColumns } from 'drizzle-orm'
 import { expect, test } from 'vitest'
-import { projects, quotes, quoteSettings } from './schema'
+import { projects, quotes, quoteSettings, quoteUsage } from './schema'
 
 test('projects table has the columns the store needs', () => {
   const cols = Object.keys(getTableColumns(projects)).sort()
@@ -16,4 +16,8 @@ test('quotes table has the columns processing and the verdict need', () => {
 
 test('quote_settings holds the must-haves per project', () => {
   expect(Object.keys(getTableColumns(quoteSettings)).sort()).toEqual(['musts', 'projectId', 'updatedAt', 'userId'])
+})
+
+test('quote_usage counts every upload per user and UTC month, and is never decremented', () => {
+  expect(Object.keys(getTableColumns(quoteUsage)).sort()).toEqual(['month', 'uploads', 'userId'])
 })
