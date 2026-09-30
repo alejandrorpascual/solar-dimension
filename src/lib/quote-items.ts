@@ -84,7 +84,16 @@ function checkInverter(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
     ...(shortW > 0 ? { shortW } : {}),
     ...(shortSurgeW > 0 ? { shortSurgeW } : {}),
   }
-  return check('inverter', shortW > 0 || shortSurgeW > 0 ? 'short' : 'ok', facts, sourceOf(sized))
+  return check('inverter', inverterStatus(shortW, shortSurgeW, surgeWatts === null && watts < kit.surgeW), facts, sourceOf(sized))
+}
+
+/**
+ * Short when a stated rating falls below the kit. With no surge stated, the running rating alone covers the start-up
+ * surge only when it reaches it; below that, whether the inverter starts the kit is unknown, not ok.
+ */
+function inverterStatus(shortW: number, shortSurgeW: number, isSurgeUnclear: boolean): ItemStatus {
+  if (shortW > 0 || shortSurgeW > 0) return 'short'
+  return isSurgeUnclear ? 'unknown' : 'ok'
 }
 
 const lineWh = (l: QuoteLine): number | null => {

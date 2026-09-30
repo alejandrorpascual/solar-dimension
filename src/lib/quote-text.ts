@@ -88,6 +88,8 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
   const f = c.facts
   const L = t.locale
   const confirmed = f.confirmed ? q.confirmedByYou : null
+  // An inverter with its watts but no start-up power is unknown for the kit, but it was mentioned.
+  if (c.status === 'unknown' && c.id === 'inverter' && f.watts !== undefined) return { label: fmtW(f.watts, L), detail: q.surgeNotStated }
   if (c.status === 'unknown') return { label: q.notMentioned, detail: null }
   if (c.status === 'missing') {
     const optional = f.optionalPrice !== undefined ? trq(t, 'optionalPrice', { price: money(t, f.optionalPrice, currency) }) : null

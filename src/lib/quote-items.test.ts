@@ -34,9 +34,26 @@ describe('inverter', () => {
     const x = extraction([line('inverter', 1, { specs: { watts: 5000, surgeWatts: 8000 } })])
     expect(item(x, 'inverter')).toMatchObject({ status: 'short', facts: { shortSurgeW: 1400 } })
   })
-  test('ok with surgeUnknown when the surge is not stated', () => {
+  test('unknown, not ok, when the surge is not stated and the running watts are below the kit surge', () => {
+    // 5,000 W covers the 3,860 W running load, but nothing says it can start the 9,400 W surge.
     const x = extraction([line('inverter', 1, { specs: { watts: 5000 } })])
-    expect(item(x, 'inverter')).toMatchObject({ status: 'ok', facts: { surgeUnknown: true } })
+    expect(item(x, 'inverter')).toMatchObject({ status: 'unknown', facts: { watts: 5000, surgeUnknown: true } })
+    expect(item(x, 'inverter').facts.shortSurgeW).toBeUndefined()
+  })
+  test('ok with surgeUnknown when the running watts alone cover the kit surge', () => {
+    const x = extraction([line('inverter', 1, { specs: { watts: KIT.surgeW } })])
+    expect(item(x, 'inverter')).toMatchObject({ status: 'ok', facts: { watts: KIT.surgeW, surgeUnknown: true } })
+  })
+  test('short, not unknown, when the running watts fall short even though the surge is not stated', () => {
+    const x = extraction([line('inverter', 1, { specs: { watts: 3000 } })])
+    expect(item(x, 'inverter')).toMatchObject({ status: 'short', facts: { watts: 3000, shortW: 860, surgeUnknown: true } })
+  })
+  test('one inverter without a stated surge makes the whole surge unknown', () => {
+    const x = extraction([
+      line('inverter', 1, { specs: { watts: 3000, surgeWatts: 9000 } }),
+      line('inverter', 1, { specs: { watts: 3000 } }),
+    ])
+    expect(item(x, 'inverter')).toMatchObject({ status: 'unknown', facts: { watts: 6000, surgeUnknown: true } })
   })
   test('unknown without an inverter line or without watts', () => {
     expect(item(extraction([line('labor', 1)]), 'inverter').status).toBe('unknown')

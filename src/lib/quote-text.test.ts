@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { en } from '../i18n/en'
 import { es } from '../i18n/es'
 import { compareQuotes, type QuoteView, type RankedQuote } from './quote-compare'
-import { SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
+import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
 import { checkItems, DEFAULT_MUSTS } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import {
@@ -59,6 +59,16 @@ describe('itemText', () => {
   const get = (id: SampleQuoteId, item: string) => itemText(en, items(id).find((c) => c.id === item)!, KIT, 'USD')
   test('a short inverter names what the kit needs', () => {
     expect(get('enerhogar', 'inverter')).toEqual({ label: '300 W', detail: 'Your kit needs 3,860 W' })
+  })
+  test('an inverter whose start-up power is not stated shows its watts, and says what is missing', () => {
+    const unstated = checkItems(extraction([line('inverter', 1, { specs: { watts: 5000 } })]), KIT).find((c) => c.id === 'inverter')!
+    expect(unstated.status).toBe('unknown')
+    expect(itemText(en, unstated, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'Start-up power not stated' })
+    expect(itemText(es, unstated, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'No indica la potencia de arranque' })
+  })
+  test('an inverter not mentioned at all still says so', () => {
+    const none = checkItems(extraction([line('labor', 1)]), KIT).find((c) => c.id === 'inverter')!
+    expect(itemText(en, none, KIT, 'USD')).toEqual({ label: 'Not mentioned', detail: null })
   })
   test('built-in charger, optional Wi-Fi, not mentioned, warranty', () => {
     expect(get('solartec', 'charger')).toEqual({ label: 'Included', detail: 'Built into the inverter' })
