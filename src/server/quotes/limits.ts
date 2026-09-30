@@ -84,13 +84,14 @@ export interface RetryAttempt { retried: boolean; retryable: boolean; admitted: 
 /**
  * Queues a failed quote of the user's again, if it has retries left and today's read budget admits it, in one
  * statement (so one transaction): the read is taken only for a retryable quote, and the quote changes only when the
- * read was taken. Two retries of the same quote at once can both take a read while only one re-queues it: the budget
- * then counts one read too many, never one too few.
+ * read was taken. `target` locks the quote row (`for update`), so a second retry of the same quote waits for the
+ * first to commit; Postgres then re-checks the row against the WHERE (read committed re-evaluates a locked row), finds
+ * it queued, and leaves `target` empty: the second retry takes no read and changes nothing.
  */
 export async function retryWithinBudget(userId: string, quoteId: string): Promise<RetryAttempt> {
   const retryable = and(eq(quotes.id, quoteId), eq(quotes.userId, userId), inArray(quotes.status, [...RETRYABLE]), lt(quotes.retries, MAX_RETRIES))
   const result = await db.execute(sql`
-    with target as (select id from quotes where ${retryable}),
+    with target as (select id from quotes where ${retryable} for update),
     admitted as (${takeDailyRead(utcDay(new Date()), sql`exists (select 1 from target)`)}),
     retried as (
       update quotes set status = 'queued', attempts = 0, retries = retries + 1, error = null, claimed_at = null, seen_at = null
