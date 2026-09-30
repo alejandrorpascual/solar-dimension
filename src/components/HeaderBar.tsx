@@ -4,7 +4,7 @@ import { LanguageSwitch } from './LanguageSwitch'
 import { Stepper, type Step } from './Stepper'
 
 /**
- * Grid areas live in components.css: brand + account on top and stepper + language below on phones, one row on
+ * Grid areas live in components.css: brand, language and account on top and the stepper below on phones, one row on
  * desktop. Without a `step` (pages outside the three-step flow, like /privacy) the stepper is left out.
  */
 export function HeaderBar({ step, account }: { step?: Step; account?: ReactNode }) {

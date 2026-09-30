@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { switchLanguage } from './header'
 import { hideProjects, showProjects } from './projects'
 
 test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
@@ -63,9 +64,9 @@ test('the full list is split into one labeled section per category', async ({ pa
   await expect(utility).not.toContainText('added')
   await utility.getByRole('button', { name: 'Add Washing machine' }).click()
   await expect(utility).toContainText('1 added')
-  await page.getByRole('button', { name: 'Español' }).click()
+  await switchLanguage(page, 'Español')
   await expect(page.getByRole('region', { name: 'Servicios', exact: true })).toContainText('Agregados: 1')
-  await page.getByRole('button', { name: 'English' }).click()
+  await switchLanguage(page, 'English')
 
   await page.getByRole('button', { name: 'Kitchen', exact: true }).click()
   await expect(page.getByRole('region')).toHaveCount(0)
@@ -211,12 +212,12 @@ test('full flow: appliances → window → kit, and the project survives a reloa
 
 test('the language switch shows the app in Spanish and remembers it', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Español' }).click()
+  await switchLanguage(page, 'Español')
   await expect(page.getByRole('heading', { name: '¿Qué aparatos deben seguir encendidos?' })).toBeVisible()
   await expect(page.getByText('Refrigerador', { exact: true })).toBeVisible()
   await page.reload()
   await expect(page.getByRole('heading', { name: '¿Qué aparatos deben seguir encendidos?' })).toBeVisible()
-  await page.getByRole('button', { name: 'English' }).click()
+  await switchLanguage(page, 'English')
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
 })
 
@@ -227,7 +228,7 @@ test.describe('on a device whose preferred languages put Spanish first among the
     await page.goto('/')
     await expect(page.locator('html')).toHaveAttribute('lang', 'es')
     await expect(page.getByRole('heading', { name: '¿Qué aparatos deben seguir encendidos?' })).toBeVisible()
-    await page.getByRole('button', { name: 'English' }).click()
+    await switchLanguage(page, 'English')
     await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
     await page.reload()
     await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()

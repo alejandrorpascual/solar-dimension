@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { accountAction } from './header'
 
 const GOOGLE_TEST_CLIENT_ID = 'e2e-google-client-id'
 
@@ -43,9 +44,9 @@ test('a signed-in password user can start connecting Google from the account men
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill('correct-horse-battery')
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
   const googleUrl = await captureGoogleRedirect(page)
-  await page.getByRole('button', { name: 'Connect Google' }).click()
+  await accountAction(page, 'Connect Google')
   await expect.poll(googleUrl).not.toBeNull()
   expectOurGoogleRequest(googleUrl(), baseURL!)
 })

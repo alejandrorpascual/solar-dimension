@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { slugify } from '../src/lib/catalog-schema'
-import { retireTestAppliance } from './catalog-token'
-import { markEmailVerified } from './db'
+import { deleteTestAppliance, markEmailVerified } from './db'
 
 const ADMIN = { email: 'e2e-admin@example.com', password: 'correct-horse-battery-admin' }
 
@@ -10,7 +9,7 @@ async function signInOrUp(page: Page, email: string, password: string) {
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  const signedIn = page.getByText(`Signed in as ${email}`)
+  const signedIn = page.getByRole('button', { name: `Signed in as ${email}` })
   const failed = page.getByText('That did not work. Check the email and password.')
   await expect(signedIn.or(failed)).toBeVisible()
   if (await signedIn.isVisible()) return
@@ -18,7 +17,7 @@ async function signInOrUp(page: Page, email: string, password: string) {
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
 }
 
 test.beforeEach(({}, info) => {
@@ -33,7 +32,7 @@ test('non-admins get a 404 at /admin/appliances', async ({ page }) => {
   await expect(page.getByText('Page not found')).toBeVisible()
 })
 
-test('an admin adds an appliance, sees it in the picker, and retires it', async ({ page, request }) => {
+test('an admin adds an appliance, sees it in the picker, and retires it', async ({ page }) => {
   await signInOrUp(page, ADMIN.email, ADMIN.password)
   await markEmailVerified(ADMIN.email)
   // The session cookie caches the user for 5 minutes; a fresh sign-in picks up email_verified.
@@ -70,9 +69,8 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
     await page.goto('/?step=1')
     await expect(page.getByText(name)).toHaveCount(0)
   } finally {
-    // Runs even if an assertion above throws midway, so a failed run never leaves an active e2e appliance in the
-    // shared DB's picker.
-    await retireTestAppliance(request, id)
+    // Runs even if an assertion above throws midway, so no run leaves its e2e appliance behind.
+    await deleteTestAppliance(id)
   }
 })
 
