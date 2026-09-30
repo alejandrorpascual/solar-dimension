@@ -1,8 +1,9 @@
-import { and, asc, eq, inArray, lt, or, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, or, sql, type SQL } from 'drizzle-orm'
 import { db } from '../../db/client'
-import { quotes } from '../../db/schema'
+import { quoteFileTrash, quotes } from '../../db/schema'
 import type { QuoteMime } from '../../lib/quote-limits'
 import { MAX_ATTEMPTS, planStale, STALE_CLAIM_MS, type ClaimedQuote, type Finish, type QuoteJobRepo } from './process'
+import type { TrashRepo } from './trash'
 
 /** A worker that dies mid-read leaves the job "processing"; after STALE_CLAIM_MS another may take it over. */
 const claimable = () =>
@@ -61,4 +62,23 @@ export async function recoverStaleQuotes(userId?: string, limit = 10): Promise<s
     console.error('[quotes] gave up on a stuck quote', { ids: fail })
   }
   return kick.slice(0, limit)
+}
+
+/**
+ * Adds the files of the quotes `where` selects to the trash. It goes in the same batch (one transaction) as the delete
+ * of those quotes, so a deleted quote's file is always either trashed or still owned by its row.
+ */
+export const trashQuoteFiles = (where: SQL | undefined) =>
+  db.insert(quoteFileTrash)
+    .select(db.select({ pathname: quotes.blobPathname, createdAt: sql<Date>`now()`.as('created_at') }).from(quotes).where(where))
+    .onConflictDoNothing()
+
+export const dbTrashRepo: TrashRepo = {
+  async oldest(limit) {
+    const rows = await db.select({ path: quoteFileTrash.pathname }).from(quoteFileTrash).orderBy(asc(quoteFileTrash.createdAt)).limit(limit)
+    return rows.map((r) => r.path)
+  },
+  async clear(paths) {
+    if (paths.length) await db.delete(quoteFileTrash).where(inArray(quoteFileTrash.pathname, [...paths]))
+  },
 }

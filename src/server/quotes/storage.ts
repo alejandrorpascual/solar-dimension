@@ -11,8 +11,13 @@ export interface QuoteStorage {
 
 const SAFE_PATH = /^quotes\/[A-Za-z0-9_-]+\/[0-9a-f-]{36}\.(pdf|jpg|png|webp)$/
 
+/** Whether `pathname` has the one shape storage accepts, so it can name a quote file at all. */
+export function isQuotePath(pathname: string): boolean {
+  return SAFE_PATH.test(pathname)
+}
+
 function assertSafe(pathname: string): string {
-  if (!SAFE_PATH.test(pathname)) throw new Error('Unsafe quote path')
+  if (!isQuotePath(pathname)) throw new Error('Unsafe quote path')
   return pathname
 }
 

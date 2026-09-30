@@ -120,3 +120,13 @@ export const quoteUsage = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.month] })],
 )
+
+/**
+ * Files of deleted quotes still waiting to leave storage. A row is added in the same transaction that deletes the
+ * quote (or its project) and cleared once the file is gone; the sweep retries what's left. No foreign key: a row must
+ * outlive the quote, the project and the user it came from.
+ */
+export const quoteFileTrash = pgTable('quote_file_trash', {
+  pathname: text('pathname').primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})

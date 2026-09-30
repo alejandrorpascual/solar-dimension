@@ -83,3 +83,9 @@ export async function quoteFiles(email: string): Promise<{ projectId: string; pa
     select q.project_id, q.blob_pathname from quotes q join "user" u on u.id = q.user_id where u.email = ${email}`
   return rows.map((r) => ({ projectId: r.project_id as string, path: r.blob_pathname as string }))
 }
+
+/** Which of `paths` still wait in the trash for their file to leave storage. */
+export async function trashedPaths(paths: string[]): Promise<string[]> {
+  const rows = await testDb()`select pathname from quote_file_trash where pathname = any(${paths}::text[])`
+  return rows.map((r) => r.pathname as string)
+}

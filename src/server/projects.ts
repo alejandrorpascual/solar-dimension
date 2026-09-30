@@ -2,9 +2,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client'
-import { projects, quotes } from '../db/schema'
+import { projects, quoteFileTrash, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { defaultStorage } from './quotes/deps'
+import { emptyQuoteTrash } from './quotes/deps'
+import { lockUserQuotes } from './quotes/limits'
+import { trashQuoteFiles } from './quotes/repo'
 import { requireUserId } from './session'
 
 const MAX_BATCH = 200
@@ -66,18 +68,16 @@ export const deleteProjects = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const userId = await requireUserId()
     if (data.ids.length === 0) return { ok: true }
-    // Rows go with the project (foreign key cascade); the files in storage don't, so they are removed here.
-    const files = await db.select({ path: quotes.blobPathname }).from(quotes)
-      .where(and(eq(quotes.userId, userId), inArray(quotes.projectId, data.ids)))
-    await db.delete(projects).where(and(eq(projects.userId, userId), inArray(projects.id, data.ids)))
-    // The delete above already happened, so a storage problem (a missing Blob token, a Blob outage) is logged, never thrown.
-    if (files.length) {
-      try {
-        await defaultStorage.remove(files.map((f) => f.path))
-      } catch (error) {
-        console.error('[projects] removing quote files failed', { userId, count: files.length, error })
-      }
-    }
+    // Quote rows go with the project (foreign key cascade); their files are trashed in the same transaction. The upload
+    // lock orders this against the user's uploads: one that stored its row before is trashed here, and one after fails
+    // on the foreign key and removes its own file.
+    const [, trashed] = await db.batch([
+      lockUserQuotes(userId),
+      trashQuoteFiles(and(eq(quotes.userId, userId), inArray(quotes.projectId, data.ids))).returning({ path: quoteFileTrash.pathname }),
+      db.delete(projects).where(and(eq(projects.userId, userId), inArray(projects.id, data.ids))),
+    ])
+    // Never throws: a file that can't be removed now (a missing Blob token, a Blob outage) stays trashed for the sweep.
+    if (trashed.length) await emptyQuoteTrash(trashed.map((r) => r.path))
     return { ok: true }
   })
 

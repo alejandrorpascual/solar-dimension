@@ -15,10 +15,10 @@ import type { Project } from '../../lib/schema'
 import { loadCatalog } from '../catalog'
 import { toProject } from '../projects'
 import { requireUserId } from '../session'
-import { defaultStorage } from './deps'
+import { defaultStorage, emptyQuoteTrash } from './deps'
 import { kickQuotes } from './kick'
 import { insertWithinLimits, quoteCounts } from './limits'
-import { recoverStaleQuotes } from './repo'
+import { recoverStaleQuotes, trashQuoteFiles } from './repo'
 import { quotePath } from './storage'
 
 export type UploadResult = { ok: true; id: string } | { ok: false; rejection: Rejection }
@@ -188,9 +188,10 @@ export const deleteQuote = createServerFn({ method: 'POST' })
   .validator((d: unknown) => z.object({ quoteId: QuoteId }).parse(d))
   .handler(async ({ data }) => {
     const userId = await requireUserId()
-    const rows = await db.delete(quotes).where(ownQuote(userId, data.quoteId)).returning({ path: quotes.blobPathname })
+    const own = ownQuote(userId, data.quoteId)
+    // The file is trashed with the row, in one transaction, so a storage failure below leaves it for the sweep.
+    const [, rows] = await db.batch([trashQuoteFiles(own), db.delete(quotes).where(own).returning({ path: quotes.blobPathname })])
     if (rows.length === 0) throw new Error('Not found')
-    await defaultStorage.remove(rows.map((r) => r.path))
-      .catch((error) => console.error('[quotes] removing a deleted quote file failed', { quoteId: data.quoteId, error }))
+    await emptyQuoteTrash(rows.map((r) => r.path))
     return { ok: true as const }
   })

@@ -1,7 +1,10 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test } from '@playwright/test'
-import { cloneProject, countQuoteRows, firstProjectId, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth } from './db'
+import {
+  cloneProject, countQuoteRows, firstProjectId, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth,
+  trashedPaths,
+} from './db'
 import { hideProjects, showProjects } from './projects'
 import { isMustSave, openVerdictFromTray, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading } from './quotes'
 
@@ -248,4 +251,24 @@ test('deleting a project removes its quotes and their files', async ({ page }) =
   expect((await removed).ok()).toBe(true)
   expect(await countQuoteRows(email, quote!.projectId)).toBe(0)
   expect(existsSync(file)).toBe(false)
+  // The file was trashed with the rows and removed right away, so nothing is left for the sweep.
+  expect(await trashedPaths([quote!.path])).toEqual([])
+})
+
+test('deleting a quote removes its file and leaves nothing in the trash', async ({ page }) => {
+  const email = await signUp(page)
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+  const [quote] = await quoteFiles(email)
+  const file = path.resolve(QUOTE_FILES_DIR, quote!.path)
+  expect(existsSync(file)).toBe(true)
+
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  const removed = page.waitForResponse((r) => r.request().method() === 'POST' && (r.request().postData() ?? '').includes('"quoteId"'))
+  await page.getByRole('button', { name: 'Delete it' }).click()
+  expect((await removed).ok()).toBe(true)
+  expect(await countQuoteRows(email, quote!.projectId)).toBe(0)
+  expect(existsSync(file)).toBe(false)
+  expect(await trashedPaths([quote!.path])).toEqual([])
 })

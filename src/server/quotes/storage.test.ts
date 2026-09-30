@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { localDiskStorage, quotePath, quoteStorage } from './storage'
+import { isQuotePath, localDiskStorage, quotePath, quoteStorage } from './storage'
 
 const ID = '0f8fad5b-d9cb-469f-a165-70867728950e'
 
@@ -13,6 +13,14 @@ describe('quotePath', () => {
   })
   test('refuses a user id that could escape the folder', () => {
     expect(() => quotePath('../etc', ID, 'application/pdf')).toThrow('Unsafe quote path')
+  })
+})
+
+describe('isQuotePath', () => {
+  test('true only for a path storage would accept', () => {
+    expect(isQuotePath(quotePath('user_123', ID, 'image/png'))).toBe(true)
+    expect(isQuotePath('e2e-seed/1')).toBe(false)
+    expect(isQuotePath(`quotes/../${ID}.pdf`)).toBe(false)
   })
 })
 

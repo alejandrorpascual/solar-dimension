@@ -3,6 +3,12 @@ import { db } from '../../db/client'
 import { quotes, quoteUsage } from '../../db/schema'
 import { monthStart, QUOTE_LIMITS, type QuoteMime } from '../../lib/quote-limits'
 
+/**
+ * Makes one user's writes to their quotes take turns until the batch (one transaction) ends: uploads, and project
+ * deletes, which must see every quote an upload added before them.
+ */
+export const lockUserQuotes = (userId: string) => db.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`)
+
 /** The UTC month's first day as a date string, the key of `quote_usage`. */
 const usageMonth = (): string => monthStart(new Date()).toISOString().slice(0, 10)
 
@@ -25,7 +31,7 @@ export interface NewQuote { id: string; userId: string; projectId: string; fileN
 export async function insertWithinLimits(q: NewQuote): Promise<boolean> {
   const month = usageMonth()
   const [, inserted] = await db.batch([
-    db.execute(sql`select pg_advisory_xact_lock(hashtext(${q.userId}))`),
+    lockUserQuotes(q.userId),
     db.execute(sql`
       insert into quotes (id, user_id, project_id, file_name, blob_pathname, mime, size_bytes, pages)
       select ${q.id}::uuid, ${q.userId}::text, ${q.projectId}::text, ${q.fileName}::text, ${q.blobPathname}::text, ${q.mime}::text, ${q.sizeBytes}::integer, ${q.pages}::integer

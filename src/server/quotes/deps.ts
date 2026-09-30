@@ -1,9 +1,10 @@
 import { lazyModel, lazyStorage } from './lazy'
 import { modelNames, openAiModel, type QuoteModel } from './model'
 import type { ProcessDeps } from './process'
-import { dbJobRepo } from './repo'
+import { dbJobRepo, dbTrashRepo } from './repo'
 import { quoteStorage } from './storage'
 import { stubModel } from './stub-model'
+import { emptyTrash, type TrashResult } from './trash'
 
 const DEFAULT_STUB_DELAY_MS = 1500
 
@@ -22,6 +23,10 @@ function quoteModel(env: Record<string, string | undefined>): QuoteModel {
  */
 export const defaultStorage = lazyStorage(() => quoteStorage())
 const defaultModel = lazyModel(() => quoteModel(process.env))
+
+/** Removes trashed quote files and clears their rows: `paths` right after a delete, or the oldest rows for the sweep. */
+export const emptyQuoteTrash = (paths?: readonly string[]): Promise<TrashResult> =>
+  emptyTrash({ storage: defaultStorage, trash: dbTrashRepo }, paths)
 
 export function defaultDeps(): ProcessDeps {
   return { repo: dbJobRepo, storage: defaultStorage, model: defaultModel, models: modelNames() }
