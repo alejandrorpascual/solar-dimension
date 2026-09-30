@@ -427,9 +427,12 @@ test('an unverified account sees a note and Connect Google instead of the Upload
   expect(await countQuoteRows(email, projectId)).toBe(0)
   expect((await quoteFiles(email)).length).toBe(0)
 
-  // Connecting Google verifies the account: the button starts the link flow towards Google, with our callback.
+  // Connecting Google verifies the account: the button links Google to this signed-in account (not a new sign-in),
+  // and the browser then heads to Google with our callback.
   const googleUrl = await captureGoogleRedirect(page)
+  const link = page.waitForRequest((r) => r.method() === 'POST' && new URL(r.url()).pathname === '/api/auth/link-social')
   await card.getByRole('button', { name: 'Connect Google to upload quotes' }).click()
+  await link
   await expect.poll(googleUrl).not.toBeNull()
   expectOurGoogleRequest(googleUrl(), baseURL!)
 })
