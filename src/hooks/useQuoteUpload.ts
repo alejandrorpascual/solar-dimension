@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { prepareQuoteFile } from '../client/prepare-quote-file'
 import { checkBasics, type Rejection } from '../lib/quote-limits'
+import { createSingleFlight } from '../lib/single-flight'
 import { uploadQuote } from '../server/quotes/api'
 import { useQuoteJobs } from './useQuoteJobs'
 
@@ -27,12 +28,17 @@ async function uploadOne(projectId: string, raw: File): Promise<Outcome> {
   }
 }
 
-/** Uploads a batch one file at a time, so the server's per-project and monthly counts stay exact. */
+/**
+ * Uploads a batch one file at a time, so the server's per-project and monthly counts stay exact. A second `start`
+ * while a batch is running is ignored, so the first batch's tiles stay and the uploads never overlap.
+ */
 export function useQuoteUpload(projectId: string) {
   const { refresh } = useQuoteJobs()
   const [items, setItems] = useState<UploadItem[]>([])
   const [isOpen, setOpen] = useState(false)
-  const start = useCallback(async (files: readonly File[]) => {
+  const [isUploading, setUploading] = useState(false)
+  const gate = useRef(createSingleFlight())
+  const runBatch = useCallback(async (files: readonly File[]) => {
     const batch = Date.now()
     const initial: UploadItem[] = files.map((f, i) => ({ key: `${batch}-${i}`, name: f.name, state: 'uploading', id: null, rejection: null }))
     setItems(initial)
@@ -44,5 +50,15 @@ export function useQuoteUpload(projectId: string) {
       if (outcome.state === 'accepted') await refresh()
     }
   }, [projectId, refresh])
-  return { items, isOpen, setOpen, start }
+  const start = useCallback(async (files: readonly File[]) => {
+    if (!gate.current.tryEnter()) return
+    setUploading(true)
+    try {
+      await runBatch(files)
+    } finally {
+      gate.current.release()
+      setUploading(false)
+    }
+  }, [runBatch])
+  return { items, isOpen, isUploading, setOpen, start }
 }

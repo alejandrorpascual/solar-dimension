@@ -22,6 +22,7 @@ export function QuotesCard({ project, isSaving }: Props) {
   const upload = useQuoteUpload(project.id)
   const [isDragging, setDragging] = useState(false)
   const titleId = useId()
+  const isBusy = isSaving || upload.isUploading
 
   if (!user) {
     return (
@@ -40,7 +41,7 @@ export function QuotesCard({ project, isSaving }: Props) {
     e.preventDefault()
     setDragging(false)
     const files = [...e.dataTransfer.files]
-    if (!isSaving && files.length) void upload.start(files)
+    if (!isBusy && files.length) void upload.start(files)
   }
   return (
     <section className={isDragging ? 'qcard qcard--drag' : 'qcard'} aria-labelledby={titleId}
@@ -54,7 +55,7 @@ export function QuotesCard({ project, isSaving }: Props) {
         {jobs && <Link className="qbtn" to="/projects/$projectId/quotes" params={{ projectId: project.id }}>{t.quotes.seeVerdict}</Link>}
         <FilePickButton
           label={isSaving ? t.quotes.cardSaving : jobs ? t.quotes.cardAddMore : t.quotes.cardUpload}
-          isDisabled={isSaving}
+          isDisabled={isBusy}
           onFiles={(files) => void upload.start(files)}
         />
       </div>

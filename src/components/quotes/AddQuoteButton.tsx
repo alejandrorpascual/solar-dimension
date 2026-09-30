@@ -9,7 +9,7 @@ export function AddQuoteButton({ projectId, projectName }: { projectId: string; 
   const upload = useQuoteUpload(projectId)
   return (
     <>
-      <FilePickButton label={t.quotes.addAnother} onFiles={(files) => void upload.start(files)} />
+      <FilePickButton label={t.quotes.addAnother} isDisabled={upload.isUploading} onFiles={(files) => void upload.start(files)} />
       <HandoffDialog isOpen={upload.isOpen} onOpenChange={upload.setOpen} items={upload.items} projectId={projectId} projectName={projectName} />
     </>
   )
