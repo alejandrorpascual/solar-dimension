@@ -2,8 +2,8 @@ import type { Rejection } from './quote-limits'
 
 /**
  * Model reads admitted per UTC day across every account: the owner's kill switch on spend. Each admitted read (an
- * upload, or a retry) can cost up to 3 attempts, each a primary call, one immediate retry of it when the error is
- * transient, and a fallback call.
+ * upload, or a retry) can cost up to 3 attempts, each a primary call and a fallback call, either one repeated once
+ * right away on a transient error: at most 12 calls, each capped at MAX_OUTPUT_TOKENS (server/quotes/model.ts).
  */
 export const DEFAULT_DAILY_READS = 100
 /** The largest limit the `integer` column can count to. */
