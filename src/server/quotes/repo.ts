@@ -52,6 +52,8 @@ export async function recoverStaleQuotes(userId?: string, limit = 10): Promise<s
   const { kick, fail } = planStale(rows, new Date())
   if (fail.length > 0) {
     await db.update(quotes).set({ status: 'failed', error: GAVE_UP, processedAt: new Date() }).where(and(inArray(quotes.id, fail), inFlight))
+    // Logged like a failed read: otherwise a worker that keeps dying shows only in the database.
+    console.error('[quotes] gave up on a stuck quote', { ids: fail })
   }
   return kick.slice(0, limit)
 }

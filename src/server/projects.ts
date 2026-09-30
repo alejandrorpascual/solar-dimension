@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db } from '../db/client'
 import { projects, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { quoteStorage } from './quotes/storage'
+import { defaultStorage } from './quotes/deps'
 import { requireUserId } from './session'
 
 const MAX_BATCH = 200
@@ -73,7 +73,7 @@ export const deleteProjects = createServerFn({ method: 'POST' })
     // The delete above already happened, so a storage problem (a missing Blob token, a Blob outage) is logged, never thrown.
     if (files.length) {
       try {
-        await quoteStorage().remove(files.map((f) => f.path))
+        await defaultStorage.remove(files.map((f) => f.path))
       } catch (error) {
         console.error('[projects] removing quote files failed', { userId, count: files.length, error })
       }
