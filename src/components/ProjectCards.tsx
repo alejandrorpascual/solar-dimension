@@ -1,8 +1,12 @@
 import { useId, useState } from 'react'
+import { Link } from '@tanstack/react-router'
+import { FileText } from 'lucide-react'
 import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
+import { useProjectJobs } from '../hooks/useQuoteJobs'
 import { applianceName, batteryCount, tr, type Dictionary } from '../i18n'
 import { fmtHours, fmtKwh, fmtW } from '../i18n/format'
+import { projectLine } from '../lib/quote-text'
 import { summarizeProjects, type ProjectSummary } from '../lib/project-summary'
 import type { Store } from '../lib/schema'
 import { addProject, selectProject, setQtyIn } from '../lib/store'
@@ -35,6 +39,7 @@ function ProjectCard({ summary: s, isCurrent, isEditing, onOpen, onToggleEdit, o
   const titleId = useId()
   const editId = useId()
   const { project: p, result: r } = s
+  const jobs = useProjectJobs(p.id)
   return (
     <article className={`pcard${isCurrent ? ' pcard--on' : ''}`} aria-labelledby={titleId}>
       <div className="pcard__head">
@@ -57,6 +62,11 @@ function ProjectCard({ summary: s, isCurrent, isEditing, onOpen, onToggleEdit, o
           <p className="pcard__load num">{`${fmtW(r.runningW, locale)} ${t.ui.running} · ${batteryCount(t, r.battery.count)} · ${r.cable.gauge}`}</p>
           <p className="pcard__items">{heaviestLine(s, t)}</p>
         </>
+      )}
+      {jobs && (
+        <Link className="pcard__quotes" to="/projects/$projectId/quotes" params={{ projectId: p.id }}>
+          <FileText size={14} aria-hidden="true" />{projectLine(t, jobs)}
+        </Link>
       )}
       {isEditing && !isCurrent && r.items.length > 0 && (
         <ul id={editId} className="pcard__edit">

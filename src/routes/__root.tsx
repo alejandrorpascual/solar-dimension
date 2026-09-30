@@ -6,6 +6,7 @@ import { useRootData, type RootData } from '../hooks/useRootData'
 import { DEFAULT_LOCALE, getDictionary } from '../i18n'
 import { APP_NAME } from '../lib/brand'
 import { shouldReloadForStaleChunk } from '../lib/stale-chunk'
+import { QuoteTray } from '../components/quotes/QuoteTray'
 import { getCatalog } from '../server/catalog'
 import { getLocale } from '../server/locale'
 import { getAuthFeatures, getSession } from '../server/session'
@@ -104,7 +105,10 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <HeadContent />
       </head>
       <body>
-        <QuoteJobsProvider>{children}</QuoteJobsProvider>
+        <QuoteJobsProvider>
+          {children}
+          <QuoteTray />
+        </QuoteJobsProvider>
         <Scripts />
       </body>
     </html>
