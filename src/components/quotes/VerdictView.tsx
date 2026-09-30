@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCatalog } from '../../hooks/useCatalog'
 import { useLocale } from '../../hooks/useLocale'
 import { useQuoteJobs } from '../../hooks/useQuoteJobs'
@@ -9,6 +9,9 @@ import { computeProject } from '../../lib/project-summary'
 import { compareQuotes } from '../../lib/quote-compare'
 import { canRetry } from '../../lib/quote-guards'
 import { kitNeeds, setOverride, type ItemId, type Musts, type Override, type Overrides } from '../../lib/quote-items'
+import {
+  addPendingMust, addPendingOverride, NO_PENDING, overlayPending, settlePendingMust, settlePendingOverride, type PendingEdits,
+} from '../../lib/quote-pending'
 import { deleteQuote, retryQuote, setQuoteMust, setQuoteOverride, setQuoteTotal, type ProjectQuotes } from '../../server/quotes/api'
 import { BestCard } from './BestCard'
 import { MustsSheet } from './MustsSheet'
@@ -27,6 +30,7 @@ interface Props {
 
 type SaveError = { key: string; text: string } | null
 const overridesById = (d: ProjectQuotes): Record<string, Overrides> => Object.fromEntries(d.quotes.map((q) => [q.id, q.overrides]))
+const serverEdits = (d: ProjectQuotes) => ({ musts: d.musts, overrides: overridesById(d) })
 
 /** The verdict, recomputed on every change from the server's quotes, this project's kit and its must-haves. */
 export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
@@ -37,9 +41,14 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   const [overrides, setOverrides] = useState(() => overridesById(data))
   const [error, setError] = useState<SaveError>(null)
   const [isMustsOpen, setMustsOpen] = useState(false)
+  // Edits whose save hasn't answered yet. A reload (a quote finished, another action) can land mid-save with data read
+  // before the save; laying these over it keeps the change the user sees until its save answers.
+  const pending = useRef<PendingEdits>(NO_PENDING)
+  const nextSeq = useRef(0)
   useEffect(() => {
-    setMusts(data.musts)
-    setOverrides(overridesById(data))
+    const shown = overlayPending(serverEdits(data), pending.current)
+    setMusts(shown.musts)
+    setOverrides(shown.overrides)
   }, [data])
 
   const result = computeProject(data.project, catalog)
@@ -65,29 +74,44 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   const failed = (key: string) => setError({ key, text: t.quotes.saveFailed })
   const errorFor = (key: string) => (error?.key === key ? error.text : null)
 
-  // A failed save rolls back only the value it changed, so another change that saved in the meantime is kept.
+  /** Stops laying an answered save over reloads. True when it was the item's latest edit, so a rollback may apply. */
+  const settle = (next: (p: PendingEdits) => PendingEdits): boolean => {
+    const before = pending.current
+    pending.current = next(before)
+    return pending.current !== before
+  }
+  // A failed save rolls back only the value it changed, so another change that saved in the meantime is kept. A newer
+  // edit of the same item still saving is kept too.
   const onOverride = (quoteId: string) => async (item: ItemId, value: Override | null) => {
     const prev = overrides[quoteId]?.[item] ?? null
+    const seq = ++nextSeq.current
     setError(null)
+    pending.current = addPendingOverride(pending.current, quoteId, item, value, seq)
     setOverrides((o) => ({ ...o, [quoteId]: setOverride(o[quoteId] ?? {}, item, value) }))
     try {
       await setQuoteOverride({ data: { quoteId, item, value } })
+      settle((p) => settlePendingOverride(p, quoteId, item, seq))
     } catch (e) {
       console.error('[quotes] saving an override failed', { quoteId, item, e })
-      setOverrides((o) => ({ ...o, [quoteId]: setOverride(o[quoteId] ?? {}, item, prev) }))
+      if (settle((p) => settlePendingOverride(p, quoteId, item, seq))) {
+        setOverrides((o) => ({ ...o, [quoteId]: setOverride(o[quoteId] ?? {}, item, prev) }))
+      }
       failed(quoteId)
     }
   }
   // Each switch saves only its own item, so the server and the screen agree on which changes were kept.
   const onMust = async (item: ItemId, value: boolean) => {
     const prev = musts[item]
+    const seq = ++nextSeq.current
     setError(null)
+    pending.current = addPendingMust(pending.current, item, value, seq)
     setMusts((m) => ({ ...m, [item]: value }))
     try {
       await setQuoteMust({ data: { projectId: data.project.id, item, value } })
+      settle((p) => settlePendingMust(p, item, seq))
     } catch (e) {
       console.error('[quotes] saving a must-have failed', { item, e })
-      setMusts((m) => ({ ...m, [item]: prev }))
+      if (settle((p) => settlePendingMust(p, item, seq))) setMusts((m) => ({ ...m, [item]: prev }))
       failed('musts')
     }
   }

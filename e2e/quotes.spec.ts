@@ -118,6 +118,50 @@ test('a must-have that fails to save goes back, and one saved meanwhile is kept,
   await expect(warranty).toHaveAttribute('aria-checked', 'true')
 })
 
+test('a reload that lands while a must-have is saving keeps the change on screen', async ({ page }) => {
+  await signUp(page)
+  await uploadQuotes(page, [await quotePdf('solartec'), await quotePdf('voltia')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+  await expect(page.getByRole('article')).toHaveCount(1)
+
+  // The must-have save is held until the page has reloaded its data, which it read before the save landed.
+  let release: () => void = () => {}
+  const reloaded = new Promise<void>((resolve) => { release = resolve })
+  let isHeld = false
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (request.method() !== 'POST' || !isMustSave(request.postData() ?? '')) return route.fallback()
+    isHeld = true
+    await reloaded
+    await route.fulfill({ response: await route.fetch() })
+  })
+
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  const sheet = page.getByRole('dialog', { name: 'What matters for this project' })
+  const wifi = sheet.getByRole('switch', { name: 'Wi-Fi monitoring', exact: true })
+  await expect(wifi).toHaveAttribute('aria-checked', 'false')
+  const save = saved(page, 'musts')
+  await wifi.click()
+  await expect.poll(() => isHeld).toBe(true)
+  await sheet.getByRole('button', { name: 'Done', exact: true }).click()
+
+  // Deleting a quote reloads the page's data while the save is still held.
+  const best = page.getByRole('region').filter({ has: page.getByText('Best fit', { exact: true }) })
+  await best.getByRole('button', { name: 'Delete', exact: true }).click()
+  await best.getByRole('button', { name: 'Delete it' }).click()
+  await expect(page.getByRole('article')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  await expect(wifi).toHaveAttribute('aria-checked', 'true')
+
+  release()
+  await save
+  await page.unroute('**/*')
+  await page.reload()
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  await expect(wifi).toHaveAttribute('aria-checked', 'true')
+})
+
 test('a verdict that finished while away shows once in the tray', async ({ page }) => {
   await signUp(page)
   await uploadQuotes(page, [await quotePdf('solartec')])
