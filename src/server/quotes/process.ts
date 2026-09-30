@@ -13,14 +13,22 @@ export const STALE_CLAIM_MS = 10 * 60_000
 /** A queued job that no worker picked up (or that went back to the queue) waits this long before a re-kick. */
 export const STALE_QUEUE_MS = 60_000
 
-export interface ClaimedQuote { id: string; blobPathname: string; mime: QuoteMime; fileName: string; attempts: number }
+export interface ClaimedQuote {
+  id: string; blobPathname: string; mime: QuoteMime; fileName: string; attempts: number
+  /** The claim's time as the database wrote it, as text so no microseconds are lost; `finish` compares it. */
+  claimedAt: string
+}
 export type Finish =
   | { status: 'ready' | 'needs_review'; extraction: QuoteExtraction; modelUsed: string; usage: QuoteUsage[] }
   | { status: 'queued' | 'failed'; error: string; usage: QuoteUsage[] }
 export interface QuoteJobRepo {
   /** Takes the job, or returns null when another worker has it or its attempts are used up. */
   claim(id: string): Promise<ClaimedQuote | null>
-  finish(id: string, f: Finish): Promise<void>
+  /**
+   * Stores the outcome only while `job`'s claim still holds: the row is processing and no later claim bumped its
+   * attempts. Returns false, writing nothing, when the claim went stale and another worker took the job over.
+   */
+  finish(job: ClaimedQuote, f: Finish): Promise<boolean>
 }
 export interface ProcessDeps { repo: QuoteJobRepo; storage: QuoteStorage; model: QuoteModel; models: { primary: string; fallback: string } }
 export type Outcome = 'skipped' | Finish['status']
@@ -94,9 +102,15 @@ export function planStale(jobs: readonly JobClock[], now: Date): { kick: string[
 export async function processQuote(id: string, deps: ProcessDeps): Promise<Outcome> {
   const job = await deps.repo.claim(id)
   if (!job) return 'skipped'
-  /** Stores the outcome. A failure is also logged: otherwise a revoked key or a model outage shows only in the database. */
+  /**
+   * Stores the outcome. A failure is also logged: otherwise a revoked key or a model outage shows only in the database.
+   * A worker that lost its claim stores nothing, so it never overwrites the newer worker's result.
+   */
   const finish = async (f: Finish): Promise<Outcome> => {
-    await deps.repo.finish(id, f)
+    if (!(await deps.repo.finish(job, f))) {
+      console.warn('[quotes] a late worker lost its claim', { id })
+      return 'skipped'
+    }
     if ('error' in f && f.status === 'failed') console.error('[quotes] a quote could not be read', { id, error: f.error })
     return f.status
   }

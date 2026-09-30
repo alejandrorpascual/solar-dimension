@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { extraction, line, SAMPLE_QUOTES } from '../../lib/quote-fixtures'
-import type { QuoteExtraction } from '../../lib/quote-schema'
+import type { QuoteExtraction, QuoteStatus } from '../../lib/quote-schema'
 import { ModelError, type QuoteModel } from './model'
 import {
-  MAX_ATTEMPTS, planStale, processQuote, STALE_CLAIM_MS, STALE_QUEUE_MS, type ClaimedQuote, type Finish, type JobClock, type ProcessDeps,
+  MAX_ATTEMPTS, planStale, processQuote, STALE_CLAIM_MS, STALE_QUEUE_MS, type ClaimedQuote, type Finish, type JobClock,
+  type ProcessDeps, type QuoteJobRepo,
 } from './process'
 import type { QuoteStorage } from './storage'
 
@@ -13,7 +14,9 @@ const BAD = extraction([line('inverter', 1000)], { tax: 0, total: 5000 }) // lin
 function setup(steps: Record<string, Step[]>, opts: { attempts?: number; claimed?: boolean; file?: boolean } = {}) {
   const finished: Finish[] = []
   const calls: string[] = []
-  const job: ClaimedQuote = { id: 'q1', blobPathname: 'quotes/u/x.pdf', mime: 'application/pdf', fileName: 'x.pdf', attempts: opts.attempts ?? 1 }
+  const job: ClaimedQuote = { id: 'q1', blobPathname: 'quotes/u/x.pdf', mime: 'application/pdf', fileName: 'x.pdf', attempts: opts.attempts ?? 1,
+    claimedAt: '2026-09-30 11:00:00.123456+00',
+  }
   const model: QuoteModel = {
     async extract(_input, name) {
       calls.push(name)
@@ -25,7 +28,7 @@ function setup(steps: Record<string, Step[]>, opts: { attempts?: number; claimed
   }
   const storage: QuoteStorage = { put: async () => {}, get: async () => (opts.file === false ? null : new Uint8Array([1])), remove: async () => {} }
   const deps: ProcessDeps = {
-    repo: { claim: async () => (opts.claimed === false ? null : job), finish: async (_id, f) => { finished.push(f) } },
+    repo: { claim: async () => (opts.claimed === false ? null : job), finish: async (_job, f) => { finished.push(f); return true } },
     storage, model, models: { primary: 'luna', fallback: 'sol' },
   }
   return { deps, finished, calls }
@@ -95,6 +98,83 @@ describe('processQuote', () => {
     const s = setup({}, { file: false })
     expect(await processQuote('q1', s.deps)).toBe('failed')
     expect(s.calls).toEqual([])
+  })
+})
+
+/**
+ * A one-row repo that fences `finish` like the database does: it writes only while the row is still processing under
+ * the same claim (every claim bumps attempts and stamps claimed_at).
+ */
+function fencedRepo() {
+  const row: { status: QuoteStatus; attempts: number; claimedAt: string | null; stored: Finish | null } = {
+    status: 'queued', attempts: 0, claimedAt: null, stored: null,
+  }
+  const repo: QuoteJobRepo = {
+    async claim(id) {
+      row.status = 'processing'
+      row.attempts += 1
+      row.claimedAt = `claim ${row.attempts}`
+      return { id, blobPathname: 'quotes/u/x.pdf', mime: 'application/pdf', fileName: 'x.pdf', attempts: row.attempts, claimedAt: row.claimedAt }
+    },
+    async finish(job, f) {
+      if (row.status !== 'processing' || row.attempts !== job.attempts || row.claimedAt !== job.claimedAt) return false
+      row.status = f.status
+      row.stored = f
+      return true
+    },
+  }
+  return { repo, row }
+}
+
+describe('processQuote with a lost claim', () => {
+  const storage: QuoteStorage = { put: async () => {}, get: async () => new Uint8Array([1]), remove: async () => {} }
+  const models = { primary: 'luna', fallback: 'sol' }
+  const fresh: QuoteModel = { extract: async () => ({ extraction: SAMPLE_QUOTES.solartec, input: 1, output: 1 }) }
+  let warns: ReturnType<typeof vi.spyOn>
+  let errors: ReturnType<typeof vi.spyOn>
+  beforeEach(() => {
+    warns = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    warns.mockRestore()
+    errors.mockRestore()
+  })
+
+  /**
+   * The first worker's read outlives its claim: on its first model call, a second worker claims the quote and stores a
+   * result. Then every call of the first worker fails with `late`.
+   */
+  function slowWorker(repo: QuoteJobRepo, late: () => ModelError): QuoteModel {
+    let isTakenOver = false
+    return {
+      async extract() {
+        if (!isTakenOver) {
+          isTakenOver = true
+          await processQuote('q1', { repo, storage, model: fresh, models })
+        }
+        throw late()
+      },
+    }
+  }
+
+  test('a late worker whose claim was taken over writes nothing, logs it, and does not throw', async () => {
+    const { repo, row } = fencedRepo()
+    const slow = slowWorker(repo, () => new ModelError('invalid', 'late answer'))
+    await expect(processQuote('q1', { repo, storage, model: slow, models })).resolves.toBe('skipped')
+    expect(row.status).toBe('ready')
+    expect(row.stored).toMatchObject({ status: 'ready', modelUsed: 'luna' })
+    expect(warns).toHaveBeenCalledWith('[quotes] a late worker lost its claim', { id: 'q1' })
+    // The late failure was not stored, so it is not reported as a quote that could not be read.
+    expect(errors).not.toHaveBeenCalled()
+  })
+
+  test('a late worker cannot send a finished quote back to the queue', async () => {
+    const { repo, row } = fencedRepo()
+    const slow = slowWorker(repo, () => new ModelError('transient', '503'))
+    expect(await processQuote('q1', { repo, storage, model: slow, models })).toBe('skipped')
+    expect(row.status).toBe('ready')
+    expect(row.attempts).toBe(2)
   })
 })
 

@@ -17,23 +17,28 @@ export const dbJobRepo: QuoteJobRepo = {
       .update(quotes)
       .set({ status: 'processing', claimedAt: sql`now()`, attempts: sql`${quotes.attempts} + 1` })
       .where(and(eq(quotes.id, id), lt(quotes.attempts, MAX_ATTEMPTS), claimable()))
-      .returning({ id: quotes.id, blobPathname: quotes.blobPathname, mime: quotes.mime, fileName: quotes.fileName, attempts: quotes.attempts })
+      .returning({
+        id: quotes.id, blobPathname: quotes.blobPathname, mime: quotes.mime, fileName: quotes.fileName, attempts: quotes.attempts,
+        claimedAt: sql<string>`${quotes.claimedAt}::text`,
+      })
     const row = rows[0]
     return row ? ({ ...row, mime: row.mime as QuoteMime } satisfies ClaimedQuote) : null
   },
-  async finish(id, f: Finish) {
+  async finish(job: ClaimedQuote, f: Finish) {
     const usage = sql`coalesce(${quotes.usage}, '[]'::jsonb) || ${JSON.stringify(f.usage)}::jsonb`
+    // Fenced on the claim: every claim bumps attempts and stamps claimed_at, so a late worker whose claim went stale and
+    // was taken over matches no row. claimed_at also covers a retry, which resets attempts to 0.
+    const underClaim = and(
+      eq(quotes.id, job.id), eq(quotes.status, 'processing'), eq(quotes.attempts, job.attempts),
+      eq(quotes.claimedAt, sql`${job.claimedAt}::timestamptz`),
+    )
     // `in` narrows Finish here; comparing f.status did not under this TypeScript version.
-    if (!('extraction' in f)) {
+    const set = !('extraction' in f)
       // claimed_at is kept on a re-queue, so the stale-queue wait counts from the last attempt, not from the upload.
-      await db.update(quotes)
-        .set({ status: f.status, error: f.error, usage, processedAt: f.status === 'failed' ? new Date() : null })
-        .where(eq(quotes.id, id))
-      return
-    }
-    await db.update(quotes)
-      .set({ status: f.status, extraction: f.extraction, modelUsed: f.modelUsed, error: null, usage, processedAt: new Date() })
-      .where(eq(quotes.id, id))
+      ? { status: f.status, error: f.error, usage, processedAt: f.status === 'failed' ? new Date() : null }
+      : { status: f.status, extraction: f.extraction, modelUsed: f.modelUsed, error: null, usage, processedAt: new Date() }
+    const rows = await db.update(quotes).set(set).where(underClaim).returning({ id: quotes.id })
+    return rows.length > 0
   },
 }
 
