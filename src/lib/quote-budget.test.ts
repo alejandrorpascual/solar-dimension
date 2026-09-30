@@ -8,13 +8,18 @@ describe('parseDailyReads', () => {
     expect(parseDailyReads('')).toEqual({ limit: 100, isInvalid: false })
     expect(parseDailyReads('  ')).toEqual({ limit: 100, isInvalid: false })
   })
-  test('a positive integer is the limit, spaces trimmed', () => {
+  test('a whole number is the limit, spaces trimmed', () => {
     expect(parseDailyReads('250')).toEqual({ limit: 250, isInvalid: false })
     expect(parseDailyReads(' 1 ')).toEqual({ limit: 1, isInvalid: false })
     expect(parseDailyReads(String(MAX_DAILY_READS))).toEqual({ limit: MAX_DAILY_READS, isInvalid: false })
   })
+  test('0 is a valid limit: it pauses reading', () => {
+    expect(parseDailyReads('0')).toEqual({ limit: 0, isInvalid: false })
+    expect(parseDailyReads(' 0 ')).toEqual({ limit: 0, isInvalid: false })
+    expect(dailyRejection({ reads: 0, limit: 0 })).toEqual({ code: 'daily_limit' })
+  })
   test('anything else falls back to the default and says so', () => {
-    for (const raw of ['0', '-5', '2.5', '1e3', 'abc', '10 reads', '0x10', String(MAX_DAILY_READS + 1)]) {
+    for (const raw of ['00', '-0', '-5', '2.5', '1e3', 'abc', '10 reads', '0x10', String(MAX_DAILY_READS + 1)]) {
       expect(parseDailyReads(raw), raw).toEqual({ limit: DEFAULT_DAILY_READS, isInvalid: true })
     }
   })

@@ -7,7 +7,7 @@ import { monthStart, QUOTE_LIMITS, type QuoteMime } from '../../lib/quote-limits
 
 /** QUOTES_DAILY_READS, read once when the server starts. An invalid value is logged once, without the value itself. */
 const DAILY_READS = parseDailyReads(process.env.QUOTES_DAILY_READS)
-if (DAILY_READS.isInvalid) console.warn('[quotes] QUOTES_DAILY_READS is not a positive integer; using the default', { limit: DAILY_READS.limit })
+if (DAILY_READS.isInvalid) console.warn('[quotes] QUOTES_DAILY_READS is not a whole number; using the default', { limit: DAILY_READS.limit })
 
 /** Today's (UTC) reads across every account, and the daily limit. */
 export async function dailyBudget(): Promise<DailyBudget> {
@@ -21,11 +21,12 @@ export async function dailyBudget(): Promise<DailyBudget> {
  * concurrent upsert waits for that lock and then re-checks `reads < limit` against the committed row (Postgres always
  * evaluates the conflict branch on the newest version, even under read committed). So when two reads race at limit - 1,
  * one gets `day` back and the other gets nothing. The first read of a day inserts the row; a racing insert hits the
- * conflict, waits, and takes the update path. `admit` is the rest of the admission check: no row, no read taken.
+ * conflict, waits, and takes the update path; it too checks the limit, so a limit of 0 pauses even the first read.
+ * `admit` is the rest of the admission check: no row, no read taken.
  */
 const takeDailyRead = (day: string, admit: ReturnType<typeof sql>) => sql`
   insert into quote_daily_usage (day, reads)
-  select ${day}::date, 1 where ${admit}
+  select ${day}::date, 1 where ${admit} and ${DAILY_READS.limit}::integer > 0
   on conflict (day) do update set reads = quote_daily_usage.reads + 1 where quote_daily_usage.reads < ${DAILY_READS.limit}::integer
   returning day`
 

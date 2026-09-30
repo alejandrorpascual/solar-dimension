@@ -11,13 +11,16 @@ export const MAX_DAILY_READS = 2_147_483_647
 
 export interface DailyBudget { reads: number; limit: number }
 
-const POSITIVE_INTEGER = /^[1-9]\d*$/
+const WHOLE_NUMBER = /^(0|[1-9]\d*)$/
 
-/** QUOTES_DAILY_READS as a limit. Unset means the default; anything but a positive integer also does, flagged as invalid. */
+/**
+ * QUOTES_DAILY_READS as a limit. 0 pauses reading. Unset means the default; anything but a whole number also does,
+ * flagged as invalid.
+ */
 export function parseDailyReads(raw: string | undefined): { limit: number; isInvalid: boolean } {
   const text = (raw ?? '').trim()
   if (text === '') return { limit: DEFAULT_DAILY_READS, isInvalid: false }
-  const n = POSITIVE_INTEGER.test(text) ? Number(text) : NaN
+  const n = WHOLE_NUMBER.test(text) ? Number(text) : NaN
   return n <= MAX_DAILY_READS ? { limit: n, isInvalid: false } : { limit: DEFAULT_DAILY_READS, isInvalid: true }
 }
 
