@@ -102,7 +102,8 @@ describe('status and progress text', () => {
   })
   test('rejections carry the limit', () => {
     expect(rejectionText(en, { code: 'size', mb: 5.2 })).toBe('That file is 5.2 MB. The limit is 4 MB.')
-    expect(rejectionText(en, { code: 'pages', pages: 12 })).toBe('That PDF has 12 pages. The limit is 10.')
+    expect(rejectionText(en, { code: 'pages', pages: 6 })).toBe('That PDF has 6 pages. The limit is 5.')
+    expect(rejectionText(es, { code: 'pages', pages: 6 })).toBe('Ese PDF tiene 6 páginas. El límite es 5.')
   })
   test('an account that may not start reads is told to sign in with Google, in both languages', () => {
     expect(rejectionText(en, { code: 'unverified' })).toBe('Only accounts signed in with Google can upload quotes.')

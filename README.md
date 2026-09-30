@@ -30,7 +30,7 @@ Anonymous use keeps projects in the browser's local storage. Signing in (email a
 
 ## Quotes
 
-Signed-in users upload installer quotes (PDF, JPG, PNG or WebP, up to 4 MB, PDFs up to 10 pages) on the kit step. They are read in the background by an OpenAI model into structured lines. Plain code then compares each quote with the project's kit and picks the cheapest that meets every must-have. Specs: `docs/superpowers/specs/2026-09-26-quote-comparison-design.md` and `docs/superpowers/specs/2026-09-29-quote-verdict-b-design.md`.
+Signed-in users upload installer quotes (PDF, JPG, PNG or WebP, up to 4 MB, PDFs up to 5 pages) on the kit step. They are read in the background by an OpenAI model into structured lines. Plain code then compares each quote with the project's kit and picks the cheapest that meets every must-have. Specs: `docs/superpowers/specs/2026-09-26-quote-comparison-design.md` and `docs/superpowers/specs/2026-09-29-quote-verdict-b-design.md`.
 
 | var | purpose |
 |---|---|

@@ -24,6 +24,12 @@ describe('sniffMime', () => {
   })
 })
 
+describe('QUOTE_LIMITS', () => {
+  test('a PDF may have at most 5 pages: each page is input the model is paid to read', () => {
+    expect(QUOTE_LIMITS.maxPages).toBe(5)
+  })
+})
+
 describe('limitRejection and monthStart', () => {
   test('refuses at the per-project and per-month limits', () => {
     expect(limitRejection({ project: 9, month: 19 })).toBeNull()

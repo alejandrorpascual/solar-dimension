@@ -1,7 +1,10 @@
 const MB = 1024 * 1024
 
-/** 4 MB, not the base spec's 10: a Vercel Function accepts at most a 4.5 MB request body. */
-export const QUOTE_LIMITS = { maxBytes: 4 * MB, maxPages: 10, perProject: 10, perMonth: 20 } as const
+/**
+ * 4 MB, not the base spec's 10: a Vercel Function accepts at most a 4.5 MB request body. 5 pages, not 10: every page
+ * is input the model is paid to read, and an installer's quote rarely runs longer.
+ */
+export const QUOTE_LIMITS = { maxBytes: 4 * MB, maxPages: 5, perProject: 10, perMonth: 20 } as const
 export const MAX_MB = QUOTE_LIMITS.maxBytes / MB
 
 export const QUOTE_MIMES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const
