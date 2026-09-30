@@ -1,6 +1,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute, type ErrorComponentProps } from '@tanstack/react-router'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
+import { QuoteJobsProvider } from '../hooks/useQuoteJobs'
 import { useRootData, type RootData } from '../hooks/useRootData'
 import { DEFAULT_LOCALE, getDictionary } from '../i18n'
 import { APP_NAME } from '../lib/brand'
@@ -103,7 +104,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <QuoteJobsProvider>{children}</QuoteJobsProvider>
         <Scripts />
       </body>
     </html>
