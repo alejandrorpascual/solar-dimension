@@ -5,6 +5,7 @@ import { compareQuotes, type QuoteView, type RankedQuote } from './quote-compare
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
 import { checkItems, DEFAULT_MUSTS } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
+import type { Rejection } from './quote-limits'
 import {
   askText, deltaText, etaText, fitLabel, itemText, markLabel, projectLine, questionText, reasonLine, rejectionText, verdictHeading,
   verdictSubline,
@@ -121,6 +122,17 @@ describe('status and progress text', () => {
   test('an account that may not start reads is told to sign in with Google, in both languages', () => {
     expect(rejectionText(en, { code: 'unverified' })).toBe('Only accounts signed in with Google can upload quotes.')
     expect(rejectionText(es, { code: 'unverified' })).toBe('Solo las cuentas que entran con Google pueden subir cotizaciones.')
+  })
+  test('every refusal has its own text, in both languages', () => {
+    const all: Rejection[] = [
+      { code: 'type' }, { code: 'size', mb: 5 }, { code: 'pages', pages: 6 }, { code: 'encrypted' }, { code: 'project_limit' },
+      { code: 'month_limit' }, { code: 'not_saved' }, { code: 'upload' }, { code: 'unverified' }, { code: 'daily_limit' },
+    ]
+    for (const t of [en, es]) {
+      const texts = all.map((r) => rejectionText(t, r))
+      expect(texts.every((x) => x.length > 0)).toBe(true)
+      expect(new Set(texts).size).toBe(all.length)
+    }
   })
   test('a spent daily budget pauses reading until tomorrow, in both languages', () => {
     expect(rejectionText(en, { code: 'daily_limit' })).toBe('Quote reading is paused for today. Try again tomorrow.')
