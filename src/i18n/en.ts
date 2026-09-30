@@ -69,8 +69,9 @@ export const en: Dictionary = {
     updated: 'Last updated {date}',
     sections: [
       { heading: 'What we store', body: 'Your email and name, and, if you sign in with Google, your Google account ID. We also store the projects you save: appliances, hours, voltage and battery choices.' },
-      { heading: 'Why', body: 'To sign you in and keep your projects across devices. Nothing else.' },
-      { heading: 'Sharing', body: "We don't sell or share your data. It's stored with our hosting and database providers (Vercel and Neon) only to run the app." },
+      { heading: 'Why', body: 'To sign you in and keep your projects across devices. If you upload installer quotes, we also read them for comparison with your kit (see Quotes below).' },
+      { heading: 'Sharing', body: "We don't sell or share your data except with the providers that run the app: Vercel and Neon for hosting and the database, and, if you upload installer quotes, OpenAI to read them (see Quotes below)." },
+      { heading: 'Quotes', body: "If you upload installer quotes, we store the files privately with Vercel and send each one to OpenAI once, to read its prices and items. OpenAI doesn't train on data sent through its API. Deleting a quote, or the project it belongs to, deletes the file." },
       { heading: 'Google data', body: "We only request your basic profile (name and email). We don't access Gmail, Drive or anything else in your Google account." },
       { heading: 'Cookies', body: 'One sign-in session cookie and one language cookie. No ads or tracking.' },
       { heading: 'Deleting your data', body: "Email {email} and we'll delete your account and projects." },

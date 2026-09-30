@@ -28,6 +28,19 @@ Anonymous use keeps projects in the browser's local storage. Signing in (email a
 - **End-to-end tests:** e2e runs sign up users, save projects and write catalog rows, so they need a database of their own: a Neon branch just for tests. Put its `DATABASE_URL` in `.env.test.local` (git-ignored); `playwright.config.ts` loads it ahead of `.env.local` and refuses to run without it, when it points at the same database as `.env.local`, or when it is the production database. Playwright never reuses a running server, since its database cannot be checked. Create the branch from `main` so the migrations and seeded catalog are there, and run `DATABASE_URL=<test branch url> npm run db:migrate` after adding a migration. Tests delete the `e2e-*` appliances they create; `node --env-file=<env file> scripts/delete-e2e-appliances.mjs` lists any that are left and prints a fingerprint of that exact set; `--yes=<fingerprint>` deletes those rows, and nothing if the set changed or a saved project uses one.
 - **CI:** the workflow expects the repository secrets `DATABASE_URL` and `BETTER_AUTH_SECRET` so the account end-to-end test (`e2e/account.spec.ts`) can sign up, save a project and sign back in. `DATABASE_URL` there must be a test branch too, never production: CI runs both the migrations and the e2e suite against it, and its first step fails if the secret is the production database.
 
+## Quotes
+
+Signed-in users upload installer quotes (PDF, JPG, PNG or WebP, up to 4 MB, PDFs up to 10 pages) on the kit step. They are read in the background by an OpenAI model into structured lines. Plain code then compares each quote with the project's kit and picks the cheapest that meets every must-have. Specs: `docs/superpowers/specs/2026-09-26-quote-comparison-design.md` and `docs/superpowers/specs/2026-09-29-quote-verdict-b-design.md`.
+
+| var | purpose |
+|---|---|
+| `OPENAI_API_KEY` | extraction |
+| `QUOTES_MODEL_PRIMARY`, `QUOTES_MODEL_FALLBACK` | models; default `gpt-6-luna` then `gpt-6-sol` |
+| `BLOB_READ_WRITE_TOKEN` | private Vercel Blob store for the files |
+| `CRON_SECRET` | authenticates the daily `/api/quotes/sweep` cron |
+
+For development, `QUOTES_STORAGE=local` keeps files in `.data/quotes/`, and `QUOTES_MODEL_STUB=1` answers from the sample quotes in `src/lib/quote-fixtures.ts`. The file name picks the sample, as in `solartec.pdf`. The stub never runs on Vercel.
+
 ## Languages
 
 The UI, appliance names and notes, and the engine warnings are available in English (default) and Latin American Spanish. The language is stored in the `lang` cookie: it is detected from the browser's `Accept-Language` header on the first visit and can be changed from the switch in the header. Numbers follow the active locale (`1,100 W`, `3.7 kWh` in both).
