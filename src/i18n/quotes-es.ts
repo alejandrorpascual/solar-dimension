@@ -11,6 +11,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   cardSaving: 'Guardando el proyecto…',
   lockedNote: 'Para subir cotizaciones necesitas una cuenta verificada.',
   connectGoogle: 'Conecta Google para subir cotizaciones',
+  connectGoogleFailed: 'No se pudo conectar Google. Inténtalo de nuevo.',
   seeVerdict: 'Ver veredicto',
   lineReading: 'Leyendo cotizaciones {done}/{total}',
   lineReady: 'Veredicto listo · {best}',

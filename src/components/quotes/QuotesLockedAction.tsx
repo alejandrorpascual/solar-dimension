@@ -10,6 +10,13 @@ export function QuotesLockedAction({ withNote }: { withNote: boolean }) {
   const { t } = useLocale()
   const { user } = useRootData()
   const google = useConnectGoogle(user)
-  if (google.canConnect) return <button type="button" className="qbtn" onClick={() => void google.connect()}>{t.quotes.connectGoogle}</button>
+  if (google.canConnect) {
+    return (
+      <>
+        <button type="button" className="qbtn" onClick={() => void google.connect()}>{t.quotes.connectGoogle}</button>
+        {google.hasFailed && <p className="qerr" role="alert">{t.quotes.connectGoogleFailed}</p>}
+      </>
+    )
+  }
   return withNote ? <p className="qmeta">{t.quotes.lockedNote}</p> : null
 }

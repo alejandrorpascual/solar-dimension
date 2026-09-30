@@ -10,6 +10,7 @@ export const quotesEn = {
   cardSaving: 'Saving the project…',
   lockedNote: 'Uploading quotes needs a verified account.',
   connectGoogle: 'Connect Google to upload quotes',
+  connectGoogleFailed: "Couldn't connect Google. Try again.",
   seeVerdict: 'See verdict',
   lineReading: 'Reading quotes {done}/{total}',
   lineReady: 'Verdict ready · {best}',

@@ -454,6 +454,11 @@ test('on the verdict page, an unverified account gets Connect Google instead of 
   await expect(page.getByRole('button', { name: 'Add another quote' })).toHaveCount(0)
 
   await expect(page.getByRole('button', { name: 'Connect Google to upload quotes' })).toBeVisible()
+
+  // A link that fails before leaving for Google says so where the button is.
+  await page.route('**/api/auth/link-social', (route) => route.fulfill({ status: 500, json: { message: 'e2e failure' } }))
+  await page.getByRole('button', { name: 'Connect Google to upload quotes' }).click()
+  await expect(page.getByRole('alert').filter({ hasText: "Couldn't connect Google. Try again." })).toBeVisible()
 })
 
 test('a password account with a Google account whose token verifies its email can upload, though its email was never marked verified', async ({ page }) => {
