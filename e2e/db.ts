@@ -111,11 +111,14 @@ export async function raiseDailyReadsTo(reads: number): Promise<void> {
 }
 
 /**
- * Adds a Google account row to the user, as Better Auth does when a signed-in user links Google (which it only does
- * for Google's own verified, matching email). The link leaves `email_verified` as it was.
+ * Adds a Google account row to the user, as Better Auth does when a user links Google or signs up with it, with the
+ * id_token Google would give: its `email` is the user's, and `email_verified` says whether Google verified it. The
+ * row leaves the user's `email_verified` as it was. The token is unsigned; the app reads only its payload.
  */
-export async function linkGoogleAccount(email: string): Promise<void> {
+export async function linkGoogleAccount(email: string, { emailVerified = true }: { emailVerified?: boolean } = {}): Promise<void> {
+  const payload = Buffer.from(JSON.stringify({ iss: 'https://accounts.google.com', email, email_verified: emailVerified })).toString('base64url')
+  const idToken = `e30.${payload}.e2e-unsigned`
   await testDb()`
-    insert into account (id, account_id, provider_id, user_id, created_at, updated_at)
-    select 'e2e-google-' || u.id, 'e2e-google-sub-' || u.id, 'google', u.id, now(), now() from "user" u where u.email = ${email}`
+    insert into account (id, account_id, provider_id, user_id, id_token, created_at, updated_at)
+    select 'e2e-google-' || u.id, 'e2e-google-sub-' || u.id, 'google', u.id, ${idToken}, now(), now() from "user" u where u.email = ${email}`
 }

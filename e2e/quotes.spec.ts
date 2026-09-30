@@ -449,10 +449,11 @@ test('on the verdict page, an unverified account gets Connect Google instead of 
   await expect(row.getByRole('button', { name: 'Retry', exact: true })).toHaveCount(0)
   await expect(row.getByText(quotesEn.retryLimit)).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Add another quote' })).toHaveCount(0)
+
   await expect(page.getByRole('button', { name: 'Connect Google to upload quotes' })).toBeVisible()
 })
 
-test('a password account with Google linked can upload, though its email was never marked verified', async ({ page }) => {
+test('a password account with a Google account whose token verifies its email can upload, though its email was never marked verified', async ({ page }) => {
   // Sign-up and database writes over Neon's HTTP driver can pass 30 s on a slow CI runner.
   test.slow()
   const email = await signUp(page, { verified: false })
@@ -460,4 +461,15 @@ test('a password account with Google linked can upload, though its email was nev
   await page.goto('/?step=3')
   await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toBeEnabled({ timeout: 15_000 })
   await expect(page.getByRole('button', { name: 'Connect Google to upload quotes' })).toHaveCount(0)
+})
+
+test('a Google account whose email Google did not verify does not unlock uploads', async ({ page }) => {
+  // Sign-up and database writes over Neon's HTTP driver can pass 30 s on a slow CI runner.
+  test.slow()
+  const email = await signUp(page, { verified: false })
+  await linkGoogleAccount(email, { emailVerified: false })
+  await page.goto('/?step=3')
+  const card = page.getByRole('region', { name: 'Got quotes from installers?' })
+  await expect(card).toContainText('Uploading quotes needs a verified account.')
+  await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toHaveCount(0)
 })
