@@ -215,6 +215,8 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
 })
 
 test('a quote that could not be read can be retried, until its retries are used up, on the page and on the server', async ({ page }) => {
+  // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
+  test.slow()
   const email = await signUp(page)
   // The stub reads only the sample quotes; any other file name fails on both models.
   await uploadQuotes(page, [await quotePdf('unreadable')])
@@ -251,6 +253,8 @@ test('a quote that could not be read can be retried, until its retries are used 
 })
 
 test('a project that already has 10 quotes refuses an eleventh, with the reason', async ({ page }) => {
+  // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
+  test.slow()
   const email = await signUp(page)
   await page.goto('/?step=3')
   await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
@@ -264,6 +268,8 @@ test('a project that already has 10 quotes refuses an eleventh, with the reason'
 })
 
 test('an account that used its 20 uploads this month is refused, with the reason', async ({ page }) => {
+  // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
+  test.slow()
   const email = await signUp(page)
   await page.goto('/?step=3')
   await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
