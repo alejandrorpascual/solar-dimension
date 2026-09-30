@@ -2,6 +2,7 @@ import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef } from 'react'
 import { AccountMenu } from '../components/AccountMenu'
 import { HeaderBar } from '../components/HeaderBar'
+import { AddQuoteButton } from '../components/quotes/AddQuoteButton'
 import { VerdictView } from '../components/quotes/VerdictView'
 import { useProjectJobs, useQuoteJobs } from '../hooks/useQuoteJobs'
 import { useRootData } from '../hooks/useRootData'
@@ -39,7 +40,8 @@ function VerdictPage() {
   return (
     <main className="page">
       <HeaderBar account={<AccountMenu user={user} busy={false} />} />
-      <VerdictView data={data} progress={jobs ? { done: jobs.done, total: jobs.total } : null} onReload={reload} />
+      <VerdictView data={data} progress={jobs ? { done: jobs.done, total: jobs.total } : null} onReload={reload}
+        footerExtra={<AddQuoteButton projectId={projectId} projectName={data.project.name} />} />
     </main>
   )
 }

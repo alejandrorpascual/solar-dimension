@@ -8,17 +8,19 @@ import type { SizingResult } from '../lib/sizing'
 import { hasSameLoads, patchCurrent, restoreProject, setHoursIn, setQtyIn } from '../lib/store'
 import { KitQuickEdit } from './KitQuickEdit'
 import { KitSummary } from './KitSummary'
+import { QuotesCard } from './quotes/QuotesCard'
 
 interface Props {
   store: Store
   commit: (s: Store) => void
   project: Project
   result: SizingResult
+  isSaving: boolean
   onAllAppliances: () => void
 }
 
 /** Step 3: the kit, edited in place. Quick edits remember the project as it was before them, for the deltas and Undo. */
-export function KitStep({ store, commit, project, result, onAllAppliances }: Props) {
+export function KitStep({ store, commit, project, result, isSaving, onAllAppliances }: Props) {
   const { t } = useLocale()
   const appliances = useCatalog()
   const undo = useUndoSnapshot(project, project.id)
@@ -52,6 +54,7 @@ export function KitStep({ store, commit, project, result, onAllAppliances }: Pro
         }
         onBatteryUnit={(id) => commit(patchCurrent(store, { batteryUnit: id }))}
       />
+      <QuotesCard project={project} isSaving={isSaving} />
     </>
   )
 }

@@ -77,7 +77,7 @@ function KitBuilderPage() {
               <BackupWindow store={store} commit={commit} result={result} />
             </>
           )}
-          {step === 3 && <KitStep store={store} commit={commit} project={project} result={result} onAllAppliances={() => go(1)} />}
+          {step === 3 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={() => go(1)} />}
         </section>
         <WizardFooter
           step={step}
