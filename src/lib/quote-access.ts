@@ -34,7 +34,8 @@ export function googleIdTokenVerifies(idToken: string | null | undefined, email:
   const claims = jwtPayload(idToken)
   if (typeof claims !== 'object' || claims === null) return false
   const { email: claimed, email_verified: isVerified } = claims as { email?: unknown; email_verified?: unknown }
-  return isVerified === true && typeof claimed === 'string' && claimed.trim().toLowerCase() === email.trim().toLowerCase()
+  // Some tokens carry the claim as the string "true"; Better Auth's link guard accepts it, so it counts here too. Only that.
+  return (isVerified === true || isVerified === 'true') && typeof claimed === 'string' && claimed.trim().toLowerCase() === email.trim().toLowerCase()
 }
 
 /**

@@ -22,8 +22,15 @@ describe('googleIdTokenVerifies', () => {
   })
   test('an email Google did not verify does not', () => {
     expect(googleIdTokenVerifies(idToken({ email: 'alex@example.com', email_verified: false }), 'alex@example.com')).toBe(false)
-    expect(googleIdTokenVerifies(idToken({ email: 'alex@example.com', email_verified: 'true' }), 'alex@example.com')).toBe(false)
     expect(googleIdTokenVerifies(idToken({ email: 'alex@example.com' }), 'alex@example.com')).toBe(false)
+  })
+  test('a claim of "true" sent as a string verifies, as Better Auth treats it when linking', () => {
+    expect(googleIdTokenVerifies(idToken({ email: 'alex@example.com', email_verified: 'true' }), 'alex@example.com')).toBe(true)
+  })
+  test('no other string or truthy value verifies', () => {
+    for (const claim of ['false', 'yes', '1', 'TRUE', 1, {}]) {
+      expect(googleIdTokenVerifies(idToken({ email: 'alex@example.com', email_verified: claim }), 'alex@example.com'), String(claim)).toBe(false)
+    }
   })
   test('a different email does not', () => {
     expect(googleIdTokenVerifies(idToken({ email: 'eve@example.com', email_verified: true }), 'alex@example.com')).toBe(false)
