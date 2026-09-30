@@ -24,6 +24,7 @@ export const quotesEn = {
   errNotSaved: 'The project is still saving. Try again in a moment.',
   errUpload: "Couldn't upload it. Try again.",
   errUnverified: 'Only accounts signed in with Google can upload quotes.',
+  errDailyLimit: 'Quote reading is paused for today. Try again tomorrow.',
   handoffTitle: "We've got it from here",
   handoffNone: 'None of these files could be uploaded',
   handoffBody: 'Reading {count} quotes and checking each against the {project} kit takes about {minutes} min. Close this and keep working. The verdict will be waiting on the project.',

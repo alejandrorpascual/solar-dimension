@@ -1,11 +1,15 @@
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, test } from 'vitest'
 import {
-  canRetry, inspectUpload, MAX_RETRIES, MAX_TOTAL, MustInput, OverrideInput, parseTotal, QuoteId, RETRYABLE, refusedInsertRejection, TotalInput, uploadRejection,
+  canRetry, inspectUpload, MAX_RETRIES, MAX_TOTAL, MustInput, OverrideInput, parseTotal, QuoteId, RETRYABLE, refusedInsertRejection, retryRefusal, TotalInput,
+  uploadRejection,
 } from './quote-guards'
 import { QUOTE_LIMITS } from './quote-limits'
 
 const ID = '0f8fad5b-d9cb-469f-a165-70867728950e'
+/** A day with reads left, and one whose budget is spent. */
+const OPEN = { reads: 0, limit: 100 }
+const SPENT = { reads: 100, limit: 100 }
 const pdf = async (pages: number): Promise<Uint8Array> => {
   const doc = await PDFDocument.create()
   for (let i = 0; i < pages; i++) doc.addPage()
@@ -14,27 +18,54 @@ const pdf = async (pages: number): Promise<Uint8Array> => {
 
 describe('uploadRejection', () => {
   test('a project the user does not own is not_saved, whatever the counts', () => {
-    expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 } })).toEqual({ code: 'not_saved' })
-    expect(uploadRejection({ ownsProject: false, counts: { project: 10, month: 20 } })).toEqual({ code: 'not_saved' })
+    expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 }, daily: OPEN })).toEqual({ code: 'not_saved' })
+    expect(uploadRejection({ ownsProject: false, counts: { project: 10, month: 20 }, daily: OPEN })).toEqual({ code: 'not_saved' })
   })
   test('refuses at 10 quotes in the project and at 20 this month, the project first', () => {
     const { perProject, perMonth } = QUOTE_LIMITS
-    expect(uploadRejection({ ownsProject: true, counts: { project: perProject - 1, month: perMonth - 1 } })).toBeNull()
-    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 } })).toEqual({ code: 'project_limit' })
-    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: perMonth } })).toEqual({ code: 'month_limit' })
-    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: perMonth } })).toEqual({ code: 'project_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject - 1, month: perMonth - 1 }, daily: OPEN })).toBeNull()
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 }, daily: OPEN })).toEqual({ code: 'project_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: perMonth }, daily: OPEN })).toEqual({ code: 'month_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: perMonth }, daily: OPEN })).toEqual({ code: 'project_limit' })
+  })
+})
+
+describe('the daily read budget', () => {
+  const { perProject } = QUOTE_LIMITS
+  test('an upload is refused before any work once today’s reads reach the limit, after the account’s own limits', () => {
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: 0 }, daily: { reads: 99, limit: 100 } })).toBeNull()
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: 0 }, daily: SPENT })).toEqual({ code: 'daily_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 }, daily: SPENT })).toEqual({ code: 'project_limit' })
+    expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 }, daily: SPENT })).toEqual({ code: 'not_saved' })
+  })
+  test('a refused insert names the spent budget when the account’s own limits still allow it', () => {
+    expect(refusedInsertRejection({ project: 0, month: 0 }, SPENT)).toEqual({ code: 'daily_limit' })
+    expect(refusedInsertRejection({ project: perProject, month: 0 }, SPENT)).toEqual({ code: 'project_limit' })
+  })
+})
+
+describe('retryRefusal', () => {
+  test('a retry that went through is not refused', () => {
+    expect(retryRefusal({ retried: true, retryable: true, admitted: true })).toBeNull()
+  })
+  test('a retryable quote refused by the spent budget says so', () => {
+    expect(retryRefusal({ retried: false, retryable: true, admitted: false })).toEqual({ code: 'daily_limit' })
+  })
+  test('a quote that is not the user’s, not failed, or out of retries is not found, whatever the budget', () => {
+    expect(retryRefusal({ retried: false, retryable: false, admitted: false })).toBe('not_found')
+    expect(retryRefusal({ retried: false, retryable: true, admitted: true })).toBe('not_found')
   })
 })
 
 describe('refusedInsertRejection', () => {
   const { perProject, perMonth } = QUOTE_LIMITS
   test('names the limit the counts show, the project first', () => {
-    expect(refusedInsertRejection({ project: perProject, month: 0 })).toEqual({ code: 'project_limit' })
-    expect(refusedInsertRejection({ project: 0, month: perMonth })).toEqual({ code: 'month_limit' })
-    expect(refusedInsertRejection({ project: perProject, month: perMonth })).toEqual({ code: 'project_limit' })
+    expect(refusedInsertRejection({ project: perProject, month: 0 }, OPEN)).toEqual({ code: 'project_limit' })
+    expect(refusedInsertRejection({ project: 0, month: perMonth }, OPEN)).toEqual({ code: 'month_limit' })
+    expect(refusedInsertRejection({ project: perProject, month: perMonth }, OPEN)).toEqual({ code: 'project_limit' })
   })
   test('is a plain upload failure when the counts no longer show a limit', () => {
-    expect(refusedInsertRejection({ project: 0, month: 0 })).toEqual({ code: 'upload' })
+    expect(refusedInsertRejection({ project: 0, month: 0 }, OPEN)).toEqual({ code: 'upload' })
   })
 })
 

@@ -145,6 +145,7 @@ export function rejectionText(t: Dictionary, r: Rejection): string {
     case 'not_saved': return t.quotes.errNotSaved
     case 'upload': return t.quotes.errUpload
     case 'unverified': return t.quotes.errUnverified
+    case 'daily_limit': return t.quotes.errDailyLimit
   }
 }
 

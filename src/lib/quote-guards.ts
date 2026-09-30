@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { parseAmount } from './parse-amount'
+import { dailyRejection, type DailyBudget } from './quote-budget'
 import { pdfInfo } from './pdf-info'
 import { ITEM_IDS, OVERRIDES } from './quote-items'
 import { limitRejection, QUOTE_LIMITS, sniffMime, type QuoteMime, type Rejection } from './quote-limits'
@@ -31,15 +32,27 @@ export function parseTotal(s: string): number | null {
   return n !== null && TotalInput.shape.total.safeParse(n).success ? n : null
 }
 
-/** Whether an upload may go ahead: the project must be the user's own and the limits not reached. */
-export function uploadRejection(input: { ownsProject: boolean; counts: { project: number; month: number } }): Rejection | null {
+/**
+ * Whether an upload may go ahead: the project must be the user's own, the account's limits not reached, and today's
+ * reads across every account still under the daily budget.
+ */
+export function uploadRejection(input: { ownsProject: boolean; counts: { project: number; month: number }; daily: DailyBudget }): Rejection | null {
   if (!input.ownsProject) return { code: 'not_saved' }
-  return limitRejection(input.counts)
+  return limitRejection(input.counts) ?? dailyRejection(input.daily)
 }
 
 /** Why the atomic insert took no row: the limit the fresh counts show, or a plain failure if a slot has opened since. */
-export function refusedInsertRejection(counts: { project: number; month: number }): Rejection {
-  return limitRejection(counts) ?? { code: 'upload' }
+export function refusedInsertRejection(counts: { project: number; month: number }, daily: DailyBudget): Rejection {
+  return limitRejection(counts) ?? dailyRejection(daily) ?? { code: 'upload' }
+}
+
+/**
+ * Why a retry did not go through, from what its one statement saw: whether the quote was the user's and retryable,
+ * and whether the daily budget admitted it. A quote that is not retryable (or not the user's) is "not found".
+ */
+export function retryRefusal(r: { retried: boolean; retryable: boolean; admitted: boolean }): Rejection | 'not_found' | null {
+  if (r.retried) return null
+  return r.retryable && !r.admitted ? { code: 'daily_limit' } : 'not_found'
 }
 
 export type Inspection = { ok: true; mime: QuoteMime; pages: number | null } | { ok: false; rejection: Rejection }

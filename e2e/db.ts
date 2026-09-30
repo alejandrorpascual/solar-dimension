@@ -89,3 +89,19 @@ export async function trashedPaths(paths: string[]): Promise<string[]> {
   const rows = await testDb()`select pathname from quote_file_trash where pathname = any(${paths}::text[])`
   return rows.map((r) => r.pathname as string)
 }
+
+/** Today's reads across every account, the counter the daily budget reads (UTC day, as the server keys it). */
+export async function dailyReads(): Promise<number> {
+  const rows = await testDb()`select reads from quote_daily_usage where day = (now() at time zone 'utc')::date`
+  return (rows[0]?.reads as number | undefined) ?? 0
+}
+
+/**
+ * Raises today's read counter to at least `reads`, never lowers it: other tests and runs share the counter, and the
+ * main E2E server's budget is far above anything a test sets here.
+ */
+export async function raiseDailyReadsTo(reads: number): Promise<void> {
+  await testDb()`
+    insert into quote_daily_usage (day, reads) values ((now() at time zone 'utc')::date, ${reads}::int)
+    on conflict (day) do update set reads = greatest(quote_daily_usage.reads, excluded.reads)`
+}

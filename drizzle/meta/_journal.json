@@ -64,6 +64,13 @@
       "when": 1790782038123,
       "tag": "0008_quote_file_trash",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790784791104,
+      "tag": "0009_quote_daily_usage",
+      "breakpoints": true
     }
   ]
 }

@@ -108,6 +108,10 @@ describe('status and progress text', () => {
     expect(rejectionText(en, { code: 'unverified' })).toBe('Only accounts signed in with Google can upload quotes.')
     expect(rejectionText(es, { code: 'unverified' })).toBe('Solo las cuentas que entran con Google pueden subir cotizaciones.')
   })
+  test('a spent daily budget pauses reading until tomorrow, in both languages', () => {
+    expect(rejectionText(en, { code: 'daily_limit' })).toBe('Quote reading is paused for today. Try again tomorrow.')
+    expect(rejectionText(es, { code: 'daily_limit' })).toBe('La lectura de cotizaciones está en pausa por hoy. Vuelve a intentarlo mañana.')
+  })
   test('ETA in seconds, then minutes', () => {
     expect(etaText(en, 45)).toBe('45 s')
     expect(etaText(en, 120)).toBe('2 min')

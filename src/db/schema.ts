@@ -122,6 +122,15 @@ export const quoteUsage = pgTable(
 )
 
 /**
+ * Model reads admitted in a UTC day across every account (uploads and retries), checked against QUOTES_DAILY_READS:
+ * the owner's kill switch on spend. No user data. Like `quote_usage`, it only ever goes up.
+ */
+export const quoteDailyUsage = pgTable('quote_daily_usage', {
+  day: date('day', { mode: 'string' }).primaryKey(),
+  reads: integer('reads').notNull().default(0),
+})
+
+/**
  * Files of deleted quotes still waiting to leave storage. A row is added in the same transaction that deletes the
  * quote (or its project) and cleared once the file is gone; the sweep retries what's left. No foreign key: a row must
  * outlive the quote, the project and the user it came from.

@@ -13,6 +13,8 @@ export type Rejection =
   | { code: 'project_limit' } | { code: 'month_limit' } | { code: 'not_saved' } | { code: 'upload' }
   /** The account may not start reads: its email is not verified (see canUseQuotes). */
   | { code: 'unverified' }
+  /** Today's reads across every account reached QUOTES_DAILY_READS. */
+  | { code: 'daily_limit' }
 
 export const isQuoteMime = (v: string): v is QuoteMime => (QUOTE_MIMES as readonly string[]).includes(v)
 export const toMb = (bytes: number): number => Math.round((bytes / MB) * 10) / 10

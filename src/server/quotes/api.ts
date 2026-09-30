@@ -1,12 +1,12 @@
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm'
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { db } from '../../db/client'
 import { projects, quotes, quoteSettings } from '../../db/schema'
 import { computeProject } from '../../lib/project-summary'
-import { inspectUpload, MAX_RETRIES, MustInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, RETRYABLE, TotalInput, uploadRejection } from '../../lib/quote-guards'
+import { inspectUpload, MustInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, retryRefusal, TotalInput, uploadRejection } from '../../lib/quote-guards'
 import { kitNeeds, resolveMusts, type Musts } from '../../lib/quote-items'
 import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quote-jobs'
 import { checkBasics, cleanFileName, type Rejection } from '../../lib/quote-limits'
@@ -17,7 +17,7 @@ import { toProject } from '../projects'
 import { requireQuoteUser, requireUserId } from '../session'
 import { defaultStorage, emptyQuoteTrash } from './deps'
 import { kickQuotes } from './kick'
-import { insertWithinLimits, quoteCounts } from './limits'
+import { dailyBudget, insertWithinLimits, quoteCounts, retryWithinBudget } from './limits'
 import { recoverStaleQuotes, trashQuoteFiles } from './repo'
 import { quotePath } from './storage'
 
@@ -38,6 +38,12 @@ const ownProject = (userId: string, projectId: string) => and(eq(projects.userId
 const ownQuote = (userId: string, quoteId: string) => and(eq(quotes.id, quoteId), eq(quotes.userId, userId))
 const reject = (rejection: Rejection): UploadResult => ({ ok: false, rejection })
 
+/** A spent daily budget is the owner's business too: it is logged whenever it turns a read away. */
+function logSpentBudget(rejection: Rejection, userId: string, kind: 'upload' | 'retry'): Rejection {
+  if (rejection.code === 'daily_limit') console.warn('[quotes] the daily read budget is spent; a read was refused', { userId, kind })
+  return rejection
+}
+
 /**
  * One file per call, only from an account that may start reads (requireQuoteUser). The counts are checked first so an over-limit upload is refused before any work; the real guard is
  * `insertWithinLimits`, which the server runs after the file is stored, so parallel uploads cannot exceed the limits.
@@ -56,9 +62,9 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     const basic = checkBasics(data.file)
     if (basic) return reject(basic)
     const [project] = await db.select({ id: projects.id }).from(projects).where(ownProject(userId, data.projectId)).limit(1)
-    const counts = project ? await quoteCounts(userId, data.projectId) : { project: 0, month: 0 }
-    const blocked = uploadRejection({ ownsProject: project !== undefined, counts })
-    if (blocked) return reject(blocked)
+    const [counts, daily] = await Promise.all([project ? quoteCounts(userId, data.projectId) : { project: 0, month: 0 }, dailyBudget()])
+    const blocked = uploadRejection({ ownsProject: project !== undefined, counts, daily })
+    if (blocked) return reject(logSpentBudget(blocked, userId, 'upload'))
 
     const bytes = new Uint8Array(await data.file.arrayBuffer())
     const inspected = await inspectUpload(bytes)
@@ -74,9 +80,10 @@ export const uploadQuote = createServerFn({ method: 'POST' })
         id, userId, projectId: data.projectId, fileName: cleanFileName(data.file.name), blobPathname, mime, sizeBytes: bytes.byteLength, pages,
       })
       if (!added) {
-        // Another upload took the last slot while this file was being read and stored.
+        // Another upload took the last slot, or the day's last read, while this file was being read and stored.
         await dropFile()
-        return reject(refusedInsertRejection(await quoteCounts(userId, data.projectId)))
+        const [fresh, freshDaily] = await Promise.all([quoteCounts(userId, data.projectId), dailyBudget()])
+        return reject(logSpentBudget(refusedInsertRejection(fresh, freshDaily), userId, 'upload'))
       }
     } catch (error) {
       console.error('[quotes] upload failed', { userId, id, error })
@@ -178,13 +185,11 @@ export const retryQuote = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<RetryResult> => {
     const access = await requireQuoteUser()
     if (!access.ok) return access
-    const { userId } = access
     // Retries are free against the monthly limit, so the cap is checked in the update itself: parallel calls can't pass it.
-    await updateOwn(
-      userId, data.quoteId,
-      { status: 'queued', attempts: 0, retries: sql`${quotes.retries} + 1`, error: null, claimedAt: null, seenAt: null },
-      and(inArray(quotes.status, [...RETRYABLE]), lt(quotes.retries, MAX_RETRIES)),
-    )
+    // Each one takes a read from the daily budget in the same statement, and a spent budget leaves the quote as it was.
+    const refusal = retryRefusal(await retryWithinBudget(access.userId, data.quoteId))
+    if (refusal === 'not_found') throw new Error('Not found')
+    if (refusal) return { ok: false, rejection: logSpentBudget(refusal, access.userId, 'retry') }
     kickQuotes([data.quoteId])
     return { ok: true }
   })

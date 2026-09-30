@@ -27,9 +27,14 @@ export async function signUp(page: Page, { verified = true }: { verified?: boole
   return email
 }
 
-/** Opens the kit, waits for the project to reach the server, and picks the files through the Upload button. */
-export async function uploadQuotes(page: Page, files: { name: string; mimeType: string; buffer: Buffer }[], label = 'Upload quotes'): Promise<void> {
-  await page.goto('/?step=3')
+/**
+ * Opens the kit, waits for the project to reach the server, and picks the files through the Upload button. `origin`
+ * picks another E2E server than the main one (the session cookie is shared across localhost ports).
+ */
+export async function uploadQuotes(
+  page: Page, files: { name: string; mimeType: string; buffer: Buffer }[], label = 'Upload quotes', origin = '',
+): Promise<void> {
+  await page.goto(`${origin}/?step=3`)
   const button = page.getByRole('button', { name: label })
   await expect(button).toBeEnabled({ timeout: 15_000 })
   const chooser = page.waitForEvent('filechooser')
