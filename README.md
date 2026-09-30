@@ -38,12 +38,12 @@ Signed-in users upload installer quotes (PDF, JPG, PNG or WebP, up to 4 MB, PDFs
 | `QUOTES_MODEL_PRIMARY`, `QUOTES_MODEL_FALLBACK` | models; default `gpt-6-luna` then `gpt-6-sol` |
 | `BLOB_READ_WRITE_TOKEN` | private Vercel Blob store for the files |
 | `CRON_SECRET` | authenticates the daily `/api/quotes/sweep` cron |
-| `QUOTES_DAILY_READS` | model reads admitted per UTC day across every account (uploads and retries); default `100`. Anything but a positive integer falls back to the default, with one warning in the logs |
-| `QUOTES_TRUSTED_EMAILS` | comma-separated emails that may upload without a verified email. For previews and tests only; leave it unset in production |
+| `QUOTES_DAILY_READS` | model reads admitted per UTC day across every account (uploads and retries); default `100`; set `0` to pause reading. Anything but a whole number falls back to the default, with one warning in the logs |
+| `QUOTES_TRUSTED_EMAILS` | comma-separated emails that may upload without a verified email. For previews and tests only: ignored when `VERCEL_ENV` is `production` |
 
 Abuse limits, so nobody can burn the OpenAI budget:
 
-- **Verified accounts only.** Email sign-up does not confirm the address, so only an account with a verified email (signed in with Google) can upload or retry. Anyone else keeps read and delete access to what they already have, and the kit card shows a note with a sign-in link instead of the Upload button. `QUOTES_TRUSTED_EMAILS` lets listed accounts through on previews, which have no Google sign-in.
+- **Verified accounts only.** Email sign-up does not confirm the address, so only an account signed in with Google, or a password account with Google connected, can upload or retry. Better Auth connects Google only when Google reports the same email as verified. Anyone else keeps read and delete access to what they already have; the kit card and the verdict page show a note and a Connect Google button instead of uploading, and no Retry. On deployments without Google (previews) the note stands alone, and `QUOTES_TRUSTED_EMAILS` lets listed accounts through; production ignores that list.
 - **Per account:** 10 quotes per project, 20 uploads per UTC month (deleted quotes still count), 3 retries per failed quote.
 - **Per file:** 4 MB, 5 pages per PDF; the model's answer is capped at 12,000 output tokens.
 - **Across every account:** `QUOTES_DAILY_READS` reads per UTC day, counted in `quote_daily_usage`; once they are spent, uploads and retries are refused until the next UTC day. Worst case per admitted read: up to 3 attempts, each a primary call and a fallback call, either one repeated once right away on a transient error, so at most 12 model calls.
