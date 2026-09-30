@@ -39,7 +39,7 @@ export function QuoteRow({ r, verdict, kit, error, onOverride, onDelete }: Props
         </div>
         <ul className="qrow__strip">
           {strip.map((c) => (
-            <li key={c.id}><ItemMark status={c.status} label={`${t.quoteItems[c.id]}: ${markLabel(t, c.status)}`} /><span aria-hidden="true">{t.quoteItemsShort[c.id]}</span></li>
+            <li key={c.id}><ItemMark status={c.status} label={`${t.quoteItems[c.id]}: ${markLabel(t, c)}`} /><span aria-hidden="true">{t.quoteItemsShort[c.id]}</span></li>
           ))}
         </ul>
         <div className="qrow__money">

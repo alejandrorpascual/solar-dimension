@@ -34,7 +34,7 @@ export function BestCard({ best, nextFit, kit, error, onOverride, onDelete }: Pr
       </div>
       <ul className="qbest__items">
         {best.items.map((c) => (
-          <li key={c.id}><ItemMark status={c.status} label={markLabel(t, c.status)} /><span>{t.quoteItems[c.id]}</span></li>
+          <li key={c.id}><ItemMark status={c.status} label={markLabel(t, c)} /><span>{t.quoteItems[c.id]}</span></li>
         ))}
       </ul>
       <button type="button" className="qlink" aria-expanded={isOpen} aria-controls={bodyId} onClick={() => setOpen(!isOpen)}>

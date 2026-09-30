@@ -6,7 +6,8 @@ import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId 
 import { checkItems, DEFAULT_MUSTS } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import {
-  askText, deltaText, etaText, fitLabel, itemText, projectLine, questionText, reasonLine, rejectionText, verdictHeading, verdictSubline,
+  askText, deltaText, etaText, fitLabel, itemText, markLabel, projectLine, questionText, reasonLine, rejectionText, verdictHeading,
+  verdictSubline,
 } from './quote-text'
 
 const view = (id: SampleQuoteId, i: number): QuoteView => ({
@@ -65,6 +66,15 @@ describe('itemText', () => {
     expect(unstated.status).toBe('unknown')
     expect(itemText(en, unstated, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'Start-up power not stated' })
     expect(itemText(es, unstated, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'No indica la potencia de arranque' })
+  })
+  test('the icon of an inverter whose start-up power is not stated says so, not that it is not mentioned', () => {
+    const unstated = checkItems(extraction([line('inverter', 1, { specs: { watts: 5000 } })]), KIT).find((c) => c.id === 'inverter')!
+    expect(markLabel(en, unstated)).toBe('Start-up power not stated')
+    expect(markLabel(es, unstated)).toBe('No indica la potencia de arranque')
+    const none = checkItems(extraction([line('labor', 1)]), KIT).find((c) => c.id === 'inverter')!
+    expect(markLabel(en, none)).toBe('Not mentioned')
+    expect(markLabel(en, items('solartec').find((c) => c.id === 'inverter')!)).toBe('Meets it')
+    expect(markLabel(en, items('enerhogar').find((c) => c.id === 'inverter')!)).toBe('Too small')
   })
   test('an inverter not mentioned at all still says so', () => {
     const none = checkItems(extraction([line('labor', 1)]), KIT).find((c) => c.id === 'inverter')!

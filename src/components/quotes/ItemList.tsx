@@ -22,7 +22,7 @@ export function ItemList({ items, kit, currency, onOverride }: Props) {
         const canSet = c.status === 'unknown' || current !== null
         return (
           <li key={c.id} className="qitem">
-            <ItemMark status={c.status} label={markLabel(t, c.status)} />
+            <ItemMark status={c.status} label={markLabel(t, c)} />
             <div className="qitem__text">
               <div className="qitem__line">
                 <span className="qitem__name">{t.quoteItems[c.id]}</span>

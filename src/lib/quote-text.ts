@@ -1,7 +1,7 @@
 import { trq, type Dictionary } from '../i18n'
 import { fmtKwh, fmtList, fmtMoney, fmtW } from '../i18n/format'
 import type { RankedQuote, Verdict } from './quote-compare'
-import type { ItemCheck, ItemId, ItemStatus, KitNeeds } from './quote-items'
+import type { ItemCheck, ItemId, KitNeeds } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
 import type { QuoteStatus } from './quote-schema'
@@ -77,9 +77,14 @@ export function deltaText(t: Dictionary, r: RankedQuote): string {
   return r.delta === null || r.delta === 0 ? '' : trq(t, 'vsBest', { delta: signedMoney(t, r.delta, r.currency) })
 }
 
-export function markLabel(t: Dictionary, status: ItemStatus): string {
+/** An inverter with its watts but no start-up power: mentioned, yet unknown for the kit. */
+const isSurgeUnstated = (c: ItemCheck): boolean => c.status === 'unknown' && c.id === 'inverter' && c.facts.watts !== undefined
+
+/** The accessible name of a check's icon. */
+export function markLabel(t: Dictionary, c: ItemCheck): string {
   const q = t.quotes
-  return { ok: q.markOk, short: q.markShort, missing: q.notIncluded, unknown: q.notMentioned }[status]
+  if (isSurgeUnstated(c)) return q.surgeNotStated
+  return { ok: q.markOk, short: q.markShort, missing: q.notIncluded, unknown: q.notMentioned }[c.status]
 }
 
 /** A label and an optional detail for one item of a quote, shown in its checks. */
@@ -88,8 +93,7 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
   const f = c.facts
   const L = t.locale
   const confirmed = f.confirmed ? q.confirmedByYou : null
-  // An inverter with its watts but no start-up power is unknown for the kit, but it was mentioned.
-  if (c.status === 'unknown' && c.id === 'inverter' && f.watts !== undefined) return { label: fmtW(f.watts, L), detail: q.surgeNotStated }
+  if (isSurgeUnstated(c)) return { label: fmtW(f.watts ?? 0, L), detail: q.surgeNotStated }
   if (c.status === 'unknown') return { label: q.notMentioned, detail: null }
   if (c.status === 'missing') {
     const optional = f.optionalPrice !== undefined ? trq(t, 'optionalPrice', { price: money(t, f.optionalPrice, currency) }) : null
