@@ -42,9 +42,18 @@ export async function openVerdictFromTray(page: Page): Promise<void> {
 }
 
 /**
- * Resolves when the next server call whose arguments include `arg` has answered. Changes on the verdict are optimistic,
- * so a test that reloads right after one must wait for its save, or the reload can read the data before it lands.
+ * Resolves when the next must-have save, or the next confirmation of a quote's item, has answered. Changes on the
+ * verdict are optimistic, so a test that reloads right after one must wait for its save, or the reload can read the
+ * data before it lands.
  */
-export function saved(page: Page, arg: 'musts' | 'item'): Promise<unknown> {
-  return page.waitForResponse((r) => r.request().method() === 'POST' && (r.request().postData() ?? '').includes(`"${arg}"`))
+export function saved(page: Page, kind: 'musts' | 'item'): Promise<unknown> {
+  return page.waitForResponse((r) => r.request().method() === 'POST' && isSave(r.request().postData() ?? '', kind))
 }
+
+/** A must-have save names the project and the item; a confirmation names the quote and the item. */
+function isSave(body: string, kind: 'musts' | 'item'): boolean {
+  return body.includes('"item"') && body.includes(kind === 'musts' ? '"projectId"' : '"quoteId"')
+}
+
+/** A must-have save: the only server call that sends a project id and an item. */
+export const isMustSave = (body: string): boolean => isSave(body, 'musts')

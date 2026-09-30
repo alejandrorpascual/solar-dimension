@@ -68,3 +68,18 @@ export async function setQuoteRetries(email: string, projectId: string, retries:
     update quotes q set retries = ${retries}::int
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
+
+/** The status and retries of every quote of a project, oldest first. */
+export async function quoteRetryStates(email: string, projectId: string): Promise<{ status: string; retries: number }[]> {
+  const rows = await testDb()`
+    select q.status, q.retries from quotes q join "user" u on u.id = q.user_id
+    where u.email = ${email} and q.project_id = ${projectId} order by q.created_at`
+  return rows.map((r) => ({ status: r.status as string, retries: r.retries as number }))
+}
+
+/** Every quote of the user, with its project and the path of its file in storage. */
+export async function quoteFiles(email: string): Promise<{ projectId: string; path: string }[]> {
+  const rows = await testDb()`
+    select q.project_id, q.blob_pathname from quotes q join "user" u on u.id = q.user_id where u.email = ${email}`
+  return rows.map((r) => ({ projectId: r.project_id as string, path: r.blob_pathname as string }))
+}

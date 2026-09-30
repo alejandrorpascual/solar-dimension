@@ -1,8 +1,13 @@
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 import { expect, test } from '@playwright/test'
-import { cloneProject, countQuoteRows, firstProjectId, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth } from './db'
-import { openVerdictFromTray, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading } from './quotes'
+import { cloneProject, countQuoteRows, firstProjectId, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth } from './db'
+import { hideProjects, showProjects } from './projects'
+import { isMustSave, openVerdictFromTray, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading } from './quotes'
 
 const ALL = ['solartec', 'voltia', 'grupoluz', 'enerhogar']
+/** Where the E2E server keeps quote files (QUOTES_LOCAL_DIR in playwright.config.ts). */
+const QUOTE_FILES_DIR = '.data/e2e-quotes'
 
 test('quotes upload, are read in the background, and end in a verdict', async ({ page }) => {
   await signUp(page)
@@ -69,6 +74,47 @@ test('must-haves and confirmations change the winner, and stick', async ({ page 
   await expect(verdictHeading(page)).toHaveText('Grupo Luz fits your kit for the least')
 })
 
+test('a must-have that fails to save goes back, and one saved meanwhile is kept, on screen and on the server', async ({ page }) => {
+  await signUp(page)
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  // The first save is held until the second has answered, then it fails: the second lands first on the server.
+  let released: () => void = () => {}
+  const secondAnswered = new Promise<void>((resolve) => { released = resolve })
+  let calls = 0
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (request.method() !== 'POST' || !isMustSave(request.postData() ?? '')) return route.fallback()
+    calls += 1
+    if (calls === 1) {
+      await secondAnswered
+      return route.abort()
+    }
+    await route.fulfill({ response: await route.fetch() })
+    released()
+  })
+
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  const sheet = page.getByRole('dialog', { name: 'What matters for this project' })
+  const wifi = sheet.getByRole('switch', { name: 'Wi-Fi monitoring', exact: true })
+  const warranty = sheet.getByRole('switch', { name: 'Warranty', exact: true })
+  await expect(wifi).toHaveAttribute('aria-checked', 'false')
+  await expect(warranty).toHaveAttribute('aria-checked', 'false')
+  await wifi.click()
+  await warranty.click()
+  await expect(sheet.getByText("Couldn't save. Try again.")).toBeVisible()
+  await expect(wifi).toHaveAttribute('aria-checked', 'false')
+  await expect(warranty).toHaveAttribute('aria-checked', 'true')
+  await page.unroute('**/*')
+
+  await page.reload()
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  await expect(wifi).toHaveAttribute('aria-checked', 'false')
+  await expect(warranty).toHaveAttribute('aria-checked', 'true')
+})
+
 test('a verdict that finished while away shows once in the tray', async ({ page }) => {
   await signUp(page)
   await uploadQuotes(page, [await quotePdf('solartec')])
@@ -121,7 +167,7 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
   await other.close()
 })
 
-test('a quote that could not be read can be retried, until its retries are used up', async ({ page }) => {
+test('a quote that could not be read can be retried, until its retries are used up, on the page and on the server', async ({ page }) => {
   const email = await signUp(page)
   // The stub reads only the sample quotes; any other file name fails on both models.
   await uploadQuotes(page, [await quotePdf('unreadable')])
@@ -132,7 +178,9 @@ test('a quote that could not be read can be retried, until its retries are used 
   const row = page.getByRole('article').filter({ hasText: 'unreadable.pdf' })
   const failed = row.getByText("Couldn't read it", { exact: true })
   await expect(failed).toBeVisible({ timeout: 30_000 })
+  const retryCall = page.waitForRequest((r) => r.method() === 'POST' && (r.postData() ?? '').includes('"quoteId"'))
   await row.getByRole('button', { name: 'Retry', exact: true }).click()
+  const retry = await retryCall
   await expect(row.getByText(/^(Waiting|Reading)$/)).toBeVisible()
   await expect(failed).toBeVisible({ timeout: 30_000 })
 
@@ -140,6 +188,19 @@ test('a quote that could not be read can be retried, until its retries are used 
   await page.reload()
   await expect(row.getByText("Couldn't read it after several tries. Upload a clearer copy.")).toBeVisible()
   await expect(row.getByRole('button', { name: 'Retry', exact: true })).toHaveCount(0)
+
+  // The page hides the button, but the server holds the cap too: the same retry call, sent again, is refused. It is
+  // sent as the page sends it, from the page's own origin, so the server functions' CSRF check lets it through.
+  const headers = await retry.allHeaders()
+  const again = await page.request.post(retry.url(), {
+    headers: { 'content-type': headers['content-type'], accept: headers.accept, 'x-tsr-serverfn': 'true', origin: new URL(page.url()).origin },
+    data: retry.postData() ?? '',
+  })
+  // A server function answers a thrown error inside the serialized result, so the refusal is read from the body.
+  const body = await again.text()
+  expect(body).toContain('$TSR/Error')
+  expect(body).toContain('Not found')
+  expect(await quoteRetryStates(email, projectId)).toEqual([{ status: 'failed', retries: 3 }])
 })
 
 test('a project that already has 10 quotes refuses an eleventh, with the reason', async ({ page }) => {
@@ -166,4 +227,25 @@ test('an account that used its 20 uploads this month is refused, with the reason
   const dialog = page.getByRole('dialog', { name: 'None of these files could be uploaded' })
   await expect(dialog).toContainText("solartec.pdf: You've uploaded 20 quotes this month. The limit resets on the 1st.")
   expect(await countQuoteRows(email, projectId)).toBe(0)
+})
+
+test('deleting a project removes its quotes and their files', async ({ page }) => {
+  const email = await signUp(page)
+  await page.goto('/')
+  await showProjects(page)
+  await page.getByRole('button', { name: '+ New project' }).click()
+  await hideProjects(page)
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await expect.poll(async () => (await quoteFiles(email)).length).toBe(1)
+  const [quote] = await quoteFiles(email)
+  const file = path.resolve(QUOTE_FILES_DIR, quote!.path)
+  expect(existsSync(file)).toBe(true)
+
+  await page.goto('/')
+  const removed = page.waitForResponse((r) => r.request().method() === 'POST' && (r.request().postData() ?? '').includes('"ids"'))
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  expect((await removed).ok()).toBe(true)
+  expect(await countQuoteRows(email, quote!.projectId)).toBe(0)
+  expect(existsSync(file)).toBe(false)
 })
