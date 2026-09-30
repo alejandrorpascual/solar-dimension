@@ -95,3 +95,27 @@ export async function postUpload(page: Page, call: { url: string; accept: string
     multipart: { projectId, file },
   })
 }
+
+export interface CapturedCall { url: string; headers: Record<string, string>; body: string }
+
+/** The page's next retry call for `quoteId`, stopped before it reaches the server, so a test can send it again. */
+export async function captureRetryCall(page: Page, quoteId: string): Promise<CapturedCall> {
+  return new Promise((resolve, reject) => {
+    page.route('**/_serverFn/**', async (route) => {
+      const request = route.request()
+      const body = request.postData() ?? ''
+      if (request.method() !== 'POST' || !body.includes(quoteId)) return route.continue()
+      const all = await request.allHeaders()
+      resolve({ url: request.url(), headers: { 'content-type': all['content-type'] ?? 'application/json', accept: all.accept ?? '*/*' }, body })
+      await route.abort()
+    }).catch(reject)
+  })
+}
+
+/** Sends a captured retry call for another quote, as the page would: from its own origin, as a server function call. */
+export async function postRetry(page: Page, call: CapturedCall, fromId: string, toId: string) {
+  return page.request.post(call.url, {
+    headers: { ...call.headers, 'x-tsr-serverfn': 'true', origin: new URL(page.url()).origin },
+    data: call.body.replaceAll(fromId, toId),
+  })
+}

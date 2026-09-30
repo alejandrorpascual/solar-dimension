@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless'
+import { neon, Pool } from '@neondatabase/serverless'
 import { utcDay } from '../src/lib/quote-budget'
 
 const TEST_APPLIANCE_PREFIX = 'e2e-'
@@ -121,4 +121,48 @@ export async function linkGoogleAccount(email: string, { emailVerified = true }:
   await testDb()`
     insert into account (id, account_id, provider_id, user_id, id_token, created_at, updated_at)
     select 'e2e-google-' || u.id, 'e2e-google-sub-' || u.id, 'google', u.id, ${idToken}, now(), now() from "user" u where u.email = ${email}`
+}
+
+/** Adds one quote that could not be read (no file behind it, retries left), and returns its id. */
+export async function seedFailedQuote(email: string, projectId: string, fileName: string): Promise<string> {
+  const rows = await testDb()`
+    insert into quotes (id, user_id, project_id, file_name, blob_pathname, mime, size_bytes, status, error)
+    select gen_random_uuid(), u.id, ${projectId}, ${fileName}, 'e2e-seed/' || gen_random_uuid(), 'application/pdf', 1000, 'failed', 'seeded by e2e'
+    from "user" u where u.email = ${email}
+    returning id`
+  return rows[0]!.id as string
+}
+
+export async function quoteRetryCount(id: string): Promise<number> {
+  const rows = await testDb()`select retries from quotes where id = ${id}::uuid`
+  return rows[0]!.retries as number
+}
+
+/**
+ * Locks one quote row in a transaction of its own until `release`, so statements that touch the row wait for it. The
+ * HTTP driver can't keep a transaction open between calls, so this uses a WebSocket connection.
+ */
+export async function holdQuoteRow(id: string): Promise<{ release: () => Promise<void> }> {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+  const client = await pool.connect()
+  await client.query('begin')
+  await client.query('select id from quotes where id = $1::uuid for update', [id])
+  return {
+    release: async () => {
+      try {
+        await client.query('rollback')
+      } finally {
+        client.release()
+        await pool.end()
+      }
+    },
+  }
+}
+
+/** How many retry statements (the only statements with a `retried` CTE) wait on a lock right now. */
+export async function waitingRetryStatements(): Promise<number> {
+  const rows = await testDb()`
+    select count(*)::int as n from pg_stat_activity
+    where wait_event_type = 'Lock' and query like '%retried as (%' and pid <> pg_backend_pid()`
+  return rows[0]!.n as number
 }
