@@ -94,6 +94,7 @@ export const quotesEn = {
   addAnother: 'Add another quote',
   finePrint: 'Check the final terms with the installer before you pay. A blurry photo can be misread.',
   checkNumbersHelp: "Some amounts don't add up. Correct the total to compare this quote.",
+  noTotalHelp: "We didn't find the total. Enter it to compare this quote.",
   totalInQuote: 'Total',
   totalInvalid: 'Enter the total from the quote, as an amount above 0.',
   save: 'Save',

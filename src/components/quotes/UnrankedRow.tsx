@@ -4,7 +4,7 @@ import { trq } from '../../i18n'
 import { hasTotal } from '../../lib/quote-checks'
 import type { UnrankedQuote } from '../../lib/quote-compare'
 import { parseTotal } from '../../lib/quote-guards'
-import { fileStatusText } from '../../lib/quote-text'
+import { fileStatusText, totalHelp } from '../../lib/quote-text'
 import { QuoteActions } from './QuoteActions'
 
 interface Props {
@@ -41,9 +41,9 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
         <h3 className="qrow__name" id={nameId}>{u.name}</h3>
         <span className={pill.cls}>{pill.text}</span>
       </div>
-      {u.reason === 'needs_review' && (
+      {(u.reason === 'needs_review' || u.reason === 'no_total') && (
         <form className="qrow__form" onSubmit={submit}>
-          <p className="qmeta" style={{ flexBasis: '100%' }}>{t.quotes.checkNumbersHelp}</p>
+          <p className="qmeta" style={{ flexBasis: '100%' }}>{totalHelp(t, u.reason)}</p>
           <label htmlFor={inputId}>{t.quotes.totalInQuote}
             <input id={inputId} className="in num" inputMode="decimal" value={total} aria-invalid={isInvalid || undefined}
               aria-describedby={isInvalid ? errorId : undefined}

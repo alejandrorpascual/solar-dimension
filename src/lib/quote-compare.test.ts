@@ -68,12 +68,18 @@ describe('when nothing fits', () => {
 describe('a quote with no total', () => {
   // A total of 0 is what the model writes when the quote states none: it must never rank as the cheapest.
   const noTotal = (id: SampleQuoteId, total: number) => view(id, { extraction: { ...SAMPLE_QUOTES[id], total } })
-  test('a read quote whose total is 0, negative or not a number is unranked, waiting for the total to be entered', () => {
+  test('a read quote whose total is 0, negative or not a number is unranked as no_total, waiting for the total', () => {
     for (const total of [0, -10, Number.NaN]) {
-      const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), noTotal('grupoluz', total)])
-      expect(ids(v.ranked), String(total)).toEqual(['solartec'])
-      expect(v.unranked, String(total)).toMatchObject([{ quote: { id: 'grupoluz' }, reason: 'needs_review' }])
+      for (const status of ['ready', 'needs_review'] as const) {
+        const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), { ...noTotal('grupoluz', total), status }])
+        expect(ids(v.ranked), `${total} ${status}`).toEqual(['solartec'])
+        expect(v.unranked, `${total} ${status}`).toMatchObject([{ quote: { id: 'grupoluz' }, reason: 'no_total' }])
+      }
     }
+  })
+  test('a quote whose amounts do not add up but that has a total stays needs_review', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { status: 'needs_review' })])
+    expect(v.unranked).toMatchObject([{ reason: 'needs_review' }])
   })
   test('it is never worth asking about, and never moves the deltas', () => {
     const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), view('voltia', { createdAt: 1 }), noTotal('grupoluz', 0), noTotal('enerhogar', 0)])

@@ -8,7 +8,7 @@ import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
 import {
   askText, deltaText, etaText, fitLabel, itemText, markLabel, projectLine, questionText, reasonLine, rejectionText, verdictHeading,
-  verdictStatus, verdictSubline,
+  totalHelp, verdictStatus, verdictSubline,
 } from './quote-text'
 
 const view = (id: SampleQuoteId, i: number): QuoteView => ({
@@ -60,6 +60,16 @@ describe('when every quote failed', () => {
   })
   test('with nothing finished there is no status', () => {
     expect(verdictStatus(en, compareQuotes(KIT, DEFAULT_MUSTS, []))).toBeNull()
+  })
+})
+
+describe('totalHelp', () => {
+  test('a quote with no total asks for it, in both languages', () => {
+    expect(totalHelp(en, 'no_total')).toBe("We didn't find the total. Enter it to compare this quote.")
+    expect(totalHelp(es, 'no_total')).toBe('No encontramos el total. Escríbelo para comparar esta cotización.')
+  })
+  test('a quote whose amounts do not add up keeps its text', () => {
+    expect(totalHelp(en, 'needs_review')).toBe("Some amounts don't add up. Correct the total to compare this quote.")
   })
 })
 

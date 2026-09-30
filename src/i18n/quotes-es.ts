@@ -95,6 +95,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   addAnother: 'Agregar otra cotización',
   finePrint: 'Confirma las condiciones finales con el instalador antes de pagar. Una foto borrosa puede leerse mal.',
   checkNumbersHelp: 'Algunos importes no cuadran. Corrige el total para comparar esta cotización.',
+  noTotalHelp: 'No encontramos el total. Escríbelo para comparar esta cotización.',
   totalInQuote: 'Total',
   totalInvalid: 'Escribe el total de la cotización, como un importe mayor que 0.',
   save: 'Guardar',

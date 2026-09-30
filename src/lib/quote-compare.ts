@@ -14,7 +14,8 @@ export interface RankedQuote {
   total: number; currency: string; rank: number; delta: number | null
   unknownMusts: ItemId[]; failedMusts: ItemId[]; niceMet: number; usableWh: number
 }
-export type UnrankedReason = 'reading' | 'needs_review' | 'failed' | 'other_currency'
+/** needs_review: the amounts don't add up; no_total: the quote was read but states no total. Both wait for the user's total. */
+export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'failed' | 'other_currency'
 export interface UnrankedQuote { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
 export interface Verdict {
   currency: string | null
@@ -66,7 +67,7 @@ function mainCurrency(quotes: readonly QuoteView[]): string | null {
 function unrankedReason(q: QuoteView): UnrankedReason {
   if (isPending(q.status)) return 'reading'
   if (isRankable(q)) return 'other_currency'
-  if (q.extraction !== null && (q.status === 'needs_review' || q.status === 'ready')) return 'needs_review'
+  if (q.extraction !== null && (q.status === 'needs_review' || q.status === 'ready')) return hasTotal(totalOf(q)) ? 'needs_review' : 'no_total'
   return 'failed'
 }
 

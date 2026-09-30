@@ -145,6 +145,11 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
   }
 }
 
+/** The help above the enter-a-total form: the total is missing, or the amounts don't add up. */
+export function totalHelp(t: Dictionary, reason: 'needs_review' | 'no_total'): string {
+  return reason === 'no_total' ? t.quotes.noTotalHelp : t.quotes.checkNumbersHelp
+}
+
 export function fileStatusText(t: Dictionary, status: QuoteStatus | 'uploading'): string {
   const q = t.quotes
   return { uploading: q.stUploading, queued: q.stQueued, processing: q.stProcessing, ready: q.stReady, needs_review: q.stNeedsReview, failed: q.stFailed }[status]
