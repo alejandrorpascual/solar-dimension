@@ -5,7 +5,7 @@ import { etaSeconds, nextPollDelay, pickTray, summarizeProject, type JobQuote, t
 
 const jq = (id: string, over: Partial<JobQuote> = {}): JobQuote => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES.solartec, overrides: {}, totalOverride: null,
-  createdAt: 1, seenAt: null, ...over,
+  createdAt: 1, seenAt: null, retries: 0, ...over,
 })
 const jobs = (over: Partial<ProjectJobs>): ProjectJobs => ({
   projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null, ...over,

@@ -10,8 +10,14 @@ test('projects table has the columns the store needs', () => {
 test('quotes table has the columns processing and the verdict need', () => {
   expect(Object.keys(getTableColumns(quotes)).sort()).toEqual([
     'attempts', 'blobPathname', 'claimedAt', 'createdAt', 'error', 'extraction', 'fileName', 'id', 'mime', 'modelUsed',
-    'overrides', 'pages', 'processedAt', 'projectId', 'seenAt', 'sizeBytes', 'status', 'totalOverride', 'usage', 'userId', 'vendorLabel',
+    'overrides', 'pages', 'processedAt', 'projectId', 'retries', 'seenAt', 'sizeBytes', 'status', 'totalOverride', 'usage', 'userId', 'vendorLabel',
   ])
+})
+
+test('a quote starts with no retries used', () => {
+  const { retries } = getTableColumns(quotes)
+  expect(retries.notNull).toBe(true)
+  expect(retries.default).toBe(0)
 })
 
 test('quote_settings holds the must-haves per project', () => {

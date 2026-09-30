@@ -2,7 +2,11 @@ import { compareQuotes, type QuoteView } from './quote-compare'
 import type { KitNeeds, Musts } from './quote-items'
 import { FINISHED, isPending, type QuoteStatus } from './quote-schema'
 
-export interface JobQuote extends QuoteView { seenAt: number | null }
+export interface JobQuote extends QuoteView {
+  seenAt: number | null
+  /** Retries used; the verdict hides Retry at MAX_RETRIES. */
+  retries: number
+}
 export interface JobFile { id: string; name: string; status: QuoteStatus }
 export interface ProjectJobs {
   projectId: string; projectName: string

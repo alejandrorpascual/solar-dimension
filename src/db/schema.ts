@@ -71,6 +71,8 @@ export const quotes = pgTable(
     pages: integer('pages'),
     status: text('status').$type<QuoteStatus>().notNull().default('queued'),
     attempts: integer('attempts').notNull().default(0),
+    /** Retries the user asked for; capped at MAX_RETRIES (quote-guards), because retries don't count against the monthly limit. */
+    retries: integer('retries').notNull().default(0),
     claimedAt: timestamp('claimed_at', { withTimezone: true }),
     modelUsed: text('model_used'),
     usage: jsonb('usage').$type<QuoteUsage[]>(),

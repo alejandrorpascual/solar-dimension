@@ -50,6 +50,13 @@
       "when": 1790733818175,
       "tag": "0006_quote_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790745626945,
+      "tag": "0007_quote_retries",
+      "breakpoints": true
     }
   ]
 }

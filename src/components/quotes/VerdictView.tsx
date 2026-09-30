@@ -7,6 +7,7 @@ import { useQuoteJobs } from '../../hooks/useQuoteJobs'
 import { trq } from '../../i18n'
 import { computeProject } from '../../lib/project-summary'
 import { compareQuotes } from '../../lib/quote-compare'
+import { canRetry } from '../../lib/quote-guards'
 import { kitNeeds, setOverride, type ItemId, type Musts, type Override, type Overrides } from '../../lib/quote-items'
 import { deleteQuote, retryQuote, setQuoteMusts, setQuoteOverride, setQuoteTotal, type ProjectQuotes } from '../../server/quotes/api'
 import { BestCard } from './BestCard'
@@ -64,20 +65,21 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   const failed = (key: string) => setError({ key, text: t.quotes.saveFailed })
   const errorFor = (key: string) => (error?.key === key ? error.text : null)
 
+  // A failed save rolls back only the value it changed, so another change that saved in the meantime is kept.
   const onOverride = (quoteId: string) => async (item: ItemId, value: Override | null) => {
-    const before = overrides
+    const prev = overrides[quoteId]?.[item] ?? null
     setError(null)
     setOverrides((o) => ({ ...o, [quoteId]: setOverride(o[quoteId] ?? {}, item, value) }))
     try {
       await setQuoteOverride({ data: { quoteId, item, value } })
     } catch (e) {
       console.error('[quotes] saving an override failed', { quoteId, item, e })
-      setOverrides(before)
+      setOverrides((o) => ({ ...o, [quoteId]: setOverride(o[quoteId] ?? {}, item, prev) }))
       failed(quoteId)
     }
   }
   const onMust = async (item: ItemId, value: boolean) => {
-    const before = musts
+    const prev = musts[item]
     const next = { ...musts, [item]: value }
     setError(null)
     setMusts(next)
@@ -85,7 +87,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       await setQuoteMusts({ data: { projectId: data.project.id, musts: next } })
     } catch (e) {
       console.error('[quotes] saving must-haves failed', e)
-      setMusts(before)
+      setMusts((m) => ({ ...m, [item]: prev }))
       failed('musts')
     }
   }
@@ -101,6 +103,10 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
     }
   }
   const remove = (quoteId: string) => run(quoteId, () => deleteQuote({ data: { quoteId } }))
+  const canRetryQuote = (quoteId: string) => {
+    const q = data.quotes.find((x) => x.id === quoteId)
+    return q !== undefined && canRetry(q)
+  }
   const others = verdict.best ? verdict.ranked.filter((r) => r.quote.id !== verdict.best?.quote.id) : verdict.ranked
 
   return (
@@ -123,7 +129,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
                 onOverride={onOverride(r.quote.id)} onDelete={remove(r.quote.id)} />
             ))}
             {verdict.unranked.map((u) => (
-              <UnrankedRow key={u.quote.id} u={u} error={errorFor(u.quote.id)}
+              <UnrankedRow key={u.quote.id} u={u} error={errorFor(u.quote.id)} canRetry={canRetryQuote(u.quote.id)}
                 onRetry={run(u.quote.id, () => retryQuote({ data: { quoteId: u.quote.id } }))}
                 onDelete={remove(u.quote.id)}
                 onTotal={(total) => void run(u.quote.id, () => setQuoteTotal({ data: { quoteId: u.quote.id, total } }))()} />

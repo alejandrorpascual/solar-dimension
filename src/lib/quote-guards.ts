@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { parseAmount } from './parse-amount'
 import { pdfInfo } from './pdf-info'
 import { ITEM_IDS, OVERRIDES } from './quote-items'
 import { limitRejection, QUOTE_LIMITS, sniffMime, type QuoteMime, type Rejection } from './quote-limits'
@@ -16,6 +17,19 @@ export const MustsInput = z.object({ projectId: ProjectId, musts: z.record(z.enu
 
 /** Only a quote the model gave up on can be retried; a read one stays until it is deleted. */
 export const RETRYABLE: readonly QuoteStatus[] = ['failed']
+/** Retries are free against the monthly limit, so each quote gets only this many: each one can cost up to 4 model calls. */
+export const MAX_RETRIES = 3
+
+/** Whether the user may retry a quote. The server checks the same limits in the update itself. */
+export function canRetry(q: { status: QuoteStatus; retries: number }): boolean {
+  return RETRYABLE.includes(q.status) && q.retries < MAX_RETRIES
+}
+
+/** A total typed by the user, or null when it isn't a positive amount up to MAX_TOTAL. */
+export function parseTotal(s: string): number | null {
+  const n = parseAmount(s)
+  return n !== null && TotalInput.shape.total.safeParse(n).success ? n : null
+}
 
 /** Whether an upload may go ahead: the project must be the user's own and the limits not reached. */
 export function uploadRejection(input: { ownsProject: boolean; counts: { project: number; month: number } }): Rejection | null {

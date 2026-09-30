@@ -1,21 +1,21 @@
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm'
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { db } from '../../db/client'
 import { projects, quotes, quoteSettings } from '../../db/schema'
 import { computeProject } from '../../lib/project-summary'
-import { inspectUpload, MustsInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, RETRYABLE, TotalInput, uploadRejection } from '../../lib/quote-guards'
+import { inspectUpload, MAX_RETRIES, MustsInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, RETRYABLE, TotalInput, uploadRejection } from '../../lib/quote-guards'
 import { kitNeeds, resolveMusts, type Musts } from '../../lib/quote-items'
 import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quote-jobs'
 import { checkBasics, cleanFileName, type Rejection } from '../../lib/quote-limits'
-import { FINISHED, type QuoteStatus } from '../../lib/quote-schema'
+import { FINISHED } from '../../lib/quote-schema'
 import type { Project } from '../../lib/schema'
 import { loadCatalog } from '../catalog'
 import { toProject } from '../projects'
 import { requireUserId } from '../session'
-import { defaultDeps } from './deps'
+import { defaultStorage } from './deps'
 import { kickQuotes } from './kick'
 import { insertWithinLimits, quoteCounts } from './limits'
 import { recoverStaleQuotes } from './repo'
@@ -29,6 +29,7 @@ function toJobQuote(r: QuoteRow): JobQuote {
   return {
     id: r.id, fileName: r.fileName, label: r.vendorLabel, status: r.status, extraction: r.extraction ?? null,
     overrides: r.overrides, totalOverride: r.totalOverride, createdAt: r.createdAt.getTime(), seenAt: r.seenAt?.getTime() ?? null,
+    retries: r.retries,
   }
 }
 
@@ -63,10 +64,9 @@ export const uploadQuote = createServerFn({ method: 'POST' })
 
     const id = crypto.randomUUID()
     const blobPathname = quotePath(userId, id, mime)
-    const { storage } = defaultDeps()
-    const dropFile = () => storage.remove([blobPathname]).catch((error) => console.error('[quotes] removing an unused file failed', { userId, id, error }))
+    const dropFile = () => defaultStorage.remove([blobPathname]).catch((error) => console.error('[quotes] removing an unused file failed', { userId, id, error }))
     try {
-      await storage.put(blobPathname, bytes, mime)
+      await defaultStorage.put(blobPathname, bytes, mime)
       const added = await insertWithinLimits({
         id, userId, projectId: data.projectId, fileName: cleanFileName(data.file.name), blobPathname, mime, sizeBytes: bytes.byteLength, pages,
       })
@@ -118,9 +118,9 @@ export const getProjectQuotes = createServerFn({ method: 'GET' })
     return { project: toProject(p), quotes: rows.map(toJobQuote), musts: resolveMusts(settings[0]?.musts) }
   })
 
-/** Updates the user's own quote, only when it is in one of the `only` statuses if given. Throws when nothing matched. */
-async function updateOwn(userId: string, quoteId: string, set: PgUpdateSetSource<typeof quotes>, only?: readonly QuoteStatus[]) {
-  const where = and(ownQuote(userId, quoteId), only ? inArray(quotes.status, [...only]) : undefined)
+/** Updates the user's own quote, only when `when` also holds if given. Throws when nothing matched. */
+async function updateOwn(userId: string, quoteId: string, set: PgUpdateSetSource<typeof quotes>, when?: SQL) {
+  const where = and(ownQuote(userId, quoteId), when)
   const rows = await db.update(quotes).set(set).where(where).returning({ id: quotes.id })
   if (rows.length === 0) throw new Error('Not found')
 }
@@ -169,7 +169,12 @@ export const retryQuote = createServerFn({ method: 'POST' })
   .validator((d: unknown) => z.object({ quoteId: QuoteId }).parse(d))
   .handler(async ({ data }) => {
     const userId = await requireUserId()
-    await updateOwn(userId, data.quoteId, { status: 'queued', attempts: 0, error: null, claimedAt: null, seenAt: null }, RETRYABLE)
+    // Retries are free against the monthly limit, so the cap is checked in the update itself: parallel calls can't pass it.
+    await updateOwn(
+      userId, data.quoteId,
+      { status: 'queued', attempts: 0, retries: sql`${quotes.retries} + 1`, error: null, claimedAt: null, seenAt: null },
+      and(inArray(quotes.status, [...RETRYABLE]), lt(quotes.retries, MAX_RETRIES)),
+    )
     kickQuotes([data.quoteId])
     return { ok: true as const }
   })
@@ -180,7 +185,7 @@ export const deleteQuote = createServerFn({ method: 'POST' })
     const userId = await requireUserId()
     const rows = await db.delete(quotes).where(ownQuote(userId, data.quoteId)).returning({ path: quotes.blobPathname })
     if (rows.length === 0) throw new Error('Not found')
-    await defaultDeps().storage.remove(rows.map((r) => r.path))
+    await defaultStorage.remove(rows.map((r) => r.path))
       .catch((error) => console.error('[quotes] removing a deleted quote file failed', { quoteId: data.quoteId, error }))
     return { ok: true as const }
   })

@@ -1,6 +1,8 @@
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, test } from 'vitest'
-import { inspectUpload, MAX_TOTAL, MustsInput, OverrideInput, QuoteId, RETRYABLE, refusedInsertRejection, TotalInput, uploadRejection } from './quote-guards'
+import {
+  canRetry, inspectUpload, MAX_RETRIES, MAX_TOTAL, MustsInput, OverrideInput, parseTotal, QuoteId, RETRYABLE, refusedInsertRejection, TotalInput, uploadRejection,
+} from './quote-guards'
 import { DEFAULT_MUSTS } from './quote-items'
 import { QUOTE_LIMITS } from './quote-limits'
 
@@ -82,5 +84,28 @@ describe('inputs', () => {
   })
   test('only a failed quote can be retried', () => {
     expect(RETRYABLE).toEqual(['failed'])
+  })
+})
+
+describe('canRetry', () => {
+  test('a failed quote can be retried until it has used its retries', () => {
+    expect(MAX_RETRIES).toBe(3)
+    expect(canRetry({ status: 'failed', retries: 0 })).toBe(true)
+    expect(canRetry({ status: 'failed', retries: MAX_RETRIES - 1 })).toBe(true)
+    expect(canRetry({ status: 'failed', retries: MAX_RETRIES })).toBe(false)
+  })
+  test('a quote that was read, or is being read, cannot be retried', () => {
+    for (const status of ['queued', 'processing', 'ready', 'needs_review'] as const) expect(canRetry({ status, retries: 0 })).toBe(false)
+  })
+})
+
+describe('parseTotal', () => {
+  test('a typed total in either convention becomes a number', () => {
+    expect(parseTotal('6.480,50')).toBe(6480.5)
+    expect(parseTotal('$6,480')).toBe(6480)
+    expect(parseTotal(String(MAX_TOTAL))).toBe(MAX_TOTAL)
+  })
+  test('empty, zero, negative, non-numeric or above the cap is refused', () => {
+    for (const bad of ['', '   ', 'abc', '0', '0,00', '-5', String(MAX_TOTAL + 1)]) expect(parseTotal(bad)).toBeNull()
   })
 })
