@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef } from 'react'
 import { AccountMenu } from '../components/AccountMenu'
 import { HeaderBar } from '../components/HeaderBar'
 import { AddQuoteButton } from '../components/quotes/AddQuoteButton'
-import { VerdictView } from '../components/quotes/VerdictView'
+import { verdictClock } from '../components/quotes/verdict-clock'
+import { VerdictView, type VerdictData } from '../components/quotes/VerdictView'
 import { useProjectJobs, useQuoteJobs } from '../hooks/useQuoteJobs'
 import { useRootData } from '../hooks/useRootData'
 import { APP_NAME } from '../lib/brand'
@@ -15,7 +16,11 @@ export const Route = createFileRoute('/projects/$projectId/quotes')({
   beforeLoad: async () => {
     if (!(await getSession())) throw redirect({ to: '/login' })
   },
-  loader: ({ params }) => getProjectQuotes({ data: { projectId: params.projectId } }),
+  // The tick orders this read against the page's saves. Data read on the server predates every edit on the page: 0.
+  loader: async ({ params }): Promise<VerdictData> => {
+    const readAt = typeof window === 'undefined' ? 0 : verdictClock.tick()
+    return { ...(await getProjectQuotes({ data: { projectId: params.projectId } })), readAt }
+  },
   head: ({ loaderData }) => ({ meta: [{ title: loaderData ? `${loaderData.project.name} · ${APP_NAME}` : APP_NAME }] }),
   component: VerdictPage,
 })

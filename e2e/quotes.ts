@@ -57,3 +57,6 @@ function isSave(body: string, kind: 'musts' | 'item'): boolean {
 
 /** A must-have save: the only server call that sends a project id and an item. */
 export const isMustSave = (body: string): boolean => isSave(body, 'musts')
+
+/** The verdict page's data read: the only GET server call whose payload names a project. */
+export const isProjectRead = (url: string): boolean => url.includes('/_serverFn/') && decodeURIComponent(url).includes('"projectId"')

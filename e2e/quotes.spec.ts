@@ -6,7 +6,7 @@ import {
   trashedPaths,
 } from './db'
 import { hideProjects, showProjects } from './projects'
-import { isMustSave, openVerdictFromTray, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading } from './quotes'
+import { isMustSave, isProjectRead, openVerdictFromTray, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading } from './quotes'
 
 const ALL = ['solartec', 'voltia', 'grupoluz', 'enerhogar']
 /** Where the E2E server keeps quote files (QUOTES_LOCAL_DIR in playwright.config.ts). */
@@ -156,6 +156,73 @@ test('a reload that lands while a must-have is saving keeps the change on screen
 
   release()
   await save
+  await page.unroute('**/*')
+  await page.reload()
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  await expect(wifi).toHaveAttribute('aria-checked', 'true')
+})
+
+test('a reload that read the data before a must-have saved, but answers after the save, keeps the change', async ({ page }) => {
+  test.slow()
+  await signUp(page)
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  // When the second quote finishes, the page reloads its data. That read happens first; only then does the must-have
+  // save reach the server; and the read's (older) answer arrives last, after the page has handled the save's.
+  const signal = () => {
+    let fire: () => void = () => {}
+    const done = new Promise<void>((resolve) => { fire = resolve })
+    return { fire: () => fire(), done }
+  }
+  const staleRead = signal()
+  const saveAnswered = signal()
+  const staleDelivered = signal()
+  let isArmed = false
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    if (request.method() === 'POST' && isMustSave(request.postData() ?? '')) {
+      isArmed = true
+      await staleRead.done
+      await route.fulfill({ response: await route.fetch() })
+      saveAnswered.fire()
+      return
+    }
+    if (isArmed && request.method() === 'GET' && isProjectRead(request.url())) {
+      isArmed = false
+      const response = await route.fetch()
+      staleRead.fire()
+      await saveAnswered.done
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      await route.fulfill({ response })
+      staleDelivered.fire()
+      return
+    }
+    return route.fallback()
+  })
+
+  // Adding a quote reloads the page once while it is read; the must-have is changed after that reload.
+  const addedReload = page.waitForResponse((r) => r.request().method() === 'GET' && isProjectRead(r.url()))
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'Add another quote' }).click()
+  await (await chooser).setFiles([await quotePdf('voltia')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await addedReload
+
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  const sheet = page.getByRole('dialog', { name: 'What matters for this project' })
+  const wifi = sheet.getByRole('switch', { name: 'Wi-Fi monitoring', exact: true })
+  await expect(wifi).toHaveAttribute('aria-checked', 'false')
+  await wifi.click()
+  await sheet.getByRole('button', { name: 'Done', exact: true }).click()
+
+  await staleDelivered.done
+  // The older read was applied: it brought the second quote.
+  await expect(page.getByRole('article')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  await expect(wifi).toHaveAttribute('aria-checked', 'true')
+
   await page.unroute('**/*')
   await page.reload()
   await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()

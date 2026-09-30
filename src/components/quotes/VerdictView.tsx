@@ -10,7 +10,8 @@ import { compareQuotes } from '../../lib/quote-compare'
 import { canRetry } from '../../lib/quote-guards'
 import { kitNeeds, setOverride, type ItemId, type Musts, type Override, type Overrides } from '../../lib/quote-items'
 import {
-  addPendingMust, addPendingOverride, NO_PENDING, overlayPending, settlePendingMust, settlePendingOverride, type PendingEdits,
+  addPendingMust, addPendingOverride, NO_PENDING, overlayPending, prunePending, settlePendingMust, settlePendingOverride,
+  type PendingEdits,
 } from '../../lib/quote-pending'
 import { deleteQuote, retryQuote, setQuoteMust, setQuoteOverride, setQuoteTotal, type ProjectQuotes } from '../../server/quotes/api'
 import { BestCard } from './BestCard'
@@ -18,10 +19,14 @@ import { MustsSheet } from './MustsSheet'
 import { PricePlot } from './PricePlot'
 import { QuoteRow } from './QuoteRow'
 import { UnrankedRow } from './UnrankedRow'
+import { verdictClock } from './verdict-clock'
 import { VerdictHeader } from './VerdictHeader'
 
+/** The page's data, with the clock tick at which the loader requested it (0 when it was read on the server). */
+export type VerdictData = ProjectQuotes & { readAt: number }
+
 interface Props {
-  data: ProjectQuotes
+  data: VerdictData
   progress: { done: number; total: number } | null
   onReload: () => Promise<void>
   /** The upload button (Task 16); the footer shows it next to Change must-haves. */
@@ -41,11 +46,13 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   const [overrides, setOverrides] = useState(() => overridesById(data))
   const [error, setError] = useState<SaveError>(null)
   const [isMustsOpen, setMustsOpen] = useState(false)
-  // Edits whose save hasn't answered yet. A reload (a quote finished, another action) can land mid-save with data read
-  // before the save; laying these over it keeps the change the user sees until its save answers.
+  // Edits still saving, or saved after the latest reload was requested. A reload (a quote finished, another action) can
+  // bring data read before a save landed; laying these over it keeps the change the user sees. An edit is dropped only
+  // by data whose request came after its save answered.
   const pending = useRef<PendingEdits>(NO_PENDING)
   const nextSeq = useRef(0)
   useEffect(() => {
+    pending.current = prunePending(pending.current, data.readAt)
     const shown = overlayPending(serverEdits(data), pending.current)
     setMusts(shown.musts)
     setOverrides(shown.overrides)
@@ -74,7 +81,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   const failed = (key: string) => setError({ key, text: t.quotes.saveFailed })
   const errorFor = (key: string) => (error?.key === key ? error.text : null)
 
-  /** Stops laying an answered save over reloads. True when it was the item's latest edit, so a rollback may apply. */
+  /** Records that a save answered. True when it was the item's latest edit, so a rollback may apply. */
   const settle = (next: (p: PendingEdits) => PendingEdits): boolean => {
     const before = pending.current
     pending.current = next(before)
@@ -90,10 +97,10 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
     setOverrides((o) => ({ ...o, [quoteId]: setOverride(o[quoteId] ?? {}, item, value) }))
     try {
       await setQuoteOverride({ data: { quoteId, item, value } })
-      settle((p) => settlePendingOverride(p, quoteId, item, seq))
+      settle((p) => settlePendingOverride(p, quoteId, item, seq, value, verdictClock.tick()))
     } catch (e) {
       console.error('[quotes] saving an override failed', { quoteId, item, e })
-      if (settle((p) => settlePendingOverride(p, quoteId, item, seq))) {
+      if (settle((p) => settlePendingOverride(p, quoteId, item, seq, prev, verdictClock.tick()))) {
         setOverrides((o) => ({ ...o, [quoteId]: setOverride(o[quoteId] ?? {}, item, prev) }))
       }
       failed(quoteId)
@@ -108,10 +115,10 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
     setMusts((m) => ({ ...m, [item]: value }))
     try {
       await setQuoteMust({ data: { projectId: data.project.id, item, value } })
-      settle((p) => settlePendingMust(p, item, seq))
+      settle((p) => settlePendingMust(p, item, seq, value, verdictClock.tick()))
     } catch (e) {
       console.error('[quotes] saving a must-have failed', { item, e })
-      if (settle((p) => settlePendingMust(p, item, seq))) setMusts((m) => ({ ...m, [item]: prev }))
+      if (settle((p) => settlePendingMust(p, item, seq, prev, verdictClock.tick()))) setMusts((m) => ({ ...m, [item]: prev }))
       failed('musts')
     }
   }
