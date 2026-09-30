@@ -19,7 +19,8 @@ export function HandoffDialog({ isOpen, onOpenChange, items, projectId, projectN
   const minutes = Math.max(1, Math.ceil((kept.length * SECONDS_PER_QUOTE) / 60))
   const statusOf = (it: UploadItem): string => {
     if (it.state === 'uploading') return fileStatusText(t, 'uploading')
-    if (it.state === 'rejected') return t.quotes.errUpload
+    // The reason (type, size, a limit) is in the list below the tiles.
+    if (it.state === 'rejected') return t.quotes.stRejected
     const job = jobs?.files.find((f) => f.id === it.id)
     return fileStatusText(t, job?.status ?? 'queued')
   }
