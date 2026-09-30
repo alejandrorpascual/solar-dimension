@@ -1,0 +1,63 @@
+import { describe, expect, test } from 'vitest'
+import { SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
+import { DEFAULT_MUSTS } from './quote-items'
+import { etaSeconds, nextPollDelay, pickTray, summarizeProject, type JobQuote, type ProjectJobs } from './quote-jobs'
+
+const jq = (id: string, over: Partial<JobQuote> = {}): JobQuote => ({
+  id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES.solartec, overrides: {}, totalOverride: null,
+  createdAt: 1, seenAt: null, ...over,
+})
+const jobs = (over: Partial<ProjectJobs>): ProjectJobs => ({
+  projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null, ...over,
+})
+
+describe('summarizeProject', () => {
+  test('counts pending, done, failed and needs-review quotes', () => {
+    const s = summarizeProject('p', 'Home', [
+      jq('a'), jq('b', { status: 'processing', extraction: null }), jq('c', { status: 'failed', extraction: null }), jq('d', { status: 'needs_review' }),
+    ], KIT, DEFAULT_MUSTS)
+    expect(s).toMatchObject({ total: 4, done: 3, pending: 1, failed: 1, needsReview: 1 })
+    expect(s.files.map((f) => f.status)).toEqual(['ready', 'processing', 'failed', 'needs_review'])
+  })
+  test('names the best quote only once nothing is pending', () => {
+    expect(summarizeProject('p', 'Home', [jq('a'), jq('b', { status: 'queued', extraction: null })], KIT, DEFAULT_MUSTS).best).toBeNull()
+    expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).best).toEqual({ name: 'SolarTec Caribe', total: 6480, currency: 'USD' })
+  })
+  test('an empty kit (null) is flagged, has no best, and is never an unseen verdict', () => {
+    expect(summarizeProject('p', 'Home', [jq('a')], null, DEFAULT_MUSTS)).toMatchObject({ kitEmpty: true, best: null, unseen: false })
+    expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).kitEmpty).toBe(false)
+  })
+  test('unseen while a finished quote has no seenAt', () => {
+    expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).unseen).toBe(true)
+    expect(summarizeProject('p', 'Home', [jq('a', { seenAt: 5 })], KIT, DEFAULT_MUSTS).unseen).toBe(false)
+    expect(summarizeProject('p', 'Home', [jq('a', { status: 'queued', extraction: null })], KIT, DEFAULT_MUSTS).unseen).toBe(false)
+  })
+})
+
+describe('pickTray', () => {
+  test('reading wins over ready', () => {
+    const t = pickTray([jobs({ projectId: 'a', unseen: true }), jobs({ projectId: 'b', pending: 2 })], null)
+    expect(t).toMatchObject({ mode: 'reading', project: { projectId: 'b' } })
+  })
+  test('ready when a finished verdict is unseen', () => {
+    expect(pickTray([jobs({ unseen: true })], null)?.mode).toBe('ready')
+  })
+  test('hidden on the verdict page of that project, and when nothing is going on', () => {
+    expect(pickTray([jobs({ pending: 1 })], 'p')).toBeNull()
+    expect(pickTray([jobs({})], null)).toBeNull()
+  })
+})
+
+describe('etaSeconds and nextPollDelay', () => {
+  test('ETA only after the first quote is read', () => {
+    expect(etaSeconds(jobs({ total: 4, done: 0, pending: 4 }))).toBeNull()
+    expect(etaSeconds(jobs({ total: 4, done: 2, pending: 2 }))).toBe(60)
+    expect(etaSeconds(jobs({ total: 4, done: 4, pending: 0 }))).toBeNull()
+  })
+  test('polls every 3 s while reading, backs off after a failure, stops when idle', () => {
+    expect(nextPollDelay([jobs({ pending: 1 })], 0)).toBe(3000)
+    expect(nextPollDelay([jobs({ pending: 1 })], 2)).toBe(10000)
+    expect(nextPollDelay([], 1)).toBe(10000)
+    expect(nextPollDelay([jobs({})], 0)).toBeNull()
+  })
+})
