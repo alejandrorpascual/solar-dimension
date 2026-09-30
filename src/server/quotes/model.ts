@@ -18,6 +18,15 @@ export interface QuoteModel { extract(input: ModelInput, model: string): Promise
 
 const REQUEST_TIMEOUT_MS = 120_000
 
+/**
+ * The most the model may write for one quote, which bounds what a read can cost. Sized for the largest extraction the
+ * app keeps (normalizeExtraction): a line of the sample quotes is ~420 characters of compact JSON, ~120 tokens at
+ * ~3.5 characters per token for key-heavy JSON, so 80 lines are ~9,600; 20 notes of up to 300 characters ~1,700;
+ * vendor, dates, totals and 10 warranties ~300. That is ~11,600, rounded up. Reasoning tokens count against it too, so
+ * a reasoning model needs more. An answer cut short fails the parse and is refused (readExtraction).
+ */
+export const MAX_OUTPUT_TOKENS = 12_000
+
 export const SYSTEM_PROMPT = [
   'You read quotes and budgets for home battery backup systems, sent by installers and sellers.',
   'Extract only what the document says. Never infer, estimate or complete a price, a size or an item that is not written.',
@@ -67,8 +76,34 @@ export function extractRequest(input: ModelInput, model: string) {
     instructions: SYSTEM_PROMPT,
     input: [{ role: 'user' as const, content: [fileContent(input), { type: 'input_text' as const, text: 'Extract this quote.' }] }],
     text: { format: zodTextFormat(QuoteExtractionSchema, 'quote') },
+    max_output_tokens: MAX_OUTPUT_TOKENS,
     store: false,
   }
+}
+
+/** The parts of a parsed Responses API answer that readExtraction uses. */
+export interface ParsedAnswer {
+  status?: string
+  incomplete_details?: { reason?: string } | null
+  output_parsed: QuoteExtraction | null
+  usage?: { input_tokens: number; output_tokens: number }
+}
+
+/**
+ * The extraction in a parsed answer. The SDK only parses a completed answer, so one cut short (by MAX_OUTPUT_TOKENS or
+ * a content filter) has no extraction and is refused, as a missing one always was: the fallback model gets the file.
+ * It is logged, since a cap set too low would otherwise show only as failed reads.
+ */
+export function readExtraction(res: ParsedAnswer, model: string): ModelOutput {
+  const input = res.usage?.input_tokens ?? 0
+  const output = res.usage?.output_tokens ?? 0
+  if (res.status === 'incomplete') {
+    const reason = res.incomplete_details?.reason ?? 'unknown'
+    console.warn('[quotes] a model answer was cut short', { model, reason, outputTokens: output })
+    throw new ModelError('refused', `The model stopped early: ${reason}`)
+  }
+  if (!res.output_parsed) throw new ModelError('refused', 'The model returned no extraction')
+  return { extraction: res.output_parsed, input, output }
 }
 
 export function openAiModel(apiKey: string): QuoteModel {
@@ -77,9 +112,7 @@ export function openAiModel(apiKey: string): QuoteModel {
   return {
     async extract(input, model) {
       try {
-        const res = await client.responses.parse(extractRequest(input, model))
-        if (!res.output_parsed) throw new ModelError('refused', 'The model returned no extraction')
-        return { extraction: res.output_parsed, input: res.usage?.input_tokens ?? 0, output: res.usage?.output_tokens ?? 0 }
+        return readExtraction(await client.responses.parse(extractRequest(input, model)), model)
       } catch (error) {
         throw classifyError(error)
       }

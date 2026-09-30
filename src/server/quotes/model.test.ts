@@ -1,7 +1,7 @@
 import OpenAI from 'openai'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { SAMPLE_QUOTES } from '../../lib/quote-fixtures'
-import { classifyError, extractRequest, fileContent, ModelError, modelNames, SYSTEM_PROMPT } from './model'
+import { classifyError, extractRequest, fileContent, MAX_OUTPUT_TOKENS, ModelError, modelNames, readExtraction, SYSTEM_PROMPT } from './model'
 import { stubModel } from './stub-model'
 
 describe('fileContent', () => {
@@ -41,6 +41,10 @@ describe('extractRequest', () => {
     expect(req.text.format).toMatchObject({ type: 'json_schema', name: 'quote', strict: true })
     expect(req.text.format.schema).toMatchObject({ type: 'object', additionalProperties: false })
   })
+  test('the answer is capped at MAX_OUTPUT_TOKENS, sized for the largest extraction the app keeps', () => {
+    expect(MAX_OUTPUT_TOKENS).toBe(12_000)
+    expect(req.max_output_tokens).toBe(MAX_OUTPUT_TOKENS)
+  })
   test('it sends the model, the prompt and the file', () => {
     expect(req.model).toBe('gpt-x')
     expect(req.instructions).toBe(SYSTEM_PROMPT)
@@ -62,5 +66,34 @@ describe('prompt, model names and stub', () => {
     const out = await m.extract({ bytes: new Uint8Array(), mime: 'application/pdf', fileName: 'Voltia-oferta.pdf' }, 'x')
     expect(out.extraction).toEqual(SAMPLE_QUOTES.voltia)
     await expect(m.extract({ bytes: new Uint8Array(), mime: 'application/pdf', fileName: 'unreadable.pdf' }, 'x')).rejects.toMatchObject({ kind: 'invalid' })
+  })
+})
+
+describe('readExtraction', () => {
+  const usage = { input_tokens: 1200, output_tokens: 300 }
+  test('a complete answer gives the extraction and its tokens', () => {
+    const out = readExtraction({ status: 'completed', output_parsed: SAMPLE_QUOTES.voltia, usage }, 'gpt-x')
+    expect(out).toEqual({ extraction: SAMPLE_QUOTES.voltia, input: 1200, output: 300 })
+  })
+  test('a complete answer with no extraction is refused, as before', () => {
+    expect(() => readExtraction({ status: 'completed', output_parsed: null, usage }, 'gpt-x')).toThrow(new ModelError('refused', 'The model returned no extraction'))
+  })
+  test('an answer cut short by the token cap is refused like a missing one, and logged with its reason', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    try {
+      const cut = { status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' as const }, output_parsed: null, usage }
+      let thrown: unknown
+      try {
+        readExtraction(cut, 'gpt-x')
+      } catch (e) {
+        thrown = e
+      }
+      expect(thrown).toBeInstanceOf(ModelError)
+      expect(thrown).toMatchObject({ kind: 'refused', message: 'The model stopped early: max_output_tokens' })
+      expect(classifyError(thrown).kind).toBe('refused')
+      expect(warn).toHaveBeenCalledWith('[quotes] a model answer was cut short', { model: 'gpt-x', reason: 'max_output_tokens', outputTokens: 300 })
+    } finally {
+      warn.mockRestore()
+    }
   })
 })
