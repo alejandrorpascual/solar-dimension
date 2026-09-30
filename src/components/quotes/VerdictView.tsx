@@ -9,7 +9,7 @@ import { computeProject } from '../../lib/project-summary'
 import { compareQuotes } from '../../lib/quote-compare'
 import { canRetry } from '../../lib/quote-guards'
 import { kitNeeds, setOverride, type ItemId, type Musts, type Override, type Overrides } from '../../lib/quote-items'
-import { deleteQuote, retryQuote, setQuoteMusts, setQuoteOverride, setQuoteTotal, type ProjectQuotes } from '../../server/quotes/api'
+import { deleteQuote, retryQuote, setQuoteMust, setQuoteOverride, setQuoteTotal, type ProjectQuotes } from '../../server/quotes/api'
 import { BestCard } from './BestCard'
 import { MustsSheet } from './MustsSheet'
 import { PricePlot } from './PricePlot'
@@ -78,15 +78,15 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       failed(quoteId)
     }
   }
+  // Each switch saves only its own item, so the server and the screen agree on which changes were kept.
   const onMust = async (item: ItemId, value: boolean) => {
     const prev = musts[item]
-    const next = { ...musts, [item]: value }
     setError(null)
-    setMusts(next)
+    setMusts((m) => ({ ...m, [item]: value }))
     try {
-      await setQuoteMusts({ data: { projectId: data.project.id, musts: next } })
+      await setQuoteMust({ data: { projectId: data.project.id, item, value } })
     } catch (e) {
-      console.error('[quotes] saving must-haves failed', e)
+      console.error('[quotes] saving a must-have failed', { item, e })
       setMusts((m) => ({ ...m, [item]: prev }))
       failed('musts')
     }

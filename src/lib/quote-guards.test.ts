@@ -1,9 +1,8 @@
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, test } from 'vitest'
 import {
-  canRetry, inspectUpload, MAX_RETRIES, MAX_TOTAL, MustsInput, OverrideInput, parseTotal, QuoteId, RETRYABLE, refusedInsertRejection, TotalInput, uploadRejection,
+  canRetry, inspectUpload, MAX_RETRIES, MAX_TOTAL, MustInput, OverrideInput, parseTotal, QuoteId, RETRYABLE, refusedInsertRejection, TotalInput, uploadRejection,
 } from './quote-guards'
-import { DEFAULT_MUSTS } from './quote-items'
 import { QUOTE_LIMITS } from './quote-limits'
 
 const ID = '0f8fad5b-d9cb-469f-a165-70867728950e'
@@ -75,12 +74,12 @@ describe('inputs', () => {
     expect(total(MAX_TOTAL)).toBe(true)
     for (const bad of [0, -5, Number.NaN, Number.POSITIVE_INFINITY, MAX_TOTAL + 1]) expect(total(bad)).toBe(false)
   })
-  test('must-haves need every item as a boolean, for a real project id', () => {
-    expect(MustsInput.safeParse({ projectId: 'p1', musts: DEFAULT_MUSTS }).success).toBe(true)
-    const { fuse: _fuse, ...withoutFuse } = DEFAULT_MUSTS
-    expect(MustsInput.safeParse({ projectId: 'p1', musts: withoutFuse }).success).toBe(false)
-    expect(MustsInput.safeParse({ projectId: 'p1', musts: { ...DEFAULT_MUSTS, fuse: 'yes' } }).success).toBe(false)
-    expect(MustsInput.safeParse({ projectId: '', musts: DEFAULT_MUSTS }).success).toBe(false)
+  test('a must-have change is one known item set to a boolean, for a real project id', () => {
+    expect(MustInput.safeParse({ projectId: 'p1', item: 'fuse', value: false }).success).toBe(true)
+    expect(MustInput.safeParse({ projectId: 'p1', item: 'solar_panel', value: true }).success).toBe(false)
+    expect(MustInput.safeParse({ projectId: 'p1', item: 'fuse', value: 'yes' }).success).toBe(false)
+    expect(MustInput.safeParse({ projectId: 'p1', item: 'fuse' }).success).toBe(false)
+    expect(MustInput.safeParse({ projectId: '', item: 'fuse', value: true }).success).toBe(false)
   })
   test('only a failed quote can be retried', () => {
     expect(RETRYABLE).toEqual(['failed'])

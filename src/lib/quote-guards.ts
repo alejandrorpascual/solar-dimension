@@ -12,8 +12,8 @@ export const ProjectId = z.string().min(1).max(64)
 export const QuoteId = z.string().uuid()
 export const OverrideInput = z.object({ quoteId: QuoteId, item: z.enum(ITEM_IDS), value: z.enum(OVERRIDES).nullable() })
 export const TotalInput = z.object({ quoteId: QuoteId, total: z.number().positive().max(MAX_TOTAL) })
-/** Zod 4 makes a record over an enum exhaustive: all eight items must be there. The client always sends the full `Musts`. */
-export const MustsInput = z.object({ projectId: ProjectId, musts: z.record(z.enum(ITEM_IDS), z.boolean()) })
+/** One must-have switched on or off. Each change saves only its own item, so two quick changes can't undo each other. */
+export const MustInput = z.object({ projectId: ProjectId, item: z.enum(ITEM_IDS), value: z.boolean() })
 
 /** Only a quote the model gave up on can be retried; a read one stays until it is deleted. */
 export const RETRYABLE: readonly QuoteStatus[] = ['failed']

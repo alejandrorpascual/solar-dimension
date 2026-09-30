@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { db } from '../../db/client'
 import { projects, quotes, quoteSettings } from '../../db/schema'
 import { computeProject } from '../../lib/project-summary'
-import { inspectUpload, MAX_RETRIES, MustsInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, RETRYABLE, TotalInput, uploadRejection } from '../../lib/quote-guards'
+import { inspectUpload, MAX_RETRIES, MustInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, RETRYABLE, TotalInput, uploadRejection } from '../../lib/quote-guards'
 import { kitNeeds, resolveMusts, type Musts } from '../../lib/quote-items'
 import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quote-jobs'
 import { checkBasics, cleanFileName, type Rejection } from '../../lib/quote-limits'
@@ -143,15 +143,20 @@ export const setQuoteTotal = createServerFn({ method: 'POST' })
     return { ok: true as const }
   })
 
-export const setQuoteMusts = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => MustsInput.parse(d))
+/**
+ * Saves one must-have, merged into the stored ones in a single upsert, so changes to different items never overwrite
+ * each other whatever order they land in. A first save starts from the defaults.
+ */
+export const setQuoteMust = createServerFn({ method: 'POST' })
+  .validator((d: unknown) => MustInput.parse(d))
   .handler(async ({ data }) => {
     const userId = await requireUserId()
     const [p] = await db.select({ id: projects.id }).from(projects).where(ownProject(userId, data.projectId)).limit(1)
     if (!p) throw new Error('Not found')
+    const merged = sql`coalesce(${quoteSettings.musts}, '{}'::jsonb) || jsonb_build_object(${data.item}::text, ${data.value}::boolean)`
     await db.insert(quoteSettings)
-      .values({ userId, projectId: data.projectId, musts: data.musts, updatedAt: new Date() })
-      .onConflictDoUpdate({ target: [quoteSettings.userId, quoteSettings.projectId], set: { musts: data.musts, updatedAt: new Date() } })
+      .values({ userId, projectId: data.projectId, musts: resolveMusts({ [data.item]: data.value }), updatedAt: new Date() })
+      .onConflictDoUpdate({ target: [quoteSettings.userId, quoteSettings.projectId], set: { musts: merged, updatedAt: new Date() } })
     return { ok: true as const }
   })
 
