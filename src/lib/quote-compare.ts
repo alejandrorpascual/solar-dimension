@@ -26,7 +26,10 @@ export interface Verdict {
   /** When nothing fits: the short quote with the fewest failed must-haves. */
   closest: RankedQuote | null
   mustCount: number
+  /** Quotes that produced a reading: finished, and not failed. */
   readCount: number
+  /** Quotes the model gave up on. */
+  failedCount: number
 }
 
 type Scored = Omit<RankedQuote, 'rank' | 'delta'>
@@ -105,6 +108,11 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
   return {
     currency, ranked, unranked, best, nextFit, worthAsking, closest,
     mustCount: ITEM_IDS.filter((id) => musts[id]).length,
-    readCount: quotes.filter((q) => !isPending(q.status)).length,
+    readCount: quotes.filter((q) => !isPending(q.status) && q.status !== 'failed').length,
+    failedCount: quotes.filter((q) => q.status === 'failed').length,
   }
 }
+
+/** Every quote has finished and none produced a reading: there is no verdict, only quotes to retry. */
+export const nothingRead = (v: Verdict): boolean =>
+  v.readCount === 0 && v.failedCount > 0 && !v.unranked.some((u) => u.reason === 'reading')

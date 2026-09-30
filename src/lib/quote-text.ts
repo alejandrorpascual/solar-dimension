@@ -1,6 +1,6 @@
 import { trq, type Dictionary } from '../i18n'
 import { fmtKwh, fmtList, fmtMoney, fmtW } from '../i18n/format'
-import type { RankedQuote, Verdict } from './quote-compare'
+import { nothingRead, type RankedQuote, type Verdict } from './quote-compare'
 import type { ItemCheck, ItemId, KitNeeds } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
@@ -17,6 +17,7 @@ export function verdictHeading(t: Dictionary, v: Verdict): string {
   if (v.best) return trq(t, 'headingBest', { name: v.best.name })
   if (v.ranked.length > 0) return t.quotes.headingNone
   if (v.unranked.some((u) => u.reason === 'reading')) return t.quotes.headingReading
+  if (nothingRead(v)) return t.quotes.headingUnread
   return v.unranked.length > 0 ? t.quotes.headingNone : t.quotes.headingEmpty
 }
 
@@ -29,7 +30,20 @@ export function verdictSubline(t: Dictionary, v: Verdict, kit: KitNeeds): string
   }
   if (v.closest) return trq(t, 'subNone', { name: v.closest.name, gap: gapText(t, v.closest, kit) })
   if (v.worthAsking.length > 0) return t.quotes.subUnclear
+  if (nothingRead(v)) return t.quotes.subUnread
   return v.ranked.length === 0 && v.unranked.length === 0 ? t.quotes.emptyBody : ''
+}
+
+/**
+ * The status line above the heading once reading is over: a ready verdict with how many quotes were read, or, when
+ * none could be read, a warning with how many failed. Null while nothing has finished.
+ */
+export function verdictStatus(t: Dictionary, v: Verdict): { tone: 'ok' | 'warn'; label: string; meta: string | null } | null {
+  if (v.readCount > 0) {
+    return { tone: 'ok', label: t.quotes.verdictReady, meta: v.readCount === 1 ? t.quotes.readMetaOne : trq(t, 'readMeta', { count: v.readCount }) }
+  }
+  if (!nothingRead(v)) return null
+  return { tone: 'warn', label: v.failedCount === 1 ? t.quotes.unreadOne : trq(t, 'unreadCount', { count: v.failedCount }), meta: null }
 }
 
 /** The first must-have a quote fails, in words: "its inverter is 3,560 W short". */

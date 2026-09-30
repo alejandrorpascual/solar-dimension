@@ -481,3 +481,20 @@ test('a Google account whose email Google did not verify does not unlock uploads
   await expect(card).toContainText('Uploading quotes needs a verified account.')
   await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toHaveCount(0)
 })
+
+test('a project whose quotes all failed says none could be read, not that a verdict is ready', async ({ page }) => {
+  // Sign-up and database seeding over Neon's HTTP driver can pass 30 s on a slow CI runner.
+  test.slow()
+  const email = await signUp(page)
+  await page.goto('/?step=3')
+  await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toBeEnabled({ timeout: 15_000 })
+  const projectId = await firstProjectId(email)
+  await seedQuoteRows(email, projectId, 2)
+
+  await page.goto(`/projects/${projectId}/quotes`)
+  await expect(verdictHeading(page)).toHaveText("We couldn't read your quotes")
+  await expect(page.getByText('Retry them, or check that each file is an installer quote.')).toBeVisible()
+  const status = page.getByRole('status')
+  await expect(status).toHaveText("2 couldn't be read")
+  await expect(page.getByText('Verdict ready')).toHaveCount(0)
+})

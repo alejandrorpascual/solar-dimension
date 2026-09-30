@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { compareQuotes, quoteName, type QuoteView } from './quote-compare'
+import { compareQuotes, nothingRead, quoteName, type QuoteView } from './quote-compare'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
 import { DEFAULT_MUSTS } from './quote-items'
 
@@ -76,6 +76,23 @@ describe('what is not ranked', () => {
     expect(waiting.unranked).toMatchObject([{ reason: 'needs_review' }])
     const fixed = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { status: 'needs_review', totalOverride: 6000 })])
     expect(fixed.best?.total).toBe(6000)
+  })
+  test('failed quotes are counted as failed, not as read', () => {
+    const failed = view('x', { status: 'failed', extraction: null })
+    const onlyFailed = compareQuotes(KIT, DEFAULT_MUSTS, [failed, { ...failed, id: 'y' }])
+    expect(onlyFailed.readCount).toBe(0)
+    expect(onlyFailed.failedCount).toBe(2)
+    const mixed = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), view('grupoluz', { status: 'needs_review' }), failed])
+    expect(mixed.readCount).toBe(2)
+    expect(mixed.failedCount).toBe(1)
+  })
+  test('nothing was read only when every finished quote failed and none is still reading', () => {
+    const failed = view('x', { status: 'failed', extraction: null })
+    const reading = view('r', { status: 'queued', extraction: null })
+    expect(nothingRead(compareQuotes(KIT, DEFAULT_MUSTS, [failed]))).toBe(true)
+    expect(nothingRead(compareQuotes(KIT, DEFAULT_MUSTS, [failed, view('solartec')]))).toBe(false)
+    expect(nothingRead(compareQuotes(KIT, DEFAULT_MUSTS, [failed, reading]))).toBe(false)
+    expect(nothingRead(compareQuotes(KIT, DEFAULT_MUSTS, []))).toBe(false)
   })
   test('failed quotes are listed as failed', () => {
     expect(compareQuotes(KIT, DEFAULT_MUSTS, [view('x', { status: 'failed', extraction: null })]).unranked).toMatchObject([{ reason: 'failed' }])

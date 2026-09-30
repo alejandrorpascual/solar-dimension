@@ -8,7 +8,7 @@ import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
 import {
   askText, deltaText, etaText, fitLabel, itemText, markLabel, projectLine, questionText, reasonLine, rejectionText, verdictHeading,
-  verdictSubline,
+  verdictStatus, verdictSubline,
 } from './quote-text'
 
 const view = (id: SampleQuoteId, i: number): QuoteView => ({
@@ -33,6 +33,33 @@ describe('verdict text', () => {
     expect(verdictHeading(en, empty)).toBe('No quotes yet')
     const reading = compareQuotes(KIT, DEFAULT_MUSTS, [{ ...view('solartec', 0), status: 'processing', extraction: null }])
     expect(verdictHeading(en, reading)).toBe('Reading your quotes')
+  })
+})
+
+describe('when every quote failed', () => {
+  const failed = (id: string): QuoteView => ({ ...view('solartec', 0), id, fileName: `${id}.pdf`, status: 'failed', extraction: null })
+  const allFailed = compareQuotes(KIT, DEFAULT_MUSTS, ['a', 'b', 'c', 'd', 'e', 'f'].map(failed))
+  test('the heading and subline say nothing could be read, in both languages', () => {
+    expect(verdictHeading(en, allFailed)).toBe("We couldn't read your quotes")
+    expect(verdictSubline(en, allFailed, KIT)).toBe('Retry them, or check that each file is an installer quote.')
+    expect(verdictHeading(es, allFailed)).toBe('No pudimos leer tus cotizaciones')
+    expect(verdictSubline(es, allFailed, KIT)).toBe('Vuelve a intentarlo, o comprueba que cada archivo sea una cotización de instalador.')
+  })
+  test('the status is a warning with the failed count, not a ready verdict', () => {
+    expect(verdictStatus(en, allFailed)).toEqual({ tone: 'warn', label: "6 couldn't be read", meta: null })
+    expect(verdictStatus(es, allFailed)).toEqual({ tone: 'warn', label: 'No se pudieron leer 6', meta: null })
+    const one = compareQuotes(KIT, DEFAULT_MUSTS, [failed('a')])
+    expect(verdictStatus(en, one)).toEqual({ tone: 'warn', label: "1 couldn't be read", meta: null })
+    expect(verdictStatus(es, one)).toEqual({ tone: 'warn', label: 'No se pudo leer 1', meta: null })
+  })
+  test('with some quotes read, the verdict is ready and counts only those', () => {
+    const mixed = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', 0), view('voltia', 1), failed('a')])
+    expect(verdictStatus(en, mixed)).toEqual({ tone: 'ok', label: 'Verdict ready', meta: '2 quotes read' })
+    expect(verdictStatus(en, compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', 0), failed('a')]))?.meta).toBe('1 quote read')
+    expect(verdictHeading(en, mixed)).toBe('SolarTec Caribe fits your kit for the least')
+  })
+  test('with nothing finished there is no status', () => {
+    expect(verdictStatus(en, compareQuotes(KIT, DEFAULT_MUSTS, []))).toBeNull()
   })
 })
 
