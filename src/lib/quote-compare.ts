@@ -1,3 +1,4 @@
+import { hasTotal } from './quote-checks'
 import { checkItems, ITEM_IDS, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
 import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
 
@@ -38,8 +39,15 @@ export function quoteName(q: QuoteView): string {
   return q.label?.trim() || q.extraction?.vendor.name?.trim() || q.fileName
 }
 
+/** The total a quote ranks by: the user's, else the one read. */
+const totalOf = (q: QuoteView): number | null => q.totalOverride ?? q.extraction?.total ?? null
+
+/**
+ * Read, and with a positive total. A total of 0 (what the model writes when a quote states none), negative or not a
+ * number never ranks: the quote waits for the user's total, like one whose amounts don't add up.
+ */
 const isRankable = (q: QuoteView): boolean =>
-  q.extraction !== null && (q.status === 'ready' || (q.status === 'needs_review' && q.totalOverride !== null))
+  q.extraction !== null && hasTotal(totalOf(q)) && (q.status === 'ready' || (q.status === 'needs_review' && q.totalOverride !== null))
 
 /** The currency most rankable quotes use; a tie goes to the earliest quote's currency. */
 function mainCurrency(quotes: readonly QuoteView[]): string | null {
@@ -58,7 +66,7 @@ function mainCurrency(quotes: readonly QuoteView[]): string | null {
 function unrankedReason(q: QuoteView): UnrankedReason {
   if (isPending(q.status)) return 'reading'
   if (isRankable(q)) return 'other_currency'
-  if (q.status === 'needs_review') return 'needs_review'
+  if (q.extraction !== null && (q.status === 'needs_review' || q.status === 'ready')) return 'needs_review'
   return 'failed'
 }
 
@@ -70,7 +78,7 @@ function score(q: QuoteView, kit: KitNeeds, musts: Musts, currency: string): Sco
   const fit: Fit = failedMusts.length > 0 ? 'short' : unknownMusts.length > 0 ? 'unclear' : 'fits'
   return {
     quote: q, name: quoteName(q), items, fit, currency,
-    total: q.totalOverride ?? q.extraction!.total,
+    total: totalOf(q)!,
     failedMusts, unknownMusts,
     niceMet: items.filter((c) => !musts[c.id] && c.status === 'ok').length,
     usableWh: items.find((c) => c.id === 'battery')?.facts.usableWh ?? 0,

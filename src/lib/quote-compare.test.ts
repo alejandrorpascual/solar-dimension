@@ -65,6 +65,29 @@ describe('when nothing fits', () => {
   })
 })
 
+describe('a quote with no total', () => {
+  // A total of 0 is what the model writes when the quote states none: it must never rank as the cheapest.
+  const noTotal = (id: SampleQuoteId, total: number) => view(id, { extraction: { ...SAMPLE_QUOTES[id], total } })
+  test('a read quote whose total is 0, negative or not a number is unranked, waiting for the total to be entered', () => {
+    for (const total of [0, -10, Number.NaN]) {
+      const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), noTotal('grupoluz', total)])
+      expect(ids(v.ranked), String(total)).toEqual(['solartec'])
+      expect(v.unranked, String(total)).toMatchObject([{ quote: { id: 'grupoluz' }, reason: 'needs_review' }])
+    }
+  })
+  test('it is never worth asking about, and never moves the deltas', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), view('voltia', { createdAt: 1 }), noTotal('grupoluz', 0), noTotal('enerhogar', 0)])
+    expect(v.worthAsking).toEqual([])
+    expect(v.best?.quote.id).toBe('solartec')
+    expect(v.ranked.map((r) => r.delta)).toEqual([0, 820])
+  })
+  test('once the user enters its total, it ranks with it', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), { ...noTotal('voltia', 0), totalOverride: 6000 }])
+    expect(v.best?.quote.id).toBe('voltia')
+    expect(v.best?.total).toBe(6000)
+  })
+})
+
 describe('what is not ranked', () => {
   test('queued and processing quotes are reading and not counted as read', () => {
     const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), view('x', { status: 'processing', extraction: null })])

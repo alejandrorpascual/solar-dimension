@@ -25,6 +25,12 @@ describe('checkExtraction', () => {
     expect(checkExtraction(extraction(lines, { tax: 160, subtotal: 1000, total: 1160 }))).toEqual([])
     expect(checkExtraction(extraction(lines, { tax: 160, subtotal: 1000, total: 1400 }))).toContain('total_mismatch')
   })
+  test('flags a total that is not a positive amount: the model writes 0 when the quote states none', () => {
+    for (const total of [0, -50, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(checkExtraction(extraction([line('inverter', 1000)], { total })), String(total)).toContain('no_total')
+    }
+    expect(checkExtraction(extraction([line('inverter', 1000)], { total: 1000 }))).not.toContain('no_total')
+  })
   test('skips the total check when the quote has neither subtotal nor tax', () => {
     expect(checkExtraction(extraction([line('inverter', 1000)], { total: 5000 }))).toEqual([])
   })

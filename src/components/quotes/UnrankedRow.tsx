@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { trq } from '../../i18n'
+import { hasTotal } from '../../lib/quote-checks'
 import type { UnrankedQuote } from '../../lib/quote-compare'
 import { parseTotal } from '../../lib/quote-guards'
 import { fileStatusText } from '../../lib/quote-text'
@@ -19,7 +20,9 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
   const nameId = useId()
   const inputId = useId()
   const errorId = useId()
-  const [total, setTotal] = useState(String(u.quote.extraction?.total ?? ''))
+  // A total of 0 is the model's way of saying the quote states none: the field starts empty rather than at 0.
+  const read = u.quote.extraction?.total
+  const [total, setTotal] = useState(hasTotal(read) ? String(read) : '')
   const [isInvalid, setInvalid] = useState(false)
   const submit = (e: FormEvent) => {
     e.preventDefault()
