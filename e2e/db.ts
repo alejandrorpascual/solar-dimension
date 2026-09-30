@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless'
+import { utcDay } from '../src/lib/quote-budget'
 
 const TEST_APPLIANCE_PREFIX = 'e2e-'
 
@@ -90,9 +91,12 @@ export async function trashedPaths(paths: string[]): Promise<string[]> {
   return rows.map((r) => r.pathname as string)
 }
 
-/** Today's reads across every account, the counter the daily budget reads (UTC day, as the server keys it). */
+/**
+ * Today's reads across every account, the counter the daily budget reads. The day comes from the same utcDay the
+ * server uses, on this machine's clock, not the database's, so the two agree around UTC midnight.
+ */
 export async function dailyReads(): Promise<number> {
-  const rows = await testDb()`select reads from quote_daily_usage where day = (now() at time zone 'utc')::date`
+  const rows = await testDb()`select reads from quote_daily_usage where day = ${utcDay(new Date())}::date`
   return (rows[0]?.reads as number | undefined) ?? 0
 }
 
@@ -102,7 +106,7 @@ export async function dailyReads(): Promise<number> {
  */
 export async function raiseDailyReadsTo(reads: number): Promise<void> {
   await testDb()`
-    insert into quote_daily_usage (day, reads) values ((now() at time zone 'utc')::date, ${reads}::int)
+    insert into quote_daily_usage (day, reads) values (${utcDay(new Date())}::date, ${reads}::int)
     on conflict (day) do update set reads = greatest(quote_daily_usage.reads, excluded.reads)`
 }
 
