@@ -48,7 +48,9 @@ function VerdictPage() {
   return (
     <main className="page">
       <HeaderBar account={<AccountMenu user={user} busy={false} />} />
-      <VerdictView data={data} progress={jobs ? { done: jobs.done, total: jobs.total } : null} onReload={reload}
+      {/* The router keeps this component when only the project changes; the key starts the verdict afresh, so edits
+          still saving for one project never show on another's. */}
+      <VerdictView key={projectId} data={data} progress={jobs ? { done: jobs.done, total: jobs.total } : null} onReload={reload}
         footerExtra={<AddQuoteButton projectId={projectId} projectName={data.project.name} />} />
     </main>
   )

@@ -103,7 +103,9 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
   switch (c.id) {
     case 'inverter': {
       const need = f.shortW ? trq(t, 'needsW', { w: fmtW(kit.runningW, L) }) : trq(t, 'needsSurge', { w: fmtW(kit.surgeW, L) })
-      return { label: f.watts !== undefined ? fmtW(f.watts, L) : q.included, detail: short ? need : f.surgeUnknown ? q.surgeNotStated : confirmed }
+      // The user's confirmation wins over what the quote leaves unsaid.
+      const unstated = f.surgeUnknown ? q.surgeNotStated : null
+      return { label: f.watts !== undefined ? fmtW(f.watts, L) : q.included, detail: short ? need : confirmed ?? unstated }
     }
     case 'battery':
       return {

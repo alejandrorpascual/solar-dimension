@@ -76,6 +76,19 @@ describe('itemText', () => {
     expect(markLabel(en, items('solartec').find((c) => c.id === 'inverter')!)).toBe('Meets it')
     expect(markLabel(en, items('enerhogar').find((c) => c.id === 'inverter')!)).toBe('Too small')
   })
+  test('an inverter the user confirmed as included reads as confirmed, even with its start-up power not stated', () => {
+    const quote = extraction([line('inverter', 1, { specs: { watts: 5000 } })])
+    const confirmed = checkItems(quote, KIT, { inverter: 'included' }).find((c) => c.id === 'inverter')!
+    expect(confirmed.facts.surgeUnknown).toBe(true)
+    expect(itemText(en, confirmed, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'Confirmed by you' })
+    expect(itemText(es, confirmed, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'Confirmado por ti' })
+    expect(markLabel(en, confirmed)).toBe('Meets it')
+  })
+  test('an inverter that covers the surge on its running watts alone, unconfirmed, still says its start-up power is not stated', () => {
+    const big = checkItems(extraction([line('inverter', 1, { specs: { watts: KIT.surgeW } })]), KIT).find((c) => c.id === 'inverter')!
+    expect(big.status).toBe('ok')
+    expect(itemText(en, big, KIT, 'USD').detail).toBe('Start-up power not stated')
+  })
   test('an inverter not mentioned at all still says so', () => {
     const none = checkItems(extraction([line('labor', 1)]), KIT).find((c) => c.id === 'inverter')!
     expect(itemText(en, none, KIT, 'USD')).toEqual({ label: 'Not mentioned', detail: null })
