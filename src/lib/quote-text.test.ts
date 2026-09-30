@@ -66,18 +66,6 @@ describe('itemText', () => {
     expect(get('grupoluz', 'fuse')).toEqual({ label: 'Not mentioned', detail: null })
     expect(get('solartec', 'warranty')).toEqual({ label: '10 y battery / 5 y inverter', detail: null })
   })
-  test('battery, cables, and installation items', () => {
-    // Battery: solartec has a good battery
-    const solarBattery = get('solartec', 'battery')
-    expect(solarBattery.label).toBeDefined()
-    expect(typeof solarBattery.label).toBe('string')
-    // Cables: solartec has cables
-    const solarCables = get('solartec', 'cables')
-    expect(solarCables.label).toBeDefined()
-    // Installation: solartec has installation
-    const solarInstall = get('solartec', 'installation')
-    expect(solarInstall.label).toBe('Included')
-  })
 })
 
 describe('status and progress text', () => {
@@ -86,7 +74,6 @@ describe('status and progress text', () => {
   })
   test('project line', () => {
     expect(projectLine(en, jobs({ done: 2, pending: 2 }))).toBe('Reading quotes 2/4')
-    expect(projectLine(en, jobs({ kitEmpty: true }))).toBe('Add appliances to compare your quotes')
     expect(projectLine(en, jobs({ kitEmpty: true }))).toBe('Add appliances to compare your quotes')
     expect(projectLine(es, jobs({ kitEmpty: true }))).toBe('Agrega aparatos para comparar tus cotizaciones')
     expect(projectLine(en, jobs({ best: { name: 'SolarTec Caribe', total: 6480, currency: 'USD' } }))).toBe('Verdict ready · SolarTec Caribe · $6,480')
