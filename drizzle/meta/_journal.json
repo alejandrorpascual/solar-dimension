@@ -36,6 +36,13 @@
       "when": 1790456652674,
       "tag": "0004_seed_appliances",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790728927058,
+      "tag": "0005_quotes",
+      "breakpoints": true
     }
   ]
 }
