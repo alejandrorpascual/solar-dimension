@@ -68,10 +68,10 @@ export const en: Dictionary = {
     title: 'Privacy',
     updated: 'Last updated {date}',
     sections: [
-      { heading: 'What we store', body: 'Your email and name, and, if you sign in with Google, your Google account ID. We also store the projects you save: appliances, hours, voltage and battery choices.' },
+      { heading: 'What we store', body: 'Your email and name, and, if you sign in with Google, your Google account ID. We also store the projects you save: appliances, hours, voltage and battery choices. If you upload installer quotes, we store the files and the prices and items we read from them.' },
       { heading: 'Why', body: 'To sign you in and keep your projects across devices. If you upload installer quotes, we also read them for comparison with your kit (see Quotes below).' },
       { heading: 'Sharing', body: "We don't sell or share your data except with the providers that run the app: Vercel and Neon for hosting and the database, and, if you upload installer quotes, OpenAI to read them (see Quotes below)." },
-      { heading: 'Quotes', body: "If you upload installer quotes, we store the files privately with Vercel and send each one to OpenAI once, to read its prices and items. OpenAI doesn't train on data sent through its API. Deleting a quote, or the project it belongs to, deletes the file." },
+      { heading: 'Quotes', body: "If you upload installer quotes, we store the files privately with Vercel and send each one to OpenAI to read its prices and items, sending it again if a read fails or you retry. OpenAI doesn't train on data sent through its API. We keep a count of your uploads each month to apply the monthly limit; that count stays when you delete a quote. Deleting a quote, or the project it belongs to, deletes the file." },
       { heading: 'Google data', body: "We only request your basic profile (name and email). We don't access Gmail, Drive or anything else in your Google account." },
       { heading: 'Cookies', body: 'One sign-in session cookie and one language cookie. No ads or tracking.' },
       { heading: 'Deleting your data', body: "Email {email} and we'll delete your account and projects." },
