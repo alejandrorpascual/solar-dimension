@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { createLatest } from '../lib/latest-only'
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { nextPollDelay, type ProjectJobs } from '../lib/quote-jobs'
+import { createQuotePoller } from '../lib/quote-poller'
 import { getQuoteJobs, markQuotesSeen } from '../server/quotes/api'
 import { useRootData } from './useRootData'
 
@@ -17,58 +17,40 @@ const QuoteJobsContext = createContext<QuoteJobsValue>({ jobs: [], offline: fals
 /** Loads the signed-in user's quote jobs once, then polls only while one is being read. */
 export function QuoteJobsProvider({ children }: { children: ReactNode }) {
   const { user } = useRootData()
+  const userId = user?.id ?? null
   const [jobs, setJobs] = useState<ProjectJobs[]>([])
   const [failures, setFailures] = useState(0)
-  // Only the newest poll may apply its answer. Sign-out is a client-side navigation, so without this a poll still in
-  // flight could land after it and show the previous user's quotes, or restore a verdict just marked as seen.
-  const [latest] = useState(createLatest)
+  const [poller] = useState(() => createQuotePoller({
+    load: () => getQuoteJobs(),
+    markSeen: (projectId) => markQuotesSeen({ data: { projectId } }),
+    update: setJobs,
+    settle: (ok) => setFailures((n) => (ok ? 0 : n + 1)),
+  }))
 
-  const refresh = useCallback(async () => {
-    const isCurrent = latest.begin()
-    try {
-      const next = await getQuoteJobs()
-      if (!isCurrent()) return
-      setJobs(next)
-      setFailures(0)
-    } catch (error) {
-      if (!isCurrent()) return
-      console.error('[quotes] polling failed', error)
-      setFailures((n) => n + 1)
-    }
-  }, [latest])
-
-  useEffect(() => {
-    latest.invalidate()
-    if (user) {
-      void refresh()
+  // A layout effect runs before every page's effects, so a page that marks its verdict as seen on mount already
+  // finds the poller signed in.
+  useLayoutEffect(() => {
+    poller.setUser(userId)
+    if (userId) {
+      void poller.refresh()
       return
     }
     setJobs([])
     setFailures(0)
-  }, [user?.id, refresh, latest])
+  }, [userId, poller])
 
   useEffect(() => {
-    if (!user) return
+    if (!userId) return
     const delay = nextPollDelay(jobs, failures)
     if (delay === null) return
-    const timer = setTimeout(() => void refresh(), delay)
+    const timer = setTimeout(() => void poller.refresh(), delay)
     return () => clearTimeout(timer)
-  }, [user?.id, jobs, failures, refresh])
+  }, [userId, jobs, failures, poller])
 
-  const markSeen = useCallback(async (projectId: string) => {
-    // A poll in flight may predate the mark and would bring "Verdict ready" back, so it is dropped. The poll after the
-    // mark replaces it: without one, a dropped first load would leave the list empty and polling stopped.
-    latest.invalidate()
-    setJobs((list) => list.map((j) => (j.projectId === projectId ? { ...j, unseen: false } : j)))
-    try {
-      await markQuotesSeen({ data: { projectId } })
-    } catch (error) {
-      console.error('[quotes] marking a verdict as seen failed', { projectId, error })
-    }
-    await refresh()
-  }, [latest, refresh])
-
-  const value = useMemo(() => ({ jobs, offline: failures > 0, refresh, markSeen }), [jobs, failures, refresh, markSeen])
+  const value = useMemo(
+    () => ({ jobs, offline: failures > 0, refresh: poller.refresh, markSeen: poller.markSeen }),
+    [jobs, failures, poller],
+  )
   return <QuoteJobsContext.Provider value={value}>{children}</QuoteJobsContext.Provider>
 }
 
