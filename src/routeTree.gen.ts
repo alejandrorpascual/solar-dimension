@@ -17,6 +17,7 @@ import { Route as AdminAppliancesRouteImport } from './routes/admin/appliances'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCatalogAppliancesRouteImport } from './routes/api/catalog/appliances'
 import { Route as ApiQuotesSweepRouteImport } from './routes/api/quotes/sweep'
+import { Route as ProjectsProjectIdQuotesRouteImport } from './routes/projects.$projectId.quotes'
 import { Route as ApiQuotesIdFileRouteImport } from './routes/api/quotes/$id.file'
 import { Route as ApiCatalogAppliancesIdRestoreRouteImport } from './routes/api/catalog/appliances.$id.restore'
 import { Route as ApiCatalogAppliancesIdRetireRouteImport } from './routes/api/catalog/appliances.$id.retire'
@@ -61,6 +62,11 @@ const ApiQuotesSweepRoute = ApiQuotesSweepRouteImport.update({
   path: '/api/quotes/sweep',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsProjectIdQuotesRoute = ProjectsProjectIdQuotesRouteImport.update({
+  id: '/projects/$projectId/quotes',
+  path: '/projects/$projectId/quotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiQuotesIdFileRoute = ApiQuotesIdFileRouteImport.update({
   id: '/api/quotes/$id/file',
   path: '/api/quotes/$id/file',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
   '/api/quotes/sweep': typeof ApiQuotesSweepRoute
+  '/projects/$projectId/quotes': typeof ProjectsProjectIdQuotesRoute
   '/api/quotes/$id/file': typeof ApiQuotesIdFileRoute
   '/api/catalog/appliances/$id/restore': typeof ApiCatalogAppliancesIdRestoreRoute
   '/api/catalog/appliances/$id/retire': typeof ApiCatalogAppliancesIdRetireRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
   '/api/quotes/sweep': typeof ApiQuotesSweepRoute
+  '/projects/$projectId/quotes': typeof ProjectsProjectIdQuotesRoute
   '/api/quotes/$id/file': typeof ApiQuotesIdFileRoute
   '/api/catalog/appliances/$id/restore': typeof ApiCatalogAppliancesIdRestoreRoute
   '/api/catalog/appliances/$id/retire': typeof ApiCatalogAppliancesIdRetireRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
   '/api/quotes/sweep': typeof ApiQuotesSweepRoute
+  '/projects/$projectId/quotes': typeof ProjectsProjectIdQuotesRoute
   '/api/quotes/$id/file': typeof ApiQuotesIdFileRoute
   '/api/catalog/appliances/$id/restore': typeof ApiCatalogAppliancesIdRestoreRoute
   '/api/catalog/appliances/$id/retire': typeof ApiCatalogAppliancesIdRetireRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/catalog/appliances'
     | '/api/quotes/sweep'
+    | '/projects/$projectId/quotes'
     | '/api/quotes/$id/file'
     | '/api/catalog/appliances/$id/restore'
     | '/api/catalog/appliances/$id/retire'
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/catalog/appliances'
     | '/api/quotes/sweep'
+    | '/projects/$projectId/quotes'
     | '/api/quotes/$id/file'
     | '/api/catalog/appliances/$id/restore'
     | '/api/catalog/appliances/$id/retire'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/catalog/appliances'
     | '/api/quotes/sweep'
+    | '/projects/$projectId/quotes'
     | '/api/quotes/$id/file'
     | '/api/catalog/appliances/$id/restore'
     | '/api/catalog/appliances/$id/retire'
@@ -170,6 +182,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCatalogAppliancesRoute: typeof ApiCatalogAppliancesRouteWithChildren
   ApiQuotesSweepRoute: typeof ApiQuotesSweepRoute
+  ProjectsProjectIdQuotesRoute: typeof ProjectsProjectIdQuotesRoute
   ApiQuotesIdFileRoute: typeof ApiQuotesIdFileRoute
 }
 
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiQuotesSweepRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$projectId/quotes': {
+      id: '/projects/$projectId/quotes'
+      path: '/projects/$projectId/quotes'
+      fullPath: '/projects/$projectId/quotes'
+      preLoaderRoute: typeof ProjectsProjectIdQuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/quotes/$id/file': {
       id: '/api/quotes/$id/file'
       path: '/api/quotes/$id/file'
@@ -277,6 +297,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCatalogAppliancesRoute: ApiCatalogAppliancesRouteWithChildren,
   ApiQuotesSweepRoute: ApiQuotesSweepRoute,
+  ProjectsProjectIdQuotesRoute: ProjectsProjectIdQuotesRoute,
   ApiQuotesIdFileRoute: ApiQuotesIdFileRoute,
 }
 export const routeTree = rootRouteImport
