@@ -26,6 +26,15 @@ export function canRetry(q: { status: QuoteStatus; retries: number }): boolean {
   return RETRYABLE.includes(q.status) && q.retries < MAX_RETRIES
 }
 
+/**
+ * What a failed quote's row offers: Retry, a note that its retries are used up, or nothing for an account that may not
+ * start reads (the server would refuse the retry).
+ */
+export function retryOffer(q: { status: QuoteStatus; retries: number }, canUseQuotes: boolean): 'retry' | 'used_up' | 'none' {
+  if (!canUseQuotes) return 'none'
+  return canRetry(q) ? 'retry' : 'used_up'
+}
+
 /** A total typed by the user, or null when it isn't a positive amount up to MAX_TOTAL. */
 export function parseTotal(s: string): number | null {
   const n = parseAmount(s)

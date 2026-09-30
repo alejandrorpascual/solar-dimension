@@ -4,10 +4,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCatalog } from '../../hooks/useCatalog'
 import { useLocale } from '../../hooks/useLocale'
 import { useQuoteJobs } from '../../hooks/useQuoteJobs'
+import { useRootData } from '../../hooks/useRootData'
 import { trq } from '../../i18n'
 import { computeProject } from '../../lib/project-summary'
 import { compareQuotes } from '../../lib/quote-compare'
-import { canRetry } from '../../lib/quote-guards'
+import { retryOffer } from '../../lib/quote-guards'
 import { kitNeeds, setOverride, type ItemId, type Musts, type Override, type Overrides } from '../../lib/quote-items'
 import type { Rejection } from '../../lib/quote-limits'
 import {
@@ -44,6 +45,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   const { t } = useLocale()
   const catalog = useCatalog()
   const { refresh } = useQuoteJobs()
+  const { user } = useRootData()
   const [musts, setMusts] = useState<Musts>(data.musts)
   const [overrides, setOverrides] = useState(() => overridesById(data))
   const [error, setError] = useState<SaveError>(null)
@@ -140,9 +142,9 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
     }
   }
   const remove = (quoteId: string) => run(quoteId, () => deleteQuote({ data: { quoteId } }))
-  const canRetryQuote = (quoteId: string) => {
+  const retryFor = (quoteId: string) => {
     const q = data.quotes.find((x) => x.id === quoteId)
-    return q !== undefined && canRetry(q)
+    return q === undefined ? 'none' : retryOffer(q, user?.canUseQuotes === true)
   }
   const others = verdict.best ? verdict.ranked.filter((r) => r.quote.id !== verdict.best?.quote.id) : verdict.ranked
 
@@ -166,7 +168,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
                 onOverride={onOverride(r.quote.id)} onDelete={remove(r.quote.id)} />
             ))}
             {verdict.unranked.map((u) => (
-              <UnrankedRow key={u.quote.id} u={u} error={errorFor(u.quote.id)} canRetry={canRetryQuote(u.quote.id)}
+              <UnrankedRow key={u.quote.id} u={u} error={errorFor(u.quote.id)} retry={retryFor(u.quote.id)}
                 onRetry={run(u.quote.id, () => retryQuote({ data: { quoteId: u.quote.id } }))}
                 onDelete={remove(u.quote.id)}
                 onTotal={(total) => void run(u.quote.id, () => setQuoteTotal({ data: { quoteId: u.quote.id, total } }))()} />

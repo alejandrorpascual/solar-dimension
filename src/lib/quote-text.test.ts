@@ -119,9 +119,9 @@ describe('status and progress text', () => {
     expect(rejectionText(en, { code: 'pages', pages: 6 })).toBe('That PDF has 6 pages. The limit is 5.')
     expect(rejectionText(es, { code: 'pages', pages: 6 })).toBe('Ese PDF tiene 6 páginas. El límite es 5.')
   })
-  test('an account that may not start reads is told to sign in with Google, in both languages', () => {
-    expect(rejectionText(en, { code: 'unverified' })).toBe('Only accounts signed in with Google can upload quotes.')
-    expect(rejectionText(es, { code: 'unverified' })).toBe('Solo las cuentas que entran con Google pueden subir cotizaciones.')
+  test('an account that may not start reads is told it needs a verified account, in both languages', () => {
+    expect(rejectionText(en, { code: 'unverified' })).toBe('Uploading quotes needs a verified account.')
+    expect(rejectionText(es, { code: 'unverified' })).toBe('Para subir cotizaciones necesitas una cuenta verificada.')
   })
   test('every refusal has its own text, in both languages', () => {
     const all: Rejection[] = [

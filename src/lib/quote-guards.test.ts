@@ -1,7 +1,7 @@
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, test } from 'vitest'
 import {
-  canRetry, inspectUpload, MAX_RETRIES, MAX_TOTAL, MustInput, OverrideInput, parseTotal, QuoteId, RETRYABLE, refusedInsertRejection, retryRefusal, TotalInput,
+  canRetry, inspectUpload, MAX_RETRIES, MAX_TOTAL, MustInput, OverrideInput, parseTotal, QuoteId, RETRYABLE, refusedInsertRejection, retryOffer, retryRefusal, TotalInput,
   uploadRejection,
 } from './quote-guards'
 import { QUOTE_LIMITS } from './quote-limits'
@@ -126,6 +126,20 @@ describe('canRetry', () => {
   })
   test('a quote that was read, or is being read, cannot be retried', () => {
     for (const status of ['queued', 'processing', 'ready', 'needs_review'] as const) expect(canRetry({ status, retries: 0 })).toBe(false)
+  })
+})
+
+describe('retryOffer', () => {
+  const failed = { status: 'failed' as const, retries: 0 }
+  test('a failed quote with retries left offers Retry to an account that may start reads', () => {
+    expect(retryOffer(failed, true)).toBe('retry')
+  })
+  test('a quote that used its retries says so', () => {
+    expect(retryOffer({ status: 'failed', retries: MAX_RETRIES }, true)).toBe('used_up')
+  })
+  test('an account that may not start reads is offered nothing, whatever the retries', () => {
+    expect(retryOffer(failed, false)).toBe('none')
+    expect(retryOffer({ status: 'failed', retries: MAX_RETRIES }, false)).toBe('none')
   })
 })
 

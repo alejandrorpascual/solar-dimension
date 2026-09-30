@@ -105,3 +105,13 @@ export async function raiseDailyReadsTo(reads: number): Promise<void> {
     insert into quote_daily_usage (day, reads) values ((now() at time zone 'utc')::date, ${reads}::int)
     on conflict (day) do update set reads = greatest(quote_daily_usage.reads, excluded.reads)`
 }
+
+/**
+ * Adds a Google account row to the user, as Better Auth does when a signed-in user links Google (which it only does
+ * for Google's own verified, matching email). The link leaves `email_verified` as it was.
+ */
+export async function linkGoogleAccount(email: string): Promise<void> {
+  await testDb()`
+    insert into account (id, account_id, provider_id, user_id, created_at, updated_at)
+    select 'e2e-google-' || u.id, 'e2e-google-sub-' || u.id, 'google', u.id, now(), now() from "user" u where u.email = ${email}`
+}

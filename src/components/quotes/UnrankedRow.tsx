@@ -8,13 +8,13 @@ import { QuoteActions } from './QuoteActions'
 
 interface Props {
   u: UnrankedQuote; error: string | null
-  /** False once the quote has used its retries: the row says so instead of offering Retry. */
-  canRetry: boolean
+  /** Retry; a note that the quote used its retries; or nothing, for an account that may not start reads. */
+  retry: 'retry' | 'used_up' | 'none'
   onRetry: () => void; onDelete: () => void; onTotal: (total: number) => void
 }
 
 /** A quote that can't be ranked yet: still reading, needs a corrected total, couldn't be read, or in another currency. */
-export function UnrankedRow({ u, error, canRetry, onRetry, onDelete, onTotal }: Props) {
+export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Props) {
   const { t } = useLocale()
   const nameId = useId()
   const inputId = useId()
@@ -55,9 +55,8 @@ export function UnrankedRow({ u, error, canRetry, onRetry, onDelete, onTotal }: 
       )}
       {u.reason !== 'reading' && (
         <div className="qrow__actions">
-          {u.reason === 'failed' && (canRetry
-            ? <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.retry}</button>
-            : <p className="qmeta">{t.quotes.retryLimit}</p>)}
+          {u.reason === 'failed' && retry === 'retry' && <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.retry}</button>}
+          {u.reason === 'failed' && retry === 'used_up' && <p className="qmeta">{t.quotes.retryLimit}</p>}
           <QuoteActions quoteId={u.quote.id} onDelete={onDelete} />
         </div>
       )}

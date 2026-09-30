@@ -1,10 +1,12 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test } from '@playwright/test'
+import { quotesEn } from '../src/i18n/quotes-en'
 import {
-  cloneProject, countQuoteRows, firstProjectId, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth,
+  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth,
   trashedPaths,
 } from './db'
+import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { hideProjects, showProjects } from './projects'
 import {
   captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading,
@@ -392,7 +394,7 @@ test('deleting a quote removes its file and leaves nothing in the trash', async 
   expect(await trashedPaths([quote!.path])).toEqual([])
 })
 
-test('an unverified account sees a note instead of the Upload button, and the server refuses its upload', async ({ page, browser }) => {
+test('an unverified account sees a note and Connect Google instead of the Upload button, and the server refuses its upload', async ({ page, browser, baseURL }) => {
   // Two sign-ups and database reads over Neon's HTTP driver can pass 30 s on a slow CI runner.
   test.slow()
   // The upload call's address, from a verified account. The call is stopped before it reaches the server.
@@ -409,9 +411,9 @@ test('an unverified account sees a note instead of the Upload button, and the se
   const email = await signUp(page, { verified: false })
   await page.goto('/?step=3')
   const card = page.getByRole('region', { name: 'Got quotes from installers?' })
-  await expect(card).toContainText('Reading quotes needs an account signed in with Google.')
-  await expect(card.getByRole('link', { name: 'Sign in with Google to upload quotes' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Upload quotes' })).toHaveCount(0)
+  await expect(card).toContainText('Uploading quotes needs a verified account.')
+  await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toHaveCount(0)
+  await expect(card.getByRole('button', { name: 'Connect Google to upload quotes' })).toBeVisible()
 
   // The page offers no upload, and the server refuses one sent anyway, before storing anything.
   await expect.poll(() => firstProjectId(email).then(() => true, () => false), { timeout: 15_000 }).toBe(true)
@@ -422,4 +424,38 @@ test('an unverified account sees a note instead of the Upload button, and the se
   expect(body).not.toContain('$TSR/Error')
   expect(await countQuoteRows(email, projectId)).toBe(0)
   expect((await quoteFiles(email)).length).toBe(0)
+
+  // Connecting Google verifies the account: the button starts the link flow towards Google, with our callback.
+  const googleUrl = await captureGoogleRedirect(page)
+  await card.getByRole('button', { name: 'Connect Google to upload quotes' }).click()
+  await expect.poll(googleUrl).not.toBeNull()
+  expectOurGoogleRequest(googleUrl(), baseURL!)
+})
+
+test('on the verdict page, an unverified account gets Connect Google instead of Add another quote, and no Retry', async ({ page }) => {
+  // Sign-up and database seeding over Neon's HTTP driver can pass 30 s on a slow CI runner.
+  test.slow()
+  const email = await signUp(page, { verified: false })
+  await page.goto('/?step=3')
+  await expect.poll(() => firstProjectId(email).then(() => true, () => false), { timeout: 15_000 }).toBe(true)
+  const projectId = await firstProjectId(email)
+  await seedQuoteRows(email, projectId, 1)
+
+  await page.goto(`/projects/${projectId}/quotes`)
+  const row = page.getByRole('article').filter({ hasText: 'seed-1.pdf' })
+  await expect(row.getByText("Couldn't read it", { exact: true })).toBeVisible()
+  await expect(row.getByRole('button', { name: 'Retry', exact: true })).toHaveCount(0)
+  await expect(row.getByText(quotesEn.retryLimit)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Add another quote' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Connect Google to upload quotes' })).toBeVisible()
+})
+
+test('a password account with Google linked can upload, though its email was never marked verified', async ({ page }) => {
+  // Sign-up and database writes over Neon's HTTP driver can pass 30 s on a slow CI runner.
+  test.slow()
+  const email = await signUp(page, { verified: false })
+  await linkGoogleAccount(email)
+  await page.goto('/?step=3')
+  await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toBeEnabled({ timeout: 15_000 })
+  await expect(page.getByRole('button', { name: 'Connect Google to upload quotes' })).toHaveCount(0)
 })

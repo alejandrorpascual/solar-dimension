@@ -1,7 +1,7 @@
 import { createServerFn, createServerOnlyFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { eq } from 'drizzle-orm'
-import { user as userTable } from '../db/auth-schema'
+import { and, eq, sql } from 'drizzle-orm'
+import { account as accountTable, user as userTable } from '../db/auth-schema'
 import { db } from '../db/client'
 import { auth } from '../lib/auth'
 import { googleProvider } from '../lib/auth-google'
@@ -12,13 +12,16 @@ import type { Rejection } from '../lib/quote-limits'
 export interface SessionUser { id: string; email: string; name: string; googleLinked: boolean; canUseQuotes: boolean }
 
 /**
- * Whether the user may start quote reads. Read from the user row, not the session: the session cookie caches the user
- * for 5 minutes, so a stale copy could still say "unverified" (or, worse, "verified") after the row changed.
+ * Whether the user may start quote reads. Read from the user row and its accounts, not the session: the session cookie
+ * caches the user for 5 minutes, so a stale copy could still say "unverified" (or, worse, "verified") after the row
+ * changed, and it knows nothing of linked accounts.
  */
 async function quotesAllowed(userId: string): Promise<boolean> {
-  const [row] = await db.select({ email: userTable.email, emailVerified: userTable.emailVerified }).from(userTable)
+  const hasGoogle = sql<boolean>`exists (${db.select({ one: sql`1` }).from(accountTable)
+    .where(and(eq(accountTable.userId, userId), eq(accountTable.providerId, 'google')))})`
+  const [row] = await db.select({ email: userTable.email, emailVerified: userTable.emailVerified, hasGoogle }).from(userTable)
     .where(eq(userTable.id, userId)).limit(1)
-  return canUseQuotes(row, process.env.QUOTES_TRUSTED_EMAILS)
+  return canUseQuotes(row, process.env)
 }
 
 export const getSession = createServerFn({ method: 'GET' }).handler(async (): Promise<{ user: SessionUser } | null> => {

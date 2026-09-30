@@ -11,12 +11,14 @@ import { projectLine } from '../../lib/quote-text'
 import type { Project } from '../../lib/schema'
 import { FilePickButton } from './FilePickButton'
 import { HandoffDialog } from './HandoffDialog'
+import { QuotesLockedAction } from './QuotesLockedAction'
 
 interface Props { project: Project; isSaving: boolean }
 
 /**
  * Where quotes start, on the kit step. Signed out, it only says what signing in unlocks. An account that may not start
- * reads (an unverified email) keeps its verdict link but gets a note and a sign-in link instead of the Upload button.
+ * reads (an unverified email) keeps its verdict link but gets a note, and a way to connect Google when there is one,
+ * instead of the Upload button.
  */
 export function QuotesCard({ project, isSaving }: Props) {
   const { t } = useLocale()
@@ -46,7 +48,7 @@ export function QuotesCard({ project, isSaving }: Props) {
     const files = [...e.dataTransfer.files]
     if (!isBusy && user.canUseQuotes && files.length) void upload.start(files)
   }
-  const meta = !user.canUseQuotes ? t.quotes.cardGoogleNote : jobs ? trq(t, 'cardDrop', { mb: MAX_MB }) : t.quotes.cardBody
+  const meta = !user.canUseQuotes ? t.quotes.lockedNote : jobs ? trq(t, 'cardDrop', { mb: MAX_MB }) : t.quotes.cardBody
   const uploadAction = user.canUseQuotes
     ? (
       <FilePickButton
@@ -55,7 +57,7 @@ export function QuotesCard({ project, isSaving }: Props) {
         onFiles={(files) => void upload.start(files)}
       />
     )
-    : <Link className="qbtn" to="/login">{t.quotes.cardGoogleSignIn}</Link>
+    : <QuotesLockedAction withNote={false} />
   return (
     <section className={isDragging ? 'qcard qcard--drag' : 'qcard'} aria-labelledby={titleId}
       onDragOver={(e) => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
