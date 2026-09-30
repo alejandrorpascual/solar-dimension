@@ -40,3 +40,11 @@ export async function openVerdictFromTray(page: Page): Promise<void> {
   await link.click()
   await expect(verdictHeading(page)).toBeVisible()
 }
+
+/**
+ * Resolves when the next server call whose arguments include `arg` has answered. Changes on the verdict are optimistic,
+ * so a test that reloads right after one must wait for its save, or the reload can read the data before it lands.
+ */
+export function saved(page: Page, arg: 'musts' | 'item'): Promise<unknown> {
+  return page.waitForResponse((r) => r.request().method() === 'POST' && (r.request().postData() ?? '').includes(`"${arg}"`))
+}

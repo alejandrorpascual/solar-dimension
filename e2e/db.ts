@@ -61,3 +61,10 @@ export async function cloneProject(email: string, newId: string): Promise<void> 
     select ${newId}, p.user_id, p.name, p.qty, p.custom, p.hours, p.volts, p.chemistry, p.battery_unit
     from projects p join "user" u on u.id = p.user_id where u.email = ${email} order by p.created_at limit 1`
 }
+
+/** Sets the retries used by every quote of a project, so a test reaches the retry cap without waiting on real retries. */
+export async function setQuoteRetries(email: string, projectId: string, retries: number): Promise<void> {
+  await testDb()`
+    update quotes q set retries = ${retries}::int
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}

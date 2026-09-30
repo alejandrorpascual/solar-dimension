@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
-import { cloneProject, countQuoteRows, firstProjectId, seedQuoteRows, setQuoteUploadsThisMonth } from './db'
-import { openVerdictFromTray, quotePdf, signUp, tray, uploadQuotes, verdictHeading } from './quotes'
+import { cloneProject, countQuoteRows, firstProjectId, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth } from './db'
+import { openVerdictFromTray, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading } from './quotes'
 
 const ALL = ['solartec', 'voltia', 'grupoluz', 'enerhogar']
 
@@ -34,8 +34,12 @@ test('must-haves and confirmations change the winner, and stick', async ({ page 
 
   const grupo = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
   await grupo.getByRole('button', { name: 'Show every check for Grupo Luz', exact: true }).click()
+  let save = saved(page, 'item')
   await grupo.getByRole('group', { name: 'Battery charger', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
+  await save
+  save = saved(page, 'item')
   await grupo.getByRole('group', { name: 'Class T fuse', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
+  await save
   await expect(verdictHeading(page)).toHaveText('Grupo Luz fits your kit for the least')
   await page.reload()
   await expect(verdictHeading(page)).toHaveText('Grupo Luz fits your kit for the least')
@@ -53,8 +57,12 @@ test('must-haves and confirmations change the winner, and stick', async ({ page 
 
   await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
   const sheet = page.getByRole('dialog', { name: 'What matters for this project' })
+  save = saved(page, 'musts')
   await sheet.getByRole('switch', { name: 'Battery charger', exact: true }).click()
+  await save
+  save = saved(page, 'musts')
   await sheet.getByRole('switch', { name: 'Class T fuse', exact: true }).click()
+  await save
   await sheet.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(verdictHeading(page)).toHaveText('Grupo Luz fits your kit for the least')
   await page.reload()
@@ -92,6 +100,9 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
   const own = await page.request.get(href!)
   expect(own.status()).toBe(200)
   expect(own.headers()['content-type']).toBe('application/pdf')
+  // No CSP sandbox on a PDF, or Chrome's PDF viewer refuses to show it; nosniff stays.
+  expect(own.headers()['content-security-policy']).toBeUndefined()
+  expect(own.headers()['x-content-type-options']).toBe('nosniff')
   const verdictUrl = page.url()
 
   const other = await browser.newContext()
@@ -108,6 +119,27 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
   await stranger.goto(`/projects/${privateId}/quotes`)
   await expect(stranger.getByRole('heading', { name: 'Page not found' })).toBeVisible()
   await other.close()
+})
+
+test('a quote that could not be read can be retried, until its retries are used up', async ({ page }) => {
+  const email = await signUp(page)
+  // The stub reads only the sample quotes; any other file name fails on both models.
+  await uploadQuotes(page, [await quotePdf('unreadable')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+  await page.goto(`/projects/${projectId}/quotes`)
+
+  const row = page.getByRole('article').filter({ hasText: 'unreadable.pdf' })
+  const failed = row.getByText("Couldn't read it", { exact: true })
+  await expect(failed).toBeVisible({ timeout: 30_000 })
+  await row.getByRole('button', { name: 'Retry', exact: true }).click()
+  await expect(row.getByText(/^(Waiting|Reading)$/)).toBeVisible()
+  await expect(failed).toBeVisible({ timeout: 30_000 })
+
+  await setQuoteRetries(email, projectId, 3)
+  await page.reload()
+  await expect(row.getByText("Couldn't read it after several tries. Upload a clearer copy.")).toBeVisible()
+  await expect(row.getByRole('button', { name: 'Retry', exact: true })).toHaveCount(0)
 })
 
 test('a project that already has 10 quotes refuses an eleventh, with the reason', async ({ page }) => {
