@@ -332,7 +332,9 @@ test('a project that already has 10 quotes refuses an eleventh, with the reason'
   const projectId = await firstProjectId(email)
   await seedQuoteRows(email, projectId, 10)
 
-  await uploadQuotes(page, [await quotePdf('solartec')])
+  // Once the project has quotes, the card's button reads "Add quotes". The page may learn of the seeded rows at any
+  // moment, so the upload reloads the kit and goes through that label, which no longer changes.
+  await uploadQuotes(page, [await quotePdf('solartec')], quotesEn.cardAddMore)
   const dialog = page.getByRole('dialog', { name: 'None of these files could be uploaded' })
   await expect(dialog).toContainText('solartec.pdf: This project already has 10 quotes.')
   expect(await countQuoteRows(email, projectId)).toBe(10)
