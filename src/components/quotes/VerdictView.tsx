@@ -9,10 +9,12 @@ import { computeProject } from '../../lib/project-summary'
 import { compareQuotes } from '../../lib/quote-compare'
 import { canRetry } from '../../lib/quote-guards'
 import { kitNeeds, setOverride, type ItemId, type Musts, type Override, type Overrides } from '../../lib/quote-items'
+import type { Rejection } from '../../lib/quote-limits'
 import {
   addPendingMust, addPendingOverride, NO_PENDING, overlayPending, prunePending, settlePendingMust, settlePendingOverride,
   type PendingEdits,
 } from '../../lib/quote-pending'
+import { rejectionText } from '../../lib/quote-text'
 import { deleteQuote, retryQuote, setQuoteMust, setQuoteOverride, setQuoteTotal, type ProjectQuotes } from '../../server/quotes/api'
 import { BestCard } from './BestCard'
 import { MustsSheet } from './MustsSheet'
@@ -122,11 +124,15 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       failed('musts')
     }
   }
-  /** A server action followed by a reload of this page and of the tray. */
-  const run = (key: string, task: () => Promise<unknown>) => async () => {
+  /** A server action followed by a reload of this page and of the tray. A refusal (a retry over a limit) shows its reason. */
+  const run = (key: string, task: () => Promise<{ ok: true } | { ok: false; rejection: Rejection }>) => async () => {
     setError(null)
     try {
-      await task()
+      const res = await task()
+      if (!res.ok) {
+        setError({ key, text: rejectionText(t, res.rejection) })
+        return
+      }
       await Promise.all([onReload(), refresh()])
     } catch (e) {
       console.error('[quotes] action failed', { key, e })

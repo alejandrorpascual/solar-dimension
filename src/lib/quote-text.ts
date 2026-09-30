@@ -144,6 +144,7 @@ export function rejectionText(t: Dictionary, r: Rejection): string {
     case 'month_limit': return trq(t, 'errMonthLimit', { limit: QUOTE_LIMITS.perMonth })
     case 'not_saved': return t.quotes.errNotSaved
     case 'upload': return t.quotes.errUpload
+    case 'unverified': return t.quotes.errUnverified
   }
 }
 

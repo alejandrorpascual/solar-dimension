@@ -6,7 +6,9 @@ import {
   trashedPaths,
 } from './db'
 import { hideProjects, showProjects } from './projects'
-import { isMustSave, isProjectRead, openVerdictFromTray, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading } from './quotes'
+import {
+  captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading,
+} from './quotes'
 
 const ALL = ['solartec', 'voltia', 'grupoluz', 'enerhogar']
 /** Where the E2E server keeps quote files (QUOTES_LOCAL_DIR in playwright.config.ts). */
@@ -388,4 +390,36 @@ test('deleting a quote removes its file and leaves nothing in the trash', async 
   expect(await countQuoteRows(email, quote!.projectId)).toBe(0)
   expect(existsSync(file)).toBe(false)
   expect(await trashedPaths([quote!.path])).toEqual([])
+})
+
+test('an unverified account sees a note instead of the Upload button, and the server refuses its upload', async ({ page, browser }) => {
+  // Two sign-ups and database reads over Neon's HTTP driver can pass 30 s on a slow CI runner.
+  test.slow()
+  // The upload call's address, from a verified account. The call is stopped before it reaches the server.
+  const verified = await browser.newPage()
+  const call = captureUploadCall(verified)
+  try {
+    await signUp(verified)
+    await uploadQuotes(verified, [await quotePdf('solartec')])
+    await call
+  } finally {
+    await verified.close()
+  }
+
+  const email = await signUp(page, { verified: false })
+  await page.goto('/?step=3')
+  const card = page.getByRole('region', { name: 'Got quotes from installers?' })
+  await expect(card).toContainText('Reading quotes needs an account signed in with Google.')
+  await expect(card.getByRole('link', { name: 'Sign in with Google to upload quotes' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Upload quotes' })).toHaveCount(0)
+
+  // The page offers no upload, and the server refuses one sent anyway, before storing anything.
+  await expect.poll(() => firstProjectId(email).then(() => true, () => false), { timeout: 15_000 }).toBe(true)
+  const projectId = await firstProjectId(email)
+  const refused = await postUpload(page, await call, projectId, await quotePdf('solartec'))
+  const body = await refused.text()
+  expect(body).toContain('unverified')
+  expect(body).not.toContain('$TSR/Error')
+  expect(await countQuoteRows(email, projectId)).toBe(0)
+  expect((await quoteFiles(email)).length).toBe(0)
 })

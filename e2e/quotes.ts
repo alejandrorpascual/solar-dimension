@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { markEmailVerified } from './db'
 
 /** A real one-page PDF, so the server's page check passes; the stub picks the sample quote by file name. */
 export async function quotePdf(name: string): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
@@ -9,7 +10,12 @@ export async function quotePdf(name: string): Promise<{ name: string; mimeType: 
   return { name: `${name}.pdf`, mimeType: 'application/pdf', buffer: Buffer.from(await doc.save()) }
 }
 
-export async function signUp(page: Page): Promise<string> {
+/**
+ * Signs up a new email/password account. Only a verified account may start quote reads, and sign-up never verifies,
+ * so the account is marked verified in the database unless a test needs it unverified. The server reads the flag from
+ * the user row, so the next page load picks it up.
+ */
+export async function signUp(page: Page, { verified = true }: { verified?: boolean } = {}): Promise<string> {
   const email = `e2e-quotes-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
   await page.goto('/login')
   await page.getByRole('button', { name: 'No account yet? Create one' }).click()
@@ -17,6 +23,7 @@ export async function signUp(page: Page): Promise<string> {
   await page.getByLabel('Password').fill('correct-horse-battery')
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  if (verified) await markEmailVerified(email)
   return email
 }
 
@@ -60,3 +67,26 @@ export const isMustSave = (body: string): boolean => isSave(body, 'musts')
 
 /** The verdict page's data read: the only GET server call whose payload names a project. */
 export const isProjectRead = (url: string): boolean => url.includes('/_serverFn/') && decodeURIComponent(url).includes('"projectId"')
+
+/**
+ * The address and accept header of the page's next upload call, which is stopped before it reaches the server. Server
+ * function addresses are the same for every account, so a test can send the call again as another user.
+ */
+export async function captureUploadCall(page: Page): Promise<{ url: string; accept: string }> {
+  return new Promise((resolve, reject) => {
+    page.route('**/_serverFn/**', async (route) => {
+      const request = route.request()
+      if (request.method() !== 'POST' || !(request.headers()['content-type'] ?? '').includes('multipart/form-data')) return route.continue()
+      resolve({ url: request.url(), accept: (await request.allHeaders()).accept ?? '*/*' })
+      await route.abort()
+    }).catch(reject)
+  })
+}
+
+/** Sends an upload call as the page's signed-in user, from the page's own origin, as the page itself would. */
+export async function postUpload(page: Page, call: { url: string; accept: string }, projectId: string, file: { name: string; mimeType: string; buffer: Buffer }) {
+  return page.request.post(call.url, {
+    headers: { accept: call.accept, 'x-tsr-serverfn': 'true', origin: new URL(page.url()).origin },
+    multipart: { projectId, file },
+  })
+}

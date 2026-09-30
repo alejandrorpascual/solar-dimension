@@ -11,6 +11,8 @@ export const EXTENSIONS: Record<QuoteMime, string> = { 'application/pdf': 'pdf',
 export type Rejection =
   | { code: 'type' } | { code: 'size'; mb: number } | { code: 'pages'; pages: number } | { code: 'encrypted' }
   | { code: 'project_limit' } | { code: 'month_limit' } | { code: 'not_saved' } | { code: 'upload' }
+  /** The account may not start reads: its email is not verified (see canUseQuotes). */
+  | { code: 'unverified' }
 
 export const isQuoteMime = (v: string): v is QuoteMime => (QUOTE_MIMES as readonly string[]).includes(v)
 export const toMb = (bytes: number): number => Math.round((bytes / MB) * 10) / 10

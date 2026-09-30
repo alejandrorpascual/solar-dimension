@@ -104,6 +104,10 @@ describe('status and progress text', () => {
     expect(rejectionText(en, { code: 'size', mb: 5.2 })).toBe('That file is 5.2 MB. The limit is 4 MB.')
     expect(rejectionText(en, { code: 'pages', pages: 12 })).toBe('That PDF has 12 pages. The limit is 10.')
   })
+  test('an account that may not start reads is told to sign in with Google, in both languages', () => {
+    expect(rejectionText(en, { code: 'unverified' })).toBe('Only accounts signed in with Google can upload quotes.')
+    expect(rejectionText(es, { code: 'unverified' })).toBe('Solo las cuentas que entran con Google pueden subir cotizaciones.')
+  })
   test('ETA in seconds, then minutes', () => {
     expect(etaText(en, 45)).toBe('45 s')
     expect(etaText(en, 120)).toBe('2 min')

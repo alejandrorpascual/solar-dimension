@@ -14,7 +14,7 @@ import { FINISHED } from '../../lib/quote-schema'
 import type { Project } from '../../lib/schema'
 import { loadCatalog } from '../catalog'
 import { toProject } from '../projects'
-import { requireUserId } from '../session'
+import { requireQuoteUser, requireUserId } from '../session'
 import { defaultStorage, emptyQuoteTrash } from './deps'
 import { kickQuotes } from './kick'
 import { insertWithinLimits, quoteCounts } from './limits'
@@ -22,6 +22,7 @@ import { recoverStaleQuotes, trashQuoteFiles } from './repo'
 import { quotePath } from './storage'
 
 export type UploadResult = { ok: true; id: string } | { ok: false; rejection: Rejection }
+export type RetryResult = { ok: true } | { ok: false; rejection: Rejection }
 export interface ProjectQuotes { project: Project; quotes: JobQuote[]; musts: Musts }
 
 type QuoteRow = typeof quotes.$inferSelect
@@ -38,7 +39,7 @@ const ownQuote = (userId: string, quoteId: string) => and(eq(quotes.id, quoteId)
 const reject = (rejection: Rejection): UploadResult => ({ ok: false, rejection })
 
 /**
- * One file per call. The counts are checked first so an over-limit upload is refused before any work; the real guard is
+ * One file per call, only from an account that may start reads (requireQuoteUser). The counts are checked first so an over-limit upload is refused before any work; the real guard is
  * `insertWithinLimits`, which the server runs after the file is stored, so parallel uploads cannot exceed the limits.
  */
 export const uploadQuote = createServerFn({ method: 'POST' })
@@ -49,7 +50,9 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     return { projectId: ProjectId.parse(d.get('projectId')), file }
   })
   .handler(async ({ data }): Promise<UploadResult> => {
-    const userId = await requireUserId()
+    const access = await requireQuoteUser()
+    if (!access.ok) return reject(access.rejection)
+    const { userId } = access
     const basic = checkBasics(data.file)
     if (basic) return reject(basic)
     const [project] = await db.select({ id: projects.id }).from(projects).where(ownProject(userId, data.projectId)).limit(1)
@@ -172,8 +175,10 @@ export const markQuotesSeen = createServerFn({ method: 'POST' })
 
 export const retryQuote = createServerFn({ method: 'POST' })
   .validator((d: unknown) => z.object({ quoteId: QuoteId }).parse(d))
-  .handler(async ({ data }) => {
-    const userId = await requireUserId()
+  .handler(async ({ data }): Promise<RetryResult> => {
+    const access = await requireQuoteUser()
+    if (!access.ok) return access
+    const { userId } = access
     // Retries are free against the monthly limit, so the cap is checked in the update itself: parallel calls can't pass it.
     await updateOwn(
       userId, data.quoteId,
@@ -181,7 +186,7 @@ export const retryQuote = createServerFn({ method: 'POST' })
       and(inArray(quotes.status, [...RETRYABLE]), lt(quotes.retries, MAX_RETRIES)),
     )
     kickQuotes([data.quoteId])
-    return { ok: true as const }
+    return { ok: true }
   })
 
 export const deleteQuote = createServerFn({ method: 'POST' })
