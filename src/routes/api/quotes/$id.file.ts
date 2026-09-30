@@ -3,7 +3,8 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '../../../db/client'
 import { quotes } from '../../../db/schema'
 import { auth } from '../../../lib/auth'
-import { quoteStorage } from '../../../server/quotes/storage'
+import { quoteFileHeaders } from '../../../lib/quote-file-headers'
+import { defaultStorage } from '../../../server/quotes/deps'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const notFound = () => new Response('Not found', { status: 404 })
@@ -19,17 +20,9 @@ export const Route = createFileRoute('/api/quotes/$id/file')({
           .where(and(eq(quotes.id, params.id), eq(quotes.userId, session.user.id))).limit(1)
         if (!row) return notFound()
         try {
-          const bytes = await quoteStorage().get(row.path)
+          const bytes = await defaultStorage.get(row.path)
           if (!bytes) return notFound()
-          return new Response(Uint8Array.from(bytes), {
-            headers: {
-              'Content-Type': row.mime,
-              'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(row.name)}`,
-              'Cache-Control': 'private, no-store',
-              'X-Content-Type-Options': 'nosniff',
-              'Content-Security-Policy': 'sandbox',
-            },
-          })
+          return new Response(Uint8Array.from(bytes), { headers: quoteFileHeaders(row.mime, row.name) })
         } catch (error) {
           console.error('[quotes] reading a quote file failed', { id: params.id, error })
           return new Response('Could not read the file', { status: 500 })

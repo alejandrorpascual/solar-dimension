@@ -1,7 +1,7 @@
 import OpenAI from 'openai'
 import { describe, expect, test } from 'vitest'
 import { SAMPLE_QUOTES } from '../../lib/quote-fixtures'
-import { classifyError, fileContent, ModelError, modelNames, SYSTEM_PROMPT } from './model'
+import { classifyError, extractRequest, fileContent, ModelError, modelNames, SYSTEM_PROMPT } from './model'
 import { stubModel } from './stub-model'
 
 describe('fileContent', () => {
@@ -21,10 +21,30 @@ describe('classifyError', () => {
     expect(classifyError(new OpenAI.APIError(503, undefined, 'down', new Headers())).kind).toBe('transient')
     expect(classifyError(new OpenAI.APIConnectionError({ message: 'reset' })).kind).toBe('transient')
   })
+  test('a request timeout (408) and a conflict (409) are transient, as the SDK treats them', () => {
+    expect(classifyError(new OpenAI.APIError(408, undefined, 'timeout', new Headers())).kind).toBe('transient')
+    expect(classifyError(new OpenAI.APIError(409, undefined, 'conflict', new Headers())).kind).toBe('transient')
+  })
   test('a bad request or anything else is invalid; a ModelError keeps its kind', () => {
     expect(classifyError(new OpenAI.APIError(400, undefined, 'bad', new Headers())).kind).toBe('invalid')
     expect(classifyError(new Error('zod')).kind).toBe('invalid')
     expect(classifyError(new ModelError('refused', 'no')).kind).toBe('refused')
+  })
+})
+
+describe('extractRequest', () => {
+  const req = extractRequest({ bytes: new Uint8Array([1, 2]), mime: 'application/pdf', fileName: 'q.pdf' }, 'gpt-x')
+  test('installer quotes are not stored by OpenAI', () => {
+    expect(req.store).toBe(false)
+  })
+  test('the answer format is the strict JSON schema of a quote extraction', () => {
+    expect(req.text.format).toMatchObject({ type: 'json_schema', name: 'quote', strict: true })
+    expect(req.text.format.schema).toMatchObject({ type: 'object', additionalProperties: false })
+  })
+  test('it sends the model, the prompt and the file', () => {
+    expect(req.model).toBe('gpt-x')
+    expect(req.instructions).toBe(SYSTEM_PROMPT)
+    expect(req.input[0]!.content[0]).toMatchObject({ type: 'input_file', filename: 'q.pdf' })
   })
 })
 

@@ -1,3 +1,4 @@
+import { lazyModel, lazyStorage } from './lazy'
 import { modelNames, openAiModel, type QuoteModel } from './model'
 import type { ProcessDeps } from './process'
 import { dbJobRepo } from './repo'
@@ -14,10 +15,14 @@ function quoteModel(env: Record<string, string | undefined>): QuoteModel {
   return openAiModel(key)
 }
 
-let cached: ProcessDeps | null = null
+/**
+ * Storage and model are built on first use, inside each call, so a server without quote settings still starts and
+ * nothing throws synchronously: a missing Blob token rejects that storage call, and a missing OpenAI key fails the
+ * claimed quote, which the user can retry. Deleting a quote never needs the OpenAI key.
+ */
+export const defaultStorage = lazyStorage(() => quoteStorage())
+const defaultModel = lazyModel(() => quoteModel(process.env))
 
-/** Built on first use, so a server without quote settings still starts; the error surfaces on the first quote. */
 export function defaultDeps(): ProcessDeps {
-  cached ??= { repo: dbJobRepo, storage: quoteStorage(), model: quoteModel(process.env), models: modelNames() }
-  return cached
+  return { repo: dbJobRepo, storage: defaultStorage, model: defaultModel, models: modelNames() }
 }

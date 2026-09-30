@@ -37,8 +37,13 @@ export function fileContent(input: ModelInput) {
     : { type: 'input_image' as const, image_url: `data:${input.mime};base64,${base64}`, detail: 'high' as const }
 }
 
+const REQUEST_TIMEOUT = 408
+const CONFLICT = 409
 const RATE_LIMITED = 429
 const SERVER_ERROR = 500
+/** The statuses the OpenAI SDK itself would retry. */
+const isTransientStatus = (status: number): boolean =>
+  status === REQUEST_TIMEOUT || status === CONFLICT || status === RATE_LIMITED || status >= SERVER_ERROR
 
 /** Transient errors are worth another attempt later; anything else goes to the fallback model or fails. */
 export function classifyError(e: unknown): ModelError {
@@ -47,9 +52,23 @@ export function classifyError(e: unknown): ModelError {
   if (e instanceof OpenAI.APIConnectionError) return new ModelError('transient', e.message)
   if (e instanceof OpenAI.APIError) {
     const status = e.status ?? 0
-    return new ModelError(status === RATE_LIMITED || status >= SERVER_ERROR ? 'transient' : 'invalid', `${status} ${e.message}`)
+    return new ModelError(isTransientStatus(status) ? 'transient' : 'invalid', `${status} ${e.message}`)
   }
   return new ModelError('invalid', e instanceof Error ? e.message : String(e))
+}
+
+/**
+ * The Responses API request for one quote. `store: false`, because installer quotes carry names and addresses, and
+ * OpenAI would otherwise keep the response for 30 days.
+ */
+export function extractRequest(input: ModelInput, model: string) {
+  return {
+    model,
+    instructions: SYSTEM_PROMPT,
+    input: [{ role: 'user' as const, content: [fileContent(input), { type: 'input_text' as const, text: 'Extract this quote.' }] }],
+    text: { format: zodTextFormat(QuoteExtractionSchema, 'quote') },
+    store: false,
+  }
 }
 
 export function openAiModel(apiKey: string): QuoteModel {
@@ -58,12 +77,7 @@ export function openAiModel(apiKey: string): QuoteModel {
   return {
     async extract(input, model) {
       try {
-        const res = await client.responses.parse({
-          model,
-          instructions: SYSTEM_PROMPT,
-          input: [{ role: 'user', content: [fileContent(input), { type: 'input_text', text: 'Extract this quote.' }] }],
-          text: { format: zodTextFormat(QuoteExtractionSchema, 'quote') },
-        })
+        const res = await client.responses.parse(extractRequest(input, model))
         if (!res.output_parsed) throw new ModelError('refused', 'The model returned no extraction')
         return { extraction: res.output_parsed, input: res.usage?.input_tokens ?? 0, output: res.usage?.output_tokens ?? 0 }
       } catch (error) {

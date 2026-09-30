@@ -94,22 +94,21 @@ export function planStale(jobs: readonly JobClock[], now: Date): { kick: string[
 export async function processQuote(id: string, deps: ProcessDeps): Promise<Outcome> {
   const job = await deps.repo.claim(id)
   if (!job) return 'skipped'
+  /** Stores the outcome. A failure is also logged: otherwise a revoked key or a model outage shows only in the database. */
+  const finish = async (f: Finish): Promise<Outcome> => {
+    await deps.repo.finish(id, f)
+    if ('error' in f && f.status === 'failed') console.error('[quotes] a quote could not be read', { id, error: f.error })
+    return f.status
+  }
   let bytes: Uint8Array | null
   try {
     bytes = await deps.storage.get(job.blobPathname)
   } catch (error) {
-    const f: Finish = { status: job.attempts < MAX_ATTEMPTS ? 'queued' : 'failed', error: `storage: ${String(error)}`, usage: [] }
-    await deps.repo.finish(id, f)
-    return f.status
+    return finish({ status: job.attempts < MAX_ATTEMPTS ? 'queued' : 'failed', error: `storage: ${String(error)}`, usage: [] })
   }
-  if (!bytes) {
-    await deps.repo.finish(id, { status: 'failed', error: 'file missing from storage', usage: [] })
-    return 'failed'
-  }
+  if (!bytes) return finish({ status: 'failed', error: 'file missing from storage', usage: [] })
   const input: ModelInput = { bytes, mime: job.mime, fileName: job.fileName }
   const primary = await attempt(deps, input, deps.models.primary)
   const fallback = primary.ok && primary.passes ? null : await attempt(deps, input, deps.models.fallback)
-  const f = decide(primary, fallback, job.attempts, deps.models)
-  await deps.repo.finish(id, f)
-  return f.status
+  return finish(decide(primary, fallback, job.attempts, deps.models))
 }

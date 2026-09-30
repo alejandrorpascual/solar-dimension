@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { extraction, line, SAMPLE_QUOTES } from '../../lib/quote-fixtures'
 import type { QuoteExtraction } from '../../lib/quote-schema'
 import { ModelError, type QuoteModel } from './model'
@@ -34,6 +34,11 @@ const transient = () => new ModelError('transient', '503')
 const invalid = () => new ModelError('invalid', 'zod')
 
 describe('processQuote', () => {
+  // A failed quote is logged on purpose (see the test below); the other failure tests don't need the noise.
+  let errors: ReturnType<typeof vi.spyOn>
+  beforeEach(() => { errors = vi.spyOn(console, 'error').mockImplementation(() => {}) })
+  afterEach(() => { errors.mockRestore() })
+
   test('primary passes: ready with the primary model', async () => {
     const s = setup({ luna: [SAMPLE_QUOTES.solartec] })
     expect(await processQuote('q1', s.deps)).toBe('ready')
@@ -70,6 +75,16 @@ describe('processQuote', () => {
     const s = setup({ luna: [invalid()], sol: [new ModelError('refused', 'no')] })
     expect(await processQuote('q1', s.deps)).toBe('failed')
     expect(s.finished[0]).toMatchObject({ status: 'failed' })
+  })
+  test('a failed quote is logged with its error, so a revoked key or an outage shows in the logs', async () => {
+    const s = setup({ luna: [invalid()], sol: [invalid()] })
+    expect(await processQuote('q1', s.deps)).toBe('failed')
+    expect(errors).toHaveBeenCalledWith('[quotes] a quote could not be read', { id: 'q1', error: 'invalid: zod | invalid: zod' })
+  })
+  test('a quote that is read or queued again is not logged as a failure', async () => {
+    await processQuote('q1', setup({ luna: [SAMPLE_QUOTES.solartec] }).deps)
+    await processQuote('q1', setup({ luna: [transient(), transient()], sol: [transient(), transient()] }).deps)
+    expect(errors).not.toHaveBeenCalled()
   })
   test('someone else holds the job: skipped, nothing written', async () => {
     const s = setup({}, { claimed: false })
