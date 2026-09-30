@@ -30,7 +30,7 @@ export function summarizeProject(projectId: string, projectName: string, quotes:
     failed: quotes.filter((q) => q.status === 'failed').length,
     needsReview: quotes.filter((q) => q.status === 'needs_review' && q.totalOverride === null).length,
     kitEmpty,
-    unseen: !kitEmpty && quotes.some((q) => FINISHED.includes(q.status) && q.seenAt === null),
+    unseen: !kitEmpty && quotes.some((q) => FINISHED.includes(q.status) && q.status !== 'failed' && q.seenAt === null),
     best,
   }
 }

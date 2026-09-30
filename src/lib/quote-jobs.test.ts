@@ -32,6 +32,14 @@ describe('summarizeProject', () => {
     expect(summarizeProject('p', 'Home', [jq('a', { seenAt: 5 })], KIT, DEFAULT_MUSTS).unseen).toBe(false)
     expect(summarizeProject('p', 'Home', [jq('a', { status: 'queued', extraction: null })], KIT, DEFAULT_MUSTS).unseen).toBe(false)
   })
+  test('failed-only project does not show unseen verdict ready', () => {
+    const s = summarizeProject('p', 'Home', [jq('a', { status: 'failed', extraction: null })], KIT, DEFAULT_MUSTS)
+    expect(s).toMatchObject({ unseen: false })
+  })
+  test('mixed ready and failed quotes shows unseen only for ready ones', () => {
+    const s = summarizeProject('p', 'Home', [jq('a', { status: 'ready' }), jq('b', { status: 'failed', extraction: null })], KIT, DEFAULT_MUSTS)
+    expect(s).toMatchObject({ unseen: true })
+  })
 })
 
 describe('pickTray', () => {
@@ -45,6 +53,9 @@ describe('pickTray', () => {
   test('hidden on the verdict page of that project, and when nothing is going on', () => {
     expect(pickTray([jobs({ pending: 1 })], 'p')).toBeNull()
     expect(pickTray([jobs({})], null)).toBeNull()
+  })
+  test('failed-only project shows no ready tray', () => {
+    expect(pickTray([jobs({ failed: 1, unseen: false })], null)).toBeNull()
   })
 })
 
