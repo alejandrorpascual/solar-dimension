@@ -1,6 +1,9 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type FileChooser, type Page } from '@playwright/test'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { markEmailVerified } from './db'
+
+/** How long one click waits for the file picker before the next try. */
+const CHOOSER_WAIT_MS = 3_000
 
 /** A real one-page PDF, so the server's page check passes; the stub picks the sample quote by file name. */
 export async function quotePdf(name: string): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
@@ -37,9 +40,15 @@ export async function uploadQuotes(
   await page.goto(`${origin}/?step=3`)
   const button = page.getByRole('button', { name: label })
   await expect(button).toBeEnabled({ timeout: 15_000 })
-  const chooser = page.waitForEvent('filechooser')
-  await button.click()
-  await (await chooser).setFiles(files)
+  // The server-rendered button is enabled before the page hydrates, and a click before then opens nothing: click again
+  // until the picker opens.
+  let chooser: FileChooser | null = null
+  await expect(async () => {
+    const next = page.waitForEvent('filechooser', { timeout: CHOOSER_WAIT_MS })
+    await button.click()
+    chooser = await next
+  }).toPass({ timeout: 30_000 })
+  await chooser!.setFiles(files)
 }
 
 export const tray = (page: Page) => page.getByRole('region', { name: 'Quote progress' })
