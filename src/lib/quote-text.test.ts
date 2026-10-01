@@ -1,14 +1,17 @@
 import { describe, expect, test } from 'vitest'
 import { en } from '../i18n/en'
 import { es } from '../i18n/es'
-import { compareQuotes, type QuoteView, type RankedQuote } from './quote-compare'
+import { fmtDecimal, fmtList, fmtW } from '../i18n/format'
+import { compareQuotes, type QuoteView, type RankedQuote, type UnrankedQuote, type UnrankedReason } from './quote-compare'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
 import { checkItems, DEFAULT_MUSTS } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
+import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import {
-  askText, deltaText, etaText, fitLabel, itemText, markLabel, projectLine, questionText, reasonLine, rejectionText, verdictHeading,
-  totalHelp, verdictStatus, verdictSubline,
+  askText, coverageLines, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, money, oversizeTip,
+  projectLine, questionText, ratioLabel, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
+  zoneName, zonePill,
 } from './quote-text'
 
 const view = (id: SampleQuoteId, i: number): QuoteView => ({
@@ -87,9 +90,10 @@ describe('row text', () => {
   })
   test('fit labels and deltas', () => {
     expect([solartec, voltia, grupoluz, enerhogar].map((r) => fitLabel(en, r, v))).toEqual(['Best fit', 'Meets all', '2 unclear', "Doesn't fit"])
-    expect(deltaText(en, voltia)).toBe('+$820 vs best')
-    expect(deltaText(en, grupoluz)).toBe('−$330 vs best')
+    expect(deltaText(en, voltia)).toBe('$820 more than the best')
+    expect(deltaText(en, grupoluz)).toBe('$330 less than the best')
     expect(deltaText(en, solartec)).toBe('')
+    expect(deltaText(es, voltia)).toBe(`${money(es, 820, 'USD')} más que la mejor`)
   })
 })
 
@@ -178,5 +182,80 @@ describe('status and progress text', () => {
   test('ETA in seconds, then minutes', () => {
     expect(etaText(en, 45)).toBe('45 s')
     expect(etaText(en, 120)).toBe('2 min')
+  })
+})
+
+const at = (ratio: number): Sizing => ({ have: ratio * 1000, need: 1000, ratio, zone: sizingZone(ratio), pos: gaugePos(ratio) })
+
+describe('sizing text', () => {
+  const sol = quoteSizing(solartec.items, KIT)
+  const ener = quoteSizing(enerhogar.items, KIT)
+
+  test('zone names are short enough for the gauge, in both languages', () => {
+    expect(GAUGE_ZONES.map((z) => zoneName(en, z.zone))).toEqual(['Short', 'Snug', 'Roomy', 'Oversized'])
+    expect(GAUGE_ZONES.map((z) => zoneName(es, z.zone))).toEqual(['Falta', 'Justo', 'Holgado', 'De más'])
+  })
+  test('the pill says how far from the need, per zone', () => {
+    expect(zonePill(en, at(3.1088))).toBe('3.1× what it needs')
+    expect(zonePill(en, at(2.01))).toBe('2.0× what it needs')
+    expect(zonePill(en, at(1.6))).toBe('+60%, with room to spare')
+    expect(zonePill(en, at(1.19))).toBe('+19%, right-sized')
+    expect(zonePill(en, at(1.004))).toBe('Exactly what it needs')
+    expect(zonePill(en, at(0.996))).toBe('99% of what it needs')
+    expect(zonePill(en, at(0.476))).toBe('47% of what it needs')
+    expect(zonePill(es, at(1.19))).toBe('+19 %, a la medida')
+    expect(zonePill(es, at(0.476))).toBe('47 % de lo necesario')
+    expect(zonePill(es, at(3.1088))).toBe(`${fmtDecimal(3.1088, 1, 'es')}× lo necesario`)
+  })
+  test('the mini bar label is a multiple from 1×, a percent below', () => {
+    expect(ratioLabel(en, 1.15)).toBe('1.15×')
+    expect(ratioLabel(en, 0.476)).toBe('47%')
+    expect(ratioLabel(es, 0.476)).toBe('47 %')
+  })
+  test('gauge title and accessible name', () => {
+    expect(gaugeTitle(en, 'inverter', sol.inverter!)).toBe('Inverter 12.0 kW')
+    expect(gaugeTitle(en, 'battery', sol.battery!)).toBe('Battery 34.8 kWh usable')
+    expect(gaugeLabel(en, 'inverter', sol.inverter!)).toBe('Inverter: 12.0 kW against 3,860 W needed, oversized')
+    expect(gaugeLabel(en, 'battery', ener.battery!)).toBe('Battery: 1.1 kWh against 8.0 kWh needed, short')
+    expect(gaugeLabel(es, 'inverter', sol.inverter!)).toBe(`Inversor: ${fmtW(12000, 'es')} frente a ${fmtW(3860, 'es')} necesarios, de más`)
+  })
+  test('the legend takes its numbers from the zone constants', () => {
+    expect(gaugeLegend(en)).toBe('Snug: up to 30% more than your kit uses. Oversized: more than double.')
+    expect(gaugeLegend(es)).toBe('Justo: hasta 30 % más de lo que usa tu kit. De más: más del doble.')
+  })
+  test('the oversize tip suggests a size that still starts the kit', () => {
+    expect(oversizeTip(en, KIT)).toBe("The inverter is more than double what your kit uses. Ask whether there's a 5,000 W version: it usually costs less.")
+    expect(oversizeTip(es, KIT)).toBe(`El inversor es más del doble de lo que usa tu kit. Pregunta si hay una versión de ${fmtW(5000, 'es')}: suele bajar el precio.`)
+  })
+})
+
+describe('coverageLines', () => {
+  test('groups the five strip items by status, leaving out empty groups', () => {
+    expect(coverageLines(en, grupoluz.items)).toEqual([
+      { kind: 'ok', text: `Includes ${fmtList(['cables', 'installation'], 'en')}` },
+      { kind: 'unknown', text: `Doesn't mention ${fmtList(['charger', 'Wi-Fi', 'fuse'], 'en')}` },
+    ])
+    expect(coverageLines(en, enerhogar.items)).toEqual([
+      { kind: 'ok', text: `Includes ${fmtList(['charger', 'installation'], 'en')}` },
+      { kind: 'short', text: 'Too small: cables' },
+      { kind: 'missing', text: 'Not included: Wi-Fi' },
+      { kind: 'unknown', text: "Doesn't mention fuse" },
+    ])
+  })
+  test('in Spanish', () => {
+    expect(coverageLines(es, grupoluz.items).map((l) => l.text)).toEqual([
+      `Incluye ${fmtList(['cables', 'instalación'], 'es')}`,
+      `No menciona ${fmtList(['cargador', 'Wi-Fi', 'fusible'], 'es')}`,
+    ])
+  })
+})
+
+describe('unrankedTitle', () => {
+  const u = (reason: UnrankedReason): UnrankedQuote => ({ quote: view('solartec', 0), name: 'X', reason, currency: 'USD' })
+  test('says "without a total" only when every unranked quote waits for one', () => {
+    expect(unrankedTitle(en, [u('no_total'), u('needs_review')])).toBe("Without a total, these can't be compared")
+    expect(unrankedTitle(es, [u('no_total')])).toBe('Sin total, no se pueden comparar')
+    expect(unrankedTitle(en, [u('no_total'), u('failed')])).toBe('Not compared yet')
+    expect(unrankedTitle(es, [u('reading')])).toBe('Aún sin comparar')
   })
 })

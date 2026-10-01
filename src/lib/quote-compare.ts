@@ -40,6 +40,11 @@ export function quoteName(q: QuoteView): string {
   return q.label?.trim() || q.extraction?.vendor.name?.trim() || q.fileName
 }
 
+/** A second line that tells same-vendor quotes apart: the file name, unless it already is the shown name. */
+export function quoteSubtitle(q: QuoteView): string | null {
+  return quoteName(q) === q.fileName ? null : q.fileName
+}
+
 /** The total a quote ranks by: the user's, else the one read. */
 const totalOf = (q: QuoteView): number | null => q.totalOverride ?? q.extraction?.total ?? null
 

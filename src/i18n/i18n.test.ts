@@ -125,7 +125,7 @@ describe('quote dictionaries', () => {
   })
   test('every item has a name, an inline phrase and a short label in both languages', () => {
     for (const d of [en, es]) {
-      for (const map of [d.quoteItems, d.quoteItemsInline, d.quoteItemsShort]) {
+      for (const map of [d.quoteItems, d.quoteItemsInline, d.quoteItemsShort, d.quoteItemsList]) {
         expect(Object.keys(map).sort()).toEqual(['battery', 'cables', 'charger', 'fuse', 'installation', 'inverter', 'warranty', 'wifi'])
       }
     }

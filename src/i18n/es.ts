@@ -1,5 +1,5 @@
 import type { Dictionary } from './types'
-import { quoteItemsEs, quoteItemsInlineEs, quoteItemsShortEs, quotesEs } from './quotes-es'
+import { quoteItemsEs, quoteItemsInlineEs, quoteItemsListEs, quoteItemsShortEs, quotesEs } from './quotes-es'
 
 export const es: Dictionary = {
   locale: 'es',
@@ -94,4 +94,5 @@ export const es: Dictionary = {
   quoteItems: quoteItemsEs,
   quoteItemsInline: quoteItemsInlineEs,
   quoteItemsShort: quoteItemsShortEs,
+  quoteItemsList: quoteItemsListEs,
 }

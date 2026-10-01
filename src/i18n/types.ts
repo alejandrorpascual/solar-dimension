@@ -20,6 +20,8 @@ export interface Dictionary {
   /** Item names as they read inside a sentence: "does your quote include a battery charger?" */
   quoteItemsInline: Record<ItemId, string>
   quoteItemsShort: Record<ItemId, string>
+  /** Item names in a comma list: "Includes charger, Wi-Fi and installation". */
+  quoteItemsList: Record<ItemId, string>
 }
 
 /** `{email}` in a body is replaced with the contact address as a mailto link; `{date}` in `updated` with the date. */

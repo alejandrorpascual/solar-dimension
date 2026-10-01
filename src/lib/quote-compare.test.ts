@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { compareQuotes, nothingRead, quoteName, type QuoteView } from './quote-compare'
+import { compareQuotes, nothingRead, quoteName, quoteSubtitle, type QuoteView } from './quote-compare'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
 import { DEFAULT_MUSTS } from './quote-items'
 
@@ -148,5 +148,15 @@ describe('ties and names', () => {
     expect(quoteName(view('solartec', { label: 'My pick' }))).toBe('My pick')
     expect(quoteName(view('solartec'))).toBe('SolarTec Caribe')
     expect(quoteName(view('x', { extraction: extraction([line('other', 1)]) }))).toBe('x.pdf')
+  })
+})
+
+describe('quoteSubtitle', () => {
+  test('is the file name when the shown name comes from the vendor or a label', () => {
+    expect(quoteSubtitle(view('solartec'))).toBe('solartec.pdf')
+    expect(quoteSubtitle(view('solartec', { label: 'Roof job' }))).toBe('solartec.pdf')
+  })
+  test('is null when the shown name already is the file name', () => {
+    expect(quoteSubtitle(view('unknown-vendor', { extraction: null }))).toBeNull()
   })
 })

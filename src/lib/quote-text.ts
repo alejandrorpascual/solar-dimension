@@ -1,16 +1,16 @@
-import { trq, type Dictionary } from '../i18n'
-import { fmtKwh, fmtList, fmtMoney, fmtW } from '../i18n/format'
-import { nothingRead, type RankedQuote, type Verdict } from './quote-compare'
-import type { ItemCheck, ItemId, KitNeeds } from './quote-items'
+import { trq, type Dictionary, type QuoteKey } from '../i18n'
+import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtW } from '../i18n/format'
+import { nothingRead, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
+import { STRIP_ITEMS, type ItemCheck, type ItemId, type ItemStatus, type KitNeeds } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
 import type { QuoteStatus } from './quote-schema'
+import { SIZING_ZONES, suggestedInverterW, type SizedId, type Sizing, type SizingZone } from './quote-sizing'
 
 const SECONDS_PER_MINUTE = 60
 
 export const money = (t: Dictionary, amount: number, currency: string): string => fmtMoney(amount, currency, t.locale)
 const inlineList = (t: Dictionary, ids: readonly ItemId[]): string => fmtList(ids.map((id) => t.quoteItemsInline[id]), t.locale)
-const signedMoney = (t: Dictionary, n: number, currency: string): string => `${n > 0 ? '+' : '−'}${money(t, Math.abs(n), currency)}`
 const isBest = (r: RankedQuote, v: Verdict): boolean => v.best !== null && v.best.quote.id === r.quote.id
 
 export function verdictHeading(t: Dictionary, v: Verdict): string {
@@ -88,7 +88,8 @@ export function fitLabel(t: Dictionary, r: RankedQuote, v: Verdict): string {
 }
 
 export function deltaText(t: Dictionary, r: RankedQuote): string {
-  return r.delta === null || r.delta === 0 ? '' : trq(t, 'vsBest', { delta: signedMoney(t, r.delta, r.currency) })
+  if (r.delta === null || r.delta === 0) return ''
+  return trq(t, r.delta > 0 ? 'moreThanBest' : 'lessThanBest', { amount: money(t, Math.abs(r.delta), r.currency) })
 }
 
 /** An inverter with its watts but no start-up power: mentioned, yet unknown for the kit. */
@@ -181,4 +182,69 @@ export function projectLine(t: Dictionary, j: ProjectJobs): string {
 
 export function etaText(t: Dictionary, seconds: number): string {
   return seconds < SECONDS_PER_MINUTE ? trq(t, 'etaSeconds', { n: seconds }) : trq(t, 'etaMinutes', { n: Math.ceil(seconds / SECONDS_PER_MINUTE) })
+}
+
+const PERCENT = 100
+const ZONE_KEY: Record<SizingZone, QuoteKey> = { short: 'zoneShort', just: 'zoneJust', roomy: 'zoneRoomy', over: 'zoneOver' }
+/** Short percents round down, so a quote just under the need never reads as 100 %. */
+const shortPct = (ratio: number): number => Math.floor(ratio * PERCENT)
+const sizedAmount = (t: Dictionary, id: SizedId, n: number): string => (id === 'inverter' ? fmtW(n, t.locale) : fmtKwh(n, t.locale))
+
+export const zoneName = (t: Dictionary, zone: SizingZone): string => t.quotes[ZONE_KEY[zone]]
+
+/** How far a component lands from the kit's need: "3.1× what it needs", "+19%, right-sized", "47% of what it needs". */
+export function zonePill(t: Dictionary, s: Sizing): string {
+  if (s.zone === 'short') return trq(t, 'pillShort', { pct: shortPct(s.ratio) })
+  if (s.zone === 'over') return trq(t, 'pillOver', { x: fmtDecimal(s.ratio, 1, t.locale) })
+  const extra = Math.round((s.ratio - 1) * PERCENT)
+  if (extra === 0) return t.quotes.pillExact
+  return trq(t, s.zone === 'just' ? 'pillJust' : 'pillRoomy', { pct: extra })
+}
+
+/** The value beside a mini bar: a multiple from 1×, a percent below. */
+export function ratioLabel(t: Dictionary, ratio: number): string {
+  return ratio < 1 ? trq(t, 'ratioPct', { pct: shortPct(ratio) }) : trq(t, 'ratioTimes', { x: fmtDecimal(ratio, 2, t.locale) })
+}
+
+export function gaugeTitle(t: Dictionary, id: SizedId, s: Sizing): string {
+  return id === 'inverter' ? trq(t, 'gaugeInverter', { w: fmtW(s.have, t.locale) }) : trq(t, 'gaugeBattery', { kwh: fmtKwh(s.have, t.locale) })
+}
+
+/** The gauge's accessible name: the numbers and the zone in words. */
+export function gaugeLabel(t: Dictionary, id: SizedId, s: Sizing): string {
+  return trq(t, 'gaugeLabel', {
+    item: t.quoteItemsShort[id], have: sizedAmount(t, id, s.have), need: sizedAmount(t, id, s.need),
+    zone: zoneName(t, s.zone).toLocaleLowerCase(t.locale),
+  })
+}
+
+export function gaugeLegend(t: Dictionary): string {
+  return trq(t, 'gaugeLegend', { pct: Math.round((SIZING_ZONES.JUST_MAX - 1) * PERCENT) })
+}
+
+export function oversizeTip(t: Dictionary, kit: KitNeeds): string {
+  return trq(t, 'oversizeTip', { w: fmtW(suggestedInverterW(kit), t.locale) })
+}
+
+/** ok, short, missing, unknown: one coverage line per item status. */
+export type CoverageKind = ItemStatus
+const COVERAGE: readonly { kind: CoverageKind; key: QuoteKey }[] = [
+  { kind: 'ok', key: 'coverIncludes' }, { kind: 'short', key: 'coverShort' },
+  { kind: 'missing', key: 'coverMissing' }, { kind: 'unknown', key: 'coverUnknown' },
+]
+
+/** What a quote says about the five strip items, one line per status, empty groups left out. */
+export function coverageLines(t: Dictionary, items: readonly ItemCheck[]): { kind: CoverageKind; text: string }[] {
+  const strip = items.filter((c) => STRIP_ITEMS.includes(c.id))
+  return COVERAGE.flatMap(({ kind, key }) => {
+    const ids: ItemId[] = strip.filter((c) => c.status === kind).map((c) => c.id)
+    if (ids.length === 0) return []
+    return [{ kind, text: trq(t, key, { items: fmtList(ids.map((id) => t.quoteItemsList[id]), t.locale) }) }]
+  })
+}
+
+const waitsForTotal = (u: UnrankedQuote): boolean => u.reason === 'no_total' || u.reason === 'needs_review'
+
+export function unrankedTitle(t: Dictionary, unranked: readonly UnrankedQuote[]): string {
+  return unranked.length > 0 && unranked.every(waitsForTotal) ? t.quotes.unrankedNoTotal : t.quotes.unrankedTitle
 }
