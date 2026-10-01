@@ -24,9 +24,10 @@ export function verdictHeading(t: Dictionary, v: Verdict): string {
 export function verdictSubline(t: Dictionary, v: Verdict, kit: KitNeeds): string {
   if (v.best) {
     const total = money(t, v.best.total, v.best.currency)
-    return v.ranked.length === 1
+    const count = new Set(v.ranked.map((r) => r.quote.id)).size
+    return count === 1
       ? trq(t, 'subBestOne', { total, musts: v.mustCount })
-      : trq(t, 'subBest', { total, count: v.ranked.length, musts: v.mustCount })
+      : trq(t, 'subBest', { total, count, musts: v.mustCount })
   }
   if (v.closest) return trq(t, 'subNone', { name: entryName(v.closest), gap: gapText(t, v.closest, kit) })
   if (v.worthAsking.length > 0) return t.quotes.subUnclear
@@ -155,12 +156,12 @@ const SUBTITLE_SEPARATOR = ' · '
 
 /**
  * A card's second line: for an option, which of the quote's options it is, its label and the file ("Option 2 of 2 ·
- * Inversor 10 kW · suna.pdf"); otherwise the file name, unless it already is the card's name.
+ * Inversor 10 kW · suna.pdf"); otherwise the file name. The file is left out when it already is the card's name.
  */
 export function entrySubtitle(t: Dictionary, e: EntryOption & { quote: QuoteView }): string | null {
   if (e.optionId === null) return quoteSubtitle(e.quote)
   const n = (e.quote.extraction?.options.findIndex((o) => o.id === e.optionId) ?? 0) + 1
-  return [trq(t, 'optionOf', { n, count: e.optionCount }), e.optionLabel, e.quote.fileName].filter(Boolean).join(SUBTITLE_SEPARATOR)
+  return [trq(t, 'optionOf', { n, count: e.optionCount }), e.optionLabel, quoteSubtitle(e.quote)].filter(Boolean).join(SUBTITLE_SEPARATOR)
 }
 
 /** Deleting a quote with options removes every option's card with the file, so the confirmation says how many. */
@@ -285,7 +286,8 @@ export function coverageMeta(t: Dictionary, items: readonly ItemCheck[]): string
   return coverageLines(t, items).map((l) => l.text).join(COVERAGE_SEPARATOR)
 }
 
-const waitsForTotal = (u: UnrankedQuote): boolean => u.reason === 'no_total' || u.reason === 'needs_review'
+/** Whether a quote waits for the user to type its total: a quote with options has no total form, it is read again instead. */
+const waitsForTotal = (u: UnrankedQuote): boolean => u.optionCount === 0 && (u.reason === 'no_total' || u.reason === 'needs_review')
 
 export function unrankedTitle(t: Dictionary, unranked: readonly UnrankedQuote[]): string {
   return unranked.length > 0 && unranked.every(waitsForTotal) ? t.quotes.unrankedNoTotal : t.quotes.unrankedTitle

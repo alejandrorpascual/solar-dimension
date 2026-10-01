@@ -196,6 +196,24 @@ describe('a quote that offers two systems', () => {
     expect(entrySubtitle(en, o2)).toBe('Option 2 of 2 · Inversor 10 kW · suna.pdf')
     expect(entrySubtitle(es, o2)).toBe('Opción 2 de 2 · Inversor 10 kW · suna.pdf')
   })
+  test('an option of a quote named by its file leaves the file out of the subtitle', () => {
+    const unnamed: QuoteView = { ...suna, extraction: { ...SAMPLE_QUOTES.suna, vendor: { name: null, contact: null } } }
+    const o1 = compareQuotes(KIT, DEFAULT_MUSTS, [unnamed]).ranked.find((r) => r.optionId === 'o1')!
+    expect(entrySubtitle(en, o1)).toBe('Option 1 of 2 · Inversor 3 kW')
+  })
+  test('the subline counts quotes, not options', () => {
+    const subBest = (r: RankedQuote, count: number, musts: number) =>
+      en.quotes.subBest.replace('{total}', money(en, r.total, r.currency)).replace('{count}', String(count)).replace('{musts}', String(musts))
+    expect(both.ranked).toHaveLength(3)
+    expect(verdictSubline(en, both, KIT)).toBe(subBest(both.best!, 2, both.mustCount))
+  })
+  test('one quote that offers two systems reads as one quote', () => {
+    const inverterOnly = { ...DEFAULT_MUSTS, battery: false, charger: false, cables: false, fuse: false, installation: false }
+    const alone = compareQuotes(KIT, inverterOnly, [suna])
+    const expected = en.quotes.subBestOne.replace('{total}', money(en, alone.best!.total, alone.best!.currency)).replace('{musts}', String(alone.mustCount))
+    expect(alone.ranked).toHaveLength(2)
+    expect(verdictSubline(en, alone, KIT)).toBe(expected)
+  })
   test('a single-system quote keeps the file name as its subtitle', () => {
     expect(entrySubtitle(en, both.best!)).toBe('solartec.pdf')
   })
@@ -316,5 +334,8 @@ describe('unrankedTitle', () => {
     expect(unrankedTitle(es, [u('no_total')])).toBe('Sin total, no se pueden comparar')
     expect(unrankedTitle(en, [u('no_total'), u('failed')])).toBe('Not compared yet')
     expect(unrankedTitle(es, [u('reading')])).toBe('Aún sin comparar')
+  })
+  test('a quote with options to check gets no total form, so it does not count as waiting for a total', () => {
+    expect(unrankedTitle(en, [{ ...u('needs_review'), optionCount: 2 }])).toBe('Not compared yet')
   })
 })
