@@ -2,7 +2,7 @@ import { useId, useState, type FormEvent } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { trq } from '../../i18n'
 import { hasTotal } from '../../lib/quote-checks'
-import type { UnrankedQuote } from '../../lib/quote-compare'
+import { quoteSubtitle, type UnrankedQuote } from '../../lib/quote-compare'
 import { parseTotal } from '../../lib/quote-guards'
 import { fileStatusText, totalHelp } from '../../lib/quote-text'
 import { QuoteActions } from './QuoteActions'
@@ -35,10 +35,14 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
     : u.reason === 'other_currency'
       ? { cls: 'qpill qpill--unk', text: trq(t, 'otherCurrency', { currency: u.currency ?? '' }) }
       : { cls: 'qpill qpill--warn', text: fileStatusText(t, u.quote.status) }
+  const subtitle = quoteSubtitle(u.quote)
   return (
     <article className="qrow" aria-labelledby={nameId}>
-      <div className="qrow__titleline">
-        <h3 className="qrow__name" id={nameId}>{u.name}</h3>
+      <div className="qcard__top">
+        <div className="qcard__id">
+          <h3 className="qrow__name qcard__name" id={nameId}>{u.name}</h3>
+          {subtitle && <p className="qmeta qcard__sub">{subtitle}</p>}
+        </div>
         <span className={pill.cls}>{pill.text}</span>
       </div>
       {(u.reason === 'needs_review' || u.reason === 'no_total') && (

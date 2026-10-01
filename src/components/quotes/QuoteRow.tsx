@@ -1,16 +1,17 @@
-import { ChevronDown } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useLocale } from '../../hooks/useLocale'
-import { trq } from '../../i18n'
-import type { RankedQuote, Verdict } from '../../lib/quote-compare'
-import { STRIP_ITEMS, type ItemId, type KitNeeds, type Override } from '../../lib/quote-items'
-import { deltaText, fitLabel, markLabel, money, reasonLine } from '../../lib/quote-text'
+import { quoteSubtitle, type RankedQuote, type Verdict } from '../../lib/quote-compare'
+import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
+import { quoteSizing } from '../../lib/quote-sizing'
+import { coverageLines, deltaText, fitLabel, money, reasonLine } from '../../lib/quote-text'
 import { AskBox } from './AskBox'
+import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
-import { ItemMark } from './ItemMark'
 import { QuoteActions } from './QuoteActions'
+import { SizingBars } from './SizingBars'
 
 const PILL: Record<RankedQuote['fit'], string> = { fits: 'qpill qpill--ok', unclear: 'qpill qpill--unk', short: 'qpill qpill--warn' }
+const COVERAGE_SEPARATOR = ' · '
 
 interface Props {
   r: RankedQuote; verdict: Verdict; kit: KitNeeds; error: string | null
@@ -18,40 +19,34 @@ interface Props {
   onDelete: () => void
 }
 
+/** A ranked quote as a stacked card: name and total on one line, then fit, the reason at full width, sizing and coverage. */
 export function QuoteRow({ r, verdict, kit, error, onOverride, onDelete }: Props) {
   const { t } = useLocale()
   const [isOpen, setOpen] = useState(false)
   const nameId = useId()
   const bodyId = useId()
   const isAsking = verdict.worthAsking.some((w) => w.quote.id === r.quote.id)
-  const strip = STRIP_ITEMS.flatMap((id) => r.items.filter((c) => c.id === id))
   const delta = deltaText(t, r)
+  const subtitle = quoteSubtitle(r.quote)
+  const coverage = coverageLines(t, r.items).map((l) => l.text).join(COVERAGE_SEPARATOR)
   return (
     <article className="qrow" aria-labelledby={nameId}>
-      <div className="qrow__head">
-        <span className="qrank">{r.rank}</span>
-        <div className="qrow__main">
-          <div className="qrow__titleline">
-            <h3 className="qrow__name" id={nameId}>{r.name}</h3>
-            <span className={PILL[r.fit]}>{fitLabel(t, r, verdict)}</span>
-          </div>
-          <p className="qrow__reason">{reasonLine(t, r, verdict, kit)}</p>
+      <div className="qcard__top">
+        <div className="qcard__id">
+          <h3 className="qrow__name qcard__name" id={nameId}>{r.name}</h3>
+          {subtitle && <p className="qmeta qcard__sub">{subtitle}</p>}
         </div>
-        <ul className="qrow__strip">
-          {strip.map((c) => (
-            <li key={c.id}><ItemMark status={c.status} label={`${t.quoteItems[c.id]}: ${markLabel(t, c)}`} /><span aria-hidden="true">{t.quoteItemsShort[c.id]}</span></li>
-          ))}
-        </ul>
-        <div className="qrow__money">
-          <div className="qrow__total num">{money(t, r.total, r.currency)}</div>
-          {delta && <div className="qrow__delta num">{delta}</div>}
-        </div>
-        <button type="button" className="qrow__toggle" aria-expanded={isOpen} aria-controls={bodyId}
-          aria-label={trq(t, isOpen ? 'hideChecks' : 'showChecks', { name: r.name })} onClick={() => setOpen(!isOpen)}>
-          <ChevronDown size={18} aria-hidden="true" />
-        </button>
+        <p className="qrow__total num">{money(t, r.total, r.currency)}</p>
       </div>
+      <div className="qrow__fitline">
+        <span className={PILL[r.fit]}>{fitLabel(t, r, verdict)}</span>
+        {delta && <span className="qmeta num">{delta}</span>}
+      </div>
+      <p className="qrow__reason">{reasonLine(t, r, verdict, kit)}</p>
+      <SizingBars sizing={quoteSizing(r.items, kit)} />
+      {coverage && <p className="qmeta">{coverage}</p>}
       {isAsking && <AskBox r={r} verdict={verdict} />}
+      <ChecksToggle name={r.name} isOpen={isOpen} controls={bodyId} onToggle={() => setOpen(!isOpen)} variant="link" />
       {isOpen && (
         <div className="qrow__body" id={bodyId}>
           <ItemList items={r.items} kit={kit} currency={r.currency} onOverride={onOverride} />
