@@ -1,10 +1,10 @@
 import { Info } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useLocale } from '../../hooks/useLocale'
-import { quoteSubtitle, type RankedQuote } from '../../lib/quote-compare'
+import { entryName, type RankedQuote } from '../../lib/quote-compare'
 import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
 import { quoteSizing, SIZED_IDS } from '../../lib/quote-sizing'
-import { coverageLines, gaugeLegend, money, oversizeTip, type CoverageKind } from '../../lib/quote-text'
+import { coverageLines, entrySubtitle, gaugeLegend, money, oversizeTip, type CoverageKind } from '../../lib/quote-text'
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
 import { QuoteActions } from './QuoteActions'
@@ -29,7 +29,7 @@ export function BestCard({ best, kit, error, onOverride, onDelete }: Props) {
     const s = sizing[id]
     return s ? [{ id, s }] : []
   })
-  const subtitle = quoteSubtitle(best.quote)
+  const subtitle = entrySubtitle(t, best)
   const tip = oversizeTip(t, kit, sizing)
   return (
     <section className="qpanel qpanel--best" aria-labelledby={titleId}>
@@ -56,8 +56,8 @@ export function BestCard({ best, kit, error, onOverride, onDelete }: Props) {
         ))}
       </ul>
       <div className="qbest__actions">
-        <ChecksToggle name={best.name} isOpen={isOpen} controls={bodyId} onToggle={() => setOpen(!isOpen)} variant="button" />
-        <QuoteActions quoteId={best.quote.id} onDelete={onDelete} />
+        <ChecksToggle name={entryName(best)} isOpen={isOpen} controls={bodyId} onToggle={() => setOpen(!isOpen)} variant="button" />
+        <QuoteActions quoteId={best.quote.id} optionCount={best.optionCount} onDelete={onDelete} />
       </div>
       {isOpen && <div id={bodyId}><ItemList items={best.items} kit={kit} currency={best.currency} onOverride={onOverride} /></div>}
       {error && <p className="qerr" role="alert">{error}</p>}
