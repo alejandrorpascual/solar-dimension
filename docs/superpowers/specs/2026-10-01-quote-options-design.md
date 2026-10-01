@@ -1,8 +1,8 @@
 # Quotes that offer several systems ("options"): design
 
 **Date:** 2026-10-01
-**Status:** Draft, waiting for review
-**Branch:** `claude/quote-options`, stacked on PR #6 (`claude/budget-quote-upload-design-5f3048`)
+**Status:** Implemented (plan `docs/superpowers/plans/2026-10-01-quote-options.md`)
+**Branch:** `claude/continuing-work-907a55`, on `main` after PR #6
 
 ## Why
 
