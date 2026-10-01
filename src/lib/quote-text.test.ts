@@ -275,7 +275,7 @@ describe('coverageLines', () => {
 })
 
 describe('unrankedTitle', () => {
-  const u = (reason: UnrankedReason): UnrankedQuote => ({ quote: view('solartec', 0), name: 'X', reason, currency: 'USD' })
+  const u = (reason: UnrankedReason): UnrankedQuote => ({ quote: view('solartec', 0), name: 'X', reason, currency: 'USD', optionId: null, optionLabel: null, optionCount: 0 })
   test('says "without a total" only when every unranked quote waits for one', () => {
     expect(unrankedTitle(en, [u('no_total'), u('needs_review')])).toBe("Without a total, these can't be compared")
     expect(unrankedTitle(es, [u('no_total')])).toBe('Sin total, no se pueden comparar')

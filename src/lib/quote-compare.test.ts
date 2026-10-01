@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { compareQuotes, nothingRead, quoteName, quoteSubtitle, type QuoteView } from './quote-compare'
+import { compareQuotes, entryKey, entryName, nothingRead, quoteName, quoteSubtitle, type QuoteView } from './quote-compare'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
 import { DEFAULT_MUSTS } from './quote-items'
 
@@ -158,5 +158,74 @@ describe('quoteSubtitle', () => {
   })
   test('is null when the shown name already is the file name', () => {
     expect(quoteSubtitle(view('unknown-vendor', { extraction: null }))).toBeNull()
+  })
+})
+
+describe('a quote that offers two systems', () => {
+  const suna = view('suna', { createdAt: 9 })
+  const v = compareQuotes(KIT, DEFAULT_MUSTS, [suna])
+  const keys = (es: { quote: QuoteView; optionId: string | null }[]) => es.map(entryKey)
+
+  test('ranks one entry per option, priced on its own', () => {
+    expect(keys(v.ranked).sort()).toEqual(['suna:o1', 'suna:o2'])
+    const byKey = Object.fromEntries(v.ranked.map((r) => [entryKey(r), r]))
+    expect(byKey['suna:o1']).toMatchObject({ total: 2600, optionLabel: 'Inversor 3 kW', optionCount: 2, name: 'SUNA M.P.' })
+    expect(byKey['suna:o2']).toMatchObject({ total: 6200, optionLabel: 'Inversor 10 kW', optionCount: 2 })
+  })
+  test('only the 10 kW option can fit the kit: the 3 kW one is short of the inverter', () => {
+    const byKey = Object.fromEntries(v.ranked.map((r) => [entryKey(r), r]))
+    expect(byKey['suna:o1']!.fit).toBe('short')
+    expect(byKey['suna:o1']!.failedMusts).toContain('inverter')
+    expect(byKey['suna:o2']!.fit).toBe('unclear')
+    expect(byKey['suna:o2']!.failedMusts).toEqual([])
+  })
+  test("each option is checked on its own lines: the 3 kW kit's batteries don't reach the 10 kW one", () => {
+    const o2 = v.ranked.find((r) => r.optionId === 'o2')!
+    expect(o2.items.find((c) => c.id === 'battery')!.status).toBe('unknown')
+  })
+  test('counts the file once', () => {
+    expect(v.readCount).toBe(1)
+    expect(v.currency).toBe('USD')
+  })
+  test('an override on the quote reaches both options', () => {
+    const confirmed = compareQuotes(KIT, DEFAULT_MUSTS, [{ ...suna, overrides: { installation: 'included' } }])
+    for (const r of confirmed.ranked) expect(r.items.find((c) => c.id === 'installation')!.status).toBe('ok')
+  })
+  test('an option with no price is unranked as no_price; the other still ranks', () => {
+    const x = { ...SAMPLE_QUOTES.suna, lines: SAMPLE_QUOTES.suna.lines.map((l) => (l.option === 'o1' ? { ...l, lineTotal: 0 } : l)) }
+    const u = compareQuotes(KIT, DEFAULT_MUSTS, [view('suna', { extraction: x })])
+    expect(u.unranked.map((e) => [entryKey(e), e.reason])).toEqual([['suna:o1', 'no_price']])
+    expect(keys(u.ranked)).toEqual(['suna:o2'])
+  })
+  test("a quote's typed total never prices an option", () => {
+    const x = { ...SAMPLE_QUOTES.suna, lines: SAMPLE_QUOTES.suna.lines.map((l) => (l.option === 'o1' ? { ...l, lineTotal: 0 } : l)) }
+    const u = compareQuotes(KIT, DEFAULT_MUSTS, [view('suna', { extraction: x, totalOverride: 9000 })])
+    expect(u.unranked.map((e) => e.reason)).toEqual(['no_price'])
+  })
+  test('a quote with options whose numbers need checking stays one card, waiting, with its option count', () => {
+    const u = compareQuotes(KIT, DEFAULT_MUSTS, [view('suna', { status: 'needs_review' })])
+    expect(u.ranked).toEqual([])
+    expect(u.unranked).toHaveLength(1)
+    expect(u.unranked[0]).toMatchObject({ reason: 'no_total', optionId: null, optionCount: 2 })
+  })
+  test('ranks options alongside other quotes: the 10 kW option is cheaper than SolarTec but unclear, so worth asking', () => {
+    const both = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { createdAt: 0 }), suna])
+    expect(both.best?.quote.id).toBe('solartec')
+    expect(keys(both.worthAsking)).toEqual(['suna:o2'])
+  })
+})
+
+describe('entryKey and entryName', () => {
+  test('a single-system quote is its id and its name', () => {
+    expect(entryKey({ quote: { id: 'q1' }, optionId: null })).toBe('q1')
+    expect(entryName({ name: 'SolarTec Caribe', optionLabel: null })).toBe('SolarTec Caribe')
+  })
+  test('an option adds its id to the key and its label to the name', () => {
+    expect(entryKey({ quote: { id: 'q1' }, optionId: 'o2' })).toBe('q1:o2')
+    expect(entryName({ name: 'SUNA M.P.', optionLabel: 'Inversor 10 kW' })).toBe('SUNA M.P. · Inversor 10 kW')
+  })
+  test('single-system entries carry no option', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, ALL)
+    for (const r of v.ranked) expect(r).toMatchObject({ optionId: null, optionLabel: null, optionCount: 0 })
   })
 })
