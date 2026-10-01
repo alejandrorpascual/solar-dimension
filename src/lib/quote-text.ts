@@ -227,10 +227,14 @@ export function gaugeLegend(t: Dictionary): string {
   return trq(t, 'gaugeLegend', { pct: Math.round((SIZING_ZONES.JUST_MAX - 1) * PERCENT) })
 }
 
-/** Advice to ask for a smaller inverter, only when the quoted one is more than double what the kit needs. */
+/**
+ * Advice to ask for a smaller inverter: only when the quoted one is more than double what the kit runs, and a size that
+ * still starts the kit is actually smaller than it.
+ */
 export function oversizeTip(t: Dictionary, kit: KitNeeds, sizing: QuoteSizing): string | null {
-  if (sizing.inverter?.zone !== 'over') return null
-  return trq(t, 'oversizeTip', { w: fmtW(suggestedInverterW(kit), t.locale) })
+  const suggested = suggestedInverterW(kit)
+  if (sizing.inverter?.zone !== 'over' || suggested >= sizing.inverter.have) return null
+  return trq(t, 'oversizeTip', { w: fmtW(suggested, t.locale) })
 }
 
 /** The sizing bars as one sentence for screen readers; empty when the quote states neither size. */

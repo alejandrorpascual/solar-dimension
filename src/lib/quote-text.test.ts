@@ -236,6 +236,12 @@ describe('sizing text', () => {
     expect(oversizeTip(en, KIT, ener)).toBeNull()
     expect(oversizeTip(en, KIT, { inverter: null, battery: sol.battery })).toBeNull()
   })
+  test('there is no tip when the size that still starts the kit is not smaller than the quoted one', () => {
+    const kit = { ...KIT, runningW: 1000, surgeW: 7000 }
+    const quoted = { have: 3000, need: 1000, ratio: 3, zone: 'over' as const, pos: 100 }
+    expect(oversizeTip(en, kit, { inverter: quoted, battery: null })).toBeNull()
+    expect(oversizeTip(en, kit, { inverter: { ...quoted, have: 4000, ratio: 4 }, battery: null })).toContain('3,500 W')
+  })
   test('the bars read as one sentence for screen readers', () => {
     expect(sizingSentence(en, ener)).toBe('Inverter: 300 W against 3,860 W needed, short. Battery: 1.1 kWh against 8.0 kWh needed, short.')
     expect(sizingSentence(en, { inverter: null, battery: null })).toBe('')
