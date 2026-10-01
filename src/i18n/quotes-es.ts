@@ -120,6 +120,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   noTotalHelp: 'No encontramos el total. Escríbelo para comparar esta cotización.',
   optionOf: 'Opción {n} de {count}',
   optionsReviewHelp: 'Esta cotización ofrece {count} sistemas, pero no pudimos leer sus precios con seguridad. Léela de nuevo o sube una copia más clara.',
+  optionsReviewHelpNoRetry: 'Esta cotización ofrece {count} sistemas, pero no pudimos leer sus precios con seguridad. Sube una copia más clara.',
   totalInQuote: 'Total',
   totalInvalid: 'Escribe el total de la cotización, como un importe mayor que 0.',
   save: 'Guardar',

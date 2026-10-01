@@ -66,7 +66,7 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
           {isInvalid && <p className="qerr" id={errorId} role="alert" style={{ flexBasis: '100%' }}>{t.quotes.totalInvalid}</p>}
         </form>
       )}
-      {waitsForTotal && u.optionCount > 0 && <p className="qmeta">{trq(t, 'optionsReviewHelp', { count: u.optionCount })}</p>}
+      {waitsForTotal && u.optionCount > 0 && <p className="qmeta">{trq(t, canReadAgain ? 'optionsReviewHelp' : 'optionsReviewHelpNoRetry', { count: u.optionCount })}</p>}
       {u.reason !== 'reading' && (
         <div className="qrow__actions">
           {canReadAgain && <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button>}

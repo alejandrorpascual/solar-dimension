@@ -119,6 +119,7 @@ export const quotesEn = {
   noTotalHelp: "We didn't find the total. Enter it to compare this quote.",
   optionOf: 'Option {n} of {count}',
   optionsReviewHelp: "This quote offers {count} systems, but we couldn't read their prices with confidence. Read it again, or upload a clearer copy.",
+  optionsReviewHelpNoRetry: "This quote offers {count} systems, but we couldn't read their prices with confidence. Upload a clearer copy.",
   totalInQuote: 'Total',
   totalInvalid: 'Enter the total from the quote, as an amount above 0.',
   save: 'Save',
