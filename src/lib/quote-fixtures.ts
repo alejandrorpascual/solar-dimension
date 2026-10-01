@@ -11,7 +11,7 @@ type LineOverrides = Partial<Omit<QuoteLine, 'specs'>> & { specs?: Partial<LineS
 export function line(kind: LineKind, lineTotal: number, over: LineOverrides = {}): QuoteLine {
   const { specs, ...rest } = over
   return {
-    kind, description: kind, brand: null, model: null, qty: 1, unitPrice: null, lineTotal, optional: false,
+    kind, description: kind, brand: null, model: null, qty: 1, unitPrice: null, lineTotal, optional: false, option: null,
     source: { page: 1, text: kind }, ...rest, specs: { ...NO_SPECS, ...specs },
   }
 }
@@ -20,7 +20,7 @@ export function line(kind: LineKind, lineTotal: number, over: LineOverrides = {}
 export function extraction(lines: QuoteLine[], over: Partial<QuoteExtraction> = {}): QuoteExtraction {
   const total = lines.filter((l) => !l.optional).reduce((a, l) => a + l.lineTotal, 0)
   return {
-    vendor: { name: null, contact: null }, date: null, validUntil: null, currency: 'USD', lines,
+    vendor: { name: null, contact: null }, date: null, validUntil: null, currency: 'USD', options: [], lines,
     subtotal: null, tax: null, total, warranties: [], notes: [], ...over,
   }
 }
