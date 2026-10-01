@@ -10,6 +10,11 @@ const claimable = () =>
   or(eq(quotes.status, 'queued'), and(eq(quotes.status, 'processing'), lt(quotes.claimedAt, new Date(Date.now() - STALE_CLAIM_MS))))
 /** The most in-flight jobs one recovery pass looks at, oldest first. */
 const IN_FLIGHT_SCAN_LIMIT = 200
+/**
+ * The status of a read that failed. A read of a quote that already has a reading (a Read again of one to check) never
+ * makes it unusable: it goes back to needs_review, with the error; the retry is spent.
+ */
+const failedStatus = sql<'needs_review' | 'failed'>`case when ${quotes.extraction} is not null then 'needs_review' else 'failed' end`
 const GAVE_UP = 'gave up: the reading stopped and its attempts are used up'
 
 export const dbJobRepo: QuoteJobRepo = {
@@ -36,7 +41,7 @@ export const dbJobRepo: QuoteJobRepo = {
     // `in` narrows Finish here; comparing f.status did not under this TypeScript version.
     const set = !('extraction' in f)
       // claimed_at is kept on a re-queue, so the stale-queue wait counts from the last attempt, not from the upload.
-      ? { status: f.status, error: f.error, usage, processedAt: f.status === 'failed' ? new Date() : null }
+      ? { status: f.status === 'failed' ? failedStatus : f.status, error: f.error, usage, processedAt: f.status === 'failed' ? new Date() : null }
       : { status: f.status, extraction: f.extraction, modelUsed: f.modelUsed, error: null, usage, processedAt: new Date() }
     const rows = await db.update(quotes).set(set).where(underClaim).returning({ id: quotes.id })
     return rows.length > 0
@@ -57,7 +62,7 @@ export async function recoverStaleQuotes(userId?: string, limit = 10): Promise<s
     .limit(IN_FLIGHT_SCAN_LIMIT)
   const { kick, fail } = planStale(rows, new Date())
   if (fail.length > 0) {
-    await db.update(quotes).set({ status: 'failed', error: GAVE_UP, processedAt: new Date() }).where(and(inArray(quotes.id, fail), inFlight))
+    await db.update(quotes).set({ status: failedStatus, error: GAVE_UP, processedAt: new Date() }).where(and(inArray(quotes.id, fail), inFlight))
     // Logged like a failed read: otherwise a worker that keeps dying shows only in the database.
     console.error('[quotes] gave up on a stuck quote', { ids: fail })
   }
