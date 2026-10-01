@@ -81,6 +81,27 @@ export const SAMPLE_QUOTES = {
     ],
     { vendor: { name: 'EnerHogar', contact: null }, warranties: [{ kind: 'battery', years: 5 }, { kind: 'inverter', years: 2 }] },
   ),
+  /**
+   * The user's SUNA M.P. quote: two alternative kits, each priced on its own, and a blank total. Each kit's batteries
+   * and controller are written into the inverter's line, so they are split into their own lines at 0.
+   */
+  suna: extraction(
+    [
+      ...[
+        line('inverter', 2600, { option: 'o1', specs: { watts: 3000 } }),
+        line('battery', 0, { option: 'o1', qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }),
+      ].map((l) => ({ ...l, ...said(1, 'Inversor de corriente 3 kW, incluye 2 baterías de litio 5.12 kWh, transfer y flete') })),
+      ...[
+        line('inverter', 6200, { option: 'o2', specs: { watts: 10000 } }),
+        line('battery', 0, { option: 'o2', specs: { ah: 200, chemistry: 'lifepo4' } }),
+        line('charge_controller', 0, { option: 'o2', specs: { chargerAmps: 80 } }),
+      ].map((l) => ({ ...l, ...said(1, 'Inversor de corriente 10 kW, incluye baterías de litio 200 Ah, controlador solar 80 A/48 V') })),
+    ],
+    {
+      vendor: { name: 'SUNA M.P.', contact: null }, total: 0,
+      options: [{ id: 'o1', label: 'Inversor 3 kW', total: null }, { id: 'o2', label: 'Inversor 10 kW', total: null }],
+    },
+  ),
 } satisfies Record<string, QuoteExtraction>
 
 export type SampleQuoteId = keyof typeof SAMPLE_QUOTES
