@@ -56,7 +56,7 @@ suggestedInverterW(kit: KitNeeds): number
   | Zone | ES | Ratio |
   |---|---|---|
   | Short | Falta | < 100 % |
-  | Right-sized | Justo | 100–130 % |
+  | Snug | Justo | 100–130 % |
   | Roomy | Holgado | 130–200 % |
   | Oversized | De más | > 200 % |
 
@@ -74,12 +74,12 @@ New builders. Each takes `t` and returns a string, with all wording in the dicti
 
 | Builder | EN example | ES example |
 |---|---|---|
-| `zoneName(t, zone)` | Short / Right-sized / Roomy / Oversized | Falta / Justo / Holgado / De más |
-| `zonePill(t, s)` | `3.1× what it needs` · `+19 %, right-sized` · `+60 %, with room to spare` · `47 % of what it needs` | `3,1× lo necesario` · `+19 %, a la medida` · `+60 %, con margen` · `47 % de lo necesario` |
-| `ratioLabel(t, ratio)` (mini bars) | `1.15×` when ≥ 1, `47 %` when < 1 | `1,15×` · `47 %` |
+| `zoneName(t, zone)` | Short / Snug / Roomy / Oversized (short enough for the 12 % column on a 320 px phone) | Falta / Justo / Holgado / De más |
+| `zonePill(t, s)` | `3.1× what it needs` · `+19%, right-sized` · `+60%, with room to spare` · `47% of what it needs` | `3,1× lo necesario` · `+19 %, a la medida` · `+60 %, con margen` · `47 % de lo necesario` |
+| `ratioLabel(t, ratio)` (mini bars) | `1.15×` when ≥ 1, `47%` when < 1 (EN writes percents without a space; ES with one) | `1,15×` · `47 %` |
 | `gaugeTitle(t, id, s)` | `Inverter 12.0 kW` · `Battery 26.1 kWh usable` | `Inversor 12,0 kW` · `Batería 26,1 kWh útiles` |
 | `gaugeLabel(t, id, s)` (a11y name) | `Inverter: 12.0 kW against 3,860 W needed, oversized` | `Inversor: 12,0 kW frente a 3.860 W necesarios, de más` |
-| `gaugeLegend(t)` | `Right-sized: up to 30 % more than your kit uses. Oversized: more than double.` | `Justo: hasta 30 % más de lo que usa tu kit. De más: más del doble.` |
+| `gaugeLegend(t)` | `Snug: up to 30% more than your kit uses. Oversized: more than double.` | `Justo: hasta 30 % más de lo que usa tu kit. De más: más del doble.` |
 | `oversizeTip(t, kit)` | `The inverter is more than double what your kit uses. Ask whether there's a 5,000 W version: it usually costs less.` | `El inversor es más del doble de lo que usa tu kit. Pregunta si hay una versión de 5.000 W: suele bajar el precio.` |
 | `coverageLines(t, items)` | `Includes charger, Wi-Fi and installation` · `Too small: cables` · `Not included: fuse` · `Doesn't mention warranty` | `Incluye cargador, Wi-Fi e instalación` · … |
 | `deltaText(t, r)` (changed) | `$6,597 less than the best` · `$3,878 more than the best` | `USD 6.597 menos que la mejor` · … |
@@ -90,7 +90,7 @@ Notes on the builders:
 - **Percent and ratio numbers.**
   - `zonePill` rounds percents to whole numbers.
   - It shows `×` with one decimal when the ratio is ≥ 2.
-  - `+0 %` reads `Exactly what it needs` / `Justo lo necesario`.
+  - `+0%` reads `Exactly what it needs` / `Justo lo necesario`.
   - The gauge legend's 30 % and "double" come from `SIZING_ZONES` through placeholders, not literals.
 - **`coverageLines`**
   - It covers the strip items: charger, Wi-Fi, cables, fuse, installation. Inverter and battery are covered by the gauges and the reason line.
@@ -100,7 +100,7 @@ Notes on the builders:
 - **Checks button.**
   - The visible text is `Show checks` / `Ver comprobaciones`.
   - The accessible name becomes `Show checks for {name}` / `Ver comprobaciones de {name}`: a visually hidden suffix, so the visible label stays inside the name (WCAG 2.5.3).
-  - The hide state mirrors it.
+  - The hide state mirrors it. Both cards use one shared `ChecksToggle.tsx`.
   - The E2E selectors change to match.
 
 ## 3. Subtitle: `quoteSubtitle(q)` in `src/lib/quote-compare.ts`
@@ -113,7 +113,7 @@ Notes on the builders:
 
 All components live in `src/components/quotes/`.
 
-- **`KitNeeds.tsx` (new).**
+- **`KitNeedTiles.tsx` (new; named so it does not clash with the `KitNeeds` type).**
   - Two tiles under the header: `Inverter, your kit` with `fmtW(kit.runningW)`, and `Usable battery, your kit` with `fmtKwh(kit.usableWh)`.
   - Markup: `<section aria-label="What your kit needs">`.
   - Shown only when there's at least one ranked quote.
@@ -170,7 +170,7 @@ All components live in `src/components/quotes/`.
   | Token | Value | Use |
   |---|---|---|
   | `--qz-short` | `#FFE3B0` | Short zone |
-  | `--qz-just` | `#BFE3CD` | Right-sized zone |
+  | `--qz-just` | `#BFE3CD` | Snug zone |
   | `--qz-roomy` | `#D5DAE2` | Roomy zone |
   | `--qz-over` | `#AEBCF6` | Oversized zone |
   | `--qz-short-fill` | `#C98A12` | Short fill on the mini bars |
