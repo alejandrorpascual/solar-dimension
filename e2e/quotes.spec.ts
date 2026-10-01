@@ -16,6 +16,8 @@ import {
 const ALL = ['solartec', 'voltia', 'grupoluz', 'enerhogar']
 /** Where the E2E server keeps quote files (QUOTES_LOCAL_DIR in playwright.config.ts). */
 const QUOTE_FILES_DIR = '.data/e2e-quotes'
+/** The file name of a real quote from the user's test project, as installers send them. */
+const LONG_FILE_NAME = 'Quotation 0033688 09-16-2026- INVERSOR 3000W - CONDOMINIO VILLA MARTINIQUE - OFICINA 3'
 
 test('quotes upload, are read in the background, and end in a verdict', async ({ page }) => {
   await signUp(page)
@@ -527,10 +529,17 @@ async function expectZoneNamesApart(page: Page): Promise<void> {
 test('on a phone, every card keeps its name, total, reason and gauge labels apart', async ({ page }, testInfo) => {
   const isPhone = testInfo.project.name === 'phone'
   await signUp(page)
-  await uploadQuotes(page, await Promise.all(ALL.map(quotePdf)))
+  // A real installer's file name, long and without spaces to break at: it must be cut short, not widen the page.
+  const files = await Promise.all(ALL.map((id) => quotePdf(id === 'voltia' ? `${id}-${LONG_FILE_NAME}` : id)))
+  await uploadQuotes(page, files)
   await page.getByRole('button', { name: 'Ok, got it' }).click()
   await openVerdictFromTray(page)
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  await expect(page.getByText(LONG_FILE_NAME, { exact: false })).toBeVisible()
+  // A phone widens its layout viewport to fit wider content and zooms out, so window.innerWidth grows with the page:
+  // compare against the device's own width instead.
+  const deviceWidth = page.viewportSize()?.width ?? 0
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(deviceWidth)
 
   if (isPhone) {
     for (const card of await page.getByRole('article').all()) {

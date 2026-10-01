@@ -101,7 +101,9 @@
 .qv__status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 24px; }
 .qv__title { margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; max-width: 760px; text-wrap: balance; }
 .qv__sub { font-size: 16px; color: var(--muted); max-width: 640px; }
-.qv__grid { display: grid; gap: 24px; }
+/* minmax(0, …): an auto column grows to its longest unbreakable line (a long file name), which widens the page on a
+   phone and makes it zoom out. A zero minimum lets that line be cut with an ellipsis instead. */
+.qv__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
 @media (min-width: 1024px) {
   .qv__title { font-size: 44px; }
   .qv__grid { grid-template-columns: 400px minmax(0, 1fr); align-items: start; }
