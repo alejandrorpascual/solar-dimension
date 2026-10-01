@@ -2,8 +2,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client'
-import { projects } from '../db/schema'
+import { projects, quoteFileTrash, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
+import { emptyQuoteTrash } from './quotes/deps'
+import { lockUserQuotes } from './quotes/limits'
+import { trashQuoteFiles } from './quotes/repo'
 import { requireUserId } from './session'
 
 const MAX_BATCH = 200
@@ -11,7 +14,7 @@ const MAX_BATCH = 200
 const ProjectsInput = z.object({ projects: z.array(ProjectSchema).max(MAX_BATCH) })
 const IdsInput = z.object({ ids: z.array(z.string().min(1)).max(MAX_BATCH) })
 
-function toProject(row: typeof projects.$inferSelect): Project {
+export function toProject(row: typeof projects.$inferSelect): Project {
   return ProjectSchema.parse({
     id: row.id, name: row.name, qty: row.qty, custom: row.custom, hours: row.hours, volts: row.volts, chemistry: row.chemistry,
     batteryUnit: row.batteryUnit,
@@ -64,7 +67,17 @@ export const deleteProjects = createServerFn({ method: 'POST' })
   .validator((d: unknown) => IdsInput.parse(d))
   .handler(async ({ data }) => {
     const userId = await requireUserId()
-    if (data.ids.length) await db.delete(projects).where(and(eq(projects.userId, userId), inArray(projects.id, data.ids)))
+    if (data.ids.length === 0) return { ok: true }
+    // Quote rows go with the project (foreign key cascade); their files are trashed in the same transaction. The upload
+    // lock orders this against the user's uploads: one that stored its row before is trashed here, and one after fails
+    // on the foreign key and removes its own file.
+    const [, trashed] = await db.batch([
+      lockUserQuotes(userId),
+      trashQuoteFiles(and(eq(quotes.userId, userId), inArray(quotes.projectId, data.ids))).returning({ path: quoteFileTrash.pathname }),
+      db.delete(projects).where(and(eq(projects.userId, userId), inArray(projects.id, data.ids))),
+    ])
+    // Never throws: a file that can't be removed now (a missing Blob token, a Blob outage) stays trashed for the sweep.
+    if (trashed.length) await emptyQuoteTrash(trashed.map((r) => r.path))
     return { ok: true }
   })
 

@@ -1,9 +1,9 @@
 import { en } from './en'
 import { es } from './es'
-import type { Dictionary, Locale, UiKey } from './types'
+import type { Dictionary, Locale, QuoteKey, UiKey } from './types'
 import type { ApplianceLabels } from '../lib/catalog'
 
-export type { Dictionary, LegalPage, Locale, UiKey } from './types'
+export type { Dictionary, LegalPage, Locale, QuoteKey, UiKey } from './types'
 export const LOCALES: readonly Locale[] = ['en', 'es']
 export const DEFAULT_LOCALE: Locale = 'en'
 export const LOCALE_COOKIE = 'lang'
@@ -49,9 +49,15 @@ export function resolveLocale(input: { cookie?: string | null; acceptLanguage?: 
   return fromAcceptLanguage(input.acceptLanguage) ?? DEFAULT_LOCALE
 }
 
-/** Replace `{key}` placeholders in a ui string. */
+const fill = (template: string, params: Record<string, string | number>): string =>
+  template.replace(/\{(\w+)\}/g, (_, k: string) => String(params[k] ?? ''))
+
 export function tr(t: Dictionary, key: UiKey, params: Record<string, string | number> = {}): string {
-  return t.ui[key].replace(/\{(\w+)\}/g, (_, k: string) => String(params[k] ?? ''))
+  return fill(t.ui[key], params)
+}
+
+export function trq(t: Dictionary, key: QuoteKey, params: Record<string, string | number> = {}): string {
+  return fill(t.quotes[key], params)
 }
 
 /** "1 battery" / "5 batteries" in the active language. */

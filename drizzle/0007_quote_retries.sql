@@ -1,0 +1,1 @@
+ALTER TABLE "quotes" ADD COLUMN "retries" integer DEFAULT 0 NOT NULL;

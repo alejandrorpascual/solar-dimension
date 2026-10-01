@@ -161,9 +161,13 @@ test('project cards show each kit and quick edit a project without opening it', 
 
 test('appliances can be added, filtered and a custom load created from volts × amps', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Air conditioning' }).click()
-  await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
-  await expect(page.getByRole('button', { name: 'Remove one 2 ton AC · conventional' })).toBeVisible()
+  // A click that lands before the page hydrates does nothing; retry until the add registers, and never add twice.
+  const removeAc = page.getByRole('button', { name: 'Remove one 2 ton AC · conventional' })
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Air conditioning' }).click()
+    await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
+    await expect(removeAc).toBeVisible({ timeout: 1000 })
+  }).toPass()
   await page.getByRole('button', { name: 'All' }).click()
   await page.getByLabel('Search appliances').fill('fridge')
   await expect(page.getByText('Refrigerator', { exact: true })).toBeVisible()

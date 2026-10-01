@@ -1,7 +1,11 @@
 import { sql } from 'drizzle-orm'
-import { check, doublePrecision, integer, jsonb, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
+import { check, date, doublePrecision, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import type { ApplianceLabels } from '../lib/catalog'
 import { APPLIANCE_CATEGORIES } from '../lib/catalog-schema'
+import type { Musts, Overrides } from '../lib/quote-items'
+import { QUOTE_STATUSES, type QuoteExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
+
+import { user } from './auth-schema'
 
 export * from './auth-schema'
 
@@ -49,3 +53,89 @@ export const appliances = pgTable(
     check('appliances_duty_check', sql`${t.duty} > 0 and ${t.duty} <= 1`),
   ],
 )
+
+const quoteStatusList = sql.raw(QUOTE_STATUSES.map((s) => `'${s}'`).join(', '))
+
+/** One uploaded quote and its background reading job. The file itself lives in private Blob storage. */
+export const quotes = pgTable(
+  'quotes',
+  {
+    id: uuid('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    projectId: text('project_id').notNull(),
+    vendorLabel: text('vendor_label'),
+    fileName: text('file_name').notNull(),
+    blobPathname: text('blob_pathname').notNull(),
+    mime: text('mime').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    pages: integer('pages'),
+    status: text('status').$type<QuoteStatus>().notNull().default('queued'),
+    attempts: integer('attempts').notNull().default(0),
+    /** Retries the user asked for; capped at MAX_RETRIES (quote-guards), because retries don't count against the monthly limit. */
+    retries: integer('retries').notNull().default(0),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    modelUsed: text('model_used'),
+    usage: jsonb('usage').$type<QuoteUsage[]>(),
+    extraction: jsonb('extraction').$type<QuoteExtraction>(),
+    overrides: jsonb('overrides').$type<Overrides>().notNull().default({}),
+    totalOverride: doublePrecision('total_override'),
+    error: text('error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+    seenAt: timestamp('seen_at', { withTimezone: true }),
+  },
+  (t) => [
+    foreignKey({ name: 'quotes_project_fk', columns: [t.userId, t.projectId], foreignColumns: [projects.userId, projects.id] }).onDelete('cascade'),
+    index('quotes_user_project_idx').on(t.userId, t.projectId),
+    index('quotes_status_idx').on(t.status),
+    check('quotes_status_check', sql`${t.status} in (${quoteStatusList})`),
+  ],
+)
+
+/** Which items are must-haves for one project's verdict. No row means DEFAULT_MUSTS. */
+export const quoteSettings = pgTable(
+  'quote_settings',
+  {
+    userId: text('user_id').notNull(),
+    projectId: text('project_id').notNull(),
+    musts: jsonb('musts').$type<Partial<Musts>>().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.projectId] }),
+    foreignKey({ name: 'quote_settings_project_fk', columns: [t.userId, t.projectId], foreignColumns: [projects.userId, projects.id] }).onDelete('cascade'),
+  ],
+)
+
+/**
+ * How many quotes a user has uploaded in a UTC month (`month` is its first day). It only ever goes up: deleting a
+ * quote or a project does not give the monthly allowance back. Retries of a failed quote are not counted.
+ */
+export const quoteUsage = pgTable(
+  'quote_usage',
+  {
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    month: date('month', { mode: 'string' }).notNull(),
+    uploads: integer('uploads').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.month] })],
+)
+
+/**
+ * Model reads admitted in a UTC day across every account (uploads and retries), checked against QUOTES_DAILY_READS:
+ * the owner's kill switch on spend. No user data. Like `quote_usage`, it only ever goes up.
+ */
+export const quoteDailyUsage = pgTable('quote_daily_usage', {
+  day: date('day', { mode: 'string' }).primaryKey(),
+  reads: integer('reads').notNull().default(0),
+})
+
+/**
+ * Files of deleted quotes still waiting to leave storage. A row is added in the same transaction that deletes the
+ * quote (or its project) and cleared once the file is gone; the sweep retries what's left. No foreign key: a row must
+ * outlive the quote, the project and the user it came from.
+ */
+export const quoteFileTrash = pgTable('quote_file_trash', {
+  pathname: text('pathname').primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})

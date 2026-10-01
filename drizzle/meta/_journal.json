@@ -36,6 +36,41 @@
       "when": 1790456652674,
       "tag": "0004_seed_appliances",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790728927058,
+      "tag": "0005_quotes",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790733818175,
+      "tag": "0006_quote_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790745626945,
+      "tag": "0007_quote_retries",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790782038123,
+      "tag": "0008_quote_file_trash",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790784791104,
+      "tag": "0009_quote_daily_usage",
+      "breakpoints": true
     }
   ]
 }

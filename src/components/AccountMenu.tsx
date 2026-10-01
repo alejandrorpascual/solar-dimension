@@ -1,10 +1,10 @@
-import { Link, useLocation, useRouter } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import { ChevronDown, Link2, LogIn, LogOut } from 'lucide-react'
 import { Button, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, type Key } from 'react-aria-components'
 import { useLocale } from '../hooks/useLocale'
-import { useRootData } from '../hooks/useRootData'
+import { useConnectGoogle } from '../hooks/useConnectGoogle'
 import { tr } from '../i18n'
-import { linkSocial, signOut } from '../lib/auth-client'
+import { signOut } from '../lib/auth-client'
 import type { SessionUser } from '../server/session'
 
 interface Props {
@@ -21,8 +21,7 @@ function initialOf(user: SessionUser): string {
 export function AccountMenu({ user, busy = false }: Props) {
   const { t } = useLocale()
   const router = useRouter()
-  const { googleEnabled } = useRootData()
-  const here = useLocation({ select: (l) => l.href })
+  const google = useConnectGoogle(user)
   if (!user) {
     return (
       <Link to="/login" className="chip">
@@ -32,10 +31,9 @@ export function AccountMenu({ user, busy = false }: Props) {
     )
   }
   const signedInAs = tr(t, 'signedInAs', { email: user.email })
-  // Linking needs the current session, so only the account's owner can attach Google. Google returns here.
-  const canLinkGoogle = googleEnabled && !user.googleLinked
+  const canLinkGoogle = google.canConnect
   async function act(key: Key) {
-    if (key === 'google') return linkSocial({ provider: 'google', callbackURL: here })
+    if (key === 'google') return google.connect()
     if (key === 'signout') {
       await signOut()
       await router.invalidate({ sync: true })

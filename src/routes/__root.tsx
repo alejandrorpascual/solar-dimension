@@ -1,10 +1,12 @@
 import { HeadContent, Outlet, Scripts, createRootRoute, type ErrorComponentProps } from '@tanstack/react-router'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
+import { QuoteJobsProvider } from '../hooks/useQuoteJobs'
 import { useRootData, type RootData } from '../hooks/useRootData'
 import { DEFAULT_LOCALE, getDictionary } from '../i18n'
 import { APP_NAME } from '../lib/brand'
 import { shouldReloadForStaleChunk } from '../lib/stale-chunk'
+import { QuoteTray } from '../components/quotes/QuoteTray'
 import { getCatalog } from '../server/catalog'
 import { getLocale } from '../server/locale'
 import { getAuthFeatures, getSession } from '../server/session'
@@ -103,7 +105,10 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <QuoteJobsProvider>
+          {children}
+          <QuoteTray />
+        </QuoteJobsProvider>
         <Scripts />
       </body>
     </html>

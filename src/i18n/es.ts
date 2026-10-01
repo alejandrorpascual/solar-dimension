@@ -1,4 +1,5 @@
 import type { Dictionary } from './types'
+import { quoteItemsEs, quoteItemsInlineEs, quoteItemsListEs, quoteItemsShortEs, quotesEs } from './quotes-es'
 
 export const es: Dictionary = {
   locale: 'es',
@@ -67,9 +68,10 @@ export const es: Dictionary = {
     title: 'Privacidad',
     updated: 'Última actualización: {date}',
     sections: [
-      { heading: 'Qué guardamos', body: 'Tu correo y tu nombre y, si inicias sesión con Google, el identificador de tu cuenta de Google. También guardamos los proyectos que guardes: aparatos, horas, voltaje y elección de baterías.' },
-      { heading: 'Para qué', body: 'Para iniciar tu sesión y mantener tus proyectos en todos tus dispositivos. Nada más.' },
-      { heading: 'Con quién lo compartimos', body: 'No vendemos ni compartimos tus datos. Se guardan con nuestros proveedores de alojamiento y base de datos (Vercel y Neon) solo para que la app funcione.' },
+      { heading: 'Qué guardamos', body: 'Tu correo y tu nombre y, si inicias sesión con Google, el identificador de tu cuenta de Google. También guardamos los proyectos que guardes: aparatos, horas, voltaje y elección de baterías. Si subes cotizaciones de instaladores, guardamos los archivos y los precios y componentes que leemos de ellos.' },
+      { heading: 'Para qué', body: 'Para iniciar tu sesión y mantener tus proyectos en todos tus dispositivos. Si subes cotizaciones de instaladores, también las leemos para compararlas con tu kit (mira Cotizaciones más abajo).' },
+      { heading: 'Con quién lo compartimos', body: 'No vendemos ni compartimos tus datos, salvo con los proveedores que hacen funcionar la app: Vercel y Neon para el alojamiento y la base de datos y, si subes cotizaciones de instaladores, OpenAI para leerlas (mira Cotizaciones más abajo).' },
+      { heading: 'Cotizaciones', body: 'Si subes cotizaciones de instaladores, guardamos los archivos de forma privada en Vercel y enviamos cada uno a OpenAI para leer sus precios y componentes, enviándolo de nuevo si falla una lectura o lo reintentas. OpenAI no entrena con los datos enviados a través de su API. Guardamos cuántas cotizaciones subes cada mes para aplicar el límite mensual; ese recuento se mantiene aunque borres una cotización. Al eliminar una cotización, o el proyecto al que pertenece, se elimina el archivo.' },
       { heading: 'Datos de Google', body: 'Solo pedimos tu perfil básico (nombre y correo). No accedemos a Gmail, Drive ni a nada más de tu cuenta de Google.' },
       { heading: 'Cookies', body: 'Una cookie de sesión para iniciar sesión y una de idioma. Sin anuncios ni rastreo.' },
       { heading: 'Borrar tus datos', body: 'Escribe a {email} y borraremos tu cuenta y tus proyectos.' },
@@ -88,4 +90,9 @@ export const es: Dictionary = {
       { heading: 'Contacto', body: '{email}' },
     ],
   },
+  quotes: quotesEs,
+  quoteItems: quoteItemsEs,
+  quoteItemsInline: quoteItemsInlineEs,
+  quoteItemsShort: quoteItemsShortEs,
+  quoteItemsList: quoteItemsListEs,
 }

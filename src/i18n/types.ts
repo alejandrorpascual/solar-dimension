@@ -1,5 +1,7 @@
 import type { Category, ChemistryId, Voltage } from '../lib/catalog'
+import type { ItemId } from '../lib/quote-items'
 import type { WarningCode, WarningParams } from '../lib/sizing'
+import type { quotesEn } from './quotes-en'
 
 export type Locale = 'en' | 'es'
 
@@ -13,6 +15,13 @@ export interface Dictionary {
   parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'fuse', string>
   privacy: LegalPage
   terms: LegalPage
+  quotes: Record<QuoteKey, string>
+  quoteItems: Record<ItemId, string>
+  /** Item names as they read inside a sentence: "does your quote include a battery charger?" */
+  quoteItemsInline: Record<ItemId, string>
+  quoteItemsShort: Record<ItemId, string>
+  /** Item names in a comma list: "Includes charger, Wi-Fi and installation". */
+  quoteItemsList: Record<ItemId, string>
 }
 
 /** `{email}` in a body is replaced with the contact address as a mailto link; `{date}` in `updated` with the date. */
@@ -47,3 +56,5 @@ export type UiKey =
   | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes'
   | 'downloadPdf' | 'downloadPng' | 'downloadCsv' | 'share' | 'making' | 'downloadReady' | 'exportFailed'
   | 'sheetTitle' | 'loadSchedule' | 'appliance' | 'each' | 'overHours' | 'total' | 'note' | 'eachW' | 'runningWatts' | 'whOver'
+
+export type QuoteKey = keyof typeof quotesEn

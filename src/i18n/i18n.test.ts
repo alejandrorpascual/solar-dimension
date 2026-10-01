@@ -3,7 +3,7 @@ import { CATEGORIES } from '../lib/catalog'
 import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
 import { en } from './en'
 import { es } from './es'
-import { applianceName, applianceNote, batteryCount, getDictionary, isLocale, resolveLocale, tr } from './index'
+import { applianceName, applianceNote, batteryCount, getDictionary, isLocale, resolveLocale, tr, trq } from './index'
 
 describe('dictionaries', () => {
   test('es has every ui key that en has, and nothing extra', () => {
@@ -116,5 +116,25 @@ describe.each(['privacy', 'terms'] as const)('%s page', (page) => {
         expect(s.body.trim()).not.toBe('')
       }
     }
+  })
+})
+
+describe('quote dictionaries', () => {
+  test('es has every quote key en has, and nothing extra', () => {
+    expect(Object.keys(es.quotes).sort()).toEqual(Object.keys(en.quotes).sort())
+  })
+  test('every item has a name, an inline phrase and a short label in both languages', () => {
+    for (const d of [en, es]) {
+      for (const map of [d.quoteItems, d.quoteItemsInline, d.quoteItemsShort, d.quoteItemsList]) {
+        expect(Object.keys(map).sort()).toEqual(['battery', 'cables', 'charger', 'fuse', 'installation', 'inverter', 'warranty', 'wifi'])
+      }
+    }
+  })
+  test('trq fills placeholders', () => {
+    expect(trq(en, 'trayReading', { total: 4 })).toBe('Comparing 4 quotes')
+    expect(trq(es, 'trayReading', { total: 4 })).toBe('Comparando 4 cotizaciones')
+  })
+  test('no quote string promises an email', () => {
+    for (const d of [en, es]) expect(Object.values(d.quotes).join(' ')).not.toMatch(/e-?mail|correo/i)
   })
 })
