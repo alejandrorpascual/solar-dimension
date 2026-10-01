@@ -16,7 +16,7 @@ export interface ProjectJobs {
   kitEmpty: boolean
   /** A finished quote the user hasn't looked at yet: the tray shows "Verdict ready" until they do. Never true for an empty kit. */
   unseen: boolean
-  best: { name: string; total: number; currency: string } | null
+  best: { name: string; optionLabel: string | null; total: number; currency: string } | null
 }
 
 /** One project's quote jobs for the tray, the kit card and the project card. `kit` is null for an empty kit. */
@@ -24,7 +24,7 @@ export function summarizeProject(projectId: string, projectName: string, quotes:
   const pending = quotes.filter((q) => isPending(q.status)).length
   const kitEmpty = kit === null
   const verdict = kit !== null && pending === 0 ? compareQuotes(kit, musts, quotes) : null
-  const best = verdict?.best ? { name: verdict.best.name, total: verdict.best.total, currency: verdict.best.currency } : null
+  const best = verdict?.best ? { name: verdict.best.name, optionLabel: verdict.best.optionLabel, total: verdict.best.total, currency: verdict.best.currency } : null
   return {
     projectId, projectName,
     files: [...quotes].sort((a, b) => a.createdAt - b.createdAt).map((q) => ({ id: q.id, name: q.fileName, status: q.status })),

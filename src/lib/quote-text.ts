@@ -1,6 +1,6 @@
 import { trq, type Dictionary, type QuoteKey } from '../i18n'
 import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtW } from '../i18n/format'
-import { nothingRead, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
+import { entryKey, entryName, nothingRead, quoteSubtitle, type EntryOption, type QuoteView, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
 import { STRIP_ITEMS, type ItemCheck, type ItemId, type ItemStatus, type KitNeeds } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
@@ -11,10 +11,10 @@ const SECONDS_PER_MINUTE = 60
 
 export const money = (t: Dictionary, amount: number, currency: string): string => fmtMoney(amount, currency, t.locale)
 const inlineList = (t: Dictionary, ids: readonly ItemId[]): string => fmtList(ids.map((id) => t.quoteItemsInline[id]), t.locale)
-const isBest = (r: RankedQuote, v: Verdict): boolean => v.best !== null && v.best.quote.id === r.quote.id
+const isBest = (r: RankedQuote, v: Verdict): boolean => v.best !== null && entryKey(v.best) === entryKey(r)
 
 export function verdictHeading(t: Dictionary, v: Verdict): string {
-  if (v.best) return trq(t, 'headingBest', { name: v.best.name })
+  if (v.best) return trq(t, 'headingBest', { name: entryName(v.best) })
   if (v.ranked.length > 0) return t.quotes.headingNone
   if (v.unranked.some((u) => u.reason === 'reading')) return t.quotes.headingReading
   if (nothingRead(v)) return t.quotes.headingUnread
@@ -28,7 +28,7 @@ export function verdictSubline(t: Dictionary, v: Verdict, kit: KitNeeds): string
       ? trq(t, 'subBestOne', { total, musts: v.mustCount })
       : trq(t, 'subBest', { total, count: v.ranked.length, musts: v.mustCount })
   }
-  if (v.closest) return trq(t, 'subNone', { name: v.closest.name, gap: gapText(t, v.closest, kit) })
+  if (v.closest) return trq(t, 'subNone', { name: entryName(v.closest), gap: gapText(t, v.closest, kit) })
   if (v.worthAsking.length > 0) return t.quotes.subUnclear
   if (nothingRead(v)) return t.quotes.subUnread
   return v.ranked.length === 0 && v.unranked.length === 0 ? t.quotes.emptyBody : ''
@@ -71,8 +71,8 @@ export function reasonLine(t: Dictionary, r: RankedQuote, v: Verdict, kit: KitNe
 export function askText(t: Dictionary, r: RankedQuote, v: Verdict): string {
   const items = inlineList(t, r.unknownMusts)
   return v.best
-    ? trq(t, 'askCheaper', { name: r.name, saving: money(t, v.best.total - r.total, r.currency), items })
-    : trq(t, 'askNoBest', { name: r.name, items })
+    ? trq(t, 'askCheaper', { name: entryName(r), saving: money(t, v.best.total - r.total, r.currency), items })
+    : trq(t, 'askNoBest', { name: entryName(r), items })
 }
 
 /** A question the user can paste into a message to the installer. */
@@ -151,6 +151,23 @@ export function totalHelp(t: Dictionary, reason: 'needs_review' | 'no_total'): s
   return reason === 'no_total' ? t.quotes.noTotalHelp : t.quotes.checkNumbersHelp
 }
 
+const SUBTITLE_SEPARATOR = ' · '
+
+/**
+ * A card's second line: for an option, which of the quote's options it is, its label and the file ("Option 2 of 2 ·
+ * Inversor 10 kW · suna.pdf"); otherwise the file name, unless it already is the card's name.
+ */
+export function entrySubtitle(t: Dictionary, e: EntryOption & { quote: QuoteView }): string | null {
+  if (e.optionId === null) return quoteSubtitle(e.quote)
+  const n = (e.quote.extraction?.options.findIndex((o) => o.id === e.optionId) ?? 0) + 1
+  return [trq(t, 'optionOf', { n, count: e.optionCount }), e.optionLabel, e.quote.fileName].filter(Boolean).join(SUBTITLE_SEPARATOR)
+}
+
+/** Deleting a quote with options removes every option's card with the file, so the confirmation says how many. */
+export function deleteConfirmText(t: Dictionary, optionCount: number): string {
+  return optionCount > 0 ? trq(t, 'deleteConfirmOptions', { count: optionCount }) : t.quotes.deleteConfirm
+}
+
 export function fileStatusText(t: Dictionary, status: QuoteStatus | 'uploading'): string {
   const q = t.quotes
   return { uploading: q.stUploading, queued: q.stQueued, processing: q.stProcessing, ready: q.stReady, needs_review: q.stNeedsReview, failed: q.stFailed }[status]
@@ -175,7 +192,7 @@ export function rejectionText(t: Dictionary, r: Rejection): string {
 export function projectLine(t: Dictionary, j: ProjectJobs): string {
   if (j.pending > 0) return trq(t, 'lineReading', { done: j.done, total: j.total })
   if (j.kitEmpty) return t.quotes.kitEmptyTitle
-  if (j.best) return trq(t, 'lineReady', { best: `${j.best.name} · ${money(t, j.best.total, j.best.currency)}` })
+  if (j.best) return trq(t, 'lineReady', { best: `${entryName(j.best)} · ${money(t, j.best.total, j.best.currency)}` })
   const toCheck = j.failed + j.needsReview
   return toCheck > 0 ? trq(t, 'lineCheck', { count: toCheck }) : t.quotes.lineNoFit
 }

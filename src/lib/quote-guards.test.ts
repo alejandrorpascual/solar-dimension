@@ -112,8 +112,8 @@ describe('inputs', () => {
     expect(MustInput.safeParse({ projectId: 'p1', item: 'fuse' }).success).toBe(false)
     expect(MustInput.safeParse({ projectId: '', item: 'fuse', value: true }).success).toBe(false)
   })
-  test('only a failed quote can be retried', () => {
-    expect(RETRYABLE).toEqual(['failed'])
+  test('only a failed quote, or one to check, can be retried', () => {
+    expect(RETRYABLE).toEqual(['failed', 'needs_review'])
   })
 })
 
@@ -124,12 +124,18 @@ describe('canRetry', () => {
     expect(canRetry({ status: 'failed', retries: MAX_RETRIES - 1 })).toBe(true)
     expect(canRetry({ status: 'failed', retries: MAX_RETRIES })).toBe(false)
   })
-  test('a quote that was read, or is being read, cannot be retried', () => {
-    for (const status of ['queued', 'processing', 'ready', 'needs_review'] as const) expect(canRetry({ status, retries: 0 })).toBe(false)
+  test('a quote being read, or read and ready, cannot be retried', () => {
+    for (const status of ['queued', 'processing', 'ready'] as const) expect(canRetry({ status, retries: 0 })).toBe(false)
   })
 })
 
 describe('retryOffer', () => {
+  test('a quote whose numbers need checking can be read again, until it has used its retries', () => {
+    expect(canRetry({ status: 'needs_review', retries: 0 })).toBe(true)
+    expect(retryOffer({ status: 'needs_review', retries: 0 }, true)).toBe('retry')
+    expect(retryOffer({ status: 'needs_review', retries: MAX_RETRIES }, true)).toBe('used_up')
+    expect(retryOffer({ status: 'needs_review', retries: 0 }, false)).toBe('none')
+  })
   const failed = { status: 'failed' as const, retries: 0 }
   test('a failed quote with retries left offers Retry to an account that may start reads', () => {
     expect(retryOffer(failed, true)).toBe('retry')
