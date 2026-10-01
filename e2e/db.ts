@@ -70,6 +70,18 @@ export async function setQuoteRetries(email: string, projectId: string, retries:
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/**
+ * Turns a project's quotes back into readings made before options existed: no options, no line options, and waiting
+ * for a total, as the user's SUNA quote was stored.
+ */
+export async function stripQuoteOptions(email: string, projectId: string): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review',
+      extraction = jsonb_set(q.extraction - 'options', '{lines}',
+        coalesce((select jsonb_agg(l - 'option') from jsonb_array_elements(q.extraction -> 'lines') l), '[]'::jsonb))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
 /** The status and retries of every quote of a project, oldest first. */
 export async function quoteRetryStates(email: string, projectId: string): Promise<{ status: string; retries: number }[]> {
   const rows = await testDb()`
