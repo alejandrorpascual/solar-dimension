@@ -155,6 +155,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       <div className="qlist__rows">
         {others.map((r) => (
           <QuoteRow key={entryKey(r)} r={r} verdict={verdict} kit={kit} error={errorFor(entryKey(r))}
+            retry={retryFor(r.quote.id)} onRetry={run(entryKey(r), () => retryQuote({ data: { quoteId: r.quote.id } }))}
             onOverride={onOverride(r.quote.id, entryKey(r))} onDelete={remove(r.quote.id, entryKey(r))} />
         ))}
       </div>
@@ -169,6 +170,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       {verdict.best ? (
         <div className="qv__grid">
           <BestCard best={verdict.best} kit={kit} error={errorFor(entryKey(verdict.best))}
+            retry={retryFor(verdict.best.quote.id)} onRetry={run(entryKey(verdict.best), () => retryQuote({ data: { quoteId: verdict.best!.quote.id } }))}
             onOverride={onOverride(verdict.best.quote.id, entryKey(verdict.best))} onDelete={remove(verdict.best.quote.id, entryKey(verdict.best))} />
           {ranked}
         </div>

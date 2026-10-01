@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { quotesEn } from '../src/i18n/quotes-en'
 import {
   cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth,
-  stripQuoteOptions, trashedPaths,
+  setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage } from './header'
@@ -603,4 +603,24 @@ test('a quote read before options can be read again, and then shows a card per o
   await expect(page.getByText(SUNA_O1)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByText(SUNA_O2)).toBeVisible()
   expect(await quoteRetryStates(email, projectId)).toEqual([{ status: 'ready', retries: 1 }])
+})
+
+test('a ranked quote whose reading needs a check can be read again from its card', async ({ page }) => {
+  test.slow()
+  const email = await signUp(page)
+  await uploadQuotes(page, [await quotePdf('suna')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+  await page.goto(`/projects/${projectId}/quotes`)
+  await expect(page.getByText(SUNA_O2)).toBeVisible({ timeout: 30_000 })
+
+  // The old SUNA quote after the user typed its total: it ranks as one system, so only its card can offer the retry.
+  await stripQuoteOptions(email, projectId)
+  await setQuoteTotalOverride(email, projectId, 6200)
+  await page.reload()
+  await expect(page.getByText(SUNA_O1)).toHaveCount(0)
+  await page.getByRole('button', { name: quotesEn.readAgain }).click()
+
+  await expect(page.getByText(SUNA_O1)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(SUNA_O2)).toBeVisible()
 })

@@ -82,6 +82,13 @@ export async function stripQuoteOptions(email: string, projectId: string): Promi
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/** Sets the total the user typed on every quote of a project, as if they had saved it on the card. */
+export async function setQuoteTotalOverride(email: string, projectId: string, total: number): Promise<void> {
+  await testDb()`
+    update quotes q set total_override = ${total}
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
 /** The status and retries of every quote of a project, oldest first. */
 export async function quoteRetryStates(email: string, projectId: string): Promise<{ status: string; retries: number }[]> {
   const rows = await testDb()`
