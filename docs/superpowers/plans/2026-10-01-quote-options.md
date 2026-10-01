@@ -25,7 +25,7 @@
 ## Decisions this plan makes where the spec is silent
 
 - **`hasOptions(x)` means 2 or more options.** `normalizeExtraction` keeps `options` either empty or with 2–5 entries: fewer than two becomes `[]` with every `line.option` null, so "one option" can't half-split a quote.
-- **Option ids are cut to 12 characters and de-duplicated** (first wins), so `entryKey` is unique per card.
+- **Option ids are de-duplicated on the full trimmed id (first wins) and renamed o1..oN**, so `entryKey` is unique per card.
 - **Lines of options cut by the cap of 5 are dropped**, not nulled: nulling would make a sixth system's inverter "shared" and add it to every other option. Lines naming an id that was never listed are nulled, as the spec says.
 - **An option with no priced line of its own has no price**, even when shared lines cost something: installation alone doesn't price a system. It becomes `no_price`.
 - **`optionPrices` lives in `quote-checks.ts`** (as the spec says); the slicing helpers live in a new `quote-options.ts`, so `quote-checks` and `quote-compare` both import them without a cycle.

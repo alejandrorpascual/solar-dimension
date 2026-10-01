@@ -90,39 +90,55 @@ export const MAX_OPTIONS = 5
 const cut = (s: string, n: number): string => (s.length > n ? s.slice(0, n) : s)
 const cutOrNull = (s: string | null, n: number): string | null => (s === null ? null : cut(s, n))
 
-/**
- * The options kept and the ids dropped by the cap. Ids are cut like codes and a repeated id keeps the first. Fewer than
- * two options is one system, so none are kept and none dropped: every line becomes shared.
- */
-function splitOptions(options: readonly QuoteOption[]): { kept: QuoteOption[]; dropped: Set<string> } {
-  const cutOptions = options.map((o) => ({ ...o, id: cut(o.id, TEXT.code), label: cut(o.label.trim(), TEXT.optionLabel) }))
-  const unique = cutOptions.filter((o, i) => cutOptions.findIndex((p) => p.id === o.id) === i)
-  const kept = unique.slice(0, MAX_OPTIONS)
-  if (kept.length < 2) return { kept: [], dropped: new Set() }
-  return { kept, dropped: new Set(unique.slice(MAX_OPTIONS).map((o) => o.id)) }
+interface OptionSplit {
+  /** The options kept, renamed to o1, o2, … in order. */
+  kept: QuoteOption[]
+  /** Each kept option's id as the model wrote it (trimmed) → its canonical id. */
+  ids: ReadonlyMap<string, string>
+  /** The ids, as written, of the options past the cap. */
+  dropped: ReadonlySet<string>
 }
 
-/** A line's option after the split: kept, null (shared, or an id never listed), or undefined when its option was dropped. */
-function lineOption(option: string | null, kept: ReadonlySet<string>, dropped: ReadonlySet<string>): string | null | undefined {
+/**
+ * The options kept, and the ids dropped by the cap. A repeated id keeps the first, matched on the whole trimmed id: a
+ * shortened id would fold "alternativa-1" and "alternativa-2" into one. Kept options get the ids o1, o2, … so every id
+ * is short and unique whatever the model wrote. Fewer than two options is one system, so none are kept and none
+ * dropped: every line becomes shared.
+ */
+function splitOptions(options: readonly QuoteOption[]): OptionSplit {
+  const trimmed = options.map((o) => ({ ...o, id: o.id.trim(), label: cut(o.label.trim(), TEXT.optionLabel) }))
+  const unique = trimmed.filter((o, i) => trimmed.findIndex((p) => p.id === o.id) === i)
+  const kept = unique.slice(0, MAX_OPTIONS)
+  if (kept.length < 2) return { kept: [], ids: new Map(), dropped: new Set() }
+  const canonical = kept.map((o, i) => ({ ...o, id: `o${i + 1}` }))
+  return {
+    kept: canonical,
+    ids: new Map(kept.map((o, i) => [o.id, `o${i + 1}`])),
+    dropped: new Set(unique.slice(MAX_OPTIONS).map((o) => o.id)),
+  }
+}
+
+/** A line's option after the split: its canonical id, null (shared, or an id never listed), or undefined when its option was dropped. */
+function lineOption(option: string | null, split: OptionSplit): string | null | undefined {
   if (option === null) return null
-  const id = cut(option, TEXT.code)
-  if (kept.has(id)) return id
-  return dropped.has(id) ? undefined : null
+  const id = option.trim()
+  const canonical = split.ids.get(id)
+  if (canonical !== undefined) return canonical
+  return split.dropped.has(id) ? undefined : null
 }
 
 /** Trims every text to its limit, caps the lists, splits the options and upper-cases the currency. Returns a new object. */
 export function normalizeExtraction(x: QuoteExtraction): QuoteExtraction {
-  const { kept, dropped } = splitOptions(x.options)
-  const keptIds = new Set(kept.map((o) => o.id))
+  const split = splitOptions(x.options)
   return {
     ...x,
     vendor: { name: cutOrNull(x.vendor.name, TEXT.short), contact: cutOrNull(x.vendor.contact, TEXT.short) },
     date: cutOrNull(x.date, TEXT.date),
     validUntil: cutOrNull(x.validUntil, TEXT.date),
     currency: x.currency.trim().toUpperCase(),
-    options: kept,
+    options: split.kept,
     lines: x.lines.slice(0, LIST.lines).flatMap((l) => {
-      const option = lineOption(l.option, keptIds, dropped)
+      const option = lineOption(l.option, split)
       if (option === undefined) return []
       return [{
         ...l,

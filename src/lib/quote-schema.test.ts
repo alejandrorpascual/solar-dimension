@@ -51,14 +51,14 @@ describe('normalizeExtraction with options', () => {
       options: ids.map((id) => opt(id, 'x'.repeat(80))),
     })
     const n = normalizeExtraction(x)
-    expect(n.options.map((o) => o.id)).toEqual(['a', 'b', 'c', 'd', 'e'])
+    expect(n.options.map((o) => o.id)).toEqual(['o1', 'o2', 'o3', 'o4', 'o5'])
     expect(MAX_OPTIONS).toBe(5)
     expect(n.options[0]!.label).toHaveLength(60)
-    expect(n.lines.map((l) => l.option)).toEqual(['a', 'b', 'c', 'd', 'e'])
+    expect(n.lines.map((l) => l.option)).toEqual(['o1', 'o2', 'o3', 'o4', 'o5'])
   })
   test('nulls a line whose option was never listed', () => {
     const x = extraction([line('inverter', 100, { option: 'a' }), line('labor', 50, { option: 'zz' })], { options: [opt('a'), opt('b')] })
-    expect(normalizeExtraction(x).lines.map((l) => l.option)).toEqual(['a', null])
+    expect(normalizeExtraction(x).lines.map((l) => l.option)).toEqual(['o1', null])
   })
   test('one option is one system: no options, and every line shared', () => {
     const x = extraction([line('inverter', 100, { option: 'a' })], { options: [opt('a')] })
@@ -70,12 +70,29 @@ describe('normalizeExtraction with options', () => {
     const x = extraction([line('inverter', 100, { option: 'a' })], { options: [opt('a', 'First'), opt('a', 'Again'), opt('b')] })
     expect(normalizeExtraction(x).options.map((o) => o.label)).toEqual(['First', 'b'])
   })
-  test('cuts ids to 12 characters, on the options and on the lines alike', () => {
-    const long = 'option-number-one'
-    const x = extraction([line('inverter', 100, { option: long })], { options: [opt(long), opt('b')] })
+  test('a duplicate that leaves fewer than two options is one system: no options, and every line shared', () => {
+    const x = extraction([line('inverter', 100, { option: 'a' }), line('labor', 50, { option: 'b' })], { options: [opt('a'), opt(' a ')] })
     const n = normalizeExtraction(x)
-    expect(n.options[0]!.id).toBe('option-numbe')
-    expect(n.lines[0]!.option).toBe('option-numbe')
+    expect(n.options).toEqual([])
+    expect(n.lines.map((l) => l.option)).toEqual([null, null])
+  })
+  test('ids that share a long prefix stay two options, and their lines follow', () => {
+    const x = extraction(
+      [line('inverter', 100, { option: 'alternativa-1' }), line('inverter', 200, { option: 'alternativa-2' })],
+      { options: [opt('alternativa-1'), opt('alternativa-2')] },
+    )
+    const n = normalizeExtraction(x)
+    expect(n.options.map((o) => o.id)).toEqual(['o1', 'o2'])
+    expect(n.lines.map((l) => l.option)).toEqual(['o1', 'o2'])
+  })
+  test('renames the kept options to o1..oN, on the options and on the lines alike', () => {
+    const x = extraction(
+      [line('inverter', 100, { option: 'Kit B' }), line('inverter', 200, { option: ' Kit A ' }), line('labor', 50)],
+      { options: [opt('Kit A'), opt('Kit B'), opt('Kit C')] },
+    )
+    const n = normalizeExtraction(x)
+    expect(n.options.map((o) => o.id)).toEqual(['o1', 'o2', 'o3'])
+    expect(n.lines.map((l) => l.option)).toEqual(['o2', 'o1', null])
   })
 })
 
