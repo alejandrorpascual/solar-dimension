@@ -129,7 +129,7 @@ All components live in `src/components/quotes/`.
   - Each track has a fill at `pos %` and a 2 px tick at 40 % (the 100 % need).
   - Fill colour: amber when short, green when just or roomy, accent when over.
   - Rows with an unknown size are left out. The whole block is hidden when both are unknown.
-  - It's `aria-hidden`, and the card carries the meaning in text instead: an sr-only sentence built from `gaugeLabel` for each known component.
+  - It's `aria-hidden`, and the card carries the meaning in text instead: a `.visually-hidden` sentence (base.css) built from `gaugeLabel` for each known component.
 - **`BestCard.tsx` (rewrite).** Still a `<section>` labelled by the name, so `getByRole('region', { name })` keeps working. Contents, in order:
   1. The `Best fit` pill.
   2. A top line: name (h2) with `quoteSubtitle` under it on the left, and the total (`num`, 28 px on phones) on the right.
