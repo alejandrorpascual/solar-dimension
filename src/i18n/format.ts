@@ -12,6 +12,10 @@ export function fmtW(w: number, locale: Locale): string {
 export function fmtKwh(wh: number, locale: Locale): string {
   return `${(wh / 1000).toLocaleString(TAGS[locale], { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh`
 }
+/** A number with exactly `digits` decimals in the locale's notation: "3.1", "1.15". */
+export function fmtDecimal(n: number, digits: number, locale: Locale): string {
+  return n.toLocaleString(TAGS[locale], { minimumFractionDigits: digits, maximumFractionDigits: digits })
+}
 export function fmtDate(d: Date, locale: Locale): string {
   return d.toLocaleDateString(TAGS[locale], { day: 'numeric', month: 'short', year: 'numeric' })
 }

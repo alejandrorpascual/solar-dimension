@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { fmtDate, fmtHours, fmtInt, fmtKwh, fmtList, fmtMoney, fmtW } from './format'
+import { fmtDate, fmtDecimal, fmtHours, fmtInt, fmtKwh, fmtList, fmtMoney, fmtW } from './format'
 
 test('formats numbers per locale', () => {
   expect(fmtInt(1234, 'en')).toBe('1,234')
@@ -32,5 +32,14 @@ describe('fmtMoney and fmtList', () => {
   test('lists join with "and" / "y"', () => {
     expect(fmtList(['a charger', 'a fuse'], 'en')).toBe('a charger and a fuse')
     expect(fmtList(['un cargador', 'un fusible'], 'es')).toBe('un cargador y un fusible')
+  })
+})
+
+describe('fmtDecimal', () => {
+  test('always shows the given number of decimals', () => {
+    expect(fmtDecimal(3.1088, 1, 'en')).toBe('3.1')
+    expect(fmtDecimal(2, 1, 'en')).toBe('2.0')
+    expect(fmtDecimal(1.15, 2, 'en')).toBe('1.15')
+    expect(fmtDecimal(3.1088, 1, 'es')).toBe((3.1).toLocaleString('es-419', { minimumFractionDigits: 1 }))
   })
 })
