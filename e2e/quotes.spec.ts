@@ -1,12 +1,13 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { quotesEn } from '../src/i18n/quotes-en'
 import {
   cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth,
   trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
+import { switchLanguage } from './header'
 import { hideProjects, showProjects } from './projects'
 import {
   captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading,
@@ -33,7 +34,12 @@ test('quotes upload, are read in the background, and end in a verdict', async ({
   await expect(rows.nth(1)).toContainText('Grupo Luz')
   await expect(rows.nth(1)).toContainText('Worth asking')
   await expect(rows.nth(2)).toContainText('EnerHogar')
-  await expect(page.getByRole('img', { name: /SolarTec Caribe, \$6,480, Best fit/ })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'What your kit needs' })).toBeVisible()
+  const best = page.getByRole('region', { name: 'SolarTec Caribe' })
+  await expect(best.getByRole('img', { name: /^Inverter: .+ needed, / })).toBeVisible()
+  await expect(best.getByText('solartec.pdf')).toBeVisible()
+  await expect(rows.nth(0)).toContainText('$820 more than the best')
+  await expect(rows.nth(1)).toContainText('$330 less than the best')
   await expect(tray(page)).toBeHidden()
 })
 
@@ -45,7 +51,7 @@ test('must-haves and confirmations change the winner, and stick', async ({ page 
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
 
   const grupo = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
-  await grupo.getByRole('button', { name: 'Show every check for Grupo Luz', exact: true }).click()
+  await grupo.getByRole('button', { name: 'Show checks for Grupo Luz', exact: true }).click()
   let save = saved(page, 'item')
   await grupo.getByRole('group', { name: 'Battery charger', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
   await save
@@ -59,11 +65,11 @@ test('must-haves and confirmations change the winner, and stick', async ({ page 
   // Un-confirming the charger on the best-fit card drops Grupo Luz back to "unclear": it stops being the best fit at once,
   // so its card is replaced by SolarTec's and Grupo Luz becomes a row in the list, with its checks closed.
   const best = page.getByRole('region', { name: 'Grupo Luz' })
-  await best.getByRole('button', { name: 'Show every check for Grupo Luz', exact: true }).click()
+  await best.getByRole('button', { name: 'Show checks for Grupo Luz', exact: true }).click()
   await best.getByRole('group', { name: 'Battery charger', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
   const row = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
-  await row.getByRole('button', { name: 'Show every check for Grupo Luz', exact: true }).click()
+  await row.getByRole('button', { name: 'Show checks for Grupo Luz', exact: true }).click()
   await row.getByRole('group', { name: 'Class T fuse', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
 
@@ -497,4 +503,50 @@ test('a project whose quotes all failed says none could be read, not that a verd
   const status = page.getByRole('status')
   await expect(status).toHaveText("2 couldn't be read")
   await expect(page.getByText('Verdict ready')).toHaveCount(0)
+})
+
+/** The best card's first gauge: each zone name ends before the next one starts. */
+async function expectZoneNamesApart(page: Page): Promise<void> {
+  // Each zone name is a grid item stretched to its column, so its own box never overlaps the next; the box of its
+  // text does when the names collide.
+  const names = page.getByRole('region', { name: 'SolarTec Caribe' }).locator('.qgauge').first().locator('.qgauge__name')
+  const boxes = await names.evaluateAll((spans) => spans.map((span) => {
+    const range = document.createRange()
+    range.selectNodeContents(span)
+    const { x, width } = range.getBoundingClientRect()
+    return { x, width }
+  }))
+  expect(boxes).toHaveLength(4)
+  for (let i = 1; i < boxes.length; i++) {
+    const prev = boxes[i - 1]!
+    const cur = boxes[i]!
+    expect(prev.x + prev.width).toBeLessThanOrEqual(cur.x + 0.5)
+  }
+}
+
+test('on a phone, every card keeps its name, total, reason and gauge labels apart', async ({ page }, testInfo) => {
+  const isPhone = testInfo.project.name === 'phone'
+  await signUp(page)
+  await uploadQuotes(page, await Promise.all(ALL.map(quotePdf)))
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+
+  if (isPhone) {
+    for (const card of await page.getByRole('article').all()) {
+      const name = await card.getByRole('heading', { level: 3 }).boundingBox()
+      const total = await card.locator('.qrow__total').boundingBox()
+      const reason = await card.locator('.qrow__reason').boundingBox()
+      if (!name || !total || !reason) throw new Error('a card is missing its name, total or reason')
+      expect(name.x + name.width).toBeLessThanOrEqual(total.x)
+      expect(reason.width).toBeGreaterThanOrEqual(200)
+    }
+    await expectZoneNamesApart(page)
+  }
+
+  await page.screenshot({ path: testInfo.outputPath(`verdict-${testInfo.project.name}-en.png`), fullPage: true })
+  await switchLanguage(page, 'Español')
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe cumple con tu kit por menos')
+  if (isPhone) await expectZoneNamesApart(page)
+  await page.screenshot({ path: testInfo.outputPath(`verdict-${testInfo.project.name}-es.png`), fullPage: true })
 })
