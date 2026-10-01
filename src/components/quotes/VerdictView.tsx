@@ -15,11 +15,11 @@ import {
   addPendingMust, addPendingOverride, NO_PENDING, overlayPending, prunePending, settlePendingMust, settlePendingOverride,
   type PendingEdits,
 } from '../../lib/quote-pending'
-import { rejectionText } from '../../lib/quote-text'
+import { rejectionText, unrankedTitle } from '../../lib/quote-text'
 import { deleteQuote, retryQuote, setQuoteMust, setQuoteOverride, setQuoteTotal, type ProjectQuotes } from '../../server/quotes/api'
 import { BestCard } from './BestCard'
+import { KitNeedTiles } from './KitNeedTiles'
 import { MustsSheet } from './MustsSheet'
-import { PricePlot } from './PricePlot'
 import { QuoteRow } from './QuoteRow'
 import { UnrankedRow } from './UnrankedRow'
 import { verdictClock } from './verdict-clock'
@@ -148,25 +148,34 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   }
   const others = verdict.best ? verdict.ranked.filter((r) => r.quote.id !== verdict.best?.quote.id) : verdict.ranked
 
+  const ranked = others.length > 0 && (
+    <section className="qlist" aria-labelledby="qlist-title">
+      <h2 className="qpanel__title" id="qlist-title">{verdict.best ? t.quotes.othersTitle : t.quotes.allTitle}</h2>
+      <div className="qlist__rows">
+        {others.map((r) => (
+          <QuoteRow key={r.quote.id} r={r} verdict={verdict} kit={kit} error={errorFor(r.quote.id)}
+            onOverride={onOverride(r.quote.id)} onDelete={remove(r.quote.id)} />
+        ))}
+      </div>
+    </section>
+  )
+
   return (
     <div className="qv">
       {back}
       <VerdictHeader verdict={verdict} kit={kit} progress={progress} />
-      {verdict.best && (
+      {verdict.ranked.length > 0 && <KitNeedTiles kit={kit} />}
+      {verdict.best ? (
         <div className="qv__grid">
           <BestCard best={verdict.best} kit={kit} error={errorFor(verdict.best.quote.id)}
             onOverride={onOverride(verdict.best.quote.id)} onDelete={remove(verdict.best.quote.id)} />
-          {verdict.ranked.length > 1 && <PricePlot verdict={verdict} />}
+          {ranked}
         </div>
-      )}
-      {(others.length > 0 || verdict.unranked.length > 0) && (
-        <section className="qlist" aria-labelledby="qlist-title">
-          <h2 className="qpanel__title" id="qlist-title">{verdict.best ? t.quotes.othersTitle : t.quotes.allTitle}</h2>
+      ) : ranked}
+      {verdict.unranked.length > 0 && (
+        <section className="qlist" aria-labelledby="qunranked-title">
+          <h2 className="qpanel__title" id="qunranked-title">{unrankedTitle(t, verdict.unranked)}</h2>
           <div className="qlist__rows">
-            {others.map((r) => (
-              <QuoteRow key={r.quote.id} r={r} verdict={verdict} kit={kit} error={errorFor(r.quote.id)}
-                onOverride={onOverride(r.quote.id)} onDelete={remove(r.quote.id)} />
-            ))}
             {verdict.unranked.map((u) => (
               <UnrankedRow key={u.quote.id} u={u} error={errorFor(u.quote.id)} retry={retryFor(u.quote.id)}
                 onRetry={run(u.quote.id, () => retryQuote({ data: { quoteId: u.quote.id } }))}
