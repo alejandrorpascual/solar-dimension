@@ -3,7 +3,7 @@ import { useLocale } from '../../hooks/useLocale'
 import { quoteSubtitle, type RankedQuote, type Verdict } from '../../lib/quote-compare'
 import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
 import { quoteSizing } from '../../lib/quote-sizing'
-import { coverageLines, deltaText, fitLabel, money, reasonLine } from '../../lib/quote-text'
+import { coverageMeta, deltaText, fitLabel, money, reasonLine } from '../../lib/quote-text'
 import { AskBox } from './AskBox'
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
@@ -11,7 +11,6 @@ import { QuoteActions } from './QuoteActions'
 import { SizingBars } from './SizingBars'
 
 const PILL: Record<RankedQuote['fit'], string> = { fits: 'qpill qpill--ok', unclear: 'qpill qpill--unk', short: 'qpill qpill--warn' }
-const COVERAGE_SEPARATOR = ' · '
 
 interface Props {
   r: RankedQuote; verdict: Verdict; kit: KitNeeds; error: string | null
@@ -28,13 +27,13 @@ export function QuoteRow({ r, verdict, kit, error, onOverride, onDelete }: Props
   const isAsking = verdict.worthAsking.some((w) => w.quote.id === r.quote.id)
   const delta = deltaText(t, r)
   const subtitle = quoteSubtitle(r.quote)
-  const coverage = coverageLines(t, r.items).map((l) => l.text).join(COVERAGE_SEPARATOR)
+  const coverage = coverageMeta(t, r.items)
   return (
     <article className="qrow" aria-labelledby={nameId}>
-      <div className="qcard__top">
-        <div className="qcard__id">
-          <h3 className="qrow__name qcard__name" id={nameId}>{r.name}</h3>
-          {subtitle && <p className="qmeta qcard__sub">{subtitle}</p>}
+      <div className="qhead__top">
+        <div className="qhead__id">
+          <h3 className="qrow__name qhead__name" id={nameId}>{r.name}</h3>
+          {subtitle && <p className="qmeta qhead__sub">{subtitle}</p>}
         </div>
         <p className="qrow__total num">{money(t, r.total, r.currency)}</p>
       </div>

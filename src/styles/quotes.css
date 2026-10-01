@@ -149,10 +149,10 @@
 .qchecks[aria-expanded='true'] .qchecks__chev { transform: rotate(180deg); }
 .qpanel--best .qpanel__title { font-size: 22px; }
 .qbest__pill { align-self: flex-start; }
-.qcard__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.qcard__id { flex: 1 1 auto; min-width: 0; }
-.qcard__name, .qcard__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qcard__sub { margin: 2px 0 0; }
+.qhead__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.qhead__id { flex: 1 1 auto; min-width: 0; }
+.qhead__name, .qhead__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qhead__sub { margin: 2px 0 0; }
 .qbest__total { font-family: var(--font-display); font-size: 44px; font-weight: 700; line-height: 1; white-space: nowrap; margin: 0; }
 .qbest__gauges { display: flex; flex-direction: column; gap: 18px; }
 .qtip { display: flex; gap: 10px; margin: 0; padding: 12px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-hover); font-size: 14px; line-height: 1.45; }

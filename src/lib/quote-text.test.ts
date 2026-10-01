@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { en } from '../i18n/en'
 import { es } from '../i18n/es'
-import { fmtDecimal, fmtList, fmtW } from '../i18n/format'
+import { fmtDecimal, fmtKwh, fmtList, fmtW } from '../i18n/format'
 import { compareQuotes, type QuoteView, type RankedQuote, type UnrankedQuote, type UnrankedReason } from './quote-compare'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
 import { checkItems, DEFAULT_MUSTS } from './quote-items'
@@ -9,7 +9,7 @@ import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import {
-  askText, coverageLines, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, money, oversizeTip,
+  askText, coverageLines, coverageMeta, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, money, oversizeTip,
   projectLine, questionText, ratioLabel, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
@@ -197,7 +197,9 @@ describe('sizing text', () => {
   })
   test('the pill says how far from the need, per zone', () => {
     expect(zonePill(en, at(3.1088))).toBe('3.1× what it needs')
-    expect(zonePill(en, at(2.01))).toBe('2.0× what it needs')
+    expect(zonePill(en, at(2.01))).toBe('2.01× what it needs')
+    expect(zonePill(en, at(2.06))).toBe('2.1× what it needs')
+    expect(zonePill(en, at(1.302))).toBe('+31%, with room to spare')
     expect(zonePill(en, at(1.6))).toBe('+60%, with room to spare')
     expect(zonePill(en, at(1.19))).toBe('+19%, right-sized')
     expect(zonePill(en, at(1.004))).toBe('Exactly what it needs')
@@ -209,12 +211,15 @@ describe('sizing text', () => {
   })
   test('the mini bar label is a multiple from 1×, a percent below', () => {
     expect(ratioLabel(en, 1.15)).toBe('1.15×')
+    expect(ratioLabel(en, 25.806)).toBe('25.8×')
     expect(ratioLabel(en, 0.476)).toBe('47%')
     expect(ratioLabel(es, 0.476)).toBe('47 %')
   })
   test('gauge title and accessible name', () => {
     expect(gaugeTitle(en, 'inverter', sol.inverter!)).toBe('Inverter 12.0 kW')
     expect(gaugeTitle(en, 'battery', sol.battery!)).toBe('Battery 34.8 kWh usable')
+    expect(gaugeTitle(es, 'inverter', sol.inverter!)).toBe(`Inversor ${fmtW(12000, 'es')}`)
+    expect(gaugeTitle(es, 'battery', sol.battery!)).toBe(`Batería ${fmtKwh(34816, 'es')} útiles`)
     expect(gaugeLabel(en, 'inverter', sol.inverter!)).toBe('Inverter: 12.0 kW against 3,860 W needed, oversized')
     expect(gaugeLabel(en, 'battery', ener.battery!)).toBe('Battery: 1.1 kWh against 8.0 kWh needed, short')
     expect(gaugeLabel(es, 'inverter', sol.inverter!)).toBe(`Inversor: ${fmtW(12000, 'es')} frente a ${fmtW(3860, 'es')} necesarios, de más`)
@@ -224,8 +229,16 @@ describe('sizing text', () => {
     expect(gaugeLegend(es)).toBe('Justo: hasta 30 % más de lo que usa tu kit. De más: más del doble.')
   })
   test('the oversize tip suggests a size that still starts the kit', () => {
-    expect(oversizeTip(en, KIT)).toBe("The inverter is more than double what your kit uses. Ask whether there's a 5,000 W version: it usually costs less.")
-    expect(oversizeTip(es, KIT)).toBe(`El inversor es más del doble de lo que usa tu kit. Pregunta si hay una versión de ${fmtW(5000, 'es')}: suele bajar el precio.`)
+    expect(oversizeTip(en, KIT, sol)).toBe("The inverter is more than double what your kit uses. Ask whether there's a 5,000 W version: it usually costs less.")
+    expect(oversizeTip(es, KIT, sol)).toBe(`El inversor es más del doble de lo que usa tu kit. Pregunta si hay una versión de ${fmtW(5000, 'es')}: suele bajar el precio.`)
+  })
+  test('there is no tip unless the inverter is oversized', () => {
+    expect(oversizeTip(en, KIT, ener)).toBeNull()
+    expect(oversizeTip(en, KIT, { inverter: null, battery: sol.battery })).toBeNull()
+  })
+  test('the bars read as one sentence for screen readers', () => {
+    expect(sizingSentence(en, ener)).toBe('Inverter: 300 W against 3,860 W needed, short. Battery: 1.1 kWh against 8.0 kWh needed, short.')
+    expect(sizingSentence(en, { inverter: null, battery: null })).toBe('')
   })
 })
 
@@ -241,6 +254,11 @@ describe('coverageLines', () => {
       { kind: 'missing', text: 'Not included: Wi-Fi' },
       { kind: 'unknown', text: "Doesn't mention fuse" },
     ])
+  })
+  test('one meta line for a card, groups joined by a middle dot', () => {
+    expect(coverageMeta(en, enerhogar.items)).toBe(
+      `Includes ${fmtList(['charger', 'installation'], 'en')} · Too small: cables · Not included: Wi-Fi · Doesn't mention fuse`,
+    )
   })
   test('in Spanish', () => {
     expect(coverageLines(es, grupoluz.items).map((l) => l.text)).toEqual([

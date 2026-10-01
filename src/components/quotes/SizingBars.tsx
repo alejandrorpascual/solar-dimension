@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { NEED_POS, SIZED_IDS, type QuoteSizing } from '../../lib/quote-sizing'
-import { gaugeLabel, ratioLabel } from '../../lib/quote-text'
+import { ratioLabel, sizingSentence } from '../../lib/quote-text'
 
 /** Inverter and battery as small bars, with a tick where the kit's need sits. Screen readers get the same as one sentence. */
 export function SizingBars({ sizing }: { sizing: QuoteSizing }) {
@@ -25,7 +25,7 @@ export function SizingBars({ sizing }: { sizing: QuoteSizing }) {
           </Fragment>
         ))}
       </div>
-      <p className="visually-hidden">{rows.map(({ id, s }) => gaugeLabel(t, id, s)).join('. ')}</p>
+      <p className="visually-hidden">{sizingSentence(t, sizing)}</p>
     </>
   )
 }

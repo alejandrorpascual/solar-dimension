@@ -30,13 +30,14 @@ export function BestCard({ best, kit, error, onOverride, onDelete }: Props) {
     return s ? [{ id, s }] : []
   })
   const subtitle = quoteSubtitle(best.quote)
+  const tip = oversizeTip(t, kit, sizing)
   return (
     <section className="qpanel qpanel--best" aria-labelledby={titleId}>
       <span className="qpill qpill--best qbest__pill">{t.quotes.bestFit}</span>
-      <div className="qcard__top">
-        <div className="qcard__id">
-          <h2 className="qpanel__title qcard__name" id={titleId}>{best.name}</h2>
-          {subtitle && <p className="qmeta qcard__sub">{subtitle}</p>}
+      <div className="qhead__top">
+        <div className="qhead__id">
+          <h2 className="qpanel__title qhead__name" id={titleId}>{best.name}</h2>
+          {subtitle && <p className="qmeta qhead__sub">{subtitle}</p>}
         </div>
         <p className="qbest__total num">{money(t, best.total, best.currency)}</p>
       </div>
@@ -46,9 +47,7 @@ export function BestCard({ best, kit, error, onOverride, onDelete }: Props) {
           <p className="qmeta">{gaugeLegend(t)}</p>
         </div>
       )}
-      {sizing.inverter?.zone === 'over' && (
-        <p className="qtip"><Info size={18} aria-hidden="true" /><span>{oversizeTip(t, kit)}</span></p>
-      )}
+      {tip && <p className="qtip"><Info size={18} aria-hidden="true" /><span>{tip}</span></p>}
       <ul className="qcover">
         {coverageLines(t, best.items).map((l) => (
           <li key={l.kind} className={`qcover__line qcover__line--${l.kind}`}>

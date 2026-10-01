@@ -5,7 +5,7 @@ import { STRIP_ITEMS, type ItemCheck, type ItemId, type ItemStatus, type KitNeed
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
 import type { QuoteStatus } from './quote-schema'
-import { SIZING_ZONES, suggestedInverterW, type SizedId, type Sizing, type SizingZone } from './quote-sizing'
+import { SIZED_IDS, SIZING_ZONES, suggestedInverterW, type QuoteSizing, type SizedId, type Sizing, type SizingZone } from './quote-sizing'
 
 const SECONDS_PER_MINUTE = 60
 
@@ -188,6 +188,11 @@ const PERCENT = 100
 const ZONE_KEY: Record<SizingZone, QuoteKey> = { short: 'zoneShort', just: 'zoneJust', roomy: 'zoneRoomy', over: 'zoneOver' }
 /** Short percents round down, so a quote just under the need never reads as 100 %. */
 const shortPct = (ratio: number): number => Math.floor(ratio * PERCENT)
+/** Roomy starts just above the snug edge, so its percent never reads as the legend's "up to 30%". */
+const ROOMY_MIN_PCT = Math.round((SIZING_ZONES.JUST_MAX - 1) * PERCENT) + 1
+/** Below this a multiple keeps two decimals ("1.15×"), so one just over double never rounds to "2.0×". */
+const ONE_DECIMAL_FROM = SIZING_ZONES.ROOMY_MAX + 0.05
+const timesText = (t: Dictionary, ratio: number): string => fmtDecimal(ratio, ratio >= ONE_DECIMAL_FROM ? 1 : 2, t.locale)
 const sizedAmount = (t: Dictionary, id: SizedId, n: number): string => (id === 'inverter' ? fmtW(n, t.locale) : fmtKwh(n, t.locale))
 
 export const zoneName = (t: Dictionary, zone: SizingZone): string => t.quotes[ZONE_KEY[zone]]
@@ -195,15 +200,15 @@ export const zoneName = (t: Dictionary, zone: SizingZone): string => t.quotes[ZO
 /** How far a component lands from the kit's need: "3.1× what it needs", "+19%, right-sized", "47% of what it needs". */
 export function zonePill(t: Dictionary, s: Sizing): string {
   if (s.zone === 'short') return trq(t, 'pillShort', { pct: shortPct(s.ratio) })
-  if (s.zone === 'over') return trq(t, 'pillOver', { x: fmtDecimal(s.ratio, 1, t.locale) })
+  if (s.zone === 'over') return trq(t, 'pillOver', { x: timesText(t, s.ratio) })
   const extra = Math.round((s.ratio - 1) * PERCENT)
-  if (extra === 0) return t.quotes.pillExact
-  return trq(t, s.zone === 'just' ? 'pillJust' : 'pillRoomy', { pct: extra })
+  if (s.zone === 'roomy') return trq(t, 'pillRoomy', { pct: Math.max(extra, ROOMY_MIN_PCT) })
+  return extra === 0 ? t.quotes.pillExact : trq(t, 'pillJust', { pct: extra })
 }
 
 /** The value beside a mini bar: a multiple from 1×, a percent below. */
 export function ratioLabel(t: Dictionary, ratio: number): string {
-  return ratio < 1 ? trq(t, 'ratioPct', { pct: shortPct(ratio) }) : trq(t, 'ratioTimes', { x: fmtDecimal(ratio, 2, t.locale) })
+  return ratio < 1 ? trq(t, 'ratioPct', { pct: shortPct(ratio) }) : trq(t, 'ratioTimes', { x: timesText(t, ratio) })
 }
 
 export function gaugeTitle(t: Dictionary, id: SizedId, s: Sizing): string {
@@ -222,8 +227,18 @@ export function gaugeLegend(t: Dictionary): string {
   return trq(t, 'gaugeLegend', { pct: Math.round((SIZING_ZONES.JUST_MAX - 1) * PERCENT) })
 }
 
-export function oversizeTip(t: Dictionary, kit: KitNeeds): string {
+/** Advice to ask for a smaller inverter, only when the quoted one is more than double what the kit needs. */
+export function oversizeTip(t: Dictionary, kit: KitNeeds, sizing: QuoteSizing): string | null {
+  if (sizing.inverter?.zone !== 'over') return null
   return trq(t, 'oversizeTip', { w: fmtW(suggestedInverterW(kit), t.locale) })
+}
+
+/** The sizing bars as one sentence for screen readers; empty when the quote states neither size. */
+export function sizingSentence(t: Dictionary, sizing: QuoteSizing): string {
+  return SIZED_IDS.flatMap((id) => {
+    const s = sizing[id]
+    return s ? [`${gaugeLabel(t, id, s)}.`] : []
+  }).join(' ')
 }
 
 /** ok, short, missing, unknown: one coverage line per item status. */
@@ -241,6 +256,12 @@ export function coverageLines(t: Dictionary, items: readonly ItemCheck[]): { kin
     if (ids.length === 0) return []
     return [{ kind, text: trq(t, key, { items: fmtList(ids.map((id) => t.quoteItemsList[id]), t.locale) }) }]
   })
+}
+
+const COVERAGE_SEPARATOR = ' · '
+/** The coverage groups on one line, for a card where space is short. */
+export function coverageMeta(t: Dictionary, items: readonly ItemCheck[]): string {
+  return coverageLines(t, items).map((l) => l.text).join(COVERAGE_SEPARATOR)
 }
 
 const waitsForTotal = (u: UnrankedQuote): boolean => u.reason === 'no_total' || u.reason === 'needs_review'

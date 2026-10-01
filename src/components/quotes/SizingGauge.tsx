@@ -3,6 +3,8 @@ import { GAUGE_ZONES, type SizedId, type Sizing, type SizingZone } from '../../l
 import { gaugeLabel, gaugeTitle, zoneName, zonePill } from '../../lib/quote-text'
 
 const PILL: Record<SizingZone, string> = { short: 'qpill qpill--warn', just: 'qpill qpill--ok', roomy: 'qpill qpill--unk', over: 'qpill qpill--info' }
+/** Half the marker's width: the marker stays inside the bar at 0 % and off the scale. */
+const MARKER_HALF_PX = 7
 const COLUMNS = GAUGE_ZONES.map((z) => `${z.width}fr`).join(' ')
 
 /** One component against the kit: a four-zone bar with a marker, and the zone named in words. */
@@ -18,7 +20,7 @@ export function SizingGauge({ id, s }: { id: SizedId; s: Sizing }) {
         <div className="qgauge__bar" style={{ gridTemplateColumns: COLUMNS }}>
           {GAUGE_ZONES.map((z) => <span key={z.zone} className={`qgauge__z qgauge__z--${z.zone}`} />)}
         </div>
-        <svg className="qgauge__marker" style={{ left: `${s.pos}%` }} width="14" height="12" viewBox="0 0 14 12" aria-hidden="true">
+        <svg className="qgauge__marker" style={{ left: `clamp(${MARKER_HALF_PX}px, ${s.pos}%, calc(100% - ${MARKER_HALF_PX}px))` }} width="14" height="12" viewBox="0 0 14 12" aria-hidden="true">
           <path d="M7 12 0 0h14z" fill="currentColor" />
         </svg>
         <div className="qgauge__names" style={{ gridTemplateColumns: COLUMNS }} aria-hidden="true">

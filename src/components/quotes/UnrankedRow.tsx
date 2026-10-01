@@ -38,10 +38,10 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
   const subtitle = quoteSubtitle(u.quote)
   return (
     <article className="qrow" aria-labelledby={nameId}>
-      <div className="qcard__top">
-        <div className="qcard__id">
-          <h3 className="qrow__name qcard__name" id={nameId}>{u.name}</h3>
-          {subtitle && <p className="qmeta qcard__sub">{subtitle}</p>}
+      <div className="qhead__top">
+        <div className="qhead__id">
+          <h3 className="qrow__name qhead__name" id={nameId}>{u.name}</h3>
+          {subtitle && <p className="qmeta qhead__sub">{subtitle}</p>}
         </div>
         <span className={pill.cls}>{pill.text}</span>
       </div>
