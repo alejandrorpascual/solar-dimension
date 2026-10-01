@@ -149,11 +149,24 @@
 .qbars__val--over { color: var(--accent-hover); }
 .qchecks__chev { transition: transform 160ms; }
 .qchecks[aria-expanded='true'] .qchecks__chev { transform: rotate(180deg); }
-.qbest__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
-.qbest__top .qmeta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qbest__total { font-family: var(--font-display); font-size: 44px; font-weight: 700; line-height: 1; }
-.qbest__items { list-style: none; margin: 0; padding: 14px 0 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; font-size: 13.5px; font-weight: 600; }
-.qbest__items li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.qpanel--best .qpanel__title { font-size: 22px; }
+.qbest__pill { align-self: flex-start; }
+.qcard__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.qcard__id { flex: 1 1 auto; min-width: 0; }
+.qcard__name, .qcard__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qcard__sub { margin: 2px 0 0; }
+.qbest__total { font-family: var(--font-display); font-size: 44px; font-weight: 700; line-height: 1; white-space: nowrap; margin: 0; }
+.qbest__gauges { display: flex; flex-direction: column; gap: 18px; }
+.qtip { display: flex; gap: 10px; margin: 0; padding: 12px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-hover); font-size: 14px; line-height: 1.45; }
+.qtip svg { flex: none; margin-top: 2px; }
+.qcover { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.qcover__line { display: flex; gap: 8px; align-items: flex-start; }
+.qcover__mark { width: 14px; flex: none; text-align: center; font-weight: 700; }
+.qcover__line--ok .qcover__mark { color: var(--success); }
+.qcover__line--short, .qcover__line--missing { color: var(--warn-ink); }
+.qcover__line--unknown { color: var(--muted); }
+.qbest__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.qbest__actions > .qchecks { flex: 1 1 auto; }
 .qplot__rows { position: relative; }
 .qplot__row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: center; min-height: 48px; }
 .qplot__name { display: flex; flex-direction: column; min-width: 0; font-size: 13.5px; font-weight: 700; }
@@ -231,6 +244,8 @@
 /* Phones: every control is at least --tap (44 px) high. This block comes last so it wins over the base rules above. */
 @media (max-width: 1023px) {
   .qseg__b, .qmust, .qlink, .qask__copy, .pcard__quotes { min-height: var(--tap); }
+  .qpanel--best { padding: 18px; }
+  .qbest__total { font-size: 28px; }
   .qask__copy { display: inline-flex; align-items: center; }
   .qdialog__close { width: var(--tap); height: var(--tap); }
 }

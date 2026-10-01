@@ -70,8 +70,6 @@ export const quotesEs: Record<QuoteKey, string> = {
   subNone: '{name} es la más cercana: {gap}.',
   subUnclear: 'Tus cotizaciones aún no mencionan todo lo que necesitas. Mira abajo qué vale la pena preguntar.',
   bestFit: 'La mejor opción',
-  nextFitGap: '{amount} menos que la siguiente que cumple',
-  onlyFit: 'La única que cumple',
   viewOriginal: 'Ver original',
   deleteQuote: 'Eliminar',
   deleteConfirm: '¿Eliminar esta cotización y su archivo?',

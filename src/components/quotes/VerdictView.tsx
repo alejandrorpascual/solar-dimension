@@ -154,7 +154,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       <VerdictHeader verdict={verdict} kit={kit} progress={progress} />
       {verdict.best && (
         <div className="qv__grid">
-          <BestCard best={verdict.best} nextFit={verdict.nextFit} kit={kit} error={errorFor(verdict.best.quote.id)}
+          <BestCard best={verdict.best} kit={kit} error={errorFor(verdict.best.quote.id)}
             onOverride={onOverride(verdict.best.quote.id)} onDelete={remove(verdict.best.quote.id)} />
           {verdict.ranked.length > 1 && <PricePlot verdict={verdict} />}
         </div>

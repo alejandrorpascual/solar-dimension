@@ -1,47 +1,66 @@
+import { Info } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useLocale } from '../../hooks/useLocale'
-import { trq } from '../../i18n'
-import type { RankedQuote } from '../../lib/quote-compare'
+import { quoteSubtitle, type RankedQuote } from '../../lib/quote-compare'
 import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
-import { markLabel, money } from '../../lib/quote-text'
+import { quoteSizing, SIZED_IDS } from '../../lib/quote-sizing'
+import { coverageLines, gaugeLegend, money, oversizeTip, type CoverageKind } from '../../lib/quote-text'
+import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
-import { ItemMark } from './ItemMark'
 import { QuoteActions } from './QuoteActions'
+import { SizingGauge } from './SizingGauge'
+
+/** The words carry the meaning; the mark only repeats it at a glance. */
+const MARK: Record<CoverageKind, string> = { ok: '✓', short: '!', missing: '!', unknown: '?' }
 
 interface Props {
-  best: RankedQuote; nextFit: RankedQuote | null; kit: KitNeeds; error: string | null
+  best: RankedQuote; kit: KitNeeds; error: string | null
   onOverride: (item: ItemId, value: Override | null) => void
   onDelete: () => void
 }
 
-export function BestCard({ best, nextFit, kit, error, onOverride, onDelete }: Props) {
+export function BestCard({ best, kit, error, onOverride, onDelete }: Props) {
   const { t } = useLocale()
   const [isOpen, setOpen] = useState(false)
   const titleId = useId()
   const bodyId = useId()
+  const sizing = quoteSizing(best.items, kit)
+  const gauges = SIZED_IDS.flatMap((id) => {
+    const s = sizing[id]
+    return s ? [{ id, s }] : []
+  })
+  const subtitle = quoteSubtitle(best.quote)
   return (
     <section className="qpanel qpanel--best" aria-labelledby={titleId}>
-      <div className="qbest__top">
-        <span className="qpill qpill--best">{t.quotes.bestFit}</span>
-        <span className="qmeta">{best.quote.fileName}</span>
-      </div>
-      <div>
-        <h2 className="qpanel__title" id={titleId}>{best.name}</h2>
+      <span className="qpill qpill--best qbest__pill">{t.quotes.bestFit}</span>
+      <div className="qcard__top">
+        <div className="qcard__id">
+          <h2 className="qpanel__title qcard__name" id={titleId}>{best.name}</h2>
+          {subtitle && <p className="qmeta qcard__sub">{subtitle}</p>}
+        </div>
         <p className="qbest__total num">{money(t, best.total, best.currency)}</p>
-        <p className="qmeta num">
-          {nextFit ? trq(t, 'nextFitGap', { amount: money(t, nextFit.total - best.total, best.currency) }) : t.quotes.onlyFit}
-        </p>
       </div>
-      <ul className="qbest__items">
-        {best.items.map((c) => (
-          <li key={c.id}><ItemMark status={c.status} label={markLabel(t, c)} /><span>{t.quoteItems[c.id]}</span></li>
+      {gauges.length > 0 && (
+        <div className="qbest__gauges">
+          {gauges.map(({ id, s }) => <SizingGauge key={id} id={id} s={s} />)}
+          <p className="qmeta">{gaugeLegend(t)}</p>
+        </div>
+      )}
+      {sizing.inverter?.zone === 'over' && (
+        <p className="qtip"><Info size={18} aria-hidden="true" /><span>{oversizeTip(t, kit)}</span></p>
+      )}
+      <ul className="qcover">
+        {coverageLines(t, best.items).map((l) => (
+          <li key={l.kind} className={`qcover__line qcover__line--${l.kind}`}>
+            <span className="qcover__mark" aria-hidden="true">{MARK[l.kind]}</span>{l.text}
+          </li>
         ))}
       </ul>
-      <button type="button" className="qlink" aria-expanded={isOpen} aria-controls={bodyId} onClick={() => setOpen(!isOpen)}>
-        {trq(t, isOpen ? 'hideChecks' : 'showChecks', { name: best.name })}
-      </button>
+      <div className="qbest__actions">
+        <ChecksToggle name={best.name} isOpen={isOpen} controls={bodyId} onToggle={() => setOpen(!isOpen)} variant="button" />
+        <QuoteActions quoteId={best.quote.id} onDelete={onDelete} />
+      </div>
       {isOpen && <div id={bodyId}><ItemList items={best.items} kit={kit} currency={best.currency} onOverride={onOverride} /></div>}
-      <QuoteActions quoteId={best.quote.id} onDelete={onDelete} />
       {error && <p className="qerr" role="alert">{error}</p>}
     </section>
   )

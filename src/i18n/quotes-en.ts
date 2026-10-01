@@ -69,8 +69,6 @@ export const quotesEn = {
   subNone: '{name} is closest: {gap}.',
   subUnclear: "Your quotes don't mention everything you need yet. See what's worth asking below.",
   bestFit: 'Best fit',
-  nextFitGap: '{amount} less than the next quote that fits',
-  onlyFit: 'The only quote that fits',
   viewOriginal: 'View original',
   deleteQuote: 'Delete',
   deleteConfirm: 'Delete this quote and its file?',
