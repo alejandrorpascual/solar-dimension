@@ -42,7 +42,12 @@ export const dbJobRepo: QuoteJobRepo = {
     const set = !('extraction' in f)
       // claimed_at is kept on a re-queue, so the stale-queue wait counts from the last attempt, not from the upload.
       ? { status: f.status === 'failed' ? failedStatus : f.status, error: f.error, usage, processedAt: f.status === 'failed' ? new Date() : null }
-      : { status: f.status, extraction: f.extraction, modelUsed: f.modelUsed, error: null, usage, processedAt: new Date() }
+      // A typed total exists only because an earlier reading needed one. A read that ends ready passed the checks with its
+      // own total, which must win now: a ready card has no total form to correct a stale typed one.
+      : {
+          status: f.status, extraction: f.extraction, modelUsed: f.modelUsed, error: null, usage, processedAt: new Date(),
+          ...(f.status === 'ready' ? { totalOverride: null } : {}),
+        }
     const rows = await db.update(quotes).set(set).where(underClaim).returning({ id: quotes.id })
     return rows.length > 0
   },

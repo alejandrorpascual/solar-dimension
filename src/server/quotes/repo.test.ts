@@ -93,6 +93,15 @@ describe('dbJobRepo.finish', () => {
     expect(seen.set).toMatchObject({ status: 'queued', processedAt: null })
   })
 
+  test('a read that ends ready clears the typed total; one that needs review keeps it', async () => {
+    const seen: { set?: Record<string, unknown> } = {}
+    vi.mocked(db.update).mockReturnValue(chain([{ id: 'q1' }], seen) as never)
+    await dbJobRepo.finish(job, ready)
+    expect(seen.set).toHaveProperty('totalOverride', null)
+    await dbJobRepo.finish(job, { ...ready, status: 'needs_review' })
+    expect(seen.set).not.toHaveProperty('totalOverride')
+  })
+
   test('reports a lost claim when no row matched', async () => {
     vi.mocked(db.update).mockReturnValue(chain([]) as never)
     expect(await dbJobRepo.finish(job, ready)).toBe(false)
