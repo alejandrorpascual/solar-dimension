@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { checkExtraction, optionPrices } from './quote-checks'
+import { optionLines } from './quote-options'
 import { extraction, line, SAMPLE_QUOTES } from './quote-fixtures'
+import { UNLISTED_OPTION } from './quote-schema'
 
 describe('checkExtraction', () => {
   test('passes every sample quote', () => {
@@ -74,5 +76,15 @@ describe('checkExtraction with options', () => {
     expect(checkExtraction(extraction(lines, { options, subtotal: 300, tax: 0, total: 999 }))).toEqual([])
     const wrongLine = [line('inverter', 100, { option: 'a', qty: 2, unitPrice: 100 }), line('inverter', 200, { option: 'b' })]
     expect(checkExtraction(extraction(wrongLine, { options }))).toContain('line_mismatch')
+  })
+  test('a line naming an option the model never listed fails unknown_option and is in no option', () => {
+    const options = [{ id: 'a', label: 'A', total: null }, { id: 'b', label: 'B', total: null }]
+    const x = extraction([line('inverter', 100, { option: 'a' }), line('inverter', 200, { option: 'b' }), line('labor', 50, { option: UNLISTED_OPTION })], { options })
+    expect(checkExtraction(x)).toContain('unknown_option')
+    expect(optionLines(x, 'a').map((l) => l.lineTotal)).toEqual([100])
+    expect(optionPrices(x)).toEqual([{ id: 'a', total: 100 }, { id: 'b', total: 200 }])
+  })
+  test('the SUNA quote has no unknown option', () => {
+    expect(checkExtraction(SAMPLE_QUOTES.suna)).not.toContain('unknown_option')
   })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { extraction, line, SAMPLE_QUOTES } from './quote-fixtures'
-import { FINISHED, isPending, normalizeExtraction, QUOTE_STATUSES, QuoteExtractionSchema, MAX_OPTIONS, withOptionDefaults } from './quote-schema'
+import { FINISHED, isPending, normalizeExtraction, QUOTE_STATUSES, QuoteExtractionSchema, MAX_OPTIONS, UNLISTED_OPTION, withOptionDefaults } from './quote-schema'
 
 describe('QuoteExtractionSchema', () => {
   test('accepts every sample quote', () => {
@@ -56,9 +56,9 @@ describe('normalizeExtraction with options', () => {
     expect(n.options[0]!.label).toHaveLength(60)
     expect(n.lines.map((l) => l.option)).toEqual(['o1', 'o2', 'o3', 'o4', 'o5'])
   })
-  test('nulls a line whose option was never listed', () => {
+  test('marks a line whose option was never listed, instead of sharing it with every option', () => {
     const x = extraction([line('inverter', 100, { option: 'a' }), line('labor', 50, { option: 'zz' })], { options: [opt('a'), opt('b')] })
-    expect(normalizeExtraction(x).lines.map((l) => l.option)).toEqual(['o1', null])
+    expect(normalizeExtraction(x).lines.map((l) => l.option)).toEqual(['o1', UNLISTED_OPTION])
   })
   test('one option is one system: no options, and every line shared', () => {
     const x = extraction([line('inverter', 100, { option: 'a' })], { options: [opt('a')] })

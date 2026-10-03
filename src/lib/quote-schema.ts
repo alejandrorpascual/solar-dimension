@@ -118,13 +118,22 @@ function splitOptions(options: readonly QuoteOption[]): OptionSplit {
   }
 }
 
-/** A line's option after the split: its canonical id, null (shared, or an id never listed), or undefined when its option was dropped. */
+/**
+ * The option of a line that names an id the model never listed. It is in no option, so a mistyped id can't make the
+ * line shared equipment that every option pays for; checkExtraction sends such a reading to review.
+ */
+export const UNLISTED_OPTION = '?'
+
+/**
+ * A line's option after the split: its canonical id, null (shared, or the quote offers one system), UNLISTED_OPTION for
+ * an id never listed, or undefined when its option was dropped.
+ */
 function lineOption(option: string | null, split: OptionSplit): string | null | undefined {
-  if (option === null) return null
+  if (option === null || split.kept.length < 2) return null
   const id = option.trim()
   const canonical = split.ids.get(id)
   if (canonical !== undefined) return canonical
-  return split.dropped.has(id) ? undefined : null
+  return split.dropped.has(id) ? undefined : UNLISTED_OPTION
 }
 
 /** Trims every text to its limit, caps the lists, splits the options and upper-cases the currency. Returns a new object. */

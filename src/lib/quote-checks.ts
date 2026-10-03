@@ -1,7 +1,7 @@
 import { hasOptions } from './quote-options'
-import type { QuoteExtraction, QuoteLine } from './quote-schema'
+import { UNLISTED_OPTION, type QuoteExtraction, type QuoteLine } from './quote-schema'
 
-export type CheckFailure = 'no_lines' | 'no_total' | 'bad_currency' | 'bad_qty' | 'line_mismatch' | 'total_mismatch'
+export type CheckFailure = 'no_lines' | 'no_total' | 'bad_currency' | 'bad_qty' | 'line_mismatch' | 'total_mismatch' | 'unknown_option'
 
 const LINE_TOLERANCE = 0.01
 const TOTAL_TOLERANCE = 0.02
@@ -41,6 +41,8 @@ export function checkExtraction(x: QuoteExtraction): CheckFailure[] {
   if (!isPriced) failures.push('no_total')
   if (!/^[A-Z]{3}$/.test(x.currency) || !CURRENCIES.has(x.currency)) failures.push('bad_currency')
   if (x.lines.some((l) => !(l.qty > 0))) failures.push('bad_qty')
+  // Such a line is in no option, so the reading can't be trusted to price or size any of them.
+  if (x.lines.some((l) => l.option === UNLISTED_OPTION)) failures.push('unknown_option')
   if (x.lines.some((l) => l.unitPrice !== null && !near(l.qty * l.unitPrice, l.lineTotal, LINE_TOLERANCE))) {
     failures.push('line_mismatch')
   }
