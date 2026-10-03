@@ -1,7 +1,7 @@
 import { hasOptions } from './quote-options'
 import { UNLISTED_OPTION, type QuoteExtraction, type QuoteLine } from './quote-schema'
 
-export type CheckFailure = 'no_lines' | 'no_total' | 'bad_currency' | 'bad_qty' | 'line_mismatch' | 'total_mismatch' | 'unknown_option'
+export type CheckFailure = 'no_lines' | 'no_total' | 'bad_currency' | 'bad_qty' | 'line_mismatch' | 'total_mismatch' | 'option_total_mismatch' | 'unknown_option'
 
 const LINE_TOLERANCE = 0.01
 const TOTAL_TOLERANCE = 0.02
@@ -30,6 +30,19 @@ export function optionPrices(x: QuoteExtraction): { id: string; total: number | 
   })
 }
 
+/**
+ * Whether an option's written total disagrees with its lines: it should match the option's own included lines, or those
+ * plus the shared ones. An option whose own lines carry no price has nothing to check against.
+ */
+function hasOptionTotalMismatch(x: QuoteExtraction): boolean {
+  const shared = includedSum(x.lines.filter((l) => l.option === null))
+  return x.options.some((o) => {
+    if (!hasTotal(o.total)) return false
+    const own = includedSum(x.lines.filter((l) => l.option === o.id))
+    return own > 0 && !near(o.total, own, TOTAL_TOLERANCE) && !near(o.total, own + shared, TOTAL_TOLERANCE)
+  })
+}
+
 /** Why an extraction can't be trusted as is; an empty list means it passed. */
 export function checkExtraction(x: QuoteExtraction): CheckFailure[] {
   const failures: CheckFailure[] = []
@@ -46,7 +59,9 @@ export function checkExtraction(x: QuoteExtraction): CheckFailure[] {
   if (x.lines.some((l) => l.unitPrice !== null && !near(l.qty * l.unitPrice, l.lineTotal, LINE_TOLERANCE))) {
     failures.push('line_mismatch')
   }
-  // Alternatives don't add up to anything, so a quote with options skips the total check; each line is still checked.
+  // Alternatives don't add up to anything, so a quote with options skips the total check; each line is still checked,
+  // and so is each option's own written total.
+  if (isMulti && hasOptionTotalMismatch(x)) failures.push('option_total_mismatch')
   if (!isMulti && (x.subtotal !== null || x.tax !== null)) {
     const sum = includedSum(x.lines) + (x.tax ?? 0)
     if (!near(sum, x.total, TOTAL_TOLERANCE)) failures.push('total_mismatch')

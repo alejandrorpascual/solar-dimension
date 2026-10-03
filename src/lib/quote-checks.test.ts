@@ -87,4 +87,25 @@ describe('checkExtraction with options', () => {
   test('the SUNA quote has no unknown option', () => {
     expect(checkExtraction(SAMPLE_QUOTES.suna)).not.toContain('unknown_option')
   })
+  describe('a written option total', () => {
+    const lines = [line('inverter', 1000, { option: 'a' }), line('inverter', 2000, { option: 'b' }), line('labor', 300)]
+    const withTotal = (a: number | null) => extraction(lines, { options: [{ id: 'a', label: 'A', total: a }, { id: 'b', label: 'B', total: null }] })
+    test('matching the own lines passes', () => {
+      expect(checkExtraction(withTotal(1000))).toEqual([])
+    })
+    test('matching the own lines plus the shared ones passes', () => {
+      expect(checkExtraction(withTotal(1300))).toEqual([])
+    })
+    test('disagreeing with both fails option_total_mismatch, once', () => {
+      const x = extraction(lines, { options: [{ id: 'a', label: 'A', total: 5000 }, { id: 'b', label: 'B', total: 9000 }] })
+      expect(checkExtraction(x).filter((f) => f === 'option_total_mismatch')).toHaveLength(1)
+      expect(checkExtraction(withTotal(5000))).toContain('option_total_mismatch')
+    })
+    test('an option whose own lines carry no price is not checked', () => {
+      const x = extraction([line('inverter', 0, { option: 'a' }), line('inverter', 2000, { option: 'b' })], {
+        options: [{ id: 'a', label: 'A', total: 3500 }, { id: 'b', label: 'B', total: null }],
+      })
+      expect(checkExtraction(x)).toEqual([])
+    })
+  })
 })
