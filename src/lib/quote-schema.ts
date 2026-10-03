@@ -62,7 +62,14 @@ export const QuoteExtractionSchema = z.object({
   subtotal: z.number().nullable(),
   tax: z.number().nullable(),
   total: z.number(),
-  warranties: z.array(z.object({ kind: z.enum(WARRANTY_KINDS), years: z.number() })),
+  warranties: z.array(
+    z.object({
+      kind: z.enum(WARRANTY_KINDS),
+      years: z.number(),
+      /** The id of the option the warranty covers; null when it covers every option, or the quote offers one system. */
+      option: z.string().nullable(),
+    }),
+  ),
   notes: z.array(z.string()),
 })
 export type QuoteExtraction = z.infer<typeof QuoteExtractionSchema>
@@ -70,16 +77,23 @@ export type QuoteLine = QuoteExtraction['lines'][number]
 export type LineSpecs = QuoteLine['specs']
 
 export type QuoteOption = QuoteExtraction['options'][number]
+export type QuoteWarranty = QuoteExtraction['warranties'][number]
 
-/** A reading as stored: one saved before options has neither field (jsonb is read as is). */
-export type StoredExtraction = Omit<QuoteExtraction, 'options' | 'lines'> & {
+/** A reading as stored: one saved before options has none of the option fields (jsonb is read as is). */
+export type StoredExtraction = Omit<QuoteExtraction, 'options' | 'lines' | 'warranties'> & {
   options?: QuoteOption[]
   lines: (Omit<QuoteLine, 'option'> & { option?: string | null })[]
+  warranties: (Omit<QuoteWarranty, 'option'> & { option?: string | null })[]
 }
 
 /** A stored reading with the option fields filled: a reading from before options offers one system. Returns a new object. */
 export function withOptionDefaults(x: StoredExtraction): QuoteExtraction {
-  return { ...x, options: x.options ?? [], lines: x.lines.map((l) => ({ ...l, option: l.option ?? null })) }
+  return {
+    ...x,
+    options: x.options ?? [],
+    lines: x.lines.map((l) => ({ ...l, option: l.option ?? null })),
+    warranties: x.warranties.map((w) => ({ ...w, option: w.option ?? null })),
+  }
 }
 
 const TEXT = { short: 120, code: 12, date: 10, description: 300, source: 160, note: 300, optionLabel: 60 } as const
@@ -125,7 +139,7 @@ function splitOptions(options: readonly QuoteOption[]): OptionSplit {
 export const UNLISTED_OPTION = '?'
 
 /**
- * A line's option after the split: its canonical id, null (shared, or the quote offers one system), UNLISTED_OPTION for
+ * A line's (or warranty's) option after the split: its canonical id, null (shared, or the quote offers one system), UNLISTED_OPTION for
  * an id never listed, or undefined when its option was dropped.
  */
 function lineOption(option: string | null, split: OptionSplit): string | null | undefined {
@@ -136,7 +150,7 @@ function lineOption(option: string | null, split: OptionSplit): string | null | 
   return split.dropped.has(id) ? undefined : UNLISTED_OPTION
 }
 
-/** Trims every text to its limit, caps the lists, splits the options and upper-cases the currency. Returns a new object. */
+/** Trims every text to its limit, caps the lists, splits the options (of lines and warranties alike) and upper-cases the currency. Returns a new object. */
 export function normalizeExtraction(x: QuoteExtraction): QuoteExtraction {
   const split = splitOptions(x.options)
   return {
@@ -159,7 +173,10 @@ export function normalizeExtraction(x: QuoteExtraction): QuoteExtraction {
         source: { page: l.source.page, text: cut(l.source.text, TEXT.source) },
       }]
     }),
-    warranties: x.warranties.slice(0, LIST.warranties),
+    warranties: x.warranties.slice(0, LIST.warranties).flatMap((w) => {
+      const option = lineOption(w.option, split)
+      return option === undefined ? [] : [{ ...w, option }]
+    }),
     notes: x.notes.slice(0, LIST.notes).map((n) => cut(n, TEXT.note)),
   }
 }

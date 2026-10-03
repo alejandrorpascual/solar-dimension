@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { extraction, line, SAMPLE_QUOTES } from './quote-fixtures'
+import { extraction, line, SAMPLE_QUOTES, warranty } from './quote-fixtures'
 import { hasOptions, optionExtraction, optionLines } from './quote-options'
 
 describe('options of a quote', () => {
@@ -20,5 +20,14 @@ describe('options of a quote', () => {
     expect(a.lines).toHaveLength(2)
     expect(a.currency).toBe(x.currency)
     expect(x.lines).toHaveLength(3)
+  })
+  test('an option sees only its own warranties and the shared ones', () => {
+    const w = extraction([line('inverter', 100, { option: 'a' }), line('inverter', 200, { option: 'b' })], {
+      options: x.options,
+      warranties: [warranty('battery', 10, 'a'), warranty('battery', 2, 'b'), warranty('labor', 1)],
+    })
+    expect(optionExtraction(w, 'a').warranties.map((v) => v.years)).toEqual([10, 1])
+    expect(optionExtraction(w, 'b').warranties.map((v) => v.years)).toEqual([2, 1])
+    expect(w.warranties).toHaveLength(3)
   })
 })

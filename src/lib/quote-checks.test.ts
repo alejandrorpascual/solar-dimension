@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { checkExtraction, optionPrices } from './quote-checks'
 import { optionLines } from './quote-options'
-import { extraction, line, SAMPLE_QUOTES } from './quote-fixtures'
+import { extraction, line, SAMPLE_QUOTES, warranty } from './quote-fixtures'
 import { UNLISTED_OPTION } from './quote-schema'
 
 describe('checkExtraction', () => {
@@ -83,6 +83,12 @@ describe('checkExtraction with options', () => {
     expect(checkExtraction(x)).toContain('unknown_option')
     expect(optionLines(x, 'a').map((l) => l.lineTotal)).toEqual([100])
     expect(optionPrices(x)).toEqual([{ id: 'a', total: 100 }, { id: 'b', total: 200 }])
+  })
+  test('a warranty naming an option the model never listed fails unknown_option too', () => {
+    const options = [{ id: 'a', label: 'A', total: null }, { id: 'b', label: 'B', total: null }]
+    const lines = [line('inverter', 100, { option: 'a' }), line('inverter', 200, { option: 'b' })]
+    expect(checkExtraction(extraction(lines, { options, warranties: [warranty('battery', 10, UNLISTED_OPTION)] }))).toContain('unknown_option')
+    expect(checkExtraction(extraction(lines, { options, warranties: [warranty('battery', 10, 'a')] }))).toEqual([])
   })
   test('the SUNA quote has no unknown option', () => {
     expect(checkExtraction(SAMPLE_QUOTES.suna)).not.toContain('unknown_option')

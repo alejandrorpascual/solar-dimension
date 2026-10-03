@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { extraction, line, SAMPLE_QUOTES } from './quote-fixtures'
+import { extraction, line, SAMPLE_QUOTES, warranty } from './quote-fixtures'
 import { FINISHED, isPending, normalizeExtraction, QUOTE_STATUSES, QuoteExtractionSchema, MAX_OPTIONS, UNLISTED_OPTION, withOptionDefaults } from './quote-schema'
 
 describe('QuoteExtractionSchema', () => {
@@ -96,6 +96,25 @@ describe('normalizeExtraction with options', () => {
   })
 })
 
+describe('normalizeExtraction of warranty options', () => {
+  test('maps each warranty through the same split as the lines', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e', 'f']
+    const x = extraction([line('inverter', 100, { option: 'a' })], {
+      options: ids.map((id) => opt(id)),
+      warranties: [
+        warranty('battery', 10, ' b '), warranty('inverter', 5), warranty('panel', 25, 'zz'), warranty('labor', 1, 'f'),
+      ],
+    })
+    expect(normalizeExtraction(x).warranties).toEqual([
+      warranty('battery', 10, 'o2'), warranty('inverter', 5), warranty('panel', 25, UNLISTED_OPTION),
+    ])
+  })
+  test('one system has shared warranties only', () => {
+    const x = extraction([line('inverter', 100)], { options: [opt('a')], warranties: [warranty('battery', 10, 'a')] })
+    expect(normalizeExtraction(x).warranties).toEqual([warranty('battery', 10)])
+  })
+})
+
 describe('withOptionDefaults', () => {
   test('a reading stored before options gets none, and every line is shared', () => {
     const { options: _o, ...old } = extraction([line('inverter', 100)])
@@ -103,6 +122,11 @@ describe('withOptionDefaults', () => {
     const x = withOptionDefaults(stored)
     expect(x.options).toEqual([])
     expect(x.lines[0]!.option).toBeNull()
+  })
+  test('a warranty stored before options is shared by every option', () => {
+    const { options: _o, ...old } = extraction([line('inverter', 100)], { warranties: [warranty('battery', 10)] })
+    const stored = { ...old, lines: old.lines, warranties: old.warranties.map(({ option: _w, ...w }) => w) }
+    expect(withOptionDefaults(stored).warranties).toEqual([warranty('battery', 10)])
   })
   test('a reading with options is kept as it is', () => {
     const x = extraction([line('inverter', 100, { option: 'a' })], { options: [opt('a'), opt('b')] })
