@@ -180,3 +180,52 @@ test('a cédula added later to a client saved without one prints on the sheet', 
   await expect(form).toBeHidden()
   await expect(visibleBand(page).getByText('V-18.456.789')).toBeVisible()
 })
+
+test('details remembered while signed out are not offered to an account that signs in on the same browser', async ({ page }) => {
+  await page.goto('/?step=3')
+  await showDownload(page)
+  const form = await openForm(page)
+  await form.getByLabel('Full name').fill('Ann Lee')
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(form).toBeHidden()
+
+  const email = `e2e-req-scope-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
+  await page.goto('/login')
+  await page.getByRole('button', { name: 'No account yet? Create one' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill('correct-horse-battery')
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  await page.goto('/?step=3')
+  await expect(page.getByText('Syncing your projects…')).toBeHidden()
+
+  await hideProjects(page)
+  const projectsButton = page.getByRole('button', { name: /^Projects · \d+$/ })
+  if (await projectsButton.isVisible()) await projectsButton.click()
+  await page.getByRole('tab', { name: /^Projects/ }).click()
+  await page.getByRole('button', { name: '+ New project' }).click()
+  await hideProjects(page)
+  await showDownload(page)
+  const next = await openForm(page)
+  await expect(next.getByLabel('Full name')).toHaveValue('')
+})
+
+test('a client with every field at its longest still leaves the parts list whole on page one', async ({ page }) => {
+  const longest = (text: string, max: number) => text.repeat(Math.ceil(max / text.length)).slice(0, max).trim()
+  await seedRequester(page, {
+    kind: 'company', country: 'VE',
+    name: longest('Junta de Condominio Residencial Los Samanes ', 120),
+    contact: longest('Luis Alberto Pérez Rondón, administrador ', 80),
+    docPrefix: 'J', doc: '401234567',
+    phone: '+58 414 555 0192 / +58 212 555 0100',
+    email: `${longest('administracion.junta', 108)}@example.com`,
+    address: longest('Avenida Principal de La Trinidad, Urbanización Los Samanes, Torre B, piso 12, ', 160),
+  })
+  await page.goto('/?step=3')
+  await showDownload(page)
+  await expect(visibleBand(page).getByText('J-40123456-7')).toBeVisible()
+  // A parts list cut by the page edge would make three pages: parts, the rest of the parts, then the load schedule.
+  const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download PDF' }).click()])
+  const bytes = await readFile((await pdf.path())!)
+  expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
+})

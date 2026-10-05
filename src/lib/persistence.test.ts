@@ -52,18 +52,30 @@ function removableStorage(initial: Record<string, string> = {}) {
   return { ...mem, removeItem: (k: string) => { delete mem.data[k] } }
 }
 
-test('remembers a requester, reads it back, and forgets it', () => {
+test('remembers a requester for its owner, reads it back, and forgets it', () => {
   const mem = removableStorage()
-  rememberRequester(ann, mem)
-  expect(loadRememberedRequester(mem)).toEqual(ann)
+  rememberRequester(ann, 'user-a', mem)
+  expect(loadRememberedRequester('user-a', mem)).toEqual(ann)
   forgetRequester(mem)
-  expect(loadRememberedRequester(mem)).toBeNull()
+  expect(loadRememberedRequester('user-a', mem)).toBeNull()
 })
 
-test('a missing, corrupt or invalid remembered requester reads as none', () => {
-  expect(loadRememberedRequester(memoryStorage())).toBeNull()
-  expect(loadRememberedRequester(memoryStorage({ [REQUESTER_KEY]: '{not json' }))).toBeNull()
-  expect(loadRememberedRequester(memoryStorage({ [REQUESTER_KEY]: JSON.stringify({ ...ann, name: '' }) }))).toBeNull()
+test('another account, or a signed-out visitor, on the same browser never gets the remembered requester', () => {
+  const mem = removableStorage()
+  rememberRequester(ann, 'user-a', mem)
+  expect(loadRememberedRequester('user-b', mem)).toBeNull()
+  expect(loadRememberedRequester(null, mem)).toBeNull()
+  rememberRequester(ann, null, mem)
+  expect(loadRememberedRequester(null, mem)).toEqual(ann)
+  expect(loadRememberedRequester('user-a', mem)).toBeNull()
+})
+
+test('a missing, corrupt, ownerless or invalid remembered requester reads as none', () => {
+  expect(loadRememberedRequester(null, memoryStorage())).toBeNull()
+  expect(loadRememberedRequester(null, memoryStorage({ [REQUESTER_KEY]: '{not json' }))).toBeNull()
+  // The first release stored the bare requester, with no owner: it is not handed to anyone.
+  expect(loadRememberedRequester(null, memoryStorage({ [REQUESTER_KEY]: JSON.stringify(ann) }))).toBeNull()
+  expect(loadRememberedRequester(null, memoryStorage({ [REQUESTER_KEY]: JSON.stringify({ owner: null, requester: { ...ann, name: '' } }) }))).toBeNull()
 })
 
 test('blocked or missing storage never throws', () => {
@@ -72,8 +84,8 @@ test('blocked or missing storage never throws', () => {
     setItem: () => { throw new Error('blocked') },
     removeItem: () => { throw new Error('blocked') },
   }
-  expect(loadRememberedRequester(throwing)).toBeNull()
-  expect(() => rememberRequester(ann, throwing)).not.toThrow()
+  expect(loadRememberedRequester(null, throwing)).toBeNull()
+  expect(() => rememberRequester(ann, null, throwing)).not.toThrow()
   expect(() => forgetRequester(throwing)).not.toThrow()
-  expect(loadRememberedRequester(null)).toBeNull()
+  expect(loadRememberedRequester(null, null)).toBeNull()
 })

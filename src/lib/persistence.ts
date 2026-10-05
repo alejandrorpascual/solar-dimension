@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { RequesterSchema, type Requester } from './requester'
 import { StoreSchema, type Store } from './schema'
 
@@ -62,25 +63,31 @@ export function clearPendingSave(storage: Remover | null = browserStorage()): vo
   }
 }
 
-/** The requester saved with "use these details in my other projects". This browser only; it fills a blank form, never a project. */
+/**
+ * The requester saved with "use these details in my other projects", in this browser only. It belongs to whoever saved
+ * it (an account id, or null signed out), so another account on the same browser never gets it pre-filled. It only
+ * fills a blank form, never a project.
+ */
 export const REQUESTER_KEY = 'solar-dimension.requester.v1'
 
-export function loadRememberedRequester(storage: Reader | null = browserStorage()): Requester | null {
+const RememberedSchema = z.object({ owner: z.string().nullable(), requester: RequesterSchema })
+
+export function loadRememberedRequester(owner: string | null, storage: Reader | null = browserStorage()): Requester | null {
   if (!storage) return null
   try {
     const raw = storage.getItem(REQUESTER_KEY)
     if (!raw) return null
-    const parsed = RequesterSchema.safeParse(JSON.parse(raw))
-    return parsed.success ? parsed.data : null
+    const parsed = RememberedSchema.safeParse(JSON.parse(raw))
+    return parsed.success && parsed.data.owner === owner ? parsed.data.requester : null
   } catch {
     return null
   }
 }
 
-export function rememberRequester(requester: Requester, storage: Writer | null = browserStorage()): void {
+export function rememberRequester(requester: Requester, owner: string | null, storage: Writer | null = browserStorage()): void {
   if (!storage) return
   try {
-    storage.setItem(REQUESTER_KEY, JSON.stringify(requester))
+    storage.setItem(REQUESTER_KEY, JSON.stringify({ owner, requester }))
   } catch {
     // Blocked storage: the project still keeps its own copy.
   }

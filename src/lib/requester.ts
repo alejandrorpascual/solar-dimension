@@ -57,7 +57,7 @@ function fitsRule(r: { kind: RequesterKind; country: RequesterCountry; docPrefix
 
 const text = (max: number) => z.string().trim().max(max)
 
-export const RequesterSchema = z.object({
+const RequesterFields = z.object({
   kind: z.enum(REQUESTER_KINDS),
   country: z.enum(REQUESTER_COUNTRIES),
   name: text(REQUESTER_MAX.name).min(1),
@@ -67,10 +67,16 @@ export const RequesterSchema = z.object({
   phone: text(REQUESTER_MAX.phone),
   email: text(REQUESTER_MAX.email),
   address: text(REQUESTER_MAX.address),
-}).refine(fitsRule, { message: 'The ID does not fit the requester kind and country', path: ['doc'] })
+})
 
 /** Also the form's draft: same fields, which may be blank or untrimmed until `normalizeRequester`. */
-export type Requester = z.infer<typeof RequesterSchema>
+export type Requester = z.infer<typeof RequesterFields>
+
+export const RequesterSchema = RequesterFields
+  .refine(fitsRule, { message: 'The ID does not fit the requester kind and country', path: ['doc'] })
+  // The form's checks, applied wherever a requester is read (saved projects, the remembered copy, server writes), so
+  // a malformed ID or email can't reach the sheet by any route.
+  .refine((r) => Object.keys(validateRequester(r)).length === 0, { message: 'The ID or email is not well formed', path: ['doc'] })
 
 const firstPrefix = (kind: RequesterKind, country: RequesterCountry): string => docRule(kind, country)?.prefixes[0] ?? ''
 

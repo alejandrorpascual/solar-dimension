@@ -178,3 +178,18 @@ describe('editing a requester saved without an ID', () => {
     expect(normalizeRequester(withDocInput(savedPerson, '18456789'))?.docPrefix).toBe('V')
   })
 })
+
+describe('RequesterSchema checks formats too, so stored or sent data can never print a malformed ID', () => {
+  test('rejects a RIF without its check digit, a short cédula, a bad EIN and a bad email', () => {
+    expect(RequesterSchema.safeParse({ ...company, doc: '40123456' }).success).toBe(false)
+    expect(RequesterSchema.safeParse({ ...person, doc: '1234' }).success).toBe(false)
+    const us: Requester = { ...emptyRequester('US'), kind: 'company', name: 'Acme LLC', doc: '12-345' }
+    expect(RequesterSchema.safeParse(us).success).toBe(false)
+    expect(RequesterSchema.safeParse({ ...company, email: 'not-an-email' }).success).toBe(false)
+  })
+  test('still accepts every well-formed requester', () => {
+    expect(RequesterSchema.safeParse(company).success).toBe(true)
+    expect(RequesterSchema.safeParse({ ...person, doc: '18.456.789' }).success).toBe(true)
+    expect(RequesterSchema.safeParse({ ...emptyRequester('OTHER'), name: 'Ana', doc: 'AB-123' }).success).toBe(true)
+  })
+})

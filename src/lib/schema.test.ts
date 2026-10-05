@@ -44,3 +44,9 @@ test('an unreadable requester is dropped instead of losing every saved project',
   expect(parsed.success).toBe(true)
   expect(parsed.data?.projects[0]?.requester).toBeNull()
 })
+
+test('a saved requester with a malformed ID is dropped, and the project still loads', () => {
+  const badRif = { kind: 'company', country: 'VE', name: 'Acme C.A.', contact: '', docPrefix: 'J', doc: '4012', phone: '', email: '', address: '' }
+  const parsed = StoreSchema.parse({ version: 1, projects: [{ ...project, requester: badRif }], currentId: 'p1' })
+  expect(parsed.projects[0]?.requester).toBeNull()
+})
