@@ -233,3 +233,42 @@ test('a client with every field at its longest still leaves the parts list whole
   const bytes = await readFile((await pdf.path())!)
   expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
 })
+
+/**
+ * The phone keyboard can't be opened in a test. On iOS it shrinks only the visual viewport, so stand-in for it: report
+ * a shorter `visualViewport.height` and fire its resize, which is what react-aria listens to.
+ */
+async function stubKeyboard(page: Page): Promise<(visibleHeight: number) => Promise<void>> {
+  await page.addInitScript(() => {
+    const viewport = window.visualViewport
+    const real = Object.getOwnPropertyDescriptor(VisualViewport.prototype, 'height')
+    if (!viewport || !real?.get) return
+    Object.defineProperty(viewport, 'height', {
+      configurable: true,
+      get: () => (window as unknown as { keyboardTop?: number }).keyboardTop ?? real.get!.call(viewport),
+    })
+  })
+  return async (visibleHeight) => {
+    await page.evaluate((h) => {
+      (window as unknown as { keyboardTop?: number }).keyboardTop = h
+      window.visualViewport!.dispatchEvent(new Event('resize'))
+    }, visibleHeight)
+  }
+}
+
+test('with the phone keyboard open, the form sheet ends above it and its last field can be reached', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'the on-screen keyboard is a phone matter')
+  const openKeyboard = await stubKeyboard(page)
+  await page.goto('/?step=3')
+  await showDownload(page)
+  const form = await openForm(page)
+  const sheet = page.locator('.qdialog').filter({ has: form })
+  await form.getByLabel('Installation address').focus()
+  await openKeyboard(400)
+
+  await expect.poll(async () => { const b = (await sheet.boundingBox())!; return b.y + b.height }).toBeLessThanOrEqual(400)
+  const address = form.getByLabel('Installation address')
+  await address.scrollIntoViewIfNeeded()
+  const field = (await address.boundingBox())!
+  expect(field.y + field.height).toBeLessThanOrEqual(400)
+})
