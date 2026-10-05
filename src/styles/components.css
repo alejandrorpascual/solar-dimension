@@ -32,6 +32,8 @@
 .btn:hover { background: var(--ground); }
 .btn--primary { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
 .btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn--primary:disabled:hover { background: var(--accent); border-color: var(--accent); }
 .in { font-size: 15px; min-height: var(--tap); padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
 .in:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 /* iOS Safari zooms the page in when a field under 16 px gets focus; zoomed, it scrolls the page under any open dialog

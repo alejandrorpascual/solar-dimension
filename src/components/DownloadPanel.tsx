@@ -157,6 +157,7 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
       </section>
       <RequesterSheet
         isOpen={isRequesterOpen}
+        projectId={project.id}
         onOpenChange={setRequesterOpen}
         requester={project.requester}
         onSave={changeRequester}

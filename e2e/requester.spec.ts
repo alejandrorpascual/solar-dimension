@@ -79,7 +79,7 @@ test('a client added in the Download panel prints on the sheet and stays after a
 
   await page.reload()
   await showDownload(page)
-  await expect(page.getByRole('button', { name: 'Edit: Junta de Condominio Res. Los Samanes' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Change: Junta de Condominio Res. Los Samanes' })).toBeVisible()
 })
 
 test('the form explains a bad RIF, caps long text, and Escape closes only the form', async ({ page }) => {
@@ -115,17 +115,8 @@ test('a person in the United States is not asked for an ID', async ({ page }) =>
   await expect(form.getByLabel('EIN')).toBeVisible()
 })
 
-test('saved details fill the form of a new project when "use in my other projects" is on', async ({ page }) => {
-  await page.goto('/?step=3')
-  await showDownload(page)
-  const form = await openForm(page)
-  await form.getByLabel('Full name').fill('Ann Lee')
-  await expect(form.getByRole('checkbox', { name: 'Use these details in my other projects' })).toBeChecked()
-  await form.getByRole('button', { name: 'Save' }).click()
-  await expect(form).toBeHidden()
-  // The add button that opened the form is gone; focus lands on the card's Edit button instead of the page.
-  await expect(page.getByRole('button', { name: 'Edit: Ann Lee' })).toBeFocused()
-
+/** Starts a new project from the Projects tab and comes back to the Download panel. */
+async function newProject(page: Page) {
   await hideProjects(page)
   // The rail is on its Download tab (desktop); the phone opens the sheet first.
   const projectsButton = page.getByRole('button', { name: /^Projects · \d+$/ })
@@ -134,15 +125,83 @@ test('saved details fill the form of a new project when "use in my other project
   await page.getByRole('button', { name: '+ New project' }).click()
   await hideProjects(page)
   await showDownload(page)
-  const next = await openForm(page)
-  await expect(next.getByLabel('Full name')).toHaveValue('Ann Lee')
+}
+
+test('a saved client is one tap away in a new project', async ({ page }) => {
+  await page.goto('/?step=3')
+  await showDownload(page)
+  const form = await openForm(page)
+  await form.getByLabel('Full name').fill('Ann Lee')
+  await expect(form.getByRole('checkbox', { name: 'Save to my clients' })).toBeChecked()
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(form).toBeHidden()
+  // The add button that opened the form is gone; focus lands on the card's Change button instead of the page.
+  await expect(page.getByRole('button', { name: 'Change: Ann Lee' })).toBeFocused()
+
+  await newProject(page)
+  await page.getByRole('button', { name: /^Add client details/ }).click()
+  const list = page.getByRole('dialog', { name: 'Who is this spec sheet for?' })
+  await expect(list.getByRole('button', { name: 'Use on the sheet' })).toBeDisabled()
+  await list.getByRole('radio', { name: /Ann Lee/ }).check()
+  await list.getByRole('button', { name: 'Use on the sheet' }).click()
+  await expect(list).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Change: Ann Lee' })).toBeVisible()
+})
+
+test('a saved client can be edited and deleted from the list, and the project keeps its copy', async ({ page }) => {
+  await page.goto('/?step=3')
+  await showDownload(page)
+  const form = await openForm(page)
+  await form.getByLabel('Full name').fill('Ann Lee')
+  await form.getByRole('button', { name: 'Save' }).click()
+
+  await page.getByRole('button', { name: 'Change: Ann Lee' }).click()
+  const list = page.getByRole('dialog', { name: 'Who is this spec sheet for?' })
+  await expect(list.getByRole('radio', { name: /Ann Lee/ })).toBeChecked()
+  await list.getByRole('button', { name: 'Edit: Ann Lee' }).click()
+  const edit = page.getByRole('dialog', { name: 'Client details' })
+  await expect(edit.getByRole('checkbox', { name: 'Save to my clients' })).toHaveCount(0)
+  await edit.getByLabel('Phone').fill('+1 305 555 0100')
+  await edit.getByRole('button', { name: 'Save' }).click()
+  await expect(list.getByText('Individual · +1 305 555 0100')).toBeVisible()
+
+  await list.getByRole('button', { name: 'Edit: Ann Lee' }).click()
+  await edit.getByRole('button', { name: 'Delete from my clients' }).click()
+  // The project still has Ann Lee, now as its own row.
+  await expect(list.getByText('Only in this project')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'Change: Ann Lee' })).toBeVisible()
+})
+
+test('closing the form keeps what was typed, across a reload, until Start over', async ({ page }) => {
+  await page.goto('/?step=3')
+  await showDownload(page)
+  const form = await openForm(page)
+  await form.getByLabel('Full name').fill('Pedro Ramírez')
+  await expect(form.getByText('Draft saved on this device')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(form).toBeHidden()
+
+  await page.reload()
+  await showDownload(page)
+  const again = await openForm(page)
+  await expect(again.getByText('Picking up where you left off')).toBeVisible()
+  await expect(again.getByLabel('Full name')).toHaveValue('Pedro Ramírez')
+  await again.getByRole('button', { name: 'Start over' }).click()
+  await expect(again.getByLabel('Full name')).toHaveValue('')
+  await expect(again.getByText('Picking up where you left off')).toBeHidden()
+  await expect(again.getByLabel('Full name')).toBeFocused()
+
+  await page.keyboard.press('Escape')
+  const fresh = await openForm(page)
+  await expect(fresh.getByText('Picking up where you left off')).toBeHidden()
 })
 
 test('Remove takes the client off this project', async ({ page }) => {
   await seedRequester(page)
   await page.goto('/?step=3')
   await showDownload(page)
-  await page.getByRole('button', { name: `Edit: ${LOS_SAMANES.name}` }).click()
+  await page.getByRole('button', { name: `Change: ${LOS_SAMANES.name}` }).click()
   await page.getByRole('dialog', { name: 'Client details' }).getByRole('button', { name: 'Remove' }).click()
   await expect(visibleBand(page)).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^Add client details/ })).toBeVisible()
@@ -159,7 +218,7 @@ test('a signed-in client comes back from the account on a fresh browser', async 
 
   const form = await openForm(page)
   await form.getByLabel('Full name').fill('Ann Lee')
-  await form.getByRole('checkbox', { name: 'Use these details in my other projects' }).uncheck()
+  await form.getByRole('checkbox', { name: 'Save to my clients' }).uncheck()
   const saved = page.waitForResponse((r) => r.url().includes('/_serverFn/') && r.request().method() === 'POST' && r.ok())
   await form.getByRole('button', { name: 'Save' }).click()
   await saved
@@ -174,14 +233,14 @@ test('a signed-in client comes back from the account on a fresh browser', async 
   await page.goto('/?step=3')
   await expect(page.getByText('Syncing your projects…')).toBeHidden()
   await showDownload(page)
-  await expect(page.getByRole('button', { name: 'Edit: Ann Lee' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Change: Ann Lee' })).toBeVisible()
 })
 
 test('a cédula added later to a client saved without one prints on the sheet', async ({ page }) => {
   await seedRequester(page, { kind: 'person', country: 'VE', name: 'Ana Rondón', contact: '', docPrefix: '', doc: '', phone: '', email: '', address: '' })
   await page.goto('/?step=3')
   await showDownload(page)
-  await page.getByRole('button', { name: 'Edit: Ana Rondón' }).click()
+  await page.getByRole('button', { name: 'Change: Ana Rondón' }).click()
   const form = page.getByRole('dialog', { name: 'Client details' })
   await expect(form.getByLabel('Nationality')).toHaveValue('V')
   await form.getByLabel('Cédula (ID card)').fill('18456789')
@@ -190,7 +249,7 @@ test('a cédula added later to a client saved without one prints on the sheet', 
   await expect(visibleBand(page).getByText('V-18.456.789')).toBeVisible()
 })
 
-test('details remembered while signed out are not offered to an account that signs in on the same browser', async ({ page }) => {
+test('clients saved while signed out are not offered to an account that signs in on the same browser', async ({ page }) => {
   await page.goto('/?step=3')
   await showDownload(page)
   const form = await openForm(page)
@@ -203,13 +262,8 @@ test('details remembered while signed out are not offered to an account that sig
   await page.goto('/?step=3')
   await expect(page.getByText('Syncing your projects…')).toBeHidden()
 
-  await hideProjects(page)
-  const projectsButton = page.getByRole('button', { name: /^Projects · \d+$/ })
-  if (await projectsButton.isVisible()) await projectsButton.click()
-  await page.getByRole('tab', { name: /^Projects/ }).click()
-  await page.getByRole('button', { name: '+ New project' }).click()
-  await hideProjects(page)
-  await showDownload(page)
+  await newProject(page)
+  // The account has no saved clients of its own, so the form opens blank instead of the list.
   const next = await openForm(page)
   await expect(next.getByLabel('Full name')).toHaveValue('')
 })

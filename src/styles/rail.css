@@ -210,6 +210,29 @@
 .rq-field__opt { font-weight: 400; color: var(--muted); }
 .rq-doc { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; }
 .rq-err { font-size: 12px; color: var(--error); }
+/* Saved clients: radio rows with an edit button, then the way to a new client. */
+.rq-list { display: flex; flex-direction: column; gap: 8px; }
+.rq-row { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 12px; border: 1.5px solid var(--line); border-radius: var(--radius-md); background: var(--surface); transition: border-color 120ms, background 120ms; }
+.rq-row:hover { border-color: var(--line-strong); }
+.rq-row--on, .rq-row--on:hover { border-color: var(--accent); background: var(--accent-tint); }
+.rq-row--on .rq-mark { background: var(--surface); }
+.rq-row__pick { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 0; min-height: 60px; cursor: pointer; }
+.rq-row__pick input { width: 20px; height: 20px; margin: 0; flex-shrink: 0; accent-color: var(--accent); }
+.rq-row__edit { flex-shrink: 0; width: var(--tap); height: var(--tap); display: grid; place-items: center; border: 0; border-radius: 12px; background: transparent; color: var(--muted); cursor: pointer; }
+.rq-row__edit:hover { background: var(--fill); color: var(--ink); }
+.rq-new { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 12px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--accent); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+.rq-new:hover { background: var(--accent-tint); }
+.rq-row__edit:focus-visible, .rq-new:focus-visible, .rq-back:focus-visible, .rq-linkbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.qdialog__title:focus { outline: none; }
+/* The form keeps its draft: a quiet "saved" line, and a banner when it opens on one. */
+.rq-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 2px; min-height: var(--tap); margin: -10px 0 -12px -8px; padding: 0 8px; border: 0; border-radius: 10px; background: transparent; color: var(--accent); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.rq-saved { display: inline-flex; align-items: center; gap: 6px; margin: -6px 0 0; font-size: 13px; color: var(--success); }
+.rq-resume { display: flex; gap: 12px; padding: 14px; border-radius: var(--radius-md); background: var(--accent-tint); }
+.rq-resume__icon { display: inline-grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; background: var(--surface); color: var(--accent); }
+.rq-resume__text { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.rq-resume__text strong { font-size: 14px; color: var(--ink); }
+.rq-linkbtn { align-self: flex-start; min-height: 36px; padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.rq-linkbtn--danger { align-self: center; min-height: var(--tap); color: var(--error); }
 .rq-note { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--ground); font-size: 13px; line-height: 1.4; color: var(--muted); }
 .in[aria-invalid='true'] { border-color: var(--error); }
 
