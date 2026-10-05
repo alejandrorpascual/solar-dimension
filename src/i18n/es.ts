@@ -43,7 +43,7 @@ export const es: Dictionary = {
     saved: 'Guardado', undo: 'Deshacer', allAppliances: 'Todos los aparatos',
     addApplianceSearch: 'Agregar un aparato', noSearchMatch: 'Nada coincide. Búscalo en Todos los aparatos o agrega el tuyo ahí.',
     download: 'Descargar', downloadFor: 'Descargar {name}', format: 'Formato', include: 'Incluir', preview: 'Vista previa del archivo', previewOpen: 'Ver en grande', previewTitle: 'Vista previa', previewPage: 'Página {page} de {pages}', previewImage: 'Toda la ficha en una sola imagen',
-    fmtPdf: 'Ficha técnica (PDF)', fmtPdfHint: 'Una página para el instalador.', fmtPng: 'Imagen resumen (PNG)', fmtPngHint: 'La ficha en una sola imagen. Ideal para WhatsApp.',
+    fmtPdf: 'Ficha técnica (PDF)', fmtPdfHint: 'Para el instalador: primero las partes, luego el cuadro de cargas.', fmtPng: 'Imagen resumen (PNG)', fmtPngHint: 'La ficha en una sola imagen. Ideal para WhatsApp.',
     fmtCsv: 'Lista de partes (CSV)', fmtCsvHint: 'Se abre en Excel. Para cotizar con un proveedor. Usa las listas de aparatos y partes.',
     incSummary: 'Cifras resumen', incAppliances: 'Lista de aparatos', incParts: 'Lista de partes', incNotes: 'Supuestos', incRequester: 'Datos del solicitante',
     downloadPdf: 'Descargar PDF', downloadPng: 'Descargar imagen', downloadCsv: 'Descargar CSV', share: 'Compartir', making: 'Preparando el archivo…', downloadReady: 'Archivo listo. Descarga iniciada.',

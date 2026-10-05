@@ -67,4 +67,8 @@ describe('pageSlices', () => {
     // Page 2 holds 1000 - 60 = 940: the row at 1100 still fits (ends 1140 = 200 + 940), the one at 1150 moves on.
     expect(pageSlices(blocks, 1260, 1000, 60)).toEqual([{ start: 0, end: 200 }, { start: 200, end: 1140 }, { start: 1140, end: 1260 }])
   })
+
+  test('a page with no room left after its top margin ends the sheet instead of looping', () => {
+    expect(pageSlices([row(0), { top: 30, bottom: 70, breakBefore: true }], 100, 50, 60)).toEqual([{ start: 0, end: 30 }, { start: 30, end: 100 }])
+  })
 })

@@ -6,6 +6,9 @@ import { requesterLines, type Requester } from '../lib/requester'
 import type { SizingResult } from '../lib/sizing'
 import type { Part } from './KitSummary'
 
+/** The sheet's width in CSS pixels: A4 at 96 dpi. The PDF, the PNG and every preview are cut from this layout. */
+export const SHEET_WIDTH = 794
+
 export interface ExportInclude { summary: boolean; appliances: boolean; parts: boolean; notes: boolean; requester: boolean }
 
 interface Props {
@@ -21,7 +24,7 @@ interface Props {
 }
 
 /**
- * The kit as a one-page document, 794 px wide (A4 at 96 dpi). The download panel shows it scaled down as a preview
+ * The kit as a printable document, SHEET_WIDTH wide. The download panel shows it scaled down as a preview
  * and captures the same node for the PDF and the image, so the file matches what the preview showed.
  * `data-pdf-block` marks what a PDF page break must not cut; "keep" also holds it to the block after (headings), and
  * `data-pdf-break` starts a new page there.

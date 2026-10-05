@@ -220,9 +220,11 @@
 .dl__zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dl__zoom-chip { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; background: var(--ink); color: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(18, 22, 28, 0.18); transition: background 120ms; }
 .dl__zoom:hover .dl__zoom-chip { background: var(--accent); }
-.pvw { max-width: 900px; background: var(--ground); }
-.pvw__pages { display: flex; flex-direction: column; gap: 24px; }
-.pvw__item { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+/* .qdialog.pvw: quotes.css loads later and caps .qdialog at 560 px; the preview needs room for the sheet at full size. */
+.qdialog.pvw { max-width: calc(794px + 64px); background: var(--ground); }
+.pvw__pages { display: flex; flex-direction: column; gap: 24px; overflow-x: auto; }
+/* Auto margins centre a page that fits and fall back to 0 when it is wider, so it scrolls instead of clipping. */
+.pvw__item { margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
 .pvw__page { overflow: hidden; border-radius: 4px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(18, 22, 28, 0.08), 0 12px 32px rgba(18, 22, 28, 0.08); }
 .pvw__frame { position: relative; width: 794px; overflow: hidden; background: #FFFFFF; transform-origin: top left; }
 .pvw__sheet { position: absolute; left: 0; }

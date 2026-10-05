@@ -78,6 +78,10 @@ test('the preview opens larger, page by page as the PDF prints, or as one image 
   const view = page.getByRole('dialog', { name: 'Preview' })
   await expect(view.getByText('Page 1 of 2')).toBeVisible()
   await expect(view.getByText('Page 2 of 2')).toBeVisible()
+  // An A4-shaped page, and big enough to read: at least 70% of the sheet's real size, even on a phone (it scrolls sideways).
+  const firstPage = await view.locator('.pvw__page').first().boundingBox()
+  expect(firstPage!.height / firstPage!.width).toBeCloseTo(841.89 / 595.28, 1)
+  expect(firstPage!.width).toBeGreaterThanOrEqual(555)
   // The pages are pictures of the sheet (hidden from assistive tech); the load schedule sits on page 2.
   await expect(view.locator('.pvw__page').nth(1).getByText('Load schedule')).toBeVisible()
   await page.keyboard.press('Escape')

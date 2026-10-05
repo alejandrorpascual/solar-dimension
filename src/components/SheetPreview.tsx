@@ -1,11 +1,13 @@
 import { X } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { printPages, type PrintPage } from '../client/export-file'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
+import { SHEET_WIDTH } from './KitSheet'
 
-const SHEET_WIDTH = 794
+/** Below this the sheet's small print is unreadable; a narrower screen scrolls the pages sideways instead. */
+const MIN_READABLE_SCALE = 0.7
 
 interface Props {
   isOpen: boolean
@@ -50,11 +52,12 @@ export function SheetPreview({ isOpen, onOpenChange, isImage, source, children }
 function Pages({ layout, isImage, children }: { layout: Layout; isImage: boolean; children: ReactNode }) {
   const { t } = useLocale()
   const boxRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(0.5)
-  useEffect(() => {
+  const [scale, setScale] = useState(1)
+  // Before paint, so the dialog never shows a frame at the wrong size.
+  useLayoutEffect(() => {
     const box = boxRef.current
     if (!box || typeof ResizeObserver === 'undefined') return
-    const measure = () => setScale(Math.min(1, box.clientWidth / SHEET_WIDTH))
+    const measure = () => setScale(Math.max(MIN_READABLE_SCALE, Math.min(1, box.clientWidth / SHEET_WIDTH)))
     const observer = new ResizeObserver(measure)
     observer.observe(box)
     measure()
@@ -66,7 +69,7 @@ function Pages({ layout, isImage, children }: { layout: Layout; isImage: boolean
     <div ref={boxRef} className="pvw__pages">
       {layout.pages.map((page, i) => (
         <figure key={page.start} className="pvw__item">
-          <div className="pvw__page" style={{ height: layout.pageHeight * scale }} aria-hidden="true">
+          <div className="pvw__page" style={{ width: SHEET_WIDTH * scale, height: layout.pageHeight * scale }} aria-hidden="true">
             <div className="pvw__frame" style={{ height: layout.pageHeight, transform: `scale(${scale})` }}>
               <div className="pvw__sheet" style={{ top: page.top - page.start }}>{children}</div>
               <div className="pvw__mask" style={{ top: 0, height: page.top }} />

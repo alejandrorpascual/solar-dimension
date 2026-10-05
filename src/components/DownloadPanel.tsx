@@ -10,7 +10,7 @@ import { buildCsv, exportFileName } from '../lib/export-csv'
 import type { Requester } from '../lib/requester'
 import type { Project } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
-import { KitSheet, type ExportInclude } from './KitSheet'
+import { KitSheet, SHEET_WIDTH, type ExportInclude } from './KitSheet'
 import { buildParts, type Part } from './KitSummary'
 import { RequesterCard } from './RequesterCard'
 import { RequesterSheet } from './RequesterSheet'
@@ -19,7 +19,6 @@ import { SheetPreview } from './SheetPreview'
 type Format = 'pdf' | 'png' | 'csv'
 type Status = 'idle' | 'busy' | 'error' | 'success'
 
-const SHEET_WIDTH = 794
 const PREVIEW_MAX_HEIGHT = 420
 const FORMATS: ReadonlyArray<{ id: Format; name: 'fmtPdf' | 'fmtPng' | 'fmtCsv'; hint: 'fmtPdfHint' | 'fmtPngHint' | 'fmtCsvHint'; action: 'downloadPdf' | 'downloadPng' | 'downloadCsv' }> = [
   { id: 'pdf', name: 'fmtPdf', hint: 'fmtPdfHint', action: 'downloadPdf' },

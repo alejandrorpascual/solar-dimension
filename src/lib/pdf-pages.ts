@@ -33,6 +33,8 @@ export function pageSlices(blocks: readonly SheetBlock[], totalHeight: number, p
   let start = 0
   for (;;) {
     const room = slices.length === 0 ? pageHeight : pageHeight - continuationTop
+    // A page with no room after its margin could never move forward; end the sheet there rather than loop.
+    if (room <= 0) return [...slices, { start, end: totalHeight }]
     const limit = start + room
     const forced = merged.find((b) => b.breakBefore && b.top > start && b.top <= limit)
     if (!forced && contentHeight - start <= room) return [...slices, { start, end: Math.min(totalHeight, limit) }]
