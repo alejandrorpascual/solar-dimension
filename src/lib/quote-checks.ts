@@ -31,15 +31,29 @@ export function optionPrices(x: QuoteExtraction): { id: string; total: number | 
 }
 
 /**
+ * The totals an option priced at `base` may be written as: the base itself, or with the tax the document states, as an
+ * amount or as the rate it makes over the subtotal. A document of alternatives often states its tax once while each
+ * option's total includes its own. Tax it never states explains nothing.
+ */
+function taxedTotals(base: number, x: QuoteExtraction): number[] {
+  const tax = x.tax ?? 0
+  const rate = tax > 0 && hasTotal(x.subtotal) ? tax / x.subtotal : 0
+  return [base, base + tax, base * (1 + rate)]
+}
+
+/**
  * Whether an option's written total disagrees with its lines: it should match the option's own included lines, or those
- * plus the shared ones. An option whose own lines carry no price has nothing to check against.
+ * plus the shared ones, with or without the stated tax. An option whose own lines carry no price has nothing to check
+ * against.
  */
 function hasOptionTotalMismatch(x: QuoteExtraction): boolean {
   const shared = includedSum(x.lines.filter((l) => l.option === null))
   return x.options.some((o) => {
-    if (!hasTotal(o.total)) return false
+    const written = o.total
+    if (!hasTotal(written)) return false
     const own = includedSum(x.lines.filter((l) => l.option === o.id))
-    return own > 0 && !near(o.total, own, TOTAL_TOLERANCE) && !near(o.total, own + shared, TOTAL_TOLERANCE)
+    const accepted = [own, own + shared].flatMap((base) => taxedTotals(base, x))
+    return own > 0 && !accepted.some((total) => near(written, total, TOTAL_TOLERANCE))
   })
 }
 

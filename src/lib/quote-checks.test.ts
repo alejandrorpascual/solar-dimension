@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { checkExtraction, optionPrices } from './quote-checks'
 import { optionLines } from './quote-options'
 import { extraction, line, SAMPLE_QUOTES, warranty } from './quote-fixtures'
-import { UNLISTED_OPTION } from './quote-schema'
+import { UNLISTED_OPTION, type QuoteExtraction } from './quote-schema'
 
 describe('checkExtraction', () => {
   test('passes every sample quote', () => {
@@ -106,6 +106,18 @@ describe('checkExtraction with options', () => {
       const x = extraction(lines, { options: [{ id: 'a', label: 'A', total: 5000 }, { id: 'b', label: 'B', total: 9000 }] })
       expect(checkExtraction(x).filter((f) => f === 'option_total_mismatch')).toHaveLength(1)
       expect(checkExtraction(withTotal(5000))).toContain('option_total_mismatch')
+    })
+    test('a total that includes the tax the document states passes, as an amount or as the rate over the subtotal', () => {
+      const taxed = (a: number, over: Partial<QuoteExtraction>) =>
+        extraction(lines, { options: [{ id: 'a', label: 'A', total: a }, { id: 'b', label: 'B', total: null }], ...over })
+      expect(checkExtraction(taxed(1160, { tax: 160 }))).toEqual([])
+      expect(checkExtraction(taxed(1508, { subtotal: 1000, tax: 160 }))).toEqual([])
+      expect(checkExtraction(taxed(1160, { subtotal: 1000, tax: 160 }))).toEqual([])
+    })
+    test('tax the document never states does not explain a higher total', () => {
+      expect(checkExtraction(withTotal(1160))).toContain('option_total_mismatch')
+      const x = extraction(lines, { options: [{ id: 'a', label: 'A', total: 1500 }, { id: 'b', label: 'B', total: null }], tax: 160 })
+      expect(checkExtraction(x)).toContain('option_total_mismatch')
     })
     test('an option whose own lines carry no price is not checked', () => {
       const x = extraction([line('inverter', 0, { option: 'a' }), line('inverter', 2000, { option: 'b' })], {
