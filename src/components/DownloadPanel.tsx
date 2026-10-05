@@ -139,10 +139,13 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
             <KitSheet ref={preview.contentRef} {...sheetProps} />
           </div>
         </div>
-        {/* A sibling of the preview, not inside it: the preview is hidden from assistive tech, the button must not be. */}
-        <button type="button" className="dl__zoom" onClick={() => setPreviewOpen(true)}>
-          <span className="dl__zoom-chip"><Maximize2 size={14} aria-hidden="true" />{t.ui.previewOpen}</span>
-        </button>
+        {/* A sibling of the preview, not inside it: the preview is hidden from assistive tech, the button must not be. A CSV
+            has no printed pages, so it gets no larger view. */}
+        {format !== 'csv' && (
+          <button type="button" className="dl__zoom" onClick={() => setPreviewOpen(true)}>
+            <span className="dl__zoom-chip"><Maximize2 size={14} aria-hidden="true" />{t.ui.previewOpen}</span>
+          </button>
+        )}
       </div>
       <SheetPreview isOpen={isPreviewOpen} onOpenChange={setPreviewOpen} isImage={format === 'png'} source={preview.contentRef}>
         <KitSheet {...sheetProps} />

@@ -84,6 +84,9 @@ test('the preview opens larger, page by page as the PDF prints, or as one image 
   expect(firstPage!.width).toBeGreaterThanOrEqual(555)
   // The pages are pictures of the sheet (hidden from assistive tech); the load schedule sits on page 2.
   await expect(view.locator('.pvw__page').nth(1).getByText('Load schedule')).toBeVisible()
+  // Screen readers get the sheet once, as real headings and tables, not once per page picture.
+  await expect(view.getByRole('heading', { name: 'Load schedule' })).toHaveCount(1)
+  await expect(view.getByRole('table')).toHaveCount(2)
   await page.keyboard.press('Escape')
   await expect(view).toBeHidden()
   await expect(page.getByRole('button', { name: 'View larger' })).toBeFocused()
@@ -92,4 +95,13 @@ test('the preview opens larger, page by page as the PDF prints, or as one image 
   await page.getByRole('button', { name: 'View larger' }).click()
   await expect(view.getByText('The whole sheet in one image')).toBeVisible()
   await expect(view.getByText(/^Page \d of \d$/)).toHaveCount(0)
+})
+
+test('a CSV has no printed pages, so there is no larger view to open', async ({ page }) => {
+  await page.goto('/?step=3')
+  await showDownload(page)
+  await page.getByRole('radio', { name: /^Parts list \(CSV\)/ }).check()
+  await expect(page.getByRole('button', { name: 'View larger' })).toHaveCount(0)
+  await page.getByRole('radio', { name: /^Spec sheet \(PDF\)/ }).check()
+  await expect(page.getByRole('button', { name: 'View larger' })).toBeVisible()
 })

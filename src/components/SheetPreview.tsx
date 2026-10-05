@@ -66,19 +66,23 @@ function Pages({ layout, isImage, children }: { layout: Layout; isImage: boolean
 
   const count = layout.pages.length
   return (
-    <div ref={boxRef} className="pvw__pages">
-      {layout.pages.map((page, i) => (
-        <figure key={page.start} className="pvw__item">
-          <div className="pvw__page" style={{ width: SHEET_WIDTH * scale, height: layout.pageHeight * scale }} aria-hidden="true">
-            <div className="pvw__frame" style={{ height: layout.pageHeight, transform: `scale(${scale})` }}>
-              <div className="pvw__sheet" style={{ top: page.top - page.start }}>{children}</div>
-              <div className="pvw__mask" style={{ top: 0, height: page.top }} />
-              <div className="pvw__mask" style={{ top: page.top + page.end - page.start, bottom: 0 }} />
+    <>
+      {/* The pages are pictures of the sheet, hidden from assistive tech; this copy gives it its headings and tables once. */}
+      <div className="visually-hidden">{children}</div>
+      <div ref={boxRef} className="pvw__pages">
+        {layout.pages.map((page, i) => (
+          <figure key={page.start} className="pvw__item">
+            <div className="pvw__page" style={{ width: SHEET_WIDTH * scale, height: layout.pageHeight * scale }} aria-hidden="true">
+              <div className="pvw__frame" style={{ height: layout.pageHeight, transform: `scale(${scale})` }}>
+                <div className="pvw__sheet" style={{ top: page.top - page.start }}>{children}</div>
+                <div className="pvw__mask" style={{ top: 0, height: page.top }} />
+                <div className="pvw__mask" style={{ top: page.top + page.end - page.start, bottom: 0 }} />
+              </div>
             </div>
-          </div>
-          <figcaption className="pvw__caption">{isImage ? t.ui.previewImage : tr(t, 'previewPage', { page: i + 1, pages: count })}</figcaption>
-        </figure>
-      ))}
-    </div>
+            <figcaption className="pvw__caption">{isImage ? t.ui.previewImage : tr(t, 'previewPage', { page: i + 1, pages: count })}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </>
   )
 }
