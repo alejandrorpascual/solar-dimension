@@ -24,8 +24,19 @@ export const StoredDraftSchema = z.object({
   projectId: z.string().min(1),
   target: DraftTargetSchema,
   draft: RequesterDraftSchema,
+  /** "Save to my clients", as it was left; drafts kept before it was stored read as ticked, the form's default. */
+  shouldRemember: z.boolean().default(true),
 })
 export type StoredDraft = z.infer<typeof StoredDraftSchema>
+
+/** Which form a draft belongs to. Another tab may be writing the same slot, so a form only ever clears its own. */
+export type DraftSlot = Pick<StoredDraft, 'owner' | 'projectId' | 'target'>
+
+const targetKey = (target: DraftTarget): string => (typeof target === 'object' ? `client:${target.client}` : target)
+
+export function isSameSlot(stored: DraftSlot, slot: DraftSlot): boolean {
+  return stored.owner === slot.owner && stored.projectId === slot.projectId && targetKey(stored.target) === targetKey(slot.target)
+}
 
 const FIELDS = Object.keys(RequesterDraftSchema.shape) as Array<keyof Requester>
 

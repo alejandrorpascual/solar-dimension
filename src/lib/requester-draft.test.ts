@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest'
 import { emptyRequester, type Requester } from './requester'
-import { StoredDraftSchema, isDirty, resumableDraft, type StoredDraft } from './requester-draft'
+import { StoredDraftSchema, isDirty, isSameSlot, resumableDraft, type StoredDraft } from './requester-draft'
 
 const blank = emptyRequester('VE')
 const typed: Requester = { ...blank, name: 'Pedro Ram', doc: '1422' }
-const stored: StoredDraft = { owner: 'user-a', projectId: 'p1', target: 'new', draft: typed }
+const stored: StoredDraft = { owner: 'user-a', projectId: 'p1', target: 'new', draft: typed, shouldRemember: false }
 
 test('a draft is dirty only while it differs from where the form started', () => {
   expect(isDirty(blank, blank)).toBe(false)
@@ -28,4 +28,19 @@ test('a draft comes back only to the same owner on the same project', () => {
   expect(resumableDraft(stored, null, 'p1')).toBeNull()
   expect(resumableDraft(stored, 'user-a', 'p2')).toBeNull()
   expect(resumableDraft(null, 'user-a', 'p1')).toBeNull()
+})
+
+test('a draft from before the save-to-clients choice was kept reads as ticked', () => {
+  const { shouldRemember: _, ...older } = stored
+  expect(StoredDraftSchema.parse(older).shouldRemember).toBe(true)
+})
+
+test('a draft slot belongs to one owner, project and target', () => {
+  expect(isSameSlot(stored, { owner: 'user-a', projectId: 'p1', target: 'new' })).toBe(true)
+  expect(isSameSlot(stored, { owner: 'user-a', projectId: 'p2', target: 'new' })).toBe(false)
+  expect(isSameSlot(stored, { owner: null, projectId: 'p1', target: 'new' })).toBe(false)
+  expect(isSameSlot(stored, { owner: 'user-a', projectId: 'p1', target: 'project' })).toBe(false)
+  const client = { ...stored, target: { client: 'c1' } }
+  expect(isSameSlot(client, { owner: 'user-a', projectId: 'p1', target: { client: 'c1' } })).toBe(true)
+  expect(isSameSlot(client, { owner: 'user-a', projectId: 'p1', target: { client: 'c2' } })).toBe(false)
 })

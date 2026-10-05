@@ -178,6 +178,7 @@ test('closing the form keeps what was typed, across a reload, until Start over',
   await showDownload(page)
   const form = await openForm(page)
   await form.getByLabel('Full name').fill('Pedro Ramírez')
+  await form.getByRole('checkbox', { name: 'Save to my clients' }).uncheck()
   await expect(form.getByText('Draft saved on this device')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(form).toBeHidden()
@@ -187,6 +188,8 @@ test('closing the form keeps what was typed, across a reload, until Start over',
   const again = await openForm(page)
   await expect(again.getByText('Picking up where you left off')).toBeVisible()
   await expect(again.getByLabel('Full name')).toHaveValue('Pedro Ramírez')
+  // The choice not to keep this client comes back with the draft.
+  await expect(again.getByRole('checkbox', { name: 'Save to my clients' })).not.toBeChecked()
   await again.getByRole('button', { name: 'Start over' }).click()
   await expect(again.getByLabel('Full name')).toHaveValue('')
   await expect(again.getByText('Picking up where you left off')).toBeHidden()
@@ -195,6 +198,24 @@ test('closing the form keeps what was typed, across a reload, until Start over',
   await page.keyboard.press('Escape')
   const fresh = await openForm(page)
   await expect(fresh.getByText('Picking up where you left off')).toBeHidden()
+})
+
+test('with a long list of saved clients, "Use on the sheet" stays on screen', async ({ page }) => {
+  await page.addInitScript(() => {
+    const clients = Array.from({ length: 30 }, (_, i) => ({
+      id: `c${i}`, usedAt: 100 - i,
+      requester: { kind: 'person', country: 'US', name: `Client ${i}`, contact: '', docPrefix: '', doc: '', phone: '', email: '', address: '' },
+    }))
+    localStorage.setItem('solar-dimension.clients.v1:guest', JSON.stringify(clients))
+  })
+  await page.goto('/?step=3')
+  await showDownload(page)
+  await page.getByRole('button', { name: /^Add client details/ }).click()
+  const list = page.getByRole('dialog', { name: 'Who is this spec sheet for?' })
+  await list.getByRole('radio', { name: /Client 0/ }).check()
+  await expect(list.getByRole('button', { name: 'Use on the sheet' })).toBeInViewport()
+  await list.getByRole('button', { name: 'Use on the sheet' }).click()
+  await expect(page.getByRole('button', { name: 'Change: Client 0' })).toBeVisible()
 })
 
 test('Remove takes the client off this project', async ({ page }) => {

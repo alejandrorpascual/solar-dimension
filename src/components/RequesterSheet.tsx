@@ -22,7 +22,7 @@ interface Props {
 
 type View =
   | { kind: 'list'; selected: ClientChoice | null }
-  | { kind: 'form'; target: DraftTarget; resumed: Requester | null }
+  | { kind: 'form'; target: DraftTarget; resumed: { draft: Requester; shouldRemember: boolean } | null }
 
 /** Who the spec sheet is for, in a dialog (a bottom sheet on phones): saved clients to pick from, or the form. */
 export function RequesterSheet({ isOpen, onOpenChange, ...flow }: Props) {
@@ -120,7 +120,7 @@ function RequesterFlow({ projectId, requester, onSave, onRemove, close }: Omit<P
       <CloseButton label={t.requester.close} onPress={close} />
       {hasList && (
         // Going back is deliberate, so the draft goes with it.
-        <button type="button" className="rq-back" onClick={() => { clearRequesterDraft(); setView(listView()) }}>
+        <button type="button" className="rq-back" onClick={() => { clearRequesterDraft({ owner, projectId, target }); setView(listView()) }}>
           <ChevronLeft size={18} aria-hidden="true" />{t.requester.backToClients}
         </button>
       )}
@@ -163,7 +163,8 @@ function firstView(clients: readonly SavedClient[], requester: Requester | null,
     // A draft for a client deleted since, or for a requester since removed, carries on as a new client.
     const clientId = typeof kept.target === 'object' ? kept.target.client : null
     const isGone = (clientId !== null && !clients.some((c) => c.id === clientId)) || (kept.target === 'project' && !requester)
-    return { kind: 'form', target: isGone ? 'new' : kept.target, resumed: kept.draft }
+    // The form rewrites the slot under its new target as soon as it mounts, so later clears still find it.
+    return { kind: 'form', target: isGone ? 'new' : kept.target, resumed: { draft: kept.draft, shouldRemember: kept.shouldRemember } }
   }
   if (clients.length > 0) return { kind: 'list', selected: choiceFor(clients, requester) }
   return { kind: 'form', target: requester ? 'project' : 'new', resumed: null }

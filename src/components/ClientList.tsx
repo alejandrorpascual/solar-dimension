@@ -54,7 +54,7 @@ export function ClientList({ clients, projectOnly, selected, onSelect, onEdit, o
           {t.requester.newClient}
         </button>
       </div>
-      <div className="qdialog__actions">
+      <div className="qdialog__actions rq-list__actions">
         {onRemove && <button type="button" className="btn" onClick={onRemove}>{t.requester.removeFromSheet}</button>}
         <button type="button" className="btn btn--primary" disabled={selected === null} onClick={onUse}>{t.requester.useOnSheet}</button>
       </div>

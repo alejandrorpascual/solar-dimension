@@ -16,8 +16,8 @@ export interface RequesterFormProps {
   target: DraftTarget
   /** What the form started from; Start over goes back to it, and a draft equal to it is not kept. */
   base: Requester
-  /** A draft kept from a form closed without saving; it shows the resume banner. */
-  resumed: Requester | null
+  /** A draft kept from a form closed without saving, with its "Save to my clients" choice; it shows the resume banner. */
+  resumed: { draft: Requester; shouldRemember: boolean } | null
   /** Offer "Save to my clients" (not when editing a saved client, which Save always updates). */
   canRemember: boolean
   onSave: (requester: Requester, shouldRemember: boolean) => void
@@ -45,9 +45,11 @@ export function RequesterForm({ owner, projectId, target, base, resumed, canReme
   const id = useId()
   const formRef = useRef<HTMLFormElement>(null)
   useFocusedFieldInView(formRef, '.qdialog')
-  const [draft, setDraft] = useState<Requester>(() => resumed ?? toDraft(base))
+  const [draft, setDraft] = useState<Requester>(() => resumed?.draft ?? toDraft(base))
   const [isResumed, setResumed] = useState(resumed !== null)
-  const [shouldRemember, setRemember] = useState(true)
+  const [shouldRemember, setRemember] = useState(resumed?.shouldRemember ?? true)
+  // Whether the last write reached storage: "Draft saved" only shows when it did.
+  const [isKept, setKept] = useState(false)
   const [hasTriedSave, setTriedSave] = useState(false)
   // The draft slot is shared by every project: clear it only once this form has written to it, or opened from it.
   const ownsSlot = useRef(resumed !== null)
@@ -56,11 +58,12 @@ export function RequesterForm({ owner, projectId, target, base, resumed, canReme
   useEffect(() => {
     if (isChanged) {
       ownsSlot.current = true
-      saveRequesterDraft({ owner, projectId, target, draft })
-    } else if (ownsSlot.current) {
-      clearRequesterDraft()
+      setKept(saveRequesterDraft({ owner, projectId, target, draft, shouldRemember }))
+    } else {
+      setKept(false)
+      if (ownsSlot.current) clearRequesterDraft({ owner, projectId, target })
     }
-  }, [draft, isChanged, owner, projectId, target])
+  }, [draft, shouldRemember, isChanged, owner, projectId, target])
 
   // Errors appear after the first Save attempt, then follow the typing.
   const errors = hasTriedSave ? validateRequester(draft) : {}
@@ -73,7 +76,7 @@ export function RequesterForm({ owner, projectId, target, base, resumed, canReme
   /** Leaves the form on purpose: the draft goes with it. */
   const leave = (then: () => void) => () => {
     ownsSlot.current = false
-    clearRequesterDraft()
+    clearRequesterDraft({ owner, projectId, target })
     then()
   }
 
@@ -98,7 +101,7 @@ export function RequesterForm({ owner, projectId, target, base, resumed, canReme
 
   return (
     <form ref={formRef} className="rq-form" noValidate onSubmit={(e) => { e.preventDefault(); save() }}>
-      {isChanged && (
+      {isChanged && isKept && (
         <p className="rq-saved"><Check size={14} aria-hidden="true" />{t.requester.draftSaved}</p>
       )}
       {isResumed && (

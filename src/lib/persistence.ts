@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { RequesterSchema, type Requester } from './requester'
-import { StoredDraftSchema, type StoredDraft } from './requester-draft'
+import { StoredDraftSchema, isSameSlot, type DraftSlot, type StoredDraft } from './requester-draft'
 import { SavedClientSchema, byRecent, type SavedClient } from './saved-clients'
 import { StoreSchema, type Store } from './schema'
 
@@ -134,19 +134,23 @@ export function loadRequesterDraft(storage: Reader | null = browserStorage()): S
   }
 }
 
-export function saveRequesterDraft(draft: StoredDraft, storage: Writer | null = browserStorage()): void {
-  if (!storage) return
+/** True once the draft is stored. Blocked or full storage returns false, and the form then doesn't claim it was saved. */
+export function saveRequesterDraft(draft: StoredDraft, storage: Writer | null = browserStorage()): boolean {
+  if (!storage) return false
   try {
     storage.setItem(DRAFT_KEY, JSON.stringify(draft))
+    return true
   } catch {
-    // Blocked storage: the form still works, it just can't survive being closed.
+    return false
   }
 }
 
-export function clearRequesterDraft(storage: Remover | null = browserStorage()): void {
+/** Removes the kept draft only when it is this form's; one written by another form (another tab, say) stays. */
+export function clearRequesterDraft(slot: DraftSlot, storage: (Reader & Remover) | null = browserStorage()): void {
   if (!storage) return
   try {
-    storage.removeItem(DRAFT_KEY)
+    const stored = loadRequesterDraft(storage)
+    if (stored && isSameSlot(stored, slot)) storage.removeItem(DRAFT_KEY)
   } catch {
     // ignore
   }

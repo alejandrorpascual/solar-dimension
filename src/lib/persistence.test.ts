@@ -94,13 +94,23 @@ test('writing the list retires its owner\'s remembered requester, and only their
 
 test('keeps one unsaved form, reads it back, and clears it', () => {
   const mem = removableStorage()
-  const draft = { owner: null, projectId: 'p1', target: 'new' as const, draft: { ...ann, name: 'Ann L' } }
-  saveRequesterDraft(draft, mem)
+  const slot = { owner: null, projectId: 'p1', target: 'new' as const }
+  const draft = { ...slot, draft: { ...ann, name: 'Ann L' }, shouldRemember: false }
+  expect(saveRequesterDraft(draft, mem)).toBe(true)
   expect(loadRequesterDraft(mem)).toEqual(draft)
-  clearRequesterDraft(mem)
+  clearRequesterDraft(slot, mem)
   expect(loadRequesterDraft(mem)).toBeNull()
   expect(loadRequesterDraft(memoryStorage({ [DRAFT_KEY]: '{not json' }))).toBeNull()
   expect(loadRequesterDraft(memoryStorage({ [DRAFT_KEY]: JSON.stringify({ ...draft, target: 'all' }) }))).toBeNull()
+})
+
+test('clearing a draft leaves one written by another form, say in another tab', () => {
+  const mem = removableStorage()
+  const draft = { owner: null, projectId: 'p1', target: 'new' as const, draft: ann, shouldRemember: true }
+  saveRequesterDraft(draft, mem)
+  clearRequesterDraft({ owner: null, projectId: 'p1', target: 'project' }, mem)
+  clearRequesterDraft({ owner: null, projectId: 'p2', target: 'new' }, mem)
+  expect(loadRequesterDraft(mem)).toEqual(draft)
 })
 
 test('blocked or missing storage never throws', () => {
@@ -112,8 +122,10 @@ test('blocked or missing storage never throws', () => {
   expect(loadSavedClients(null, throwing)).toEqual([])
   expect(() => saveSavedClients(null, [lee], throwing)).not.toThrow()
   expect(loadRequesterDraft(throwing)).toBeNull()
-  expect(() => saveRequesterDraft({ owner: null, projectId: 'p1', target: 'new', draft: ann }, throwing)).not.toThrow()
-  expect(() => clearRequesterDraft(throwing)).not.toThrow()
+  // A failed write says so, so the form never claims a draft it could not keep.
+  expect(saveRequesterDraft({ owner: null, projectId: 'p1', target: 'new', draft: ann, shouldRemember: true }, throwing)).toBe(false)
+  expect(saveRequesterDraft({ owner: null, projectId: 'p1', target: 'new', draft: ann, shouldRemember: true }, null)).toBe(false)
+  expect(() => clearRequesterDraft({ owner: null, projectId: 'p1', target: 'new' }, throwing)).not.toThrow()
   expect(loadSavedClients(null, null)).toEqual([])
   expect(loadRequesterDraft(null)).toBeNull()
 })
