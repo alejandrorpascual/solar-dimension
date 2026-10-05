@@ -20,6 +20,7 @@ import { deleteQuote, retryQuote, setQuoteMust, setQuoteOverride, setQuoteTotal,
 import { BestCard } from './BestCard'
 import { KitNeedTiles } from './KitNeedTiles'
 import { MustsSheet } from './MustsSheet'
+import { ProgressCard } from './ProgressCard'
 import { QuoteRow } from './QuoteRow'
 import { UnrankedRow } from './UnrankedRow'
 import { verdictClock } from './verdict-clock'
@@ -146,6 +147,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
     const q = data.quotes.find((x) => x.id === quoteId)
     return q === undefined ? 'none' : retryOffer(q, user?.canUseQuotes === true)
   }
+  const retriesOf = (quoteId: string): number => data.quotes.find((x) => x.id === quoteId)?.retries ?? 0
   const bestKey = verdict.best ? entryKey(verdict.best) : null
   const others = bestKey === null ? verdict.ranked : verdict.ranked.filter((r) => entryKey(r) !== bestKey)
 
@@ -176,15 +178,22 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
         </div>
       ) : ranked}
       {verdict.unranked.length > 0 && (
-        <section className="qlist" aria-labelledby="qunranked-title">
+        <section className="qlist qunranked" aria-labelledby="qunranked-title">
           <h2 className="qpanel__title" id="qunranked-title">{unrankedTitle(t, verdict.unranked)}</h2>
-          <div className="qlist__rows">
-            {verdict.unranked.map((u) => (
-              <UnrankedRow key={entryKey(u)} u={u} error={errorFor(entryKey(u))} retry={retryFor(u.quote.id)}
-                onRetry={run(entryKey(u), () => retryQuote({ data: { quoteId: u.quote.id } }))}
-                onDelete={remove(u.quote.id, entryKey(u))}
-                onTotal={(total) => void run(entryKey(u), () => setQuoteTotal({ data: { quoteId: u.quote.id, total } }))()} />
-            ))}
+          <div className="qunranked__grid">
+            {verdict.unranked.map((u) => {
+              const key = entryKey(u)
+              const onRetry = run(key, () => retryQuote({ data: { quoteId: u.quote.id } }))
+              // Reading and failed quotes show the steps they have been through; the rest wait on the user.
+              return u.reason === 'reading' || u.reason === 'failed' ? (
+                <ProgressCard key={key} u={u} retries={retriesOf(u.quote.id)} retry={retryFor(u.quote.id)} error={errorFor(key)}
+                  onRetry={onRetry} onDelete={remove(u.quote.id, key)} />
+              ) : (
+                <UnrankedRow key={key} u={u} error={errorFor(key)} retry={retryFor(u.quote.id)}
+                  onRetry={onRetry} onDelete={remove(u.quote.id, key)}
+                  onTotal={(total) => void run(key, () => setQuoteTotal({ data: { quoteId: u.quote.id, total } }))()} />
+              )
+            })}
           </div>
         </section>
       )}
