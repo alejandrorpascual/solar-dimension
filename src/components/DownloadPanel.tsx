@@ -1,5 +1,5 @@
-import { CircleCheck, Download, LoaderCircle, Share2 } from 'lucide-react'
-import { useEffect, useId, useState } from 'react'
+import { CircleCheck, Download, LoaderCircle, Maximize2, Share2 } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { canShareFiles, renderPdf, renderPng, saveBlob, shareFile } from '../client/export-file'
 import { useLocale } from '../hooks/useLocale'
 import { usePreparedImage } from '../hooks/usePreparedImage'
@@ -7,26 +7,30 @@ import { usePreviewScale } from '../hooks/usePreviewScale'
 import { applianceName, tr, type Dictionary } from '../i18n'
 import { fmtDate } from '../i18n/format'
 import { buildCsv, exportFileName } from '../lib/export-csv'
+import type { Requester } from '../lib/requester'
 import type { Project } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
-import { KitSheet, type ExportInclude } from './KitSheet'
+import { KitSheet, SHEET_WIDTH, type ExportInclude } from './KitSheet'
 import { buildParts, type Part } from './KitSummary'
+import { RequesterCard } from './RequesterCard'
+import { RequesterSheet } from './RequesterSheet'
+import { SheetPreview } from './SheetPreview'
 
 type Format = 'pdf' | 'png' | 'csv'
 type Status = 'idle' | 'busy' | 'error' | 'success'
 
-const SHEET_WIDTH = 794
 const PREVIEW_MAX_HEIGHT = 420
 const FORMATS: ReadonlyArray<{ id: Format; name: 'fmtPdf' | 'fmtPng' | 'fmtCsv'; hint: 'fmtPdfHint' | 'fmtPngHint' | 'fmtCsvHint'; action: 'downloadPdf' | 'downloadPng' | 'downloadCsv' }> = [
   { id: 'pdf', name: 'fmtPdf', hint: 'fmtPdfHint', action: 'downloadPdf' },
   { id: 'png', name: 'fmtPng', hint: 'fmtPngHint', action: 'downloadPng' },
   { id: 'csv', name: 'fmtCsv', hint: 'fmtCsvHint', action: 'downloadCsv' },
 ]
-const INCLUDES: ReadonlyArray<{ key: keyof ExportInclude; label: 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes'; inCsv: boolean }> = [
+const INCLUDES: ReadonlyArray<{ key: keyof ExportInclude; label: 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'; inCsv: boolean }> = [
   { key: 'summary', label: 'incSummary', inCsv: false },
   { key: 'appliances', label: 'incAppliances', inCsv: true },
   { key: 'parts', label: 'incParts', inCsv: true },
   { key: 'notes', label: 'incNotes', inCsv: false },
+  { key: 'requester', label: 'incRequester', inCsv: false },
 ]
 
 function csvFor(result: SizingResult, parts: Part[], include: ExportInclude, t: Dictionary): string {
@@ -42,19 +46,49 @@ function csvFor(result: SizingResult, parts: Part[], include: ExportInclude, t: 
 }
 
 /** Download the open project as a PDF spec sheet, a phone-sized image or a CSV, with a live preview of the sheet. */
-export function DownloadPanel({ project, result }: { project: Project; result: SizingResult }) {
+export function DownloadPanel({ project, result, onRequesterChange }: { project: Project; result: SizingResult; onRequesterChange: (requester: Requester | null) => void }) {
   const { t, locale } = useLocale()
   const [format, setFormat] = useState<Format>('pdf')
-  const [include, setInclude] = useState<ExportInclude>({ summary: true, appliances: true, parts: true, notes: true })
+  const [include, setInclude] = useState<ExportInclude>({ summary: true, appliances: true, parts: true, notes: true, requester: true })
   const [status, setStatus] = useState<Status>('idle')
   const [canShare, setCanShare] = useState(false)
   const preview = usePreviewScale(SHEET_WIDTH, PREVIEW_MAX_HEIGHT)
   // Unique per panel: the rail and the sheet can both be mounted, and same-named radios would share one group.
   const radioName = useId()
+  const requesterLabelId = useId()
+  const requesterRef = useRef<HTMLElement>(null)
+  const [isRequesterOpen, setRequesterOpen] = useState(false)
+  const [isPreviewOpen, setPreviewOpen] = useState(false)
+  // Counts Saves and Removes. Both swap the add button and the card, so the dialog can't hand focus back to the button
+  // that opened it: react-aria then leaves focus on the page, or on the first control of an enclosing sheet.
+  const [requesterSwaps, setRequesterSwaps] = useState(0)
+  const changeRequester = (requester: Requester | null) => {
+    onRequesterChange(requester)
+    setRequesterSwaps((n) => n + 1)
+  }
+  useEffect(() => {
+    if (requesterSwaps === 0 || isRequesterOpen) return
+    // Runs once the new card is on the page; two frames on, the dialog's own focus restore has already run.
+    let inner = 0
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        const section = requesterRef.current
+        if (section && !section.contains(document.activeElement)) section.querySelector('button')?.focus()
+      })
+    })
+    return () => {
+      cancelAnimationFrame(outer)
+      cancelAnimationFrame(inner)
+    }
+  }, [requesterSwaps, isRequesterOpen])
   useEffect(() => setCanShare(canShareFiles()), [])
   const shareImage = usePreparedImage(preview.contentRef, canShare, `${project.id}:${project.updatedAt}:${locale}:${JSON.stringify(include)}`)
 
   const parts = buildParts(result, t, locale)
+  const sheetProps = {
+    projectName: project.name, result, parts, requester: include.requester ? project.requester : null, include,
+    date: fmtDate(new Date(), locale), t, locale,
+  }
   const current = FORMATS.find((f) => f.id === format)!
   const isEmpty = result.empty
   const isBusy = status === 'busy'
@@ -94,16 +128,40 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
 
   return (
     <div className="dl">
-      <div
-        ref={preview.boxRef}
-        className={`dl__preview${preview.height >= PREVIEW_MAX_HEIGHT ? ' dl__preview--clipped' : ''}`}
-        style={{ height: preview.height }}
-        aria-hidden="true"
-      >
-        <div className="dl__scaler" style={{ transform: `scale(${preview.scale})` }}>
-          <KitSheet ref={preview.contentRef} projectName={project.name} result={result} parts={parts} include={include} date={fmtDate(new Date(), locale)} t={t} locale={locale} />
+      <div className="dl__preview-wrap">
+        <div
+          ref={preview.boxRef}
+          className={`dl__preview${preview.height >= PREVIEW_MAX_HEIGHT ? ' dl__preview--clipped' : ''}`}
+          style={{ height: preview.height }}
+          aria-hidden="true"
+        >
+          <div className="dl__scaler" style={{ transform: `scale(${preview.scale})` }}>
+            <KitSheet ref={preview.contentRef} {...sheetProps} />
+          </div>
         </div>
+        {/* A sibling of the preview, not inside it: the preview is hidden from assistive tech, the button must not be. A CSV
+            has no printed pages, so it gets no larger view. */}
+        {format !== 'csv' && (
+          <button type="button" className="dl__zoom" onClick={() => setPreviewOpen(true)}>
+            <span className="dl__zoom-chip"><Maximize2 size={14} aria-hidden="true" />{t.ui.previewOpen}</span>
+          </button>
+        )}
       </div>
+      <SheetPreview isOpen={isPreviewOpen} onOpenChange={setPreviewOpen} isImage={format === 'png'} source={preview.contentRef}>
+        <KitSheet {...sheetProps} />
+      </SheetPreview>
+
+      <section ref={requesterRef} className="dl__group" aria-labelledby={requesterLabelId}>
+        <span className="lab" id={requesterLabelId}>{t.requester.section}</span>
+        <RequesterCard requester={project.requester} isDisabled={isBusy} onOpen={() => setRequesterOpen(true)} />
+      </section>
+      <RequesterSheet
+        isOpen={isRequesterOpen}
+        onOpenChange={setRequesterOpen}
+        requester={project.requester}
+        onSave={changeRequester}
+        onRemove={() => changeRequester(null)}
+      />
 
       <fieldset className="dl__group" disabled={isBusy}>
         <legend className="lab">{t.ui.format}</legend>

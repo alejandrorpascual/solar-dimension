@@ -18,6 +18,7 @@ import { useRootData } from '../hooks/useRootData'
 import { batteryCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
 import { computeProject } from '../lib/project-summary'
+import { patchCurrent } from '../lib/store'
 import type { SizingResult } from '../lib/sizing'
 
 interface Search { step: Step }
@@ -54,7 +55,7 @@ function KitBuilderPage() {
     setRailTab(tab)
     setSheetOpen(true)
   }
-  const rail = { store, commit, tab: railTab, onTab: setRailTab, download: <DownloadPanel project={project} result={result} /> }
+  const rail = { store, commit, tab: railTab, onTab: setRailTab, download: <DownloadPanel project={project} result={result} onRequesterChange={(requester) => commit(patchCurrent(store, { requester }))} /> }
 
   return (
     <div className="workspace">

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { PENDING_KEY, STORAGE_KEY, clearPendingSave, hasPendingSave, loadStore, markPendingSave, saveStore } from './persistence'
+import { PENDING_KEY, REQUESTER_KEY, STORAGE_KEY, clearPendingSave, forgetRequester, hasPendingSave, loadRememberedRequester, loadStore, markPendingSave, rememberRequester, saveStore } from './persistence'
 import { initialStore } from './store'
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -43,4 +43,49 @@ test('tracks an interrupted save with a pending marker', () => {
   clearPendingSave(storage)
   expect(hasPendingSave(storage)).toBe(false)
   expect(hasPendingSave(null)).toBe(false)
+})
+
+const ann = { kind: 'person', country: 'US', name: 'Ann Lee', contact: '', docPrefix: '', doc: '', phone: '+1 305 555 0100', email: '', address: '' } as const
+
+function removableStorage(initial: Record<string, string> = {}) {
+  const mem = memoryStorage(initial)
+  return { ...mem, removeItem: (k: string) => { delete mem.data[k] } }
+}
+
+test('remembers a requester for its owner, reads it back, and forgets it', () => {
+  const mem = removableStorage()
+  rememberRequester(ann, 'user-a', mem)
+  expect(loadRememberedRequester('user-a', mem)).toEqual(ann)
+  forgetRequester(mem)
+  expect(loadRememberedRequester('user-a', mem)).toBeNull()
+})
+
+test('another account, or a signed-out visitor, on the same browser never gets the remembered requester', () => {
+  const mem = removableStorage()
+  rememberRequester(ann, 'user-a', mem)
+  expect(loadRememberedRequester('user-b', mem)).toBeNull()
+  expect(loadRememberedRequester(null, mem)).toBeNull()
+  rememberRequester(ann, null, mem)
+  expect(loadRememberedRequester(null, mem)).toEqual(ann)
+  expect(loadRememberedRequester('user-a', mem)).toBeNull()
+})
+
+test('a missing, corrupt, ownerless or invalid remembered requester reads as none', () => {
+  expect(loadRememberedRequester(null, memoryStorage())).toBeNull()
+  expect(loadRememberedRequester(null, memoryStorage({ [REQUESTER_KEY]: '{not json' }))).toBeNull()
+  // The first release stored the bare requester, with no owner: it is not handed to anyone.
+  expect(loadRememberedRequester(null, memoryStorage({ [REQUESTER_KEY]: JSON.stringify(ann) }))).toBeNull()
+  expect(loadRememberedRequester(null, memoryStorage({ [REQUESTER_KEY]: JSON.stringify({ owner: null, requester: { ...ann, name: '' } }) }))).toBeNull()
+})
+
+test('blocked or missing storage never throws', () => {
+  const throwing = {
+    getItem: () => { throw new Error('blocked') },
+    setItem: () => { throw new Error('blocked') },
+    removeItem: () => { throw new Error('blocked') },
+  }
+  expect(loadRememberedRequester(null, throwing)).toBeNull()
+  expect(() => rememberRequester(ann, null, throwing)).not.toThrow()
+  expect(() => forgetRequester(throwing)).not.toThrow()
+  expect(loadRememberedRequester(null, null)).toBeNull()
 })

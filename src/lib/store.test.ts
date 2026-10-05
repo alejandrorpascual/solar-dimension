@@ -80,6 +80,14 @@ describe('project store', () => {
     expect(s2.projects[0]?.hours).toBe(10)
     expect(s2.projects[1]?.hours).toBe(24)
   })
+
+  test("a new project has no requester, and a duplicate keeps the original's", () => {
+    const requester = { kind: 'person', country: 'US', name: 'Ann Lee', contact: '', docPrefix: '', doc: '', phone: '', email: '', address: '' } as const
+    const s = patchCurrent(initialStore(), { requester })
+    expect(currentProject(initialStore()).requester).toBeNull()
+    expect(currentProject(addProject(s)).requester).toBeNull()
+    expect(currentProject(duplicateProject(s)).requester).toEqual(requester)
+  })
 })
 
 describe('editing any project, not just the open one', () => {
