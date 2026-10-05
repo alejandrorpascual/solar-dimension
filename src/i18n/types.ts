@@ -2,6 +2,7 @@ import type { Category, ChemistryId, Voltage } from '../lib/catalog'
 import type { ItemId } from '../lib/quote-items'
 import type { WarningCode, WarningParams } from '../lib/sizing'
 import type { quotesEn } from './quotes-en'
+import type { requesterEn } from './requester-en'
 
 export type Locale = 'en' | 'es'
 
@@ -22,6 +23,7 @@ export interface Dictionary {
   quoteItemsShort: Record<ItemId, string>
   /** Item names in a comma list: "Includes charger, Wi-Fi and installation". */
   quoteItemsList: Record<ItemId, string>
+  requester: Record<RequesterKey, string>
 }
 
 /** `{email}` in a body is replaced with the contact address as a mailto link; `{date}` in `updated` with the date. */
@@ -53,8 +55,9 @@ export type UiKey =
   | 'addApplianceSearch' | 'noSearchMatch'
   | 'download' | 'downloadFor' | 'format' | 'include' | 'preview'
   | 'fmtPdf' | 'fmtPdfHint' | 'fmtPng' | 'fmtPngHint' | 'fmtCsv' | 'fmtCsvHint'
-  | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes'
+  | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'
   | 'downloadPdf' | 'downloadPng' | 'downloadCsv' | 'share' | 'making' | 'downloadReady' | 'exportFailed'
   | 'sheetTitle' | 'loadSchedule' | 'appliance' | 'each' | 'overHours' | 'total' | 'note' | 'eachW' | 'runningWatts' | 'whOver'
 
 export type QuoteKey = keyof typeof quotesEn
+export type RequesterKey = keyof typeof requesterEn

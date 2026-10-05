@@ -1,5 +1,6 @@
 import type { Dictionary } from './types'
 import { quoteItemsEs, quoteItemsInlineEs, quoteItemsListEs, quoteItemsShortEs, quotesEs } from './quotes-es'
+import { requesterEs } from './requester-es'
 
 export const es: Dictionary = {
   locale: 'es',
@@ -44,7 +45,7 @@ export const es: Dictionary = {
     download: 'Descargar', downloadFor: 'Descargar {name}', format: 'Formato', include: 'Incluir', preview: 'Vista previa del archivo',
     fmtPdf: 'Ficha técnica (PDF)', fmtPdfHint: 'Una página para el instalador.', fmtPng: 'Imagen resumen (PNG)', fmtPngHint: 'La ficha en una sola imagen. Ideal para WhatsApp.',
     fmtCsv: 'Lista de partes (CSV)', fmtCsvHint: 'Se abre en Excel. Para cotizar con un proveedor. Usa las listas de aparatos y partes.',
-    incSummary: 'Cifras resumen', incAppliances: 'Lista de aparatos', incParts: 'Lista de partes', incNotes: 'Supuestos',
+    incSummary: 'Cifras resumen', incAppliances: 'Lista de aparatos', incParts: 'Lista de partes', incNotes: 'Supuestos', incRequester: 'Datos del solicitante',
     downloadPdf: 'Descargar PDF', downloadPng: 'Descargar imagen', downloadCsv: 'Descargar CSV', share: 'Compartir', making: 'Preparando el archivo…', downloadReady: 'Archivo listo. Descarga iniciada.',
     exportFailed: 'No se pudo crear el archivo. Inténtalo de nuevo.',
     sheetTitle: 'Kit de respaldo · ficha técnica', loadSchedule: 'Cuadro de cargas', appliance: 'Aparato', each: 'C/u', overHours: 'En {hours} h', total: 'Total', note: 'Nota',
@@ -68,7 +69,7 @@ export const es: Dictionary = {
     title: 'Privacidad',
     updated: 'Última actualización: {date}',
     sections: [
-      { heading: 'Qué guardamos', body: 'Tu correo y tu nombre y, si inicias sesión con Google, el identificador de tu cuenta de Google. También guardamos los proyectos que guardes: aparatos, horas, voltaje y elección de baterías. Si subes cotizaciones de instaladores, guardamos los archivos y los precios y componentes que leemos de ellos.' },
+      { heading: 'Qué guardamos', body: 'Tu correo y tu nombre y, si inicias sesión con Google, el identificador de tu cuenta de Google. También guardamos los proyectos que guardes: aparatos, horas, voltaje y elección de baterías y, si los añades, los datos del solicitante para la ficha (nombre, número de documento, teléfono, correo y dirección). Si marcas "Usar estos datos en mis otros proyectos", una copia de esos datos también queda en este navegador. Si subes cotizaciones de instaladores, guardamos los archivos y los precios y componentes que leemos de ellos.' },
       { heading: 'Para qué', body: 'Para iniciar tu sesión y mantener tus proyectos en todos tus dispositivos. Si subes cotizaciones de instaladores, también las leemos para compararlas con tu kit (mira Cotizaciones más abajo).' },
       { heading: 'Con quién lo compartimos', body: 'No vendemos ni compartimos tus datos, salvo con los proveedores que hacen funcionar la app: Vercel y Neon para el alojamiento y la base de datos y, si subes cotizaciones de instaladores, OpenAI para leerlas (mira Cotizaciones más abajo).' },
       { heading: 'Cotizaciones', body: 'Si subes cotizaciones de instaladores, guardamos los archivos de forma privada en Vercel y enviamos cada uno a OpenAI para leer sus precios y componentes, enviándolo de nuevo si falla una lectura o lo reintentas. OpenAI no entrena con los datos enviados a través de su API. Guardamos cuántas cotizaciones subes cada mes para aplicar el límite mensual; ese recuento se mantiene aunque borres una cotización. Al eliminar una cotización, o el proyecto al que pertenece, se elimina el archivo.' },
@@ -91,6 +92,7 @@ export const es: Dictionary = {
     ],
   },
   quotes: quotesEs,
+  requester: requesterEs,
   quoteItems: quoteItemsEs,
   quoteItemsInline: quoteItemsInlineEs,
   quoteItemsShort: quoteItemsShortEs,
