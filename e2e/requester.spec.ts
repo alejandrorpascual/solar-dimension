@@ -131,3 +131,36 @@ test('Remove takes the client off this project', async ({ page }) => {
   await expect(page.getByRole('button', { name: /^Add client details/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Add client details/ })).toBeFocused()
 })
+
+test('a signed-in client comes back from the account on a fresh browser', async ({ page }) => {
+  const email = `e2e-req-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
+  const password = 'correct-horse-battery'
+  await page.goto('/login')
+  await page.getByRole('button', { name: 'No account yet? Create one' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  await page.goto('/?step=3')
+  await expect(page.getByText('Syncing your projects…')).toBeHidden()
+  await showDownload(page)
+
+  const form = await openForm(page)
+  await form.getByLabel('Full name').fill('Ann Lee')
+  await form.getByRole('checkbox', { name: 'Use these details in my other projects' }).uncheck()
+  const saved = page.waitForResponse((r) => r.url().includes('/_serverFn/') && r.request().method() === 'POST' && r.ok())
+  await form.getByRole('button', { name: 'Save' }).click()
+  await saved
+
+  await page.context().clearCookies()
+  await page.evaluate(() => localStorage.clear())
+  await page.goto('/login')
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  await page.goto('/?step=3')
+  await expect(page.getByText('Syncing your projects…')).toBeHidden()
+  await showDownload(page)
+  await expect(page.getByRole('button', { name: 'Edit: Ann Lee' })).toBeVisible()
+})
