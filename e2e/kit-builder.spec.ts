@@ -185,8 +185,11 @@ test('appliances can be added, filtered and a custom load created from volts × 
 
 test('the custom form explains what is missing', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Add appliance' }).click()
-  await expect(page.getByText('Give the appliance a name.')).toBeVisible()
+  // A click that lands before the page hydrates does nothing; an empty form only shows the error, so clicking again is safe.
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Add appliance' }).click()
+    await expect(page.getByText('Give the appliance a name.')).toBeVisible({ timeout: 1000 })
+  }).toPass()
 })
 
 test('hours, voltage and chemistry change the sizing summary', async ({ page }) => {

@@ -32,6 +32,22 @@ describe('dictionaries', () => {
       expect(text).not.toContain('null')
     }
   })
+  test('es has every requester key that en has, and nothing extra', () => {
+    expect(Object.keys(es.requester).sort()).toEqual(Object.keys(en.requester).sort())
+  })
+  test('every key the requester model and form use has copy in both languages', () => {
+    const keys = [
+      'cedula', 'rif', 'ein', 'idNumber', 'taxId', 'printCedula', 'printRif', 'printEin', 'printIdNumber', 'printTaxId',
+      'prefixCedula', 'prefixRif', 'nameCompany', 'namePerson', 'contact', 'phone', 'email', 'address',
+      'countryVE', 'countryUS', 'countryOTHER', 'phonePhVE', 'phonePhUS', 'phonePhOTHER', 'person', 'company',
+      'errName', 'errCedula', 'errRif', 'errEin', 'errEmail',
+    ] as const
+    for (const d of [en, es]) for (const k of keys) expect(d.requester[k]).toBeTruthy()
+  })
+  test('the privacy page names the requester details in both languages', () => {
+    expect(en.privacy.sections[0]?.body).toContain('client details for the spec sheet')
+    expect(es.privacy.sections[0]?.body).toContain('datos del solicitante para la ficha')
+  })
 })
 
 describe('batteryCount', () => {

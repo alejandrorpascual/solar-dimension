@@ -1,5 +1,6 @@
 import type { Dictionary } from './types'
 import { quoteItemsEn, quoteItemsInlineEn, quoteItemsListEn, quoteItemsShortEn, quotesEn } from './quotes-en'
+import { requesterEn } from './requester-en'
 
 export const en: Dictionary = {
   locale: 'en',
@@ -41,10 +42,10 @@ export const en: Dictionary = {
     appliancesCount: 'Appliances · {count}', windowLabel: 'Window', hourLess: 'One hour less', hourMore: 'One hour more', hoursShort: '{hours} h',
     saved: 'Saved', undo: 'Undo', allAppliances: 'All appliances',
     addApplianceSearch: 'Add an appliance', noSearchMatch: 'Nothing matches. Find it under All appliances, or add your own there.',
-    download: 'Download', downloadFor: 'Download {name}', format: 'Format', include: 'Include', preview: 'Preview of the file',
-    fmtPdf: 'Spec sheet (PDF)', fmtPdfHint: 'One page for the installer.', fmtPng: 'Summary image (PNG)', fmtPngHint: 'The sheet as one image. Good for WhatsApp.',
+    download: 'Download', downloadFor: 'Download {name}', format: 'Format', include: 'Include', preview: 'Preview of the file', previewOpen: 'View larger', previewTitle: 'Preview', previewPage: 'Page {page} of {pages}', previewImage: 'The whole sheet in one image',
+    fmtPdf: 'Spec sheet (PDF)', fmtPdfHint: 'For the installer: parts list first, load schedule after.', fmtPng: 'Summary image (PNG)', fmtPngHint: 'The sheet as one image. Good for WhatsApp.',
     fmtCsv: 'Parts list (CSV)', fmtCsvHint: 'Opens in Excel. For a supplier quote. Uses the appliance and parts lists.',
-    incSummary: 'Summary figures', incAppliances: 'Appliance list', incParts: 'Parts list', incNotes: 'Assumptions',
+    incSummary: 'Summary figures', incAppliances: 'Appliance list', incParts: 'Parts list', incNotes: 'Assumptions', incRequester: 'Client details',
     downloadPdf: 'Download PDF', downloadPng: 'Download image', downloadCsv: 'Download CSV', share: 'Share', making: 'Preparing the file…', downloadReady: 'File ready. Download started.',
     exportFailed: 'Could not create the file. Try again.',
     sheetTitle: 'Backup kit · spec sheet', loadSchedule: 'Load schedule', appliance: 'Appliance', each: 'Each', overHours: 'Over {hours} h', total: 'Total', note: 'Note',
@@ -68,7 +69,7 @@ export const en: Dictionary = {
     title: 'Privacy',
     updated: 'Last updated {date}',
     sections: [
-      { heading: 'What we store', body: 'Your email and name, and, if you sign in with Google, your Google account ID. We also store the projects you save: appliances, hours, voltage and battery choices. If you upload installer quotes, we store the files and the prices and items we read from them.' },
+      { heading: 'What we store', body: 'Your email and name, and, if you sign in with Google, your Google account ID. We also store the projects you save: appliances, hours, voltage and battery choices, and, if you add them, the client details for the spec sheet (name, ID number, phone, email and address). If you tick "Use these details in my other projects", a copy of those details also stays in this browser. If you upload installer quotes, we store the files and the prices and items we read from them.' },
       { heading: 'Why', body: 'To sign you in and keep your projects across devices. If you upload installer quotes, we also read them for comparison with your kit (see Quotes below).' },
       { heading: 'Sharing', body: "We don't sell or share your data except with the providers that run the app: Vercel and Neon for hosting and the database, and, if you upload installer quotes, OpenAI to read them (see Quotes below)." },
       { heading: 'Quotes', body: "If you upload installer quotes, we store the files privately with Vercel and send each one to OpenAI to read its prices and items, sending it again if a read fails or you retry. OpenAI doesn't train on data sent through its API. We keep a count of your uploads each month to apply the monthly limit; that count stays when you delete a quote. Deleting a quote, or the project it belongs to, deletes the file." },
@@ -91,6 +92,7 @@ export const en: Dictionary = {
     ],
   },
   quotes: quotesEn,
+  requester: requesterEn,
   quoteItems: quoteItemsEn,
   quoteItemsInline: quoteItemsInlineEn,
   quoteItemsShort: quoteItemsShortEn,

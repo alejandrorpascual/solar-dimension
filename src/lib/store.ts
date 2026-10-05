@@ -16,7 +16,7 @@ function nextId(projects: readonly Project[]): string {
 const now = (): number => Date.now()
 
 function newProject(projects: readonly Project[], name?: string, id: string = nextId(projects), updatedAt: number = now()): Project {
-  return { id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4', batteryUnit: null, updatedAt }
+  return { id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4', batteryUnit: null, requester: null, updatedAt }
 }
 
 /** The seed project is stamped 0 so server and client render the same first store, and so any saved copy outranks it. */

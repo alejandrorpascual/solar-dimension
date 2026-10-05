@@ -71,6 +71,13 @@
       "when": 1790784791104,
       "tag": "0009_quote_daily_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791212398341,
+      "tag": "0010_project_requester",
+      "breakpoints": true
     }
   ]
 }

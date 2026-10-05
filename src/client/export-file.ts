@@ -2,7 +2,7 @@
  * Turning the export sheet into files, in the browser only. The two libraries are imported on demand, so they are
  * fetched the first time someone downloads, not with the page.
  */
-import { pageSlices, type SheetBlock } from '../lib/pdf-pages'
+import { pageSlices, type PageSlice, type SheetBlock } from '../lib/pdf-pages'
 
 const PIXEL_RATIO = 2
 const SHEET_BACKGROUND = '#FFFFFF'
@@ -36,28 +36,46 @@ function sheetBlocks(node: HTMLElement): SheetBlock[] {
   const scale = box.width / node.offsetWidth || 1
   return Array.from(node.querySelectorAll<HTMLElement>('[data-pdf-block]')).map((el) => {
     const r = el.getBoundingClientRect()
-    return { top: (r.top - box.top) / scale, bottom: (r.bottom - box.top) / scale, keepWithNext: el.dataset.pdfBlock === 'keep' }
+    return {
+      top: (r.top - box.top) / scale,
+      bottom: (r.bottom - box.top) / scale,
+      keepWithNext: el.dataset.pdfBlock === 'keep',
+      breakBefore: el.dataset.pdfBreak !== undefined,
+    }
   })
+}
+
+/** The sheet's own top padding (.ksheet), repeated on every page after the first so none starts at the paper's edge. */
+const CONTINUATION_TOP_PX = 56
+
+/** One printed page: the slice of the sheet it shows, and how far down the page that slice is drawn (sheet pixels). */
+export interface PrintPage extends PageSlice { top: number }
+
+/** How the PDF cuts the sheet into A4 pages, and the page height in sheet pixels. The preview draws the same pages. */
+export function printPages(node: HTMLElement): { pages: PrintPage[]; pageHeight: number } {
+  const pageHeight = (node.offsetWidth * A4_PT.h) / A4_PT.w
+  const slices = pageSlices(sheetBlocks(node), node.offsetHeight, pageHeight, CONTINUATION_TOP_PX)
+  return { pages: slices.map((slice, i) => ({ ...slice, top: i === 0 ? 0 : CONTINUATION_TOP_PX })), pageHeight }
 }
 
 /**
  * The sheet as A4 pages. The image is scaled to the page width; each page shows one slice of it, ending before any
- * row that would be cut, and a white band hides whatever of the next slice would peek in under it. One alias stores
- * the image once however many pages there are.
+ * row that would be cut, and white bands hide whatever of the neighbouring slices would peek in above or below it. One
+ * alias stores the image once however many pages there are.
  */
 export async function renderPdf(node: HTMLElement): Promise<Blob> {
   const [dataUrl, { jsPDF }] = await Promise.all([toPngDataUrl(node), import('jspdf')])
   const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' })
   const ptPerPx = A4_PT.w / node.offsetWidth
-  const slices = pageSlices(sheetBlocks(node), node.offsetHeight, A4_PT.h / ptPerPx)
-  slices.forEach((slice, i) => {
+  const { pages } = printPages(node)
+  pages.forEach((page, i) => {
     if (i > 0) doc.addPage()
-    doc.addImage(dataUrl, 'PNG', 0, -slice.start * ptPerPx, A4_PT.w, node.offsetHeight * ptPerPx, PAGE_IMAGE_ALIAS, 'FAST')
-    const shown = (slice.end - slice.start) * ptPerPx
-    if (shown < A4_PT.h) {
-      doc.setFillColor(SHEET_BACKGROUND)
-      doc.rect(0, shown, A4_PT.w, A4_PT.h - shown, 'F')
-    }
+    const top = page.top * ptPerPx
+    doc.addImage(dataUrl, 'PNG', 0, top - page.start * ptPerPx, A4_PT.w, node.offsetHeight * ptPerPx, PAGE_IMAGE_ALIAS, 'FAST')
+    doc.setFillColor(SHEET_BACKGROUND)
+    if (top > 0) doc.rect(0, 0, A4_PT.w, top, 'F')
+    const shownEnd = top + (page.end - page.start) * ptPerPx
+    if (shownEnd < A4_PT.h) doc.rect(0, shownEnd, A4_PT.w, A4_PT.h - shownEnd, 'F')
   })
   return doc.output('blob')
 }
