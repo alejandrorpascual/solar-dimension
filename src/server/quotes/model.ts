@@ -35,7 +35,7 @@ export const SYSTEM_PROMPT = [
   "Specs are per unit; qty is how many units the line covers; lineTotal is the line's amount.",
   'Set optional to true only when the document says the line is an extra that is not included in the price.',
   'When the document offers alternative systems or packages to choose from, each priced on its own (for example "Option 1" and "Option 2", or two complete kits, each with its own inverter, listed one after another with no total that adds them up), list each in options with a short label in the document\'s language, and set each line\'s option to the id of the option it belongs to.',
-  'Set option to null for lines that apply to every alternative, such as shared installation or transport. Set an option\'s total only when the document writes it.',
+  'Set option to null for lines that apply to every alternative, such as shared installation or transport. Set an option\'s total, and its tax, only when the document writes them for that option.',
   'Warranties get option the same way: the id of the option a warranty covers, or null when it covers every option.',
   'When the document offers one system, options is empty and every option is null.',
   'When one line describes several components, such as an inverter that includes batteries or a solar charge controller, write one line per component, each with its own kind and specs, the same source and the same option. The first gets the written price; the others get lineTotal 0 and unitPrice null.',

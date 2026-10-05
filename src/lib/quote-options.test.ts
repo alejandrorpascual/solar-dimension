@@ -5,7 +5,7 @@ import { hasOptions, optionExtraction, optionLines } from './quote-options'
 describe('options of a quote', () => {
   const x = extraction(
     [line('inverter', 100, { option: 'a' }), line('inverter', 200, { option: 'b' }), line('labor', 50)],
-    { options: [{ id: 'a', label: 'A', total: null }, { id: 'b', label: 'B', total: null }] },
+    { options: [{ id: 'a', label: 'A', total: null, tax: null }, { id: 'b', label: 'B', total: null, tax: null }] },
   )
   test('a quote offers options when it lists two or more', () => {
     expect(hasOptions(x)).toBe(true)

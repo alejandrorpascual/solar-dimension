@@ -62,6 +62,7 @@ describe('prompt, model names and stub', () => {
     expect(SYSTEM_PROMPT).toContain('alternative systems or packages to choose from')
     expect(SYSTEM_PROMPT).toContain("set each line's option to the id")
     expect(SYSTEM_PROMPT).toContain('options is empty and every option is null')
+    expect(SYSTEM_PROMPT).toContain("Set an option's total, and its tax, only when the document writes them for that option.")
     expect(SYSTEM_PROMPT).toContain('Warranties get option the same way')
     expect(SYSTEM_PROMPT).toContain('write one line per component')
   })

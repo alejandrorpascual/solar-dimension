@@ -102,7 +102,7 @@ export const SAMPLE_QUOTES = {
     ],
     {
       vendor: { name: 'SUNA M.P.', contact: null }, total: 0,
-      options: [{ id: 'o1', label: 'Inversor 3 kW', total: null }, { id: 'o2', label: 'Inversor 10 kW', total: null }],
+      options: [{ id: 'o1', label: 'Inversor 3 kW', total: null, tax: null }, { id: 'o2', label: 'Inversor 10 kW', total: null, tax: null }],
     },
   ),
 } satisfies Record<string, QuoteExtraction>

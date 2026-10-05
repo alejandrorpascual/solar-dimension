@@ -1,5 +1,5 @@
 import { hasOptions } from './quote-options'
-import { UNLISTED_OPTION, type QuoteExtraction, type QuoteLine } from './quote-schema'
+import { UNLISTED_OPTION, type QuoteExtraction, type QuoteLine, type QuoteOption } from './quote-schema'
 
 export type CheckFailure = 'no_lines' | 'no_total' | 'bad_currency' | 'bad_qty' | 'line_mismatch' | 'total_mismatch' | 'option_total_mismatch' | 'unknown_option'
 
@@ -31,14 +31,18 @@ export function optionPrices(x: QuoteExtraction): { id: string; total: number | 
 }
 
 /**
- * The totals an option priced at `base` may be written as: the base itself, or with tax at the rate the document states
- * (its tax over its subtotal). A document of alternatives often states its tax once while each option's total includes
- * its own. Only the rate carries over: the stated amount belongs to one subtotal, so added flat to another option it
- * would explain a wrong price. Tax with no subtotal to make a rate from explains nothing.
+ * The totals an option priced at `base` may be written as: the base itself, with the tax written for that option, or
+ * with tax at the rate the document states (its tax over its subtotal). The document's tax amount is never added flat:
+ * it belongs to one subtotal, so on another option it would explain a wrong price. Tax with no subtotal to make a rate
+ * from, and not written for the option, explains nothing.
  */
-function taxedTotals(base: number, x: QuoteExtraction): number[] {
+function taxedTotals(base: number, x: QuoteExtraction, option: QuoteOption): number[] {
   const tax = x.tax ?? 0
-  return tax > 0 && hasTotal(x.subtotal) ? [base, base * (1 + tax / x.subtotal)] : [base]
+  return [
+    base,
+    ...(hasTotal(option.tax) ? [base + option.tax] : []),
+    ...(tax > 0 && hasTotal(x.subtotal) ? [base * (1 + tax / x.subtotal)] : []),
+  ]
 }
 
 /**
@@ -52,7 +56,7 @@ function hasOptionTotalMismatch(x: QuoteExtraction): boolean {
     const written = o.total
     if (!hasTotal(written)) return false
     const own = includedSum(x.lines.filter((l) => l.option === o.id))
-    const accepted = [own, own + shared].flatMap((base) => taxedTotals(base, x))
+    const accepted = [own, own + shared].flatMap((base) => taxedTotals(base, x, o))
     return own > 0 && !accepted.some((total) => near(written, total, TOTAL_TOLERANCE))
   })
 }

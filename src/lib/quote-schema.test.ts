@@ -42,7 +42,7 @@ describe('FINISHED and isPending', () => {
   })
 })
 
-const opt = (id: string, label = id) => ({ id, label, total: null })
+const opt = (id: string, label = id) => ({ id, label, total: null, tax: null })
 
 describe('normalizeExtraction with options', () => {
   test('caps options at 5, cuts labels to 60 characters and drops the lines of options past the cap', () => {
@@ -116,6 +116,11 @@ describe('normalizeExtraction of warranty options', () => {
 })
 
 describe('withOptionDefaults', () => {
+  test("an option stored before options had a tax gets none", () => {
+    const x = extraction([line('inverter', 100, { option: 'o1' })], { options: [opt('o1'), opt('o2')] })
+    const stored = { ...x, options: x.options.map(({ tax: _t, ...o }) => o) }
+    expect(withOptionDefaults(stored).options.map((o) => o.tax)).toEqual([null, null])
+  })
   test('a reading stored before options gets none, and every line is shared', () => {
     const { options: _o, ...old } = extraction([line('inverter', 100)])
     const stored = { ...old, lines: old.lines.map(({ option: _l, ...l }) => l) }

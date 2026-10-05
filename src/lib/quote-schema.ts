@@ -26,8 +26,11 @@ export const QuoteExtractionSchema = z.object({
   date: z.string().nullable(),
   validUntil: z.string().nullable(),
   currency: z.string(),
-  /** Alternative systems the document offers, each priced on its own. Empty for a quote that offers one system. */
-  options: z.array(z.object({ id: z.string(), label: z.string(), total: z.number().nullable() })),
+  /**
+   * Alternative systems the document offers, each priced on its own. Empty for a quote that offers one system. `total`
+   * and `tax` are only what the document writes for that option.
+   */
+  options: z.array(z.object({ id: z.string(), label: z.string(), total: z.number().nullable(), tax: z.number().nullable() })),
   lines: z.array(
     z.object({
       kind: z.enum(LINE_KINDS),
@@ -81,7 +84,7 @@ export type QuoteWarranty = QuoteExtraction['warranties'][number]
 
 /** A reading as stored: one saved before options has none of the option fields (jsonb is read as is). */
 export type StoredExtraction = Omit<QuoteExtraction, 'options' | 'lines' | 'warranties'> & {
-  options?: QuoteOption[]
+  options?: (Omit<QuoteOption, 'tax'> & { tax?: number | null })[]
   lines: (Omit<QuoteLine, 'option'> & { option?: string | null })[]
   warranties: (Omit<QuoteWarranty, 'option'> & { option?: string | null })[]
 }
@@ -90,7 +93,7 @@ export type StoredExtraction = Omit<QuoteExtraction, 'options' | 'lines' | 'warr
 export function withOptionDefaults(x: StoredExtraction): QuoteExtraction {
   return {
     ...x,
-    options: x.options ?? [],
+    options: (x.options ?? []).map((o) => ({ ...o, tax: o.tax ?? null })),
     lines: x.lines.map((l) => ({ ...l, option: l.option ?? null })),
     warranties: x.warranties.map((w) => ({ ...w, option: w.option ?? null })),
   }
