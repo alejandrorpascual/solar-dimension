@@ -53,7 +53,7 @@ export type UiKey =
   | 'projects' | 'projectsCount' | 'current' | 'quickEdit' | 'done' | 'projectMeta' | 'heaviestMore' | 'bank' | 'inverter' | 'close'
   | 'appliancesCount' | 'windowLabel' | 'hourLess' | 'hourMore' | 'hoursShort' | 'saved' | 'undo' | 'allAppliances'
   | 'addApplianceSearch' | 'noSearchMatch'
-  | 'download' | 'downloadFor' | 'format' | 'include' | 'preview'
+  | 'download' | 'downloadFor' | 'format' | 'include' | 'preview' | 'previewOpen' | 'previewTitle' | 'previewPage' | 'previewImage'
   | 'fmtPdf' | 'fmtPdfHint' | 'fmtPng' | 'fmtPngHint' | 'fmtCsv' | 'fmtCsvHint'
   | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'
   | 'downloadPdf' | 'downloadPng' | 'downloadCsv' | 'share' | 'making' | 'downloadReady' | 'exportFailed'

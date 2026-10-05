@@ -33,7 +33,8 @@ test('the spec sheet prints the requester band, and Include takes it off', async
 
   const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download PDF' }).click()])
   const bytes = await readFile((await pdf.path())!)
-  expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(1)
+  // Page 1: header, client, figures and parts; the load schedule gets page 2.
+  expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
 
   await page.getByRole('checkbox', { name: 'Client details' }).uncheck()
   await expect(band).toHaveCount(0)

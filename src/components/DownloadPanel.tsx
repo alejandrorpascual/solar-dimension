@@ -1,4 +1,4 @@
-import { CircleCheck, Download, LoaderCircle, Share2 } from 'lucide-react'
+import { CircleCheck, Download, LoaderCircle, Maximize2, Share2 } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { canShareFiles, renderPdf, renderPng, saveBlob, shareFile } from '../client/export-file'
 import { useLocale } from '../hooks/useLocale'
@@ -14,6 +14,7 @@ import { KitSheet, type ExportInclude } from './KitSheet'
 import { buildParts, type Part } from './KitSummary'
 import { RequesterCard } from './RequesterCard'
 import { RequesterSheet } from './RequesterSheet'
+import { SheetPreview } from './SheetPreview'
 
 type Format = 'pdf' | 'png' | 'csv'
 type Status = 'idle' | 'busy' | 'error' | 'success'
@@ -58,6 +59,7 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
   const requesterLabelId = useId()
   const requesterRef = useRef<HTMLElement>(null)
   const [isRequesterOpen, setRequesterOpen] = useState(false)
+  const [isPreviewOpen, setPreviewOpen] = useState(false)
   const onRequesterOpenChange = (open: boolean) => {
     setRequesterOpen(open)
     if (open) return
@@ -72,6 +74,10 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
   const shareImage = usePreparedImage(preview.contentRef, canShare, `${project.id}:${project.updatedAt}:${locale}:${JSON.stringify(include)}`)
 
   const parts = buildParts(result, t, locale)
+  const sheetProps = {
+    projectName: project.name, result, parts, requester: include.requester ? project.requester : null, include,
+    date: fmtDate(new Date(), locale), t, locale,
+  }
   const current = FORMATS.find((f) => f.id === format)!
   const isEmpty = result.empty
   const isBusy = status === 'busy'
@@ -111,16 +117,25 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
 
   return (
     <div className="dl">
-      <div
-        ref={preview.boxRef}
-        className={`dl__preview${preview.height >= PREVIEW_MAX_HEIGHT ? ' dl__preview--clipped' : ''}`}
-        style={{ height: preview.height }}
-        aria-hidden="true"
-      >
-        <div className="dl__scaler" style={{ transform: `scale(${preview.scale})` }}>
-          <KitSheet ref={preview.contentRef} projectName={project.name} result={result} parts={parts} requester={include.requester ? project.requester : null} include={include} date={fmtDate(new Date(), locale)} t={t} locale={locale} />
+      <div className="dl__preview-wrap">
+        <div
+          ref={preview.boxRef}
+          className={`dl__preview${preview.height >= PREVIEW_MAX_HEIGHT ? ' dl__preview--clipped' : ''}`}
+          style={{ height: preview.height }}
+          aria-hidden="true"
+        >
+          <div className="dl__scaler" style={{ transform: `scale(${preview.scale})` }}>
+            <KitSheet ref={preview.contentRef} {...sheetProps} />
+          </div>
         </div>
+        {/* A sibling of the preview, not inside it: the preview is hidden from assistive tech, the button must not be. */}
+        <button type="button" className="dl__zoom" onClick={() => setPreviewOpen(true)}>
+          <span className="dl__zoom-chip"><Maximize2 size={14} aria-hidden="true" />{t.ui.previewOpen}</span>
+        </button>
       </div>
+      <SheetPreview isOpen={isPreviewOpen} onOpenChange={setPreviewOpen} isImage={format === 'png'} source={preview.contentRef}>
+        <KitSheet {...sheetProps} />
+      </SheetPreview>
 
       <section ref={requesterRef} className="dl__group" aria-labelledby={requesterLabelId}>
         <span className="lab" id={requesterLabelId}>{t.requester.section}</span>

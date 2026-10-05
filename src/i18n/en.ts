@@ -42,7 +42,7 @@ export const en: Dictionary = {
     appliancesCount: 'Appliances · {count}', windowLabel: 'Window', hourLess: 'One hour less', hourMore: 'One hour more', hoursShort: '{hours} h',
     saved: 'Saved', undo: 'Undo', allAppliances: 'All appliances',
     addApplianceSearch: 'Add an appliance', noSearchMatch: 'Nothing matches. Find it under All appliances, or add your own there.',
-    download: 'Download', downloadFor: 'Download {name}', format: 'Format', include: 'Include', preview: 'Preview of the file',
+    download: 'Download', downloadFor: 'Download {name}', format: 'Format', include: 'Include', preview: 'Preview of the file', previewOpen: 'View larger', previewTitle: 'Preview', previewPage: 'Page {page} of {pages}', previewImage: 'The whole sheet in one image',
     fmtPdf: 'Spec sheet (PDF)', fmtPdfHint: 'One page for the installer.', fmtPng: 'Summary image (PNG)', fmtPngHint: 'The sheet as one image. Good for WhatsApp.',
     fmtCsv: 'Parts list (CSV)', fmtCsvHint: 'Opens in Excel. For a supplier quote. Uses the appliance and parts lists.',
     incSummary: 'Summary figures', incAppliances: 'Appliance list', incParts: 'Parts list', incNotes: 'Assumptions', incRequester: 'Client details',
