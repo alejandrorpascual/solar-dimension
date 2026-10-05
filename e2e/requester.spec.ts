@@ -267,8 +267,20 @@ test('with the phone keyboard open, the form sheet ends above it and its last fi
   await openKeyboard(400)
 
   await expect.poll(async () => { const b = (await sheet.boundingBox())!; return b.y + b.height }).toBeLessThanOrEqual(400)
-  const address = form.getByLabel('Installation address')
-  await address.scrollIntoViewIfNeeded()
-  const field = (await address.boundingBox())!
-  expect(field.y + field.height).toBeLessThanOrEqual(400)
+  // The field had focus before the keyboard shrank the sheet; the sheet must bring it back into view by itself.
+  await expect.poll(async () => { const f = (await form.getByLabel('Installation address').boundingBox())!; return f.y + f.height }).toBeLessThanOrEqual(400)
+})
+
+test('on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tapped', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'iOS zooms on focus only on touch devices')
+  await page.goto('/?step=3')
+  await showDownload(page)
+  const form = await openForm(page)
+  await form.getByRole('button', { name: 'Company' }).click()
+  await form.getByLabel('Country').selectOption('VE')
+  // Zoomed in, Safari scrolls the page under the dialog and react-aria stops tracking the keyboard.
+  const sizes = await form.locator('input:not([type=checkbox]), select').evaluateAll((fields) =>
+    fields.map((f) => parseFloat(getComputedStyle(f).fontSize)))
+  expect(sizes.length).toBeGreaterThan(5)
+  for (const size of sizes) expect(size).toBeGreaterThanOrEqual(16)
 })

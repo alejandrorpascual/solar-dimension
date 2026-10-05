@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useId, useRef, useState, type ReactNode } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
+import { useFocusedFieldInView } from '../hooks/useFocusedFieldInView'
 import { useLocale } from '../hooks/useLocale'
 import { useRootData } from '../hooks/useRootData'
 import { forgetRequester, loadRememberedRequester, rememberRequester } from '../lib/persistence'
@@ -64,6 +65,7 @@ function RequesterForm({ initial, onSave, onRemove }: { initial: Requester | nul
   // The remembered copy belongs to whoever saved it: the signed-in account, or null signed out.
   const owner = useRootData().user?.id ?? null
   const formRef = useRef<HTMLFormElement>(null)
+  useFocusedFieldInView(formRef, '.qdialog')
   const [draft, setDraft] = useState<Requester>(() => toDraft(initial ?? loadRememberedRequester(owner) ?? emptyRequester(defaultCountry(locale))))
   const [shouldRemember, setRemember] = useState(true)
   const [hasTriedSave, setTriedSave] = useState(false)
