@@ -42,6 +42,20 @@ test('the spec sheet prints the requester band, and Include takes it off', async
   await expect(page.getByRole('checkbox', { name: 'Client details' })).toBeDisabled()
 })
 
+/** Creates an account. A click before the login page hydrates does nothing, so the switch to sign-up is retried. */
+async function signUp(page: Page, email: string, password: string): Promise<void> {
+  await page.goto('/login')
+  const create = page.getByRole('button', { name: 'Create account' })
+  await expect(async () => {
+    if (!(await create.isVisible())) await page.getByRole('button', { name: 'No account yet? Create one' }).click()
+    await expect(create).toBeVisible({ timeout: 1000 })
+  }).toPass()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await create.click()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+}
+
 async function openForm(page: Page) {
   await page.getByRole('button', { name: /^Add client details/ }).click()
   return page.getByRole('dialog', { name: 'Client details' })
@@ -138,12 +152,7 @@ test('Remove takes the client off this project', async ({ page }) => {
 test('a signed-in client comes back from the account on a fresh browser', async ({ page }) => {
   const email = `e2e-req-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
   const password = 'correct-horse-battery'
-  await page.goto('/login')
-  await page.getByRole('button', { name: 'No account yet? Create one' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  await signUp(page, email, password)
   await page.goto('/?step=3')
   await expect(page.getByText('Syncing your projects…')).toBeHidden()
   await showDownload(page)
@@ -190,12 +199,7 @@ test('details remembered while signed out are not offered to an account that sig
   await expect(form).toBeHidden()
 
   const email = `e2e-req-scope-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
-  await page.goto('/login')
-  await page.getByRole('button', { name: 'No account yet? Create one' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill('correct-horse-battery')
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  await signUp(page, email, 'correct-horse-battery')
   await page.goto('/?step=3')
   await expect(page.getByText('Syncing your projects…')).toBeHidden()
 

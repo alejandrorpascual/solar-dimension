@@ -59,16 +59,28 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
   const requesterRef = useRef<HTMLElement>(null)
   const [isRequesterOpen, setRequesterOpen] = useState(false)
   const [isPreviewOpen, setPreviewOpen] = useState(false)
-  const onRequesterOpenChange = (open: boolean) => {
-    setRequesterOpen(open)
-    if (open) return
-    // Save and Remove swap the add button and the card, so the dialog can't hand focus back to the button that opened
-    // it. Once the dialog has restored what it could (two frames), a page left without focus gets the section's button.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      const active = document.activeElement
-      if (!active || active === document.body) requesterRef.current?.querySelector('button')?.focus()
-    }))
+  // Counts Saves and Removes. Both swap the add button and the card, so the dialog can't hand focus back to the button
+  // that opened it: react-aria then leaves focus on the page, or on the first control of an enclosing sheet.
+  const [requesterSwaps, setRequesterSwaps] = useState(0)
+  const changeRequester = (requester: Requester | null) => {
+    onRequesterChange(requester)
+    setRequesterSwaps((n) => n + 1)
   }
+  useEffect(() => {
+    if (requesterSwaps === 0 || isRequesterOpen) return
+    // Runs once the new card is on the page; two frames on, the dialog's own focus restore has already run.
+    let inner = 0
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        const section = requesterRef.current
+        if (section && !section.contains(document.activeElement)) section.querySelector('button')?.focus()
+      })
+    })
+    return () => {
+      cancelAnimationFrame(outer)
+      cancelAnimationFrame(inner)
+    }
+  }, [requesterSwaps, isRequesterOpen])
   useEffect(() => setCanShare(canShareFiles()), [])
   const shareImage = usePreparedImage(preview.contentRef, canShare, `${project.id}:${project.updatedAt}:${locale}:${JSON.stringify(include)}`)
 
@@ -142,10 +154,10 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
       </section>
       <RequesterSheet
         isOpen={isRequesterOpen}
-        onOpenChange={onRequesterOpenChange}
+        onOpenChange={setRequesterOpen}
         requester={project.requester}
-        onSave={onRequesterChange}
-        onRemove={() => onRequesterChange(null)}
+        onSave={changeRequester}
+        onRemove={() => changeRequester(null)}
       />
 
       <fieldset className="dl__group" disabled={isBusy}>
