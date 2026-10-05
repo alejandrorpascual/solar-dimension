@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
-import { checkExtraction } from './quote-checks'
-import { extraction, line, SAMPLE_QUOTES } from './quote-fixtures'
+import { checkExtraction, optionPrices } from './quote-checks'
+import { optionLines } from './quote-options'
+import { extraction, line, SAMPLE_QUOTES, warranty } from './quote-fixtures'
+import { UNLISTED_OPTION, type QuoteExtraction } from './quote-schema'
 
 describe('checkExtraction', () => {
   test('passes every sample quote', () => {
@@ -33,5 +35,112 @@ describe('checkExtraction', () => {
   })
   test('skips the total check when the quote has neither subtotal nor tax', () => {
     expect(checkExtraction(extraction([line('inverter', 1000)], { total: 5000 }))).toEqual([])
+  })
+})
+
+describe('optionPrices', () => {
+  const opts = (a: number | null = null, b: number | null = null) => [{ id: 'a', label: 'A', total: a, tax: null }, { id: 'b', label: 'B', total: b, tax: null }]
+  test('a written total wins over the lines', () => {
+    const x = extraction([line('inverter', 100, { option: 'a' }), line('inverter', 200, { option: 'b' })], { options: opts(999) })
+    expect(optionPrices(x)).toEqual([{ id: 'a', total: 999 }, { id: 'b', total: 200 }])
+  })
+  test('with prices only on lines, each option is its own lines plus the shared ones', () => {
+    const x = extraction(
+      [line('inverter', 100, { option: 'a' }), line('inverter', 200, { option: 'b' }), line('labor', 50), line('wiring', 30, { optional: true })],
+      { options: opts() },
+    )
+    expect(optionPrices(x)).toEqual([{ id: 'a', total: 150 }, { id: 'b', total: 250 }])
+  })
+  test('an option whose own lines carry no price has none, even when shared lines do', () => {
+    const x = extraction([line('inverter', 100, { option: 'a' }), line('inverter', 0, { option: 'b' }), line('labor', 500)], { options: opts() })
+    expect(optionPrices(x)).toEqual([{ id: 'a', total: 600 }, { id: 'b', total: null }])
+  })
+  test('the SUNA quote prices its two kits', () => {
+    expect(optionPrices(SAMPLE_QUOTES.suna)).toEqual([{ id: 'o1', total: 2600 }, { id: 'o2', total: 6200 }])
+  })
+})
+
+describe('checkExtraction with options', () => {
+  test('the SUNA quote passes: it states no total, but each option has a price', () => {
+    expect(checkExtraction(SAMPLE_QUOTES.suna)).toEqual([])
+  })
+  test('no_total only when no option has a price', () => {
+    const x = extraction([line('inverter', 0, { option: 'a' }), line('inverter', 0, { option: 'b' })], {
+      total: 0, options: [{ id: 'a', label: 'A', total: null, tax: null }, { id: 'b', label: 'B', total: null, tax: null }],
+    })
+    expect(checkExtraction(x)).toContain('no_total')
+  })
+  test('options are never added up against a total, but each line still is checked', () => {
+    const options = [{ id: 'a', label: 'A', total: null, tax: null }, { id: 'b', label: 'B', total: null, tax: null }]
+    const lines = [line('inverter', 100, { option: 'a' }), line('inverter', 200, { option: 'b' })]
+    expect(checkExtraction(extraction(lines, { options, subtotal: 300, tax: 0, total: 999 }))).toEqual([])
+    const wrongLine = [line('inverter', 100, { option: 'a', qty: 2, unitPrice: 100 }), line('inverter', 200, { option: 'b' })]
+    expect(checkExtraction(extraction(wrongLine, { options }))).toContain('line_mismatch')
+  })
+  test('a line naming an option the model never listed fails unknown_option and is in no option', () => {
+    const options = [{ id: 'a', label: 'A', total: null, tax: null }, { id: 'b', label: 'B', total: null, tax: null }]
+    const x = extraction([line('inverter', 100, { option: 'a' }), line('inverter', 200, { option: 'b' }), line('labor', 50, { option: UNLISTED_OPTION })], { options })
+    expect(checkExtraction(x)).toContain('unknown_option')
+    expect(optionLines(x, 'a').map((l) => l.lineTotal)).toEqual([100])
+    expect(optionPrices(x)).toEqual([{ id: 'a', total: 100 }, { id: 'b', total: 200 }])
+  })
+  test('a warranty naming an option the model never listed fails unknown_option too', () => {
+    const options = [{ id: 'a', label: 'A', total: null, tax: null }, { id: 'b', label: 'B', total: null, tax: null }]
+    const lines = [line('inverter', 100, { option: 'a' }), line('inverter', 200, { option: 'b' })]
+    expect(checkExtraction(extraction(lines, { options, warranties: [warranty('battery', 10, UNLISTED_OPTION)] }))).toContain('unknown_option')
+    expect(checkExtraction(extraction(lines, { options, warranties: [warranty('battery', 10, 'a')] }))).toEqual([])
+  })
+  test('the SUNA quote has no unknown option', () => {
+    expect(checkExtraction(SAMPLE_QUOTES.suna)).not.toContain('unknown_option')
+  })
+  describe('a written option total', () => {
+    const lines = [line('inverter', 1000, { option: 'a' }), line('inverter', 2000, { option: 'b' }), line('labor', 300)]
+    const withTotal = (a: number | null) => extraction(lines, { options: [{ id: 'a', label: 'A', total: a, tax: null }, { id: 'b', label: 'B', total: null, tax: null }] })
+    test('matching the own lines passes', () => {
+      expect(checkExtraction(withTotal(1000))).toEqual([])
+    })
+    test('matching the own lines plus the shared ones passes', () => {
+      expect(checkExtraction(withTotal(1300))).toEqual([])
+    })
+    test('disagreeing with both fails option_total_mismatch, once', () => {
+      const x = extraction(lines, { options: [{ id: 'a', label: 'A', total: 5000, tax: null }, { id: 'b', label: 'B', total: 9000, tax: null }] })
+      expect(checkExtraction(x).filter((f) => f === 'option_total_mismatch')).toHaveLength(1)
+      expect(checkExtraction(withTotal(5000))).toContain('option_total_mismatch')
+    })
+    const taxed = (a: number, over: Partial<QuoteExtraction>) =>
+      extraction(lines, { options: [{ id: 'a', label: 'A', total: a, tax: null }, { id: 'b', label: 'B', total: null, tax: null }], ...over })
+    test('a total that includes tax at the rate the document states (tax over subtotal) passes', () => {
+      expect(checkExtraction(taxed(1160, { subtotal: 1000, tax: 160 }))).toEqual([])
+      expect(checkExtraction(taxed(1508, { subtotal: 1000, tax: 160 }))).toEqual([])
+    })
+    test("the stated tax amount is never added flat to another option's lines", () => {
+      const b = (total: number) => extraction(lines, {
+        options: [{ id: 'a', label: 'A', total: null, tax: null }, { id: 'b', label: 'B', total, tax: null }], subtotal: 1000, tax: 160,
+      })
+      expect(checkExtraction(b(2160))).toContain('option_total_mismatch')
+      expect(checkExtraction(b(2320))).toEqual([])
+    })
+    test('a total that includes the tax written for that option passes, with no subtotal', () => {
+      const x = extraction(lines, {
+        options: [{ id: 'a', label: 'A', total: 1160, tax: 160 }, { id: 'b', label: 'B', total: null, tax: null }],
+      })
+      expect(checkExtraction(x)).toEqual([])
+    })
+    test("the tax written for one option never explains another option's total", () => {
+      const x = extraction(lines, {
+        options: [{ id: 'a', label: 'A', total: 1160, tax: 160 }, { id: 'b', label: 'B', total: 2160, tax: null }],
+      })
+      expect(checkExtraction(x)).toContain('option_total_mismatch')
+    })
+    test('a document-wide tax with no subtotal to make a rate from, or no tax at all, does not explain a higher total', () => {
+      expect(checkExtraction(withTotal(1160))).toContain('option_total_mismatch')
+      expect(checkExtraction(taxed(1160, { tax: 160 }))).toContain('option_total_mismatch')
+    })
+    test('an option whose own lines carry no price is not checked', () => {
+      const x = extraction([line('inverter', 0, { option: 'a' }), line('inverter', 2000, { option: 'b' })], {
+        options: [{ id: 'a', label: 'A', total: 3500, tax: null }, { id: 'b', label: 'B', total: null, tax: null }],
+      })
+      expect(checkExtraction(x)).toEqual([])
+    })
   })
 })

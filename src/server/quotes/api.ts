@@ -10,7 +10,7 @@ import { inspectUpload, MustInput, OverrideInput, ProjectId, QuoteId, refusedIns
 import { kitNeeds, resolveMusts, type Musts } from '../../lib/quote-items'
 import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quote-jobs'
 import { checkBasics, cleanFileName, type Rejection } from '../../lib/quote-limits'
-import { FINISHED } from '../../lib/quote-schema'
+import { FINISHED, withOptionDefaults } from '../../lib/quote-schema'
 import type { Project } from '../../lib/schema'
 import { loadCatalog } from '../catalog'
 import { toProject } from '../projects'
@@ -28,7 +28,7 @@ export interface ProjectQuotes { project: Project; quotes: JobQuote[]; musts: Mu
 type QuoteRow = typeof quotes.$inferSelect
 function toJobQuote(r: QuoteRow): JobQuote {
   return {
-    id: r.id, fileName: r.fileName, label: r.vendorLabel, status: r.status, extraction: r.extraction ?? null,
+    id: r.id, fileName: r.fileName, label: r.vendorLabel, status: r.status, extraction: r.extraction ? withOptionDefaults(r.extraction) : null,
     overrides: r.overrides, totalOverride: r.totalOverride, createdAt: r.createdAt.getTime(), seenAt: r.seenAt?.getTime() ?? null,
     retries: r.retries,
   }

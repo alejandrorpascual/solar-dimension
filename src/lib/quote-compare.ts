@@ -1,5 +1,6 @@
-import { hasTotal } from './quote-checks'
+import { hasTotal, optionPrices } from './quote-checks'
 import { checkItems, ITEM_IDS, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
+import { hasOptions, optionExtraction } from './quote-options'
 import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
 
 export interface QuoteView {
@@ -9,14 +10,19 @@ export interface QuoteView {
   createdAt: number
 }
 export type Fit = 'fits' | 'unclear' | 'short'
-export interface RankedQuote {
+/** Which of a quote's systems an entry is. A single-system quote has no option and an option count of 0. */
+export interface EntryOption { optionId: string | null; optionLabel: string | null; optionCount: number }
+export interface RankedQuote extends EntryOption {
   quote: QuoteView; name: string; items: ItemCheck[]; fit: Fit
   total: number; currency: string; rank: number; delta: number | null
   unknownMusts: ItemId[]; failedMusts: ItemId[]; niceMet: number; usableWh: number
 }
-/** needs_review: the amounts don't add up; no_total: the quote was read but states no total. Both wait for the user's total. */
-export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'failed' | 'other_currency'
-export interface UnrankedQuote { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
+/**
+ * needs_review: the amounts don't add up; no_total: the quote was read but states no total. Both wait for the user's
+ * total. no_price: an option of a quote that offers several states no price for it.
+ */
+export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'no_price' | 'failed' | 'other_currency'
+export interface UnrankedQuote extends EntryOption { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
 export interface Verdict {
   currency: string | null
   ranked: RankedQuote[]
@@ -45,18 +51,50 @@ export function quoteSubtitle(q: QuoteView): string | null {
   return quoteName(q) === q.fileName ? null : q.fileName
 }
 
+/** What tells entries apart: the quote, and the option for a quote that offers several. */
+export const entryKey = (e: { quote: { id: string }; optionId: string | null }): string =>
+  e.optionId === null ? e.quote.id : `${e.quote.id}:${e.optionId}`
+
+/** The vendor, and the option when the quote offers several: "SUNA M.P. · Inversor 10 kW". */
+export const entryName = (e: { name: string; optionLabel: string | null }): string =>
+  e.optionLabel ? `${e.name} · ${e.optionLabel}` : e.name
+
+/** One thing to rank: a whole quote, or one of the systems a quote offers, with the lines and price of that system. */
+interface Entry extends EntryOption { quote: QuoteView; extraction: QuoteExtraction | null; total: number | null }
+
 /** The total a quote ranks by: the user's, else the one read. */
 const totalOf = (q: QuoteView): number | null => q.totalOverride ?? q.extraction?.total ?? null
 
 /**
- * Read, and with a positive total. A total of 0 (what the model writes when a quote states none), negative or not a
+ * A ready quote that offers several systems is one entry per option, priced from the document alone: the user's typed
+ * total belongs to a single-system quote. Any other quote is one entry. One with options whose numbers need checking
+ * has no price, so it waits as one card.
+ */
+function entriesOf(q: QuoteView): Entry[] {
+  const x = q.extraction
+  const optionCount = x !== null && hasOptions(x) ? x.options.length : 0
+  if (x === null || optionCount === 0 || q.status !== 'ready') {
+    return [{ quote: q, extraction: x, total: optionCount === 0 ? totalOf(q) : null, optionId: null, optionLabel: null, optionCount }]
+  }
+  const prices = optionPrices(x)
+  return x.options.map((o, i) => ({
+    quote: q, extraction: optionExtraction(x, o.id), total: prices[i]!.total, optionId: o.id, optionLabel: o.label, optionCount,
+  }))
+}
+
+const optionOf = (e: Entry): EntryOption => ({ optionId: e.optionId, optionLabel: e.optionLabel, optionCount: e.optionCount })
+
+/**
+ * Read, and with a positive price. A total of 0 (what the model writes when a quote states none), negative or not a
  * number never ranks: the quote waits for the user's total, like one whose amounts don't add up.
  */
-const isRankable = (q: QuoteView): boolean =>
-  q.extraction !== null && hasTotal(totalOf(q)) && (q.status === 'ready' || (q.status === 'needs_review' && q.totalOverride !== null))
+const isRankable = (e: Entry): boolean =>
+  e.extraction !== null && hasTotal(e.total) &&
+  (e.quote.status === 'ready' || (e.quote.status === 'needs_review' && e.quote.totalOverride !== null))
 
-/** The currency most rankable quotes use; a tie goes to the earliest quote's currency. */
-function mainCurrency(quotes: readonly QuoteView[]): string | null {
+/** The currency most rankable quotes use, counting each file once; a tie goes to the earliest quote's currency. */
+function mainCurrency(entries: readonly Entry[]): string | null {
+  const quotes = [...new Map(entries.map((e) => [e.quote.id, e.quote])).values()]
   const counts = new Map<string, number>()
   for (const q of quotes) counts.set(q.extraction!.currency, (counts.get(q.extraction!.currency) ?? 0) + 1)
   let best: string | null = null
@@ -68,23 +106,24 @@ function mainCurrency(quotes: readonly QuoteView[]): string | null {
   return best
 }
 
-/** Why a quote is not ranked. A rankable quote that got here can only be in another currency, whatever its status. */
-function unrankedReason(q: QuoteView): UnrankedReason {
-  if (isPending(q.status)) return 'reading'
-  if (isRankable(q)) return 'other_currency'
-  if (q.extraction !== null && (q.status === 'needs_review' || q.status === 'ready')) return hasTotal(totalOf(q)) ? 'needs_review' : 'no_total'
+/** Why an entry is not ranked. A rankable entry that got here can only be in another currency, whatever its status. */
+function unrankedReason(e: Entry): UnrankedReason {
+  if (isPending(e.quote.status)) return 'reading'
+  if (isRankable(e)) return 'other_currency'
+  if (e.optionId !== null) return 'no_price'
+  if (e.extraction !== null && (e.quote.status === 'needs_review' || e.quote.status === 'ready')) return hasTotal(e.total) ? 'needs_review' : 'no_total'
   return 'failed'
 }
 
-function score(q: QuoteView, kit: KitNeeds, musts: Musts, currency: string): Scored {
-  const items = checkItems(q.extraction!, kit, q.overrides)
+function score(e: Entry, kit: KitNeeds, musts: Musts, currency: string): Scored {
+  const items = checkItems(e.extraction!, kit, e.quote.overrides)
   const mustItems = items.filter((c) => musts[c.id])
   const failedMusts = mustItems.filter((c) => c.status === 'short' || c.status === 'missing').map((c) => c.id)
   const unknownMusts = mustItems.filter((c) => c.status === 'unknown').map((c) => c.id)
   const fit: Fit = failedMusts.length > 0 ? 'short' : unknownMusts.length > 0 ? 'unclear' : 'fits'
   return {
-    quote: q, name: quoteName(q), items, fit, currency,
-    total: totalOf(q)!,
+    quote: e.quote, name: quoteName(e.quote), ...optionOf(e), items, fit, currency,
+    total: e.total!,
     failedMusts, unknownMusts,
     niceMet: items.filter((c) => !musts[c.id] && c.status === 'ok').length,
     usableWh: items.find((c) => c.id === 'battery')?.facts.usableWh ?? 0,
@@ -96,14 +135,15 @@ const byFitsOrder = (a: Scored, b: Scored) => a.total - b.total || b.niceMet - a
 
 /** Ranks the read quotes against the kit. Pure; recomputed on every render. */
 export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly QuoteView[]): Verdict {
-  const rankable = quotes.filter(isRankable)
+  const entries = quotes.flatMap(entriesOf)
+  const rankable = entries.filter(isRankable)
   const currency = mainCurrency(rankable)
-  const inCurrency = rankable.filter((q) => q.extraction!.currency === currency)
-  const unranked: UnrankedQuote[] = quotes
-    .filter((q) => !inCurrency.includes(q))
-    .map((q) => ({ quote: q, name: quoteName(q), reason: unrankedReason(q), currency: q.extraction?.currency ?? null }))
+  const inCurrency = rankable.filter((e) => e.extraction!.currency === currency)
+  const unranked: UnrankedQuote[] = entries
+    .filter((e) => !inCurrency.includes(e))
+    .map((e) => ({ quote: e.quote, name: quoteName(e.quote), ...optionOf(e), reason: unrankedReason(e), currency: e.extraction?.currency ?? null }))
 
-  const scored = currency === null ? [] : inCurrency.map((q) => score(q, kit, musts, currency))
+  const scored = currency === null ? [] : inCurrency.map((e) => score(e, kit, musts, currency))
   const fits = scored.filter((s) => s.fit === 'fits').sort(byFitsOrder)
   const unclear = scored.filter((s) => s.fit === 'unclear').sort(byTotal)
   const short = scored.filter((s) => s.fit === 'short').sort(byTotal)

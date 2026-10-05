@@ -123,6 +123,18 @@ describe('cables and fuse', () => {
   })
 })
 
+describe('an optional extra bundled into a line', () => {
+  test('is priced by its cheapest line that has a price, not by a split line at 0', () => {
+    const x = extraction([line('labor', 0, { optional: true }), line('labor', 300, { optional: true }), line('labor', 250, { optional: true })])
+    expect(item(x, 'installation')).toMatchObject({ status: 'missing', facts: { optionalPrice: 250 } })
+  })
+  test('has no price when every line is at 0, and is still missing', () => {
+    const c = item(extraction([line('labor', 0, { optional: true })]), 'installation')
+    expect(c.status).toBe('missing')
+    expect(c.facts.optionalPrice).toBeUndefined()
+  })
+})
+
 describe('installation and warranty', () => {
   test('a labor line is ok; an optional one is missing; none is unknown', () => {
     expect(item(SAMPLE_QUOTES.solartec, 'installation').status).toBe('ok')

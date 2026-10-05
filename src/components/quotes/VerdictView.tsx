@@ -7,7 +7,7 @@ import { useQuoteJobs } from '../../hooks/useQuoteJobs'
 import { useRootData } from '../../hooks/useRootData'
 import { trq } from '../../i18n'
 import { computeProject } from '../../lib/project-summary'
-import { compareQuotes } from '../../lib/quote-compare'
+import { compareQuotes, entryKey } from '../../lib/quote-compare'
 import { retryOffer } from '../../lib/quote-guards'
 import { kitNeeds, setOverride, type ItemId, type Musts, type Override, type Overrides } from '../../lib/quote-items'
 import type { Rejection } from '../../lib/quote-limits'
@@ -20,6 +20,7 @@ import { deleteQuote, retryQuote, setQuoteMust, setQuoteOverride, setQuoteTotal,
 import { BestCard } from './BestCard'
 import { KitNeedTiles } from './KitNeedTiles'
 import { MustsSheet } from './MustsSheet'
+import { ProgressCard } from './ProgressCard'
 import { QuoteRow } from './QuoteRow'
 import { UnrankedRow } from './UnrankedRow'
 import { verdictClock } from './verdict-clock'
@@ -93,7 +94,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   }
   // A failed save rolls back only the value it changed, so another change that saved in the meantime is kept. A newer
   // edit of the same item still saving is kept too.
-  const onOverride = (quoteId: string) => async (item: ItemId, value: Override | null) => {
+  const onOverride = (quoteId: string, key: string) => async (item: ItemId, value: Override | null) => {
     const prev = overrides[quoteId]?.[item] ?? null
     const seq = ++nextSeq.current
     setError(null)
@@ -107,7 +108,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       if (settle((p) => settlePendingOverride(p, quoteId, item, seq, prev, verdictClock.tick()))) {
         setOverrides((o) => ({ ...o, [quoteId]: setOverride(o[quoteId] ?? {}, item, prev) }))
       }
-      failed(quoteId)
+      failed(key)
     }
   }
   // Each switch saves only its own item, so the server and the screen agree on which changes were kept.
@@ -141,20 +142,23 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       failed(key)
     }
   }
-  const remove = (quoteId: string) => run(quoteId, () => deleteQuote({ data: { quoteId } }))
+  const remove = (quoteId: string, key: string) => run(key, () => deleteQuote({ data: { quoteId } }))
   const retryFor = (quoteId: string) => {
     const q = data.quotes.find((x) => x.id === quoteId)
     return q === undefined ? 'none' : retryOffer(q, user?.canUseQuotes === true)
   }
-  const others = verdict.best ? verdict.ranked.filter((r) => r.quote.id !== verdict.best?.quote.id) : verdict.ranked
+  const retriesOf = (quoteId: string): number => data.quotes.find((x) => x.id === quoteId)?.retries ?? 0
+  const bestKey = verdict.best ? entryKey(verdict.best) : null
+  const others = bestKey === null ? verdict.ranked : verdict.ranked.filter((r) => entryKey(r) !== bestKey)
 
   const ranked = others.length > 0 && (
     <section className="qlist" aria-labelledby="qlist-title">
       <h2 className="qpanel__title" id="qlist-title">{verdict.best ? t.quotes.othersTitle : t.quotes.allTitle}</h2>
       <div className="qlist__rows">
         {others.map((r) => (
-          <QuoteRow key={r.quote.id} r={r} verdict={verdict} kit={kit} error={errorFor(r.quote.id)}
-            onOverride={onOverride(r.quote.id)} onDelete={remove(r.quote.id)} />
+          <QuoteRow key={entryKey(r)} r={r} verdict={verdict} kit={kit} error={errorFor(entryKey(r))}
+            retry={retryFor(r.quote.id)} onRetry={run(entryKey(r), () => retryQuote({ data: { quoteId: r.quote.id } }))}
+            onOverride={onOverride(r.quote.id, entryKey(r))} onDelete={remove(r.quote.id, entryKey(r))} />
         ))}
       </div>
     </section>
@@ -167,21 +171,29 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       {verdict.ranked.length > 0 && <KitNeedTiles kit={kit} />}
       {verdict.best ? (
         <div className="qv__grid">
-          <BestCard best={verdict.best} kit={kit} error={errorFor(verdict.best.quote.id)}
-            onOverride={onOverride(verdict.best.quote.id)} onDelete={remove(verdict.best.quote.id)} />
+          <BestCard best={verdict.best} kit={kit} error={errorFor(entryKey(verdict.best))}
+            retry={retryFor(verdict.best.quote.id)} onRetry={run(entryKey(verdict.best), () => retryQuote({ data: { quoteId: verdict.best!.quote.id } }))}
+            onOverride={onOverride(verdict.best.quote.id, entryKey(verdict.best))} onDelete={remove(verdict.best.quote.id, entryKey(verdict.best))} />
           {ranked}
         </div>
       ) : ranked}
       {verdict.unranked.length > 0 && (
-        <section className="qlist" aria-labelledby="qunranked-title">
+        <section className="qlist qunranked" aria-labelledby="qunranked-title">
           <h2 className="qpanel__title" id="qunranked-title">{unrankedTitle(t, verdict.unranked)}</h2>
-          <div className="qlist__rows">
-            {verdict.unranked.map((u) => (
-              <UnrankedRow key={u.quote.id} u={u} error={errorFor(u.quote.id)} retry={retryFor(u.quote.id)}
-                onRetry={run(u.quote.id, () => retryQuote({ data: { quoteId: u.quote.id } }))}
-                onDelete={remove(u.quote.id)}
-                onTotal={(total) => void run(u.quote.id, () => setQuoteTotal({ data: { quoteId: u.quote.id, total } }))()} />
-            ))}
+          <div className="qunranked__grid">
+            {verdict.unranked.map((u) => {
+              const key = entryKey(u)
+              const onRetry = run(key, () => retryQuote({ data: { quoteId: u.quote.id } }))
+              // Reading and failed quotes show the steps they have been through; the rest wait on the user.
+              return u.reason === 'reading' || u.reason === 'failed' ? (
+                <ProgressCard key={key} u={u} retries={retriesOf(u.quote.id)} retry={retryFor(u.quote.id)} error={errorFor(key)}
+                  onRetry={onRetry} onDelete={remove(u.quote.id, key)} />
+              ) : (
+                <UnrankedRow key={key} u={u} error={errorFor(key)} retry={retryFor(u.quote.id)}
+                  onRetry={onRetry} onDelete={remove(u.quote.id, key)}
+                  onTotal={(total) => void run(key, () => setQuoteTotal({ data: { quoteId: u.quote.id, total } }))()} />
+              )
+            })}
           </div>
         </section>
       )}

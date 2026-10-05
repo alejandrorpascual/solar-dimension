@@ -2,14 +2,14 @@ import { describe, expect, test } from 'vitest'
 import { en } from '../i18n/en'
 import { es } from '../i18n/es'
 import { fmtDecimal, fmtKwh, fmtList, fmtW } from '../i18n/format'
-import { compareQuotes, type QuoteView, type RankedQuote, type UnrankedQuote, type UnrankedReason } from './quote-compare'
+import { compareQuotes, entryKey, type QuoteView, type RankedQuote, type UnrankedQuote, type UnrankedReason } from './quote-compare'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
 import { checkItems, DEFAULT_MUSTS } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import {
-  askText, coverageLines, coverageMeta, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, money, oversizeTip,
+  askText, coverageLines, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, money, oversizeTip,
   projectLine, questionText, ratioLabel, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
@@ -151,7 +151,7 @@ describe('status and progress text', () => {
     expect(projectLine(en, jobs({ done: 2, pending: 2 }))).toBe('Reading quotes 2/4')
     expect(projectLine(en, jobs({ kitEmpty: true }))).toBe('Add appliances to compare your quotes')
     expect(projectLine(es, jobs({ kitEmpty: true }))).toBe('Agrega aparatos para comparar tus cotizaciones')
-    expect(projectLine(en, jobs({ best: { name: 'SolarTec Caribe', total: 6480, currency: 'USD' } }))).toBe('Verdict ready · SolarTec Caribe · $6,480')
+    expect(projectLine(en, jobs({ best: { name: 'SolarTec Caribe', optionLabel: null, total: 6480, currency: 'USD' } }))).toBe('Verdict ready · SolarTec Caribe · $6,480')
     expect(projectLine(en, jobs({ failed: 1 }))).toBe('Check 1 of your quotes')
     expect(projectLine(en, jobs({}))).toBe('Verdict ready · none fits yet')
   })
@@ -186,6 +186,59 @@ describe('status and progress text', () => {
 })
 
 const at = (ratio: number): Sizing => ({ have: ratio * 1000, need: 1000, ratio, zone: sizingZone(ratio), pos: gaugePos(ratio) })
+
+describe('a quote that offers two systems', () => {
+  const jobs = (): ProjectJobs => ({ projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null })
+  const suna: QuoteView = { ...view('suna', 9), fileName: 'suna.pdf' }
+  const both = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', 0), suna])
+  const o2 = both.ranked.find((r) => r.optionId === 'o2')!
+  test('the subtitle says which option, its label and the file, in English and Spanish', () => {
+    expect(entrySubtitle(en, o2)).toBe('Option 2 of 2 · Inversor 10 kW · suna.pdf')
+    expect(entrySubtitle(es, o2)).toBe('Opción 2 de 2 · Inversor 10 kW · suna.pdf')
+  })
+  test('an option of a quote named by its file leaves the file out of the subtitle', () => {
+    const unnamed: QuoteView = { ...suna, extraction: { ...SAMPLE_QUOTES.suna, vendor: { name: null, contact: null } } }
+    const o1 = compareQuotes(KIT, DEFAULT_MUSTS, [unnamed]).ranked.find((r) => r.optionId === 'o1')!
+    expect(entrySubtitle(en, o1)).toBe('Option 1 of 2 · Inversor 3 kW')
+  })
+  test('the subline counts quotes, not options', () => {
+    const subBest = (r: RankedQuote, count: number, musts: number) =>
+      en.quotes.subBest.replace('{total}', money(en, r.total, r.currency)).replace('{count}', String(count)).replace('{musts}', String(musts))
+    expect(both.ranked).toHaveLength(3)
+    expect(verdictSubline(en, both, KIT)).toBe(subBest(both.best!, 2, both.mustCount))
+  })
+  test('one quote that offers two systems reads as one quote', () => {
+    const inverterOnly = { ...DEFAULT_MUSTS, battery: false, charger: false, cables: false, fuse: false, installation: false }
+    const alone = compareQuotes(KIT, inverterOnly, [suna])
+    const expected = en.quotes.subBestOne.replace('{total}', money(en, alone.best!.total, alone.best!.currency)).replace('{musts}', String(alone.mustCount))
+    expect(alone.ranked).toHaveLength(2)
+    expect(verdictSubline(en, alone, KIT)).toBe(expected)
+  })
+  test('a single-system quote keeps the file name as its subtitle', () => {
+    expect(entrySubtitle(en, both.best!)).toBe('solartec.pdf')
+  })
+  test('asking about the option names it, while the question to the installer greets the vendor', () => {
+    expect(askText(en, o2, both)).toContain('SUNA M.P. · Inversor 10 kW')
+    expect(questionText(en, o2)).toMatch(/^Hi SUNA M\.P\., /)
+  })
+  test('the best fit is told apart by option, not by quote', () => {
+    const alone = compareQuotes(KIT, { ...DEFAULT_MUSTS, battery: false, charger: false, cables: false, fuse: false, installation: false }, [suna])
+    const [first, second] = alone.ranked as [RankedQuote, RankedQuote]
+    expect(entryKey(alone.best!)).toBe('suna:o2')
+    expect(fitLabel(en, first, alone)).toBe(en.quotes.bestFit)
+    expect(fitLabel(en, second, alone)).not.toBe(en.quotes.bestFit)
+    expect(verdictHeading(en, alone)).toBe('SUNA M.P. · Inversor 10 kW fits your kit for the least')
+  })
+  test('the delete confirmation counts the options it removes', () => {
+    expect(deleteConfirmText(en, 0)).toBe('Delete this quote and its file?')
+    expect(deleteConfirmText(en, 2)).toBe('Delete this quote, its 2 options and its file?')
+    expect(deleteConfirmText(es, 2)).toBe('¿Eliminar esta cotización, sus 2 opciones y su archivo?')
+  })
+  test('the project line names the best option', () => {
+    const j = { ...jobs(), best: { name: 'SUNA M.P.', optionLabel: 'Inversor 10 kW', total: 6200, currency: 'USD' } }
+    expect(projectLine(en, j)).toBe('Verdict ready · SUNA M.P. · Inversor 10 kW · $6,200')
+  })
+})
 
 describe('sizing text', () => {
   const sol = quoteSizing(solartec.items, KIT)
@@ -275,11 +328,14 @@ describe('coverageLines', () => {
 })
 
 describe('unrankedTitle', () => {
-  const u = (reason: UnrankedReason): UnrankedQuote => ({ quote: view('solartec', 0), name: 'X', reason, currency: 'USD' })
+  const u = (reason: UnrankedReason): UnrankedQuote => ({ quote: view('solartec', 0), name: 'X', reason, currency: 'USD', optionId: null, optionLabel: null, optionCount: 0 })
   test('says "without a total" only when every unranked quote waits for one', () => {
     expect(unrankedTitle(en, [u('no_total'), u('needs_review')])).toBe("Without a total, these can't be compared")
     expect(unrankedTitle(es, [u('no_total')])).toBe('Sin total, no se pueden comparar')
     expect(unrankedTitle(en, [u('no_total'), u('failed')])).toBe('Not compared yet')
     expect(unrankedTitle(es, [u('reading')])).toBe('Aún sin comparar')
+  })
+  test('a quote with options to check gets no total form, so it does not count as waiting for a total', () => {
+    expect(unrankedTitle(en, [{ ...u('needs_review'), optionCount: 2 }])).toBe('Not compared yet')
   })
 })

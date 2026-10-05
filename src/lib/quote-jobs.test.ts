@@ -19,9 +19,18 @@ describe('summarizeProject', () => {
     expect(s).toMatchObject({ total: 4, done: 3, pending: 1, failed: 1, needsReview: 1 })
     expect(s.files.map((f) => f.status)).toEqual(['ready', 'processing', 'failed', 'needs_review'])
   })
+  test("each file carries its retries, so the hand-off dialog can hide Retry once they're used up", () => {
+    const s = summarizeProject('p', 'Home', [jq('a', { status: 'failed', extraction: null, retries: 3 })], KIT, DEFAULT_MUSTS)
+    expect(s.files).toEqual([{ id: 'a', name: 'a.pdf', status: 'failed', retries: 3 }])
+  })
   test('names the best quote only once nothing is pending', () => {
     expect(summarizeProject('p', 'Home', [jq('a'), jq('b', { status: 'queued', extraction: null })], KIT, DEFAULT_MUSTS).best).toBeNull()
-    expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).best).toEqual({ name: 'SolarTec Caribe', total: 6480, currency: 'USD' })
+    expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).best).toEqual({ name: 'SolarTec Caribe', optionLabel: null, total: 6480, currency: 'USD' })
+  })
+  test('names the option when the best entry is one', () => {
+    const musts = { ...DEFAULT_MUSTS, battery: false, charger: false, cables: false, fuse: false, installation: false }
+    const suna = jq('suna', { extraction: SAMPLE_QUOTES.suna })
+    expect(summarizeProject('p', 'Home', [suna], KIT, musts).best).toEqual({ name: 'SUNA M.P.', optionLabel: 'Inversor 10 kW', total: 6200, currency: 'USD' })
   })
   test('an empty kit (null) is flagged, has no best, and is never an unseen verdict', () => {
     expect(summarizeProject('p', 'Home', [jq('a')], null, DEFAULT_MUSTS)).toMatchObject({ kitEmpty: true, best: null, unseen: false })

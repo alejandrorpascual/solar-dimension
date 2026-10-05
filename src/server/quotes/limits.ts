@@ -82,7 +82,7 @@ export async function insertWithinLimits(q: NewQuote): Promise<boolean> {
 export interface RetryAttempt { retried: boolean; retryable: boolean; admitted: boolean }
 
 /**
- * Queues a failed quote of the user's again, if it has retries left and today's read budget admits it, in one
+ * Queues a failed or needs-review quote of the user's again, if it has retries left and today's read budget admits it, in one
  * statement (so one transaction): the read is taken only for a retryable quote, and the quote changes only when the
  * read was taken. `target` locks the quote row (`for update`), so a second retry of the same quote waits for the
  * first to commit; Postgres then re-checks the row against the WHERE (read committed re-evaluates a locked row), finds
