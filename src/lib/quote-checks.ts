@@ -31,14 +31,14 @@ export function optionPrices(x: QuoteExtraction): { id: string; total: number | 
 }
 
 /**
- * The totals an option priced at `base` may be written as: the base itself, or with the tax the document states, as an
- * amount or as the rate it makes over the subtotal. A document of alternatives often states its tax once while each
- * option's total includes its own. Tax it never states explains nothing.
+ * The totals an option priced at `base` may be written as: the base itself, or with tax at the rate the document states
+ * (its tax over its subtotal). A document of alternatives often states its tax once while each option's total includes
+ * its own. Only the rate carries over: the stated amount belongs to one subtotal, so added flat to another option it
+ * would explain a wrong price. Tax with no subtotal to make a rate from explains nothing.
  */
 function taxedTotals(base: number, x: QuoteExtraction): number[] {
   const tax = x.tax ?? 0
-  const rate = tax > 0 && hasTotal(x.subtotal) ? tax / x.subtotal : 0
-  return [base, base + tax, base * (1 + rate)]
+  return tax > 0 && hasTotal(x.subtotal) ? [base, base * (1 + tax / x.subtotal)] : [base]
 }
 
 /**

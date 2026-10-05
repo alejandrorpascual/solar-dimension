@@ -107,17 +107,22 @@ describe('checkExtraction with options', () => {
       expect(checkExtraction(x).filter((f) => f === 'option_total_mismatch')).toHaveLength(1)
       expect(checkExtraction(withTotal(5000))).toContain('option_total_mismatch')
     })
-    test('a total that includes the tax the document states passes, as an amount or as the rate over the subtotal', () => {
-      const taxed = (a: number, over: Partial<QuoteExtraction>) =>
-        extraction(lines, { options: [{ id: 'a', label: 'A', total: a }, { id: 'b', label: 'B', total: null }], ...over })
-      expect(checkExtraction(taxed(1160, { tax: 160 }))).toEqual([])
-      expect(checkExtraction(taxed(1508, { subtotal: 1000, tax: 160 }))).toEqual([])
+    const taxed = (a: number, over: Partial<QuoteExtraction>) =>
+      extraction(lines, { options: [{ id: 'a', label: 'A', total: a }, { id: 'b', label: 'B', total: null }], ...over })
+    test('a total that includes tax at the rate the document states (tax over subtotal) passes', () => {
       expect(checkExtraction(taxed(1160, { subtotal: 1000, tax: 160 }))).toEqual([])
+      expect(checkExtraction(taxed(1508, { subtotal: 1000, tax: 160 }))).toEqual([])
     })
-    test('tax the document never states does not explain a higher total', () => {
+    test("the stated tax amount is never added flat to another option's lines", () => {
+      const b = (total: number) => extraction(lines, {
+        options: [{ id: 'a', label: 'A', total: null }, { id: 'b', label: 'B', total }], subtotal: 1000, tax: 160,
+      })
+      expect(checkExtraction(b(2160))).toContain('option_total_mismatch')
+      expect(checkExtraction(b(2320))).toEqual([])
+    })
+    test('tax with no subtotal to make a rate from, or no tax at all, does not explain a higher total', () => {
       expect(checkExtraction(withTotal(1160))).toContain('option_total_mismatch')
-      const x = extraction(lines, { options: [{ id: 'a', label: 'A', total: 1500 }, { id: 'b', label: 'B', total: null }], tax: 160 })
-      expect(checkExtraction(x)).toContain('option_total_mismatch')
+      expect(checkExtraction(taxed(1160, { tax: 160 }))).toContain('option_total_mismatch')
     })
     test('an option whose own lines carry no price is not checked', () => {
       const x = extraction([line('inverter', 0, { option: 'a' }), line('inverter', 2000, { option: 'b' })], {
