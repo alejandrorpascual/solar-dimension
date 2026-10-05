@@ -3,6 +3,7 @@ import { check, date, doublePrecision, foreignKey, index, integer, jsonb, pgTabl
 import type { ApplianceLabels } from '../lib/catalog'
 import { APPLIANCE_CATEGORIES } from '../lib/catalog-schema'
 import type { Musts, Overrides } from '../lib/quote-items'
+import type { Requester } from '../lib/requester'
 import { QUOTE_STATUSES, type QuoteExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
 
 import { user } from './auth-schema'
@@ -21,6 +22,8 @@ export const projects = pgTable(
     volts: integer('volts').notNull(),
     chemistry: text('chemistry').notNull(),
     batteryUnit: text('battery_unit'),
+    /** Who asked for the kit (printed on the spec sheet); null until added. Validated by RequesterSchema on read. */
+    requester: jsonb('requester').$type<Requester>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
