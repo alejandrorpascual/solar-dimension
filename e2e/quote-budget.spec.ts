@@ -38,7 +38,7 @@ test('with the day’s reads spent, an upload is refused with the reason and not
 
   await uploadQuotes(page, [await quotePdf('solartec')], 'Upload quotes', BUDGET_SERVER)
   const dialog = page.getByRole('dialog', { name: 'None of these files could be uploaded' })
-  await expect(dialog).toContainText(`solartec.pdf: ${PAUSED}`)
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'solartec.pdf' })).toContainText(PAUSED)
   expect(await countQuoteRows(email, projectId)).toBe(0)
 })
 

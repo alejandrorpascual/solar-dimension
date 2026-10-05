@@ -259,7 +259,7 @@ test('a file of the wrong type is refused before upload, with the reason', async
   await signUp(page)
   await uploadQuotes(page, [{ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') }])
   const dialog = page.getByRole('dialog', { name: 'None of these files could be uploaded' })
-  await expect(dialog).toContainText('notes.txt: Only PDF, JPG, PNG or WebP files can be read.')
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'notes.txt' })).toContainText('Only PDF, JPG, PNG or WebP files can be read.')
 })
 
 test('another account gets 404 for the file and the verdict', async ({ page, browser }) => {
@@ -293,6 +293,28 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
   await other.close()
 })
 
+test('the hand-off dialog shows each file reading, then lets a file that could not be read be retried from there', async ({ page }) => {
+  test.slow()
+  await signUp(page)
+  // The stub reads only the sample quotes; any other file name fails on both models.
+  await uploadQuotes(page, [await quotePdf('unreadable')])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  const row = dialog.getByRole('listitem').filter({ hasText: 'unreadable.pdf' })
+  await expect(row.getByText(/^(Uploading|Waiting|Reading) · about 30 s$/)).toBeVisible()
+  await expect(dialog.getByText('1 reading')).toBeVisible()
+
+  await expect(row.getByText("Couldn't read it", { exact: true })).toBeVisible({ timeout: 30_000 })
+  await expect(dialog.getByText('1 needs your attention')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Delete unreadable.pdf' })).toBeVisible()
+  await row.getByRole('button', { name: 'Retry', exact: true }).click()
+  await expect(row.getByText(/^(Waiting|Reading) · about 30 s$/)).toBeVisible()
+
+  const watch = dialog.getByRole('link', { name: 'Watch progress' })
+  await expect(watch).toHaveCSS('text-decoration-line', 'none')
+  await watch.click()
+  await expect(page.getByRole('article').filter({ hasText: 'unreadable.pdf' }).getByText('Uploaded', { exact: true })).toBeVisible()
+})
+
 test('a quote that could not be read can be retried, until its retries are used up, on the page and on the server', async ({ page }) => {
   // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
   test.slow()
@@ -306,6 +328,8 @@ test('a quote that could not be read can be retried, until its retries are used 
   const row = page.getByRole('article').filter({ hasText: 'unreadable.pdf' })
   const failed = row.getByText("Couldn't read it", { exact: true })
   await expect(failed).toBeVisible({ timeout: 30_000 })
+  await expect(row.getByText('Uploaded', { exact: true })).toBeVisible()
+  await expect(row.getByText('3 tries left')).toBeVisible()
   const retryCall = page.waitForRequest((r) => r.method() === 'POST' && (r.postData() ?? '').includes('"quoteId"'))
   await row.getByRole('button', { name: 'Retry', exact: true }).click()
   const retry = await retryCall
@@ -344,7 +368,7 @@ test('a project that already has 10 quotes refuses an eleventh, with the reason'
   // moment, so the upload reloads the kit and goes through that label, which no longer changes.
   await uploadQuotes(page, [await quotePdf('solartec')], quotesEn.cardAddMore)
   const dialog = page.getByRole('dialog', { name: 'None of these files could be uploaded' })
-  await expect(dialog).toContainText('solartec.pdf: This project already has 10 quotes.')
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'solartec.pdf' })).toContainText('This project already has 10 quotes.')
   expect(await countQuoteRows(email, projectId)).toBe(10)
 })
 
@@ -359,7 +383,7 @@ test('an account that used its 20 uploads this month is refused, with the reason
 
   await uploadQuotes(page, [await quotePdf('solartec')])
   const dialog = page.getByRole('dialog', { name: 'None of these files could be uploaded' })
-  await expect(dialog).toContainText("solartec.pdf: You've uploaded 20 quotes this month. The limit resets on the 1st.")
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'solartec.pdf' })).toContainText("You've uploaded 20 quotes this month. The limit resets on the 1st.")
   expect(await countQuoteRows(email, projectId)).toBe(0)
 })
 

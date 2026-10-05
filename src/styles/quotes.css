@@ -63,6 +63,53 @@
   .qdialog__title { font-size: 24px; }
   .qdialog__actions { flex-direction: column; }
 }
+/* Progress: the spinner, the hand-off dialog's rows, and the cards of quotes not compared yet */
+@keyframes qspin { to { transform: rotate(360deg); } }
+.qspin { flex-shrink: 0; animation: qspin 0.9s linear infinite; }
+.qbtn--primary { border-color: var(--accent); background: var(--accent); color: #FFFFFF; }
+.qbtn--primary:hover { border-color: var(--accent-hover); background: var(--accent-hover); }
+.qicon { flex-shrink: 0; width: var(--tap); height: var(--tap); display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--muted); }
+.qicon:hover { background: var(--ground); color: var(--ink); }
+.qicon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.qconfirm { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.qhand { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.qhand__row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; min-height: 64px; padding: 10px 10px 10px 14px; box-sizing: border-box; }
+.qhand__row + .qhand__row { border-top: 1px solid var(--line); }
+.qhand__icon { flex: 0 0 36px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: var(--ground); color: var(--muted); }
+.qhand__id { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.qhand__name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qhand__meta { font-size: 12.5px; color: var(--muted); }
+.qhand__spin { display: inline-flex; padding-right: 4px; color: var(--accent); }
+.qhand__actions { display: inline-flex; align-items: center; gap: 4px; }
+.qhand__err { flex-basis: 100%; }
+.qhand__row--done .qhand__icon { background: var(--success-tint); color: var(--success); }
+.qhand__row--review .qhand__icon { background: var(--warn-bg); color: var(--warn-ink); }
+.qhand__row--failed { background: color-mix(in srgb, var(--error-tint) 55%, var(--surface)); }
+.qhand__row--failed .qhand__icon { background: var(--error-tint); color: var(--error); }
+.qhand__row--failed .qhand__meta { font-weight: 600; color: var(--error); }
+.qhand__row--rejected { background: var(--warn-bg); }
+.qhand__row--rejected .qhand__icon { background: var(--surface); color: var(--warn-ink); }
+.qhand__row--rejected .qhand__meta { color: var(--warn-ink); }
+.qhand__summary { margin: -6px 0 0; font-size: 12.5px; color: var(--muted); }
+.qunranked { max-width: 760px; }
+.qunranked__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 12px; }
+.qunranked .qhead__name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.qrow--failed { border-color: color-mix(in srgb, var(--error) 30%, var(--surface)); }
+.qrow__spacer { flex: 1 1 auto; }
+.qsteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
+.qstep { display: flex; align-items: flex-start; gap: 10px; color: var(--muted); }
+.qstep__dot { flex: 0 0 22px; width: 22px; height: 22px; box-sizing: border-box; display: grid; place-items: center; border: 2px solid var(--line-strong); border-radius: 999px; }
+.qstep__text { display: flex; flex-direction: column; gap: 2px; padding-top: 2px; }
+.qstep__label { font-weight: 600; }
+.qstep--done { color: var(--success); }
+.qstep--done .qstep__dot { border: 0; background: var(--success-tint); }
+.qstep--active { color: var(--accent); }
+.qstep--active .qstep__label, .qstep--failed .qstep__label { font-weight: 700; }
+.qstep--failed { color: var(--error); }
+.qstep--failed .qstep__dot { border: 0; background: var(--error); color: #FFFFFF; }
+@media (max-width: 639px) {
+  .qunranked__grid { grid-template-columns: minmax(0, 1fr); }
+}
 @keyframes qfade { from { opacity: 0; } }
 @keyframes qrise { from { opacity: 0; transform: translateY(4px); } }
 
@@ -215,6 +262,6 @@
   .qdialog__close { width: var(--tap); height: var(--tap); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .qtray, .qdialog, .qdialog__overlay { animation: none !important; }
+  .qtray, .qdialog, .qdialog__overlay, .qspin { animation: none !important; }
   .qtray__chev, .qtray__bar > span, .qcard, .qbtn, .qchecks__chev { transition: none !important; }
 }
