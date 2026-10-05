@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import {
-  REQUESTER_MAX, RequesterSchema, defaultCountry, docRule, emptyRequester, formatDoc, normalizeRequester, requesterInitials,
+  REQUESTER_MAX, RequesterSchema, defaultCountry, docRule, emptyRequester, formatDoc, normalizeRequester, requesterInitials, toDraft,
   requesterLines, validateRequester, withCountry, withDocInput, withKind, type Requester,
 } from './requester'
 
@@ -158,4 +158,23 @@ test('requesterInitials takes the first letters of the first two real words', ()
   expect(requesterInitials('Ann Lee')).toBe('AL')
   expect(requesterInitials('Al')).toBe('A')
   expect(requesterInitials('  ')).toBe('·')
+})
+
+describe('editing a requester saved without an ID', () => {
+  const savedPerson = normalizeRequester({ ...emptyRequester('VE'), name: 'Ana' })!
+  const savedCompany = normalizeRequester({ ...emptyRequester('VE'), kind: 'company', docPrefix: 'J', name: 'Acme C.A.' })!
+
+  test('toDraft puts back the letter the picker shows, so a stored blank letter never reaches the form', () => {
+    expect(savedPerson.docPrefix).toBe('')
+    expect(toDraft(savedPerson).docPrefix).toBe('V')
+    expect(toDraft(savedCompany).docPrefix).toBe('J')
+    expect(toDraft(company)).toBe(company)
+  })
+  test('adding a cédula or RIF afterwards saves', () => {
+    expect(normalizeRequester(withDocInput(toDraft(savedPerson), '18456789'))).toMatchObject({ docPrefix: 'V', doc: '18456789' })
+    expect(normalizeRequester(withDocInput(toDraft(savedCompany), '401234567'))).toMatchObject({ docPrefix: 'J', doc: '401234567' })
+  })
+  test('normalize falls back to the first letter when a draft has none, instead of failing silently', () => {
+    expect(normalizeRequester(withDocInput(savedPerson, '18456789'))?.docPrefix).toBe('V')
+  })
 })

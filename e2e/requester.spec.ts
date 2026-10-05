@@ -12,12 +12,12 @@ const LOS_SAMANES = {
 const visibleBand = (page: Page) => page.locator('.ksheet__client').filter({ visible: true })
 
 /** Opens the app with one saved project that already has a requester. Later reloads keep whatever the test changed. */
-async function seedRequester(page: Page): Promise<void> {
+async function seedRequester(page: Page, requester: Record<string, string> = LOS_SAMANES): Promise<void> {
   await page.addInitScript(([key, requester]) => {
     if (localStorage.getItem(key)) return
     const project = { id: 'p1', name: 'Garita', qty: { fridge: 1, lights: 1 }, custom: [], hours: 8, volts: 48, chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1, requester }
     localStorage.setItem(key, JSON.stringify({ version: 1, projects: [project], currentId: 'p1' }))
-  }, [STORAGE_KEY, LOS_SAMANES] as const)
+  }, [STORAGE_KEY, requester] as const)
 }
 
 test('the spec sheet prints the requester band, and Include takes it off', async ({ page }) => {
@@ -78,6 +78,8 @@ test('the form explains a bad RIF, caps long text, and Escape closes only the fo
   await form.getByLabel('RIF (tax ID)').fill('4012345')
   await form.getByRole('button', { name: 'Save' }).click()
   await expect(form.getByText('A RIF has 8 digits and a check digit, like 12345678-9.')).toBeVisible()
+  // Screen readers hear the error: focus moves to the first field that needs fixing.
+  await expect(form.getByLabel('RIF (tax ID)')).toBeFocused()
   await expect(form.getByLabel('RIF (tax ID)')).toHaveAttribute('aria-invalid', 'true')
   await form.getByLabel('RIF (tax ID)').fill('401234567')
   await expect(form.getByText('A RIF has 8 digits and a check digit, like 12345678-9.')).toBeHidden()
@@ -163,4 +165,17 @@ test('a signed-in client comes back from the account on a fresh browser', async 
   await expect(page.getByText('Syncing your projects…')).toBeHidden()
   await showDownload(page)
   await expect(page.getByRole('button', { name: 'Edit: Ann Lee' })).toBeVisible()
+})
+
+test('a cédula added later to a client saved without one prints on the sheet', async ({ page }) => {
+  await seedRequester(page, { kind: 'person', country: 'VE', name: 'Ana Rondón', contact: '', docPrefix: '', doc: '', phone: '', email: '', address: '' })
+  await page.goto('/?step=3')
+  await showDownload(page)
+  await page.getByRole('button', { name: 'Edit: Ana Rondón' }).click()
+  const form = page.getByRole('dialog', { name: 'Client details' })
+  await expect(form.getByLabel('Nationality')).toHaveValue('V')
+  await form.getByLabel('Cédula (ID card)').fill('18456789')
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(form).toBeHidden()
+  await expect(visibleBand(page).getByText('V-18.456.789')).toBeVisible()
 })

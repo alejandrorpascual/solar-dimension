@@ -1,11 +1,11 @@
 import { X } from 'lucide-react'
-import { useId, useState, type ReactNode } from 'react'
+import { useId, useRef, useState, type ReactNode } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { useLocale } from '../hooks/useLocale'
 import { forgetRequester, loadRememberedRequester, rememberRequester } from '../lib/persistence'
 import {
   REQUESTER_COUNTRIES, REQUESTER_KINDS, REQUESTER_MAX, defaultCountry, docRule, emptyRequester, normalizeRequester,
-  validateRequester, withCountry, withDocInput, withKind, type Requester,
+  toDraft, validateRequester, withCountry, withDocInput, withKind, type Requester,
 } from '../lib/requester'
 
 interface Props {
@@ -60,7 +60,8 @@ function Field({ id, label, isOptional = false, error, children }: { id: string;
 function RequesterForm({ initial, onSave, onRemove }: { initial: Requester | null; onSave: (r: Requester) => void; onRemove: (() => void) | null }) {
   const { t, locale } = useLocale()
   const id = useId()
-  const [draft, setDraft] = useState<Requester>(() => initial ?? loadRememberedRequester() ?? emptyRequester(defaultCountry(locale)))
+  const formRef = useRef<HTMLFormElement>(null)
+  const [draft, setDraft] = useState<Requester>(() => toDraft(initial ?? loadRememberedRequester() ?? emptyRequester(defaultCountry(locale))))
   const [shouldRemember, setRemember] = useState(true)
   const [hasTriedSave, setTriedSave] = useState(false)
   // Errors appear after the first Save attempt, then follow the typing.
@@ -74,14 +75,18 @@ function RequesterForm({ initial, onSave, onRemove }: { initial: Requester | nul
   const save = () => {
     setTriedSave(true)
     const clean = normalizeRequester(draft)
-    if (!clean) return
+    if (!clean) {
+      // The errors render on the next frame; moving focus to the first one is what makes a screen reader announce it.
+      requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
+      return
+    }
     if (shouldRemember) rememberRequester(clean)
     else forgetRequester()
     onSave(clean)
   }
 
   return (
-    <form className="rq-form" noValidate onSubmit={(e) => { e.preventDefault(); save() }}>
+    <form ref={formRef} className="rq-form" noValidate onSubmit={(e) => { e.preventDefault(); save() }}>
       <div className="rq-kinds" role="group" aria-label={t.requester.kindLabel}>
         {REQUESTER_KINDS.map((kind) => (
           <button key={kind} type="button" className={`seg${draft.kind === kind ? ' seg--on' : ''}`} aria-pressed={draft.kind === kind} onClick={() => setDraft(withKind(draft, kind))}>

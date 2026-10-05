@@ -82,6 +82,16 @@ export function defaultCountry(locale: Locale): RequesterCountry {
   return locale === 'es' ? 'VE' : 'US'
 }
 
+/**
+ * A stored requester as a form draft. One saved without an ID has no letter, but the picker always shows one; giving
+ * the draft that letter keeps the form's state equal to what it shows, so adding the ID later saves.
+ */
+export function toDraft(r: Requester): Requester {
+  const prefixes = docRule(r.kind, r.country)?.prefixes ?? []
+  if (prefixes.length === 0 || prefixes.includes(r.docPrefix)) return r
+  return { ...r, docPrefix: prefixes[0]! }
+}
+
 /** A new kind asks for a different ID, so the letter resets and the number clears. */
 export function withKind(d: Requester, kind: RequesterKind): Requester {
   return d.kind === kind ? d : { ...d, kind, docPrefix: firstPrefix(kind, d.country), doc: '' }
@@ -128,11 +138,14 @@ export function normalizeRequester(d: Requester): Requester | null {
   if (Object.keys(validateRequester(d)).length > 0) return null
   const rule = docRule(d.kind, d.country)
   const doc = rule ? d.doc.trim() : ''
+  const prefixes = rule?.prefixes ?? []
+  // A draft whose letter doesn't fit takes the picker's first one, so a valid draft never fails the schema silently.
+  const letter = prefixes.includes(d.docPrefix) ? d.docPrefix : (prefixes[0] ?? '')
   const parsed = RequesterSchema.safeParse({
     ...d,
     contact: d.kind === 'company' ? d.contact : '',
     doc,
-    docPrefix: doc && rule && rule.prefixes.length > 0 ? d.docPrefix : '',
+    docPrefix: doc ? letter : '',
   })
   return parsed.success ? parsed.data : null
 }
