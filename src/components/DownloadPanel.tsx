@@ -1,5 +1,5 @@
 import { CircleCheck, Download, LoaderCircle, Share2 } from 'lucide-react'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { canShareFiles, renderPdf, renderPng, saveBlob, shareFile } from '../client/export-file'
 import { useLocale } from '../hooks/useLocale'
 import { usePreparedImage } from '../hooks/usePreparedImage'
@@ -7,10 +7,13 @@ import { usePreviewScale } from '../hooks/usePreviewScale'
 import { applianceName, tr, type Dictionary } from '../i18n'
 import { fmtDate } from '../i18n/format'
 import { buildCsv, exportFileName } from '../lib/export-csv'
+import type { Requester } from '../lib/requester'
 import type { Project } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
 import { KitSheet, type ExportInclude } from './KitSheet'
 import { buildParts, type Part } from './KitSummary'
+import { RequesterCard } from './RequesterCard'
+import { RequesterSheet } from './RequesterSheet'
 
 type Format = 'pdf' | 'png' | 'csv'
 type Status = 'idle' | 'busy' | 'error' | 'success'
@@ -43,7 +46,7 @@ function csvFor(result: SizingResult, parts: Part[], include: ExportInclude, t: 
 }
 
 /** Download the open project as a PDF spec sheet, a phone-sized image or a CSV, with a live preview of the sheet. */
-export function DownloadPanel({ project, result }: { project: Project; result: SizingResult }) {
+export function DownloadPanel({ project, result, onRequesterChange }: { project: Project; result: SizingResult; onRequesterChange: (requester: Requester | null) => void }) {
   const { t, locale } = useLocale()
   const [format, setFormat] = useState<Format>('pdf')
   const [include, setInclude] = useState<ExportInclude>({ summary: true, appliances: true, parts: true, notes: true, requester: true })
@@ -52,6 +55,19 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
   const preview = usePreviewScale(SHEET_WIDTH, PREVIEW_MAX_HEIGHT)
   // Unique per panel: the rail and the sheet can both be mounted, and same-named radios would share one group.
   const radioName = useId()
+  const requesterLabelId = useId()
+  const requesterRef = useRef<HTMLElement>(null)
+  const [isRequesterOpen, setRequesterOpen] = useState(false)
+  const onRequesterOpenChange = (open: boolean) => {
+    setRequesterOpen(open)
+    if (open) return
+    // Save and Remove swap the add button and the card, so the dialog can't hand focus back to the button that opened
+    // it. Once the dialog has restored what it could (two frames), a page left without focus gets the section's button.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const active = document.activeElement
+      if (!active || active === document.body) requesterRef.current?.querySelector('button')?.focus()
+    }))
+  }
   useEffect(() => setCanShare(canShareFiles()), [])
   const shareImage = usePreparedImage(preview.contentRef, canShare, `${project.id}:${project.updatedAt}:${locale}:${JSON.stringify(include)}`)
 
@@ -105,6 +121,18 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
           <KitSheet ref={preview.contentRef} projectName={project.name} result={result} parts={parts} requester={include.requester ? project.requester : null} include={include} date={fmtDate(new Date(), locale)} t={t} locale={locale} />
         </div>
       </div>
+
+      <section ref={requesterRef} className="dl__group" aria-labelledby={requesterLabelId}>
+        <span className="lab" id={requesterLabelId}>{t.requester.section}</span>
+        <RequesterCard requester={project.requester} isDisabled={isBusy} onOpen={() => setRequesterOpen(true)} />
+      </section>
+      <RequesterSheet
+        isOpen={isRequesterOpen}
+        onOpenChange={onRequesterOpenChange}
+        requester={project.requester}
+        onSave={onRequesterChange}
+        onRemove={() => onRequesterChange(null)}
+      />
 
       <fieldset className="dl__group" disabled={isBusy}>
         <legend className="lab">{t.ui.format}</legend>
