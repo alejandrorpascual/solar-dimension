@@ -2,15 +2,20 @@ import type { Ref } from 'react'
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtHours, fmtInt, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
+import { requesterLines, type Requester } from '../lib/requester'
 import type { SizingResult } from '../lib/sizing'
 import type { Part } from './KitSummary'
 
-export interface ExportInclude { summary: boolean; appliances: boolean; parts: boolean; notes: boolean }
+/** The sheet's width in CSS pixels: A4 at 96 dpi. The PDF, the PNG and every preview are cut from this layout. */
+export const SHEET_WIDTH = 794
+
+export interface ExportInclude { summary: boolean; appliances: boolean; parts: boolean; notes: boolean; requester: boolean }
 
 interface Props {
   projectName: string
   result: SizingResult
   parts: Part[]
+  requester: Requester | null
   include: ExportInclude
   date: string
   t: Dictionary
@@ -19,13 +24,16 @@ interface Props {
 }
 
 /**
- * The kit as a one-page document, 794 px wide (A4 at 96 dpi). The download panel shows it scaled down as a preview
+ * The kit as a printable document, SHEET_WIDTH wide. The download panel shows it scaled down as a preview
  * and captures the same node for the PDF and the image, so the file matches what the preview showed.
- * `data-pdf-block` marks what a PDF page break must not cut; "keep" also holds it to the block after (headings).
+ * `data-pdf-block` marks what a PDF page break must not cut; "keep" also holds it to the block after (headings), and
+ * `data-pdf-break` starts a new page there.
  */
-export function KitSheet({ projectName, result: r, parts, include, date, t, locale, ref }: Props) {
+export function KitSheet({ projectName, result: r, parts, requester, include, date, t, locale, ref }: Props) {
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
   const totalWh = r.items.reduce((sum, i) => sum + i.wh, 0)
+  const showParts = include.parts && parts.length > 0
+  const showAppliances = include.appliances && r.items.length > 0
   return (
     <div ref={ref} className="ksheet">
       <header className="ksheet__head" data-pdf-block="">
@@ -33,6 +41,23 @@ export function KitSheet({ projectName, result: r, parts, include, date, t, loca
         <h2 className="ksheet__title">{projectName}</h2>
         <p className="ksheet__sub">{`${r.volts} V ${t.chemistries[r.chemistry]} · ${tr(t, 'hoursShort', { hours: r.hours })}`}</p>
       </header>
+
+      {requester && (
+        <section className="ksheet__client" data-pdf-block="">
+          <div className="ksheet__client-head">
+            <h3 className="ksheet__h">{t.requester.bandTitle}</h3>
+            <span className="ksheet__lab">{`${t.requester[requester.kind]} · ${t.requester[`country${requester.country}`]}`}</span>
+          </div>
+          <dl className="ksheet__client-grid">
+            {requesterLines(requester).map((line) => (
+              <div key={line.label} className={`ksheet__client-cell ksheet__client-cell--${line.width}`}>
+                <dt className="ksheet__lab">{t.requester[line.label]}</dt>
+                <dd>{line.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       {include.summary && (
         <div className="ksheet__figs" data-pdf-block="">
@@ -43,9 +68,29 @@ export function KitSheet({ projectName, result: r, parts, include, date, t, loca
         </div>
       )}
 
-      {include.appliances && r.items.length > 0 && (
+      {showParts && (
         <section>
-          <h3 className="ksheet__h" data-pdf-block="keep">{t.ui.loadSchedule}</h3>
+          <h3 className="ksheet__h" data-pdf-block="keep">{t.ui.incParts}</h3>
+          <table className="ksheet__table ksheet__parts">
+            <tbody>
+              {parts.map((p) => (
+                <tr key={p.id} data-pdf-block="">
+                  <th scope="row">{p.name}</th>
+                  <td><div>{p.spec}</div><div className="ksheet__note">{p.note}</div></td>
+                  <td className="ksheet__n ksheet__qty">{`×${p.qty}`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {include.notes && <p className="ksheet__fine" data-pdf-block="">{tr(t, 'fine', { dod })}</p>}
+
+      {showAppliances && (
+        <section>
+          {/* The load schedule supports the parts list: with one on the sheet it starts a page of its own. */}
+          <h3 className="ksheet__h" data-pdf-block="keep" data-pdf-break={showParts ? '' : undefined}>{t.ui.loadSchedule}</h3>
           <table className="ksheet__table">
             <thead data-pdf-block="keep">
               <tr>
@@ -70,25 +115,6 @@ export function KitSheet({ projectName, result: r, parts, include, date, t, loca
           </table>
         </section>
       )}
-
-      {include.parts && parts.length > 0 && (
-        <section>
-          <h3 className="ksheet__h" data-pdf-block="keep">{t.ui.incParts}</h3>
-          <table className="ksheet__table ksheet__parts">
-            <tbody>
-              {parts.map((p) => (
-                <tr key={p.id} data-pdf-block="">
-                  <th scope="row">{p.name}</th>
-                  <td><div>{p.spec}</div><div className="ksheet__note">{p.note}</div></td>
-                  <td className="ksheet__n ksheet__qty">{`×${p.qty}`}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
-
-      {include.notes && <p className="ksheet__fine" data-pdf-block="">{tr(t, 'fine', { dod })}</p>}
     </div>
   )
 }

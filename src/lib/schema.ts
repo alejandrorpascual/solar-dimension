@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { SIZING } from './catalog'
+import { RequesterSchema } from './requester'
 
 export const HOURS_MIN = 1
 export const HOURS_MAX = 72
@@ -24,6 +25,11 @@ export const ProjectSchema = z.object({
   batteryUnit: z.string().min(1).max(20).nullable().default(null),
   /** Milliseconds since epoch of the last edit on any device; the server only accepts writes that are not older than its copy. */
   updatedAt: z.number().int().nonnegative().default(0),
+  /**
+   * Who asked for the kit, printed on the spec sheet; null until added. A copy that no longer parses becomes null, so
+   * one bad field never makes the whole saved store unreadable.
+   */
+  requester: RequesterSchema.nullable().default(null).catch(null),
 })
 
 export const StoreSchema = z.object({
