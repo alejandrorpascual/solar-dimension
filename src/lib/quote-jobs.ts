@@ -7,7 +7,7 @@ export interface JobQuote extends QuoteView {
   /** Retries used; the verdict hides Retry at MAX_RETRIES. */
   retries: number
 }
-export interface JobFile { id: string; name: string; status: QuoteStatus }
+export interface JobFile { id: string; name: string; status: QuoteStatus; retries: number }
 export interface ProjectJobs {
   projectId: string; projectName: string
   files: JobFile[]
@@ -27,7 +27,7 @@ export function summarizeProject(projectId: string, projectName: string, quotes:
   const best = verdict?.best ? { name: verdict.best.name, optionLabel: verdict.best.optionLabel, total: verdict.best.total, currency: verdict.best.currency } : null
   return {
     projectId, projectName,
-    files: [...quotes].sort((a, b) => a.createdAt - b.createdAt).map((q) => ({ id: q.id, name: q.fileName, status: q.status })),
+    files: [...quotes].sort((a, b) => a.createdAt - b.createdAt).map((q) => ({ id: q.id, name: q.fileName, status: q.status, retries: q.retries })),
     total: quotes.length,
     done: quotes.length - pending,
     pending,

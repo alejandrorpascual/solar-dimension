@@ -23,7 +23,8 @@ export function HandoffDialog({ isOpen, onOpenChange, items, projectId, projectN
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set())
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({})
   const shown = items.filter((i) => !removed.has(i.key))
-  const statusOf = (it: UploadItem) => jobs?.files.find((f) => f.id === it.id)?.status ?? null
+  const fileOf = (it: UploadItem) => jobs?.files.find((f) => f.id === it.id) ?? null
+  const statusOf = (it: UploadItem) => fileOf(it)?.status ?? null
   const kept = shown.filter((i) => i.state !== 'rejected')
   const minutes = Math.max(1, Math.ceil((kept.length * SECONDS_PER_QUOTE) / 60))
   const summary = handoffSummary(t, shown.map((it) => handoffRowState(it, statusOf(it))))
@@ -75,7 +76,7 @@ export function HandoffDialog({ isOpen, onOpenChange, items, projectId, projectN
               {shown.length > 0 && (
                 <ul className="qhand">
                   {shown.map((it) => (
-                    <HandoffRow key={it.key} item={it} status={statusOf(it)} error={errors[it.key] ?? null}
+                    <HandoffRow key={it.key} item={it} file={fileOf(it)} error={errors[it.key] ?? null}
                       onRetry={() => void retry(it)()} onDelete={() => void remove(it)()} />
                   ))}
                 </ul>

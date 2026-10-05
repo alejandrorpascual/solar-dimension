@@ -19,6 +19,10 @@ describe('summarizeProject', () => {
     expect(s).toMatchObject({ total: 4, done: 3, pending: 1, failed: 1, needsReview: 1 })
     expect(s.files.map((f) => f.status)).toEqual(['ready', 'processing', 'failed', 'needs_review'])
   })
+  test("each file carries its retries, so the hand-off dialog can hide Retry once they're used up", () => {
+    const s = summarizeProject('p', 'Home', [jq('a', { status: 'failed', extraction: null, retries: 3 })], KIT, DEFAULT_MUSTS)
+    expect(s.files).toEqual([{ id: 'a', name: 'a.pdf', status: 'failed', retries: 3 }])
+  })
   test('names the best quote only once nothing is pending', () => {
     expect(summarizeProject('p', 'Home', [jq('a'), jq('b', { status: 'queued', extraction: null })], KIT, DEFAULT_MUSTS).best).toBeNull()
     expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).best).toEqual({ name: 'SolarTec Caribe', optionLabel: null, total: 6480, currency: 'USD' })
