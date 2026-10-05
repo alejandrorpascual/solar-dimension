@@ -4,7 +4,7 @@ import type { ApplianceLabels } from '../lib/catalog'
 import { APPLIANCE_CATEGORIES } from '../lib/catalog-schema'
 import type { Musts, Overrides } from '../lib/quote-items'
 import type { Requester } from '../lib/requester'
-import { QUOTE_STATUSES, type QuoteExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
+import { QUOTE_STATUSES, type StoredExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
 
 import { user } from './auth-schema'
 
@@ -79,7 +79,7 @@ export const quotes = pgTable(
     claimedAt: timestamp('claimed_at', { withTimezone: true }),
     modelUsed: text('model_used'),
     usage: jsonb('usage').$type<QuoteUsage[]>(),
-    extraction: jsonb('extraction').$type<QuoteExtraction>(),
+    extraction: jsonb('extraction').$type<StoredExtraction>(),
     overrides: jsonb('overrides').$type<Overrides>().notNull().default({}),
     totalOverride: doublePrecision('total_override'),
     error: text('error'),

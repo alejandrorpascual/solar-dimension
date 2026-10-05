@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { quotesEn } from '../src/i18n/quotes-en'
 import {
   cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth,
-  trashedPaths,
+  setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage } from './header'
@@ -558,4 +558,69 @@ test('on a phone, every card keeps its name, total, reason and gauge labels apar
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe cumple con tu kit por menos')
   if (isPhone) await expectZoneNamesApart(page)
   await page.screenshot({ path: testInfo.outputPath(`verdict-${testInfo.project.name}-es.png`), fullPage: true })
+})
+
+const SUNA_O1 = 'Option 1 of 2 · Inversor 3 kW · suna.pdf'
+const SUNA_O2 = 'Option 2 of 2 · Inversor 10 kW · suna.pdf'
+
+test('a quote that offers two systems shows a card for each, priced on its own, and asks for no total', async ({ page }) => {
+  await signUp(page)
+  await uploadQuotes(page, await Promise.all(['solartec', 'suna'].map(quotePdf)))
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  const suna = page.getByRole('article').filter({ hasText: 'SUNA M.P.' })
+  await expect(suna).toHaveCount(2)
+  const small = suna.filter({ hasText: SUNA_O1 })
+  const large = suna.filter({ hasText: SUNA_O2 })
+  await expect(small).toContainText('$2,600')
+  await expect(small).toContainText('unclear')
+  // Each option is sized on its own inverter, not on the quote's biggest.
+  await expect(small).toContainText('Inverter: 3,000 W against')
+  await expect(large).toContainText('$6,200')
+  await expect(large).toContainText('unclear')
+  await expect(large).toContainText('Inverter: 10.0 kW against 465 W needed')
+  await expect(page.getByLabel(quotesEn.totalInQuote)).toHaveCount(0)
+})
+
+test('a quote read before options can be read again, and then shows a card per option', async ({ page }) => {
+  // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
+  test.slow()
+  const email = await signUp(page)
+  await uploadQuotes(page, [await quotePdf('suna')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+  await page.goto(`/projects/${projectId}/quotes`)
+  await expect(page.getByText(SUNA_O2)).toBeVisible({ timeout: 30_000 })
+
+  await stripQuoteOptions(email, projectId)
+  await page.reload()
+  const row = page.getByRole('article').filter({ hasText: 'suna.pdf' })
+  await expect(row.getByText(quotesEn.noTotalHelp)).toBeVisible()
+  await row.getByRole('button', { name: quotesEn.readAgain }).click()
+
+  await expect(page.getByText(SUNA_O1)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(SUNA_O2)).toBeVisible()
+  expect(await quoteRetryStates(email, projectId)).toEqual([{ status: 'ready', retries: 1 }])
+})
+
+test('a ranked quote whose reading needs a check can be read again from its card', async ({ page }) => {
+  test.slow()
+  const email = await signUp(page)
+  await uploadQuotes(page, [await quotePdf('suna')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+  await page.goto(`/projects/${projectId}/quotes`)
+  await expect(page.getByText(SUNA_O2)).toBeVisible({ timeout: 30_000 })
+
+  // The old SUNA quote after the user typed its total: it ranks as one system, so only its card can offer the retry.
+  await stripQuoteOptions(email, projectId)
+  await setQuoteTotalOverride(email, projectId, 6200)
+  await page.reload()
+  await expect(page.getByText(SUNA_O1)).toHaveCount(0)
+  await page.getByRole('button', { name: quotesEn.readAgain }).click()
+
+  await expect(page.getByText(SUNA_O1)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(SUNA_O2)).toBeVisible()
 })

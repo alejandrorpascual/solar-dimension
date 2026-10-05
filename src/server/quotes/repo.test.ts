@@ -7,12 +7,16 @@ import { dbJobRepo, recoverStaleQuotes } from './repo'
 
 vi.mock('../../db/client', () => ({ db: { select: vi.fn(), update: vi.fn() } }))
 
-/** A query builder that resolves to `result` at the end of any chain of calls, and keeps the last `where` it got. */
-function chain(result: unknown, seen: { where?: SQL } = {}): unknown {
+/** A query builder that resolves to `result` at the end of any chain of calls, and keeps the last `where` and `set` it got. */
+function chain(result: unknown, seen: { where?: SQL; set?: Record<string, unknown> } = {}): unknown {
   const builder: Record<string, unknown> = {
     then: (ok: (v: unknown) => unknown, bad: (e: unknown) => unknown) => Promise.resolve(result).then(ok, bad),
   }
-  for (const m of ['from', 'orderBy', 'limit', 'set', 'returning']) builder[m] = () => builder
+  for (const m of ['from', 'orderBy', 'limit', 'returning']) builder[m] = () => builder
+  builder.set = (v: Record<string, unknown>) => {
+    seen.set = v
+    return builder
+  }
   builder.where = (w: SQL) => {
     seen.where = w
     return builder
@@ -23,6 +27,9 @@ function chain(result: unknown, seen: { where?: SQL } = {}): unknown {
 const stuck = (id: string, attempts: number): JobClock => ({
   id, status: 'processing', attempts, claimedAt: new Date(Date.now() - STALE_CLAIM_MS - 60_000), createdAt: new Date(0),
 })
+
+const FAILED_STATUS = `case when "quotes"."extraction" is not null then 'needs_review' else 'failed' end`
+const statusSql = (set: Record<string, unknown> | undefined): string => new PgDialect().sqlToQuery(set!.status as SQL).sql
 
 describe('recoverStaleQuotes', () => {
   afterEach(() => {
@@ -37,6 +44,15 @@ describe('recoverStaleQuotes', () => {
     expect(await recoverStaleQuotes('u1')).toEqual(['again'])
     expect(db.update).toHaveBeenCalledTimes(1)
     expect(errors).toHaveBeenCalledWith('[quotes] gave up on a stuck quote', { ids: ['spent'] })
+  })
+
+  test('giving up on a stuck quote that already has a reading leaves it to check, not failed', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const seen: { set?: Record<string, unknown> } = {}
+    vi.mocked(db.select).mockReturnValue(chain([stuck('spent', MAX_ATTEMPTS)]) as never)
+    vi.mocked(db.update).mockReturnValue(chain(undefined, seen) as never)
+    await recoverStaleQuotes('u1')
+    expect(statusSql(seen.set)).toBe(FAILED_STATUS)
   })
 
   test('nothing is failed or logged when no stuck quote is out of attempts', async () => {
@@ -65,6 +81,25 @@ describe('dbJobRepo.finish', () => {
     expect(text).toContain('"quotes"."attempts" = $')
     expect(text).toContain('"quotes"."claimed_at" = $')
     expect(params).toEqual(expect.arrayContaining(['q1', 'processing', 2, job.claimedAt]))
+  })
+
+  test('a failed read of a quote that already has a reading leaves it to check; a re-queue stays queued', async () => {
+    const seen: { set?: Record<string, unknown> } = {}
+    vi.mocked(db.update).mockReturnValue(chain([{ id: 'q1' }], seen) as never)
+    await dbJobRepo.finish(job, { status: 'failed', error: 'invalid', usage: [] })
+    expect(statusSql(seen.set)).toBe(FAILED_STATUS)
+    expect(seen.set).toMatchObject({ error: 'invalid', processedAt: expect.any(Date) })
+    await dbJobRepo.finish(job, requeue)
+    expect(seen.set).toMatchObject({ status: 'queued', processedAt: null })
+  })
+
+  test('a read that ends ready clears the typed total; one that needs review keeps it', async () => {
+    const seen: { set?: Record<string, unknown> } = {}
+    vi.mocked(db.update).mockReturnValue(chain([{ id: 'q1' }], seen) as never)
+    await dbJobRepo.finish(job, ready)
+    expect(seen.set).toHaveProperty('totalOverride', null)
+    await dbJobRepo.finish(job, { ...ready, status: 'needs_review' })
+    expect(seen.set).not.toHaveProperty('totalOverride')
   })
 
   test('reports a lost claim when no row matched', async () => {

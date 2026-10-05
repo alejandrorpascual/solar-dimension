@@ -16,8 +16,11 @@ export const TotalInput = z.object({ quoteId: QuoteId, total: z.number().positiv
 /** One must-have switched on or off. Each change saves only its own item, so two quick changes can't undo each other. */
 export const MustInput = z.object({ projectId: ProjectId, item: z.enum(ITEM_IDS), value: z.boolean() })
 
-/** Only a quote the model gave up on can be retried; a read one stays until it is deleted. */
-export const RETRYABLE: readonly QuoteStatus[] = ['failed']
+/**
+ * A quote the model gave up on can be retried, and one whose numbers need checking can be read again (a reading from
+ * before options, for one). A ready quote stays until it is deleted.
+ */
+export const RETRYABLE: readonly QuoteStatus[] = ['failed', 'needs_review']
 /** Retries are free against the monthly limit, so each quote gets only this many: each one can cost up to 4 model calls. */
 export const MAX_RETRIES = 3
 
@@ -27,7 +30,7 @@ export function canRetry(q: { status: QuoteStatus; retries: number }): boolean {
 }
 
 /**
- * What a failed quote's row offers: Retry, a note that its retries are used up, or nothing for an account that may not
+ * What a failed or needs-review quote's card offers: Retry, a note that its retries are used up, or nothing for an account that may not
  * start reads (the server would refuse the retry).
  */
 export function retryOffer(q: { status: QuoteStatus; retries: number }, canUseQuotes: boolean): 'retry' | 'used_up' | 'none' {

@@ -61,12 +61,16 @@ const ofKind = (x: QuoteExtraction, kind: LineKind, optional: boolean): QuoteLin
   x.lines.filter((l) => l.kind === kind && l.optional === optional)
 const sum = (ls: readonly QuoteLine[], f: (l: QuoteLine) => number): number => ls.reduce((a, l) => a + f(l), 0)
 const sourceOf = (ls: readonly QuoteLine[]): QuoteLine['source'] | null => ls[0]?.source ?? null
-const cheapest = (ls: readonly QuoteLine[]): number => Math.min(...ls.map((l) => l.lineTotal))
+/** The lowest price among the lines that have one: a bundled extra split into lines leaves its parts at 0. */
+const cheapestPriced = (ls: readonly QuoteLine[]): number | undefined => {
+  const prices = ls.map((l) => l.lineTotal).filter((p) => p > 0)
+  return prices.length > 0 ? Math.min(...prices) : undefined
+}
 
 /** No included line of `kind`: missing when the quote offers it only as an optional extra, otherwise unknown. */
 function absent(id: ItemId, x: QuoteExtraction, kind: LineKind): ItemCheck {
   const extras = ofKind(x, kind, true)
-  return extras.length ? check(id, 'missing', { optionalPrice: cheapest(extras) }, sourceOf(extras)) : check(id, 'unknown')
+  return extras.length ? check(id, 'missing', { optionalPrice: cheapestPriced(extras) }, sourceOf(extras)) : check(id, 'unknown')
 }
 
 function checkInverter(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
