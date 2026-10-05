@@ -27,3 +27,10 @@ test('applyChanges overlays local edits on a server list', () => {
   expect(deleted).toEqual([])
   expect(applyChanges(server, { upserts: [], deletes: [] })).toEqual(server)
 })
+
+test('a changed requester makes the project an upsert', () => {
+  const before = initialStore().projects
+  const requester = { kind: 'person', country: 'US', name: 'Ann Lee', contact: '', docPrefix: '', doc: '', phone: '', email: '', address: '' } as const
+  const after = patchCurrent(initialStore(), { requester }).projects
+  expect(diffProjects(before, after).upserts.map((p) => p.id)).toEqual([before[0]!.id])
+})
