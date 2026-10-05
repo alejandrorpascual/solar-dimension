@@ -39,7 +39,7 @@ Cells the requester left blank are left out. A new Include checkbox, "Datos del 
 ## Decisions
 
 - **Stored on the project.** A nullable `requester` on `Project` syncs to the account with the rest of the project, through a new nullable `jsonb` column on `projects`. Duplicating a project copies its requester; a new project starts with none.
-- **"Use in my other projects" is per device.** It writes the last saved requester to `localStorage` (`solar-dimension.requester.v1`). It never applies itself: it only fills the form when a project that has no requester opens it. Unticking the box and saving forgets it.
+- **"Use in my other projects" is per device and per account.** It writes the last saved requester to `localStorage` (`solar-dimension.requester.v1`) along with its owner (the account id, or null signed out), and only offers it back to that owner, so another account on a shared browser never sees it. It never applies itself: it only fills the form when a project that has no requester opens it. Unticking the box and saving forgets it.
 - **Tolerant parsing.** A requester that fails validation when the store loads becomes `null` (`.catch(null)`), so one bad field never drops every saved project.
 - **Native `<select>` for country and ID letter.** These are 3–4 option lists with nothing to compare, and the dialog may already sit over the phone rail sheet. The OS picker avoids a third layered popover. The grouped react-aria Select preference applies to option lists people compare (battery sizes).
 - **The dialog reuses the `.qdialog` styles.** It is centered on desktop and a bottom sheet on phones, and its z-index of 60 sits above the rail sheet's 50.
