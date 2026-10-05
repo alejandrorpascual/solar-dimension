@@ -178,3 +178,14 @@
 .ksheet__note { margin-top: 2px; font-size: 12px; color: var(--muted); }
 .ksheet__qty { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
 .ksheet__fine { font-size: 11px; line-height: 1.5; color: var(--muted); padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* The requester band: who asked for the kit, between the header and the summary figures. */
+.ksheet__client { display: flex; flex-direction: column; gap: 12px; margin-top: -6px; }
+.ksheet__client-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.ksheet__client-head .ksheet__h { margin-bottom: 0; }
+.ksheet__client-grid { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 24px; padding: 16px 20px; background: var(--ground); border-radius: 10px; }
+.ksheet__client-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ksheet__client-cell--double { grid-column: span 2; }
+.ksheet__client-cell--full { grid-column: 1 / -1; }
+.ksheet__client-cell .ksheet__lab { font-size: 10px; }
+.ksheet__client-cell dd { margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }

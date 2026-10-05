@@ -22,11 +22,12 @@ const FORMATS: ReadonlyArray<{ id: Format; name: 'fmtPdf' | 'fmtPng' | 'fmtCsv';
   { id: 'png', name: 'fmtPng', hint: 'fmtPngHint', action: 'downloadPng' },
   { id: 'csv', name: 'fmtCsv', hint: 'fmtCsvHint', action: 'downloadCsv' },
 ]
-const INCLUDES: ReadonlyArray<{ key: keyof ExportInclude; label: 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes'; inCsv: boolean }> = [
+const INCLUDES: ReadonlyArray<{ key: keyof ExportInclude; label: 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'; inCsv: boolean }> = [
   { key: 'summary', label: 'incSummary', inCsv: false },
   { key: 'appliances', label: 'incAppliances', inCsv: true },
   { key: 'parts', label: 'incParts', inCsv: true },
   { key: 'notes', label: 'incNotes', inCsv: false },
+  { key: 'requester', label: 'incRequester', inCsv: false },
 ]
 
 function csvFor(result: SizingResult, parts: Part[], include: ExportInclude, t: Dictionary): string {
@@ -45,7 +46,7 @@ function csvFor(result: SizingResult, parts: Part[], include: ExportInclude, t: 
 export function DownloadPanel({ project, result }: { project: Project; result: SizingResult }) {
   const { t, locale } = useLocale()
   const [format, setFormat] = useState<Format>('pdf')
-  const [include, setInclude] = useState<ExportInclude>({ summary: true, appliances: true, parts: true, notes: true })
+  const [include, setInclude] = useState<ExportInclude>({ summary: true, appliances: true, parts: true, notes: true, requester: true })
   const [status, setStatus] = useState<Status>('idle')
   const [canShare, setCanShare] = useState(false)
   const preview = usePreviewScale(SHEET_WIDTH, PREVIEW_MAX_HEIGHT)
@@ -101,7 +102,7 @@ export function DownloadPanel({ project, result }: { project: Project; result: S
         aria-hidden="true"
       >
         <div className="dl__scaler" style={{ transform: `scale(${preview.scale})` }}>
-          <KitSheet ref={preview.contentRef} projectName={project.name} result={result} parts={parts} include={include} date={fmtDate(new Date(), locale)} t={t} locale={locale} />
+          <KitSheet ref={preview.contentRef} projectName={project.name} result={result} parts={parts} requester={include.requester ? project.requester : null} include={include} date={fmtDate(new Date(), locale)} t={t} locale={locale} />
         </div>
       </div>
 

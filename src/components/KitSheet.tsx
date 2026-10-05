@@ -2,15 +2,17 @@ import type { Ref } from 'react'
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtHours, fmtInt, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
+import { requesterLines, type Requester } from '../lib/requester'
 import type { SizingResult } from '../lib/sizing'
 import type { Part } from './KitSummary'
 
-export interface ExportInclude { summary: boolean; appliances: boolean; parts: boolean; notes: boolean }
+export interface ExportInclude { summary: boolean; appliances: boolean; parts: boolean; notes: boolean; requester: boolean }
 
 interface Props {
   projectName: string
   result: SizingResult
   parts: Part[]
+  requester: Requester | null
   include: ExportInclude
   date: string
   t: Dictionary
@@ -23,7 +25,7 @@ interface Props {
  * and captures the same node for the PDF and the image, so the file matches what the preview showed.
  * `data-pdf-block` marks what a PDF page break must not cut; "keep" also holds it to the block after (headings).
  */
-export function KitSheet({ projectName, result: r, parts, include, date, t, locale, ref }: Props) {
+export function KitSheet({ projectName, result: r, parts, requester, include, date, t, locale, ref }: Props) {
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
   const totalWh = r.items.reduce((sum, i) => sum + i.wh, 0)
   return (
@@ -33,6 +35,23 @@ export function KitSheet({ projectName, result: r, parts, include, date, t, loca
         <h2 className="ksheet__title">{projectName}</h2>
         <p className="ksheet__sub">{`${r.volts} V ${t.chemistries[r.chemistry]} · ${tr(t, 'hoursShort', { hours: r.hours })}`}</p>
       </header>
+
+      {requester && (
+        <section className="ksheet__client" data-pdf-block="">
+          <div className="ksheet__client-head">
+            <h3 className="ksheet__h">{t.requester.bandTitle}</h3>
+            <span className="ksheet__lab">{`${t.requester[requester.kind]} · ${t.requester[`country${requester.country}`]}`}</span>
+          </div>
+          <dl className="ksheet__client-grid">
+            {requesterLines(requester).map((line) => (
+              <div key={line.label} className={`ksheet__client-cell ksheet__client-cell--${line.width}`}>
+                <dt className="ksheet__lab">{t.requester[line.label]}</dt>
+                <dd>{line.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       {include.summary && (
         <div className="ksheet__figs" data-pdf-block="">
