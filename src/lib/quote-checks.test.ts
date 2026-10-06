@@ -58,6 +58,26 @@ describe('optionPrices', () => {
   test('the SUNA quote prices its two kits', () => {
     expect(optionPrices(SAMPLE_QUOTES.suna)).toEqual([{ id: 'o1', total: 2600 }, { id: 'o2', total: 6200 }])
   })
+  describe('tax written for an option', () => {
+    const lines = [line('inverter', 1000, { option: 'a' }), line('inverter', 1100, { option: 'b' }), line('labor', 100)]
+    test('with no written total, the option is priced with its tax, so it ranks at what it costs', () => {
+      const x = extraction(lines, { options: [{ id: 'a', label: 'A', total: null, tax: 176 }, { id: 'b', label: 'B', total: 1200, tax: null }] })
+      expect(optionPrices(x)).toEqual([{ id: 'a', total: 1276 }, { id: 'b', total: 1200 }])
+    })
+    test('a written total already holds it: the tax is not added twice', () => {
+      const x = extraction(lines, { options: [{ id: 'a', label: 'A', total: 1276, tax: 176 }, { id: 'b', label: 'B', total: null, tax: null }] })
+      expect(optionPrices(x)).toEqual([{ id: 'a', total: 1276 }, { id: 'b', total: 1200 }])
+    })
+    test("the document's own tax is not spread over options: which one it belongs to is unknown", () => {
+      const x = extraction(lines, { options: opts(), subtotal: 1100, tax: 176 })
+      expect(optionPrices(x)).toEqual([{ id: 'a', total: 1100 }, { id: 'b', total: 1200 }])
+    })
+    test('tax alone never prices an option whose own lines carry no price', () => {
+      const unpriced = [line('inverter', 1000, { option: 'a' }), line('inverter', 0, { option: 'b' })]
+      const x = extraction(unpriced, { options: [{ id: 'a', label: 'A', total: null, tax: null }, { id: 'b', label: 'B', total: null, tax: 160 }] })
+      expect(optionPrices(x)).toEqual([{ id: 'a', total: 1000 }, { id: 'b', total: null }])
+    })
+  })
 })
 
 describe('checkExtraction with options', () => {

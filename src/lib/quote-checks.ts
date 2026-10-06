@@ -18,15 +18,18 @@ export const hasTotal = (n: number | null | undefined): n is number => typeof n 
 const includedSum = (lines: readonly QuoteLine[]): number => lines.filter((l) => !l.optional).reduce((a, l) => a + l.lineTotal, 0)
 
 /**
- * Each option's price: the total the document writes for it, else its own included lines plus the shared ones. An
- * option whose own lines carry no price has none: shared lines alone (installation, transport) don't price a system.
+ * Each option's price: the total the document writes for it, else its own included lines plus the shared ones, plus
+ * the tax written for that option, so an option stated as "subtotal + tax" ranks at what it costs. The document's own
+ * tax is not spread over options: which option it belongs to is unknown, and options are compared as written. An
+ * option whose own lines carry no price has none: shared lines or tax alone don't price a system.
  */
 export function optionPrices(x: QuoteExtraction): { id: string; total: number | null }[] {
   const shared = includedSum(x.lines.filter((l) => l.option === null))
   return x.options.map((o) => {
     if (hasTotal(o.total)) return { id: o.id, total: o.total }
     const own = includedSum(x.lines.filter((l) => l.option === o.id))
-    return { id: o.id, total: own > 0 ? own + shared : null }
+    const tax = hasTotal(o.tax) ? o.tax : 0
+    return { id: o.id, total: own > 0 ? own + shared + tax : null }
   })
 }
 
