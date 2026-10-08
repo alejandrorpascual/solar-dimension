@@ -10,6 +10,7 @@ import { KitStep } from '../components/KitStep'
 import { ProjectBar } from '../components/ProjectBar'
 import { RailSheet, SideRail, type RailTab } from '../components/SideRail'
 import type { Step } from '../components/Stepper'
+import { SolarStep } from '../components/solar/SolarStep'
 import { WizardFooter } from '../components/WizardFooter'
 import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
@@ -86,7 +87,7 @@ function KitBuilderPage() {
           {step === 3 && (
             <>
               <h2>{t.ui.q3}</h2>
-              {/* TODO Task 7: <SolarStep store={store} commit={commit} project={project} result={result} /> */}
+              <SolarStep store={store} commit={commit} project={project} result={result} />
             </>
           )}
           {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={() => go(1)} />}
