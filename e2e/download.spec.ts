@@ -35,6 +35,18 @@ test('the kit downloads as a CSV parts list and a PDF spec sheet', async ({ page
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
+test('the CSV parts list carries the solar parts when panels are chosen', async ({ page }) => {
+  await page.goto('/?step=3')
+  await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await showDownload(page)
+  const csv = await downloadAs(page, /^Parts list \(CSV\)/, 'Download CSV')
+  const text = await readFile((await csv.path())!, 'utf8')
+  expect(text).toContain('Solar panels')
+  expect(text).toContain('Charge controller')
+})
+
 test('export progress is visible while the file is being prepared', async ({ page }) => {
   await page.goto('/?step=4')
   await showDownload(page)

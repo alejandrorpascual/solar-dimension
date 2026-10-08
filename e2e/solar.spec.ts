@@ -1,0 +1,77 @@
+import { expect, test } from '@playwright/test'
+import { switchLanguage } from './header'
+
+test('a fresh project is battery-only and the step can be skipped', async ({ page }) => {
+  await page.goto('/?step=3')
+  await expect(page.getByRole('heading', { name: 'Do you have roof space for panels?' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^No, batteries only/ })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('group', { name: /Roof planner/ })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await expect(page.getByRole('rowheader', { name: /Solar panels/ })).toHaveCount(0)
+})
+
+test('the roof area fills the planner with the recommended panels, taps override it, and it survives a reload', async ({ page }) => {
+  await page.goto('/?step=3')
+  await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  const planner = page.getByRole('group', { name: /Roof planner/ })
+  // Home: 48 V 200 Ah = 9.6 kWh bank, 4.8 h → 5 panels; 40 m² holds 13.
+  await expect(planner.getByRole('button')).toHaveCount(13)
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(5)
+  await expect(page.getByText('Recommended · refills the bank in a day')).toBeVisible()
+  await expect(page.getByText(/^5 panels · 2\.8 kW$/)).toBeVisible()
+
+  await planner.getByRole('button', { name: 'Add panel 8' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(8)
+  await expect(page.getByRole('button', { name: 'Back to recommended · 5' })).toBeVisible()
+  await planner.getByRole('button', { name: 'Remove panel 3' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(2)
+
+  await page.getByRole('button', { name: 'Five square metres less' }).click()
+  await page.getByRole('button', { name: 'Five square metres less' }).click()
+  await expect(planner.getByRole('button')).toHaveCount(10)
+  await page.getByRole('button', { name: 'Back to recommended · 5' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(5)
+
+  await page.reload()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(5)
+  await expect(page.getByText('30 m²')).toBeVisible()
+})
+
+test('a small roof shows fewer tiles and the kit warns about it', async ({ page }) => {
+  await page.goto('/?step=3')
+  await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  const less = page.getByRole('button', { name: 'Five square metres less' })
+  for (let i = 0; i < 6; i++) await less.click()
+  await expect(page.getByText('10 m²')).toBeVisible()
+  await expect(page.getByRole('group', { name: /Roof planner/ }).getByRole('button')).toHaveCount(3)
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Your roof holds' })).toContainText('Your roof holds 3 panels')
+})
+
+test('sun hours change the recommendation and the flow', async ({ page }) => {
+  await page.goto('/?step=3')
+  await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  await page.getByLabel('Peak sun hours a day').fill('3')
+  await expect(page.getByRole('group', { name: /Roof planner/ }).getByRole('button', { pressed: true })).toHaveCount(8)
+  await expect(page.getByText(/^8 panels · 4\.4 kW$/)).toBeVisible()
+})
+
+test('the kit lists the solar parts and the CSV carries them', async ({ page }) => {
+  await page.goto('/?step=3')
+  await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  await expect(page.getByText('Solar recharge')).toBeVisible()
+  await expect(page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: /Solar panels/ }) })).toContainText('×5')
+  await expect(page.getByRole('rowheader', { name: /Charge controller/ })).toBeVisible()
+  await expect(page.getByText(/· 5 panels$/)).toBeVisible()
+})
+
+test('the step reads in Spanish', async ({ page }) => {
+  await page.goto('/?step=3')
+  await switchLanguage(page, 'Español')
+  await expect(page.getByRole('heading', { name: '¿Tienes espacio en el techo para paneles?' })).toBeVisible()
+  await page.getByRole('button', { name: /^Sí, agregar paneles/ }).click()
+  await expect(page.getByText('Recomendado · recarga el banco en un día')).toBeVisible()
+  await switchLanguage(page, 'English')
+})
