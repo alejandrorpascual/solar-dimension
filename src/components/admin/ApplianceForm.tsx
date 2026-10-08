@@ -122,7 +122,7 @@ export function ApplianceForm({
       <label className="admin__field">
         <span>Load kind</span>
         <select value={draft.kind} onChange={set('kind')} aria-invalid={!!errors.kind}>
-          <option value="">auto (from duty)</option>
+          <option value="">auto (derived)</option>
           {LOAD_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
         </select>
         {errors.kind && <small className="admin__error">{errors.kind}</small>}
@@ -130,7 +130,7 @@ export function ApplianceForm({
       <label className="admin__field">
         <span>Surge class</span>
         <select value={draft.surgeClass} onChange={set('surgeClass')} aria-invalid={!!errors.surgeClass}>
-          <option value="">auto (from surge ratio)</option>
+          <option value="">auto (derived)</option>
           {SURGE_CLASSES.map((k) => <option key={k} value={k}>{k}</option>)}
         </select>
         {errors.surgeClass && <small className="admin__error">{errors.surgeClass}</small>}

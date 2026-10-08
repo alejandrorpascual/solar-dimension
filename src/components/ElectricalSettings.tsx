@@ -53,7 +53,7 @@ export function CableConditions({ electrical: e, onChange }: Props) {
         </div>
         <div className="elec__field" role="group" aria-label={t.ui.ambientLabel}>
           <span className="elec__head">{t.ui.ambientLabel}</span>
-          <div className="hs presets">
+          <div className="elec__chips">
             {AMBIENTS.map((a) => (
               <button key={a} type="button" className={`chip${a === e.ambientC ? ' chip--on' : ''}`} aria-pressed={a === e.ambientC} onClick={() => onChange({ ambientC: a })}>
                 {t.ui[`ambient${a}`]}
