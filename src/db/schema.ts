@@ -2,8 +2,10 @@ import { sql } from 'drizzle-orm'
 import { check, date, doublePrecision, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import type { ApplianceLabels } from '../lib/catalog'
 import { APPLIANCE_CATEGORIES } from '../lib/catalog-schema'
+import { LOAD_KINDS, SURGE_CLASSES } from '../lib/catalog'
 import type { Musts, Overrides } from '../lib/quote-items'
 import type { Requester } from '../lib/requester'
+import type { Electrical } from '../lib/schema'
 import { QUOTE_STATUSES, type StoredExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
 
 import { user } from './auth-schema'
@@ -24,6 +26,10 @@ export const projects = pgTable(
     batteryUnit: text('battery_unit'),
     /** Who asked for the kit (printed on the spec sheet); null until added. Validated by RequesterSchema on read. */
     requester: jsonb('requester').$type<Requester>(),
+    /** Duty the user set per appliance id; `{}` when every appliance runs its catalog duty. */
+    dutyOverrides: jsonb('duty_overrides').$type<Record<string, number>>().notNull().default({}),
+    /** Starts and cable conditions; `{}` means every default. Validated by ElectricalSchema on read. */
+    electrical: jsonb('electrical').$type<Partial<Electrical>>().notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -31,6 +37,8 @@ export const projects = pgTable(
 )
 
 const categoryList = sql.raw(APPLIANCE_CATEGORIES.map((c) => `'${c}'`).join(', '))
+const kindList = sql.raw(LOAD_KINDS.map((k) => `'${k}'`).join(', '))
+const surgeClassList = sql.raw(SURGE_CLASSES.map((k) => `'${k}'`).join(', '))
 
 export const appliances = pgTable(
   'appliances',
@@ -43,6 +51,12 @@ export const appliances = pgTable(
     duty: doublePrecision('duty').notNull(),
     tons: doublePrecision('tons'),
     acType: text('ac_type'),
+    /** Load kind and surge class; null means the engine derives them from duty, surge and compressor type. */
+    kind: text('kind'),
+    surgeClass: text('surge_class'),
+    /** Momentary loads only: seconds per burst and bursts per hour. */
+    burstSeconds: doublePrecision('burst_seconds'),
+    cyclesPerHour: doublePrecision('cycles_per_hour'),
     labels: jsonb('labels').$type<ApplianceLabels>().notNull(),
     sortOrder: integer('sort_order').notNull(),
     retiredAt: timestamp('retired_at', { withTimezone: true }),
@@ -54,6 +68,9 @@ export const appliances = pgTable(
     check('appliances_category_check', sql`${t.category} in (${categoryList})`),
     check('appliances_surge_check', sql`${t.surge} >= ${t.watts}`),
     check('appliances_duty_check', sql`${t.duty} > 0 and ${t.duty} <= 1`),
+    check('appliances_kind_check', sql`${t.kind} is null or ${t.kind} in (${kindList})`),
+    check('appliances_surge_class_check', sql`${t.surgeClass} is null or ${t.surgeClass} in (${surgeClassList})`),
+    check('appliances_momentary_check', sql`(${t.kind} is not distinct from 'momentary') = (${t.burstSeconds} is not null and ${t.cyclesPerHour} is not null)`),
   ],
 )
 
