@@ -16,6 +16,7 @@ function toRecord(row: Row): ApplianceRecord | null {
   const parsed = ApplianceSchema.safeParse({
     id: row.id, category: row.category, watts: row.watts, surge: row.surge, duty: row.duty,
     tons: row.tons, acType: row.acType, labels: row.labels, sortOrder: row.sortOrder,
+    kind: row.kind, surgeClass: row.surgeClass, burstSeconds: row.burstSeconds, cyclesPerHour: row.cyclesPerHour,
   })
   if (!parsed.success) {
     console.error('[catalog] skipping invalid appliance row', { id: row.id, issues: parsed.error.issues })
@@ -49,6 +50,7 @@ export async function upsertAppliances(items: readonly ApplianceInput[], actor: 
       .insert(appliances)
       .values(toWrite.map((r) => ({
         id: r.id, category: r.category, watts: r.watts, surge: r.surge, duty: r.duty, tons: r.tons, acType: r.acType,
+        kind: r.kind ?? null, surgeClass: r.surgeClass ?? null, burstSeconds: r.burstSeconds ?? null, cyclesPerHour: r.cyclesPerHour ?? null,
         labels: r.labels, sortOrder: r.sortOrder, updatedBy: actor,
       })))
       .onConflictDoUpdate({
@@ -56,6 +58,7 @@ export async function upsertAppliances(items: readonly ApplianceInput[], actor: 
         set: {
           category: sql`excluded.category`, watts: sql`excluded.watts`, surge: sql`excluded.surge`, duty: sql`excluded.duty`,
           tons: sql`excluded.tons`, acType: sql`excluded.ac_type`, labels: sql`excluded.labels`, sortOrder: sql`excluded.sort_order`,
+          kind: sql`excluded.kind`, surgeClass: sql`excluded.surge_class`, burstSeconds: sql`excluded.burst_seconds`, cyclesPerHour: sql`excluded.cycles_per_hour`,
           updatedAt: sql`now()`, updatedBy: sql`excluded.updated_by`,
         },
       })

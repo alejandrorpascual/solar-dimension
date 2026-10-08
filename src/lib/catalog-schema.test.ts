@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'vitest'
 import { CATEGORIES } from './catalog'
-import { APPLIANCE_CATEGORIES, ApplianceSchema, applianceWarnings, idTakenMessage, parseItems, slugify, toCatalogItem, type ApplianceInput } from './catalog-schema'
-import { APPLIANCE_SEED, CATALOG_SNAPSHOT } from './catalog-snapshot'
+import { APPLIANCE_CATEGORIES, ApplianceSchema, applianceWarnings, idTakenMessage, momentaryDuty, parseItems, slugify, toCatalogItem, type ApplianceInput } from './catalog-schema'
+import { APPLIANCE_SEED, APPLIANCE_SEED_MOMENTARY, CATALOG_SNAPSHOT } from './catalog-snapshot'
 
 const stove: ApplianceInput = {
   id: 'induction-2', category: 'Kitchen', watts: 3500, surge: 3500, duty: 0.15, tons: null, acType: null,
+  kind: null, surgeClass: null, burstSeconds: null, cyclesPerHour: null,
   labels: { en: { name: '2-burner induction cooktop', note: '' }, es: { name: 'Anafe de inducción de 2 hornillas', note: '' } },
 }
+const gate: ApplianceInput = { ...stove, id: 'gate', category: 'Security', watts: 550, surge: 1650, duty: 0.033, kind: 'momentary', surgeClass: 'motor', burstSeconds: 20, cyclesPerHour: 6 }
 
 describe('ApplianceSchema', () => {
   test('accepts a valid appliance', () => {
@@ -32,6 +34,24 @@ describe('ApplianceSchema', () => {
   })
   test('rejects unknown keys', () => {
     expect(ApplianceSchema.safeParse({ ...stove, price: 10 }).success).toBe(false)
+  })
+  test('load kind and surge class default to null when a client omits them', () => {
+    const { kind: _k, surgeClass: _s, burstSeconds: _b, cyclesPerHour: _c, ...legacy } = stove
+    expect(ApplianceSchema.parse(legacy)).toEqual(stove)
+  })
+  test('accepts a momentary load with its bursts, and rejects half-described or impossible ones', () => {
+    expect(ApplianceSchema.safeParse(gate).success).toBe(true)
+    expect(ApplianceSchema.safeParse({ ...gate, cyclesPerHour: null }).success).toBe(false)
+    expect(ApplianceSchema.safeParse({ ...gate, kind: 'cycling' }).success).toBe(false)
+    expect(ApplianceSchema.safeParse({ ...stove, burstSeconds: 5 }).success).toBe(false)
+    expect(ApplianceSchema.safeParse({ ...gate, burstSeconds: 600, cyclesPerHour: 7 }).success).toBe(false)
+    expect(ApplianceSchema.safeParse({ ...gate, cyclesPerHour: 121 }).success).toBe(false)
+  })
+  test('a continuous kind needs duty 1, and a surge class needs a surge', () => {
+    expect(ApplianceSchema.safeParse({ ...stove, kind: 'continuous' }).success).toBe(false)
+    expect(ApplianceSchema.safeParse({ ...stove, kind: 'continuous', duty: 1 }).success).toBe(true)
+    expect(ApplianceSchema.safeParse({ ...stove, surgeClass: 'inrush' }).success).toBe(false)
+    expect(ApplianceSchema.safeParse({ ...stove, surge: 4000, surgeClass: 'inrush' }).success).toBe(true)
   })
   test('reserves custom-load-shaped ids with a specific message', () => {
     const result = ApplianceSchema.safeParse({ ...stove, id: 'custom12' })
@@ -78,6 +98,12 @@ describe('applianceWarnings', () => {
     expect(applianceWarnings({ ...stove, watts: 7000, surge: 7000 })).toHaveLength(1)
     expect(applianceWarnings({ ...stove, duty: 1 })).toHaveLength(1)
   })
+  test('flags a momentary duty far from what its bursts imply', () => {
+    expect(applianceWarnings(gate)).toEqual([])
+    expect(applianceWarnings({ ...gate, duty: 0.5 })).toHaveLength(1)
+    expect(momentaryDuty(gate)).toBeCloseTo(0.0333)
+    expect(momentaryDuty(stove)).toBeNull()
+  })
 })
 
 describe('idTakenMessage', () => {
@@ -110,11 +136,24 @@ describe('snapshot', () => {
     const ids = CATALOG_SNAPSHOT.map((a) => a.id)
     expect(ids.indexOf('ac1i')).toBe(ids.indexOf('heater') + 1)
   })
+  test('adds three momentary Security loads after the recorders, valid and in order', () => {
+    expect(APPLIANCE_SEED_MOMENTARY.map((r) => r.id)).toEqual(['gate-slide', 'gate-swing', 'barrier'])
+    for (const r of APPLIANCE_SEED_MOMENTARY) {
+      const input = Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'retired'))
+      expect(ApplianceSchema.safeParse(input).success, r.id).toBe(true)
+      expect(applianceWarnings(ApplianceSchema.parse(input)), r.id).toEqual([])
+    }
+    const ids = CATALOG_SNAPSHOT.map((a) => a.id)
+    expect(ids.slice(ids.indexOf('nvr32'), ids.indexOf('nvr32') + 5)).toEqual(['nvr32', 'gate-slide', 'gate-swing', 'barrier', 'cpap'])
+    expect(CATALOG_SNAPSHOT.find((a) => a.id === 'barrier')).toMatchObject({ kind: 'momentary', surgeClass: 'motor', burstSeconds: 4, cyclesPerHour: 30 })
+  })
   test('toCatalogItem maps a record to the engine shape, English name first', () => {
     const ac = CATALOG_SNAPSHOT.find((a) => a.id === 'ac2i')
     expect(ac).toMatchObject({ name: '2 ton AC · inverter', cat: 'Air conditioning', watts: 2200, surge: 2860, tons: 2, acType: 'inverter', retired: false })
     const fridge = toCatalogItem(APPLIANCE_SEED.find((r) => r.id === 'fridge')!)
     expect(fridge).not.toHaveProperty('tons')
     expect(fridge).not.toHaveProperty('acType')
+    expect(fridge).not.toHaveProperty('kind')
+    expect(fridge).not.toHaveProperty('surgeClass')
   })
 })

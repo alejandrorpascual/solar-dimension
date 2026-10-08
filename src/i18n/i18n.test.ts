@@ -24,6 +24,26 @@ describe('dictionaries', () => {
       expect(d.warnings.dominantLoad(p)).toContain('54')
     }
   })
+  test('the engineering-check warnings render their figures in both languages', () => {
+    const p = { surgeW: 9400, seconds: 3, ratedW: 7500, inverterW: 5000, needA: 463, maxA: 540, strings: 9, unitLabel: '12 V 200 Ah AGM', fuseA: 200, surgeA: 309, shortCircuitA: 21600, aicA: 20000, dropPct: 12.5, ambientC: 90 }
+    for (const d of [en, es]) {
+      expect(d.warnings.surgeDuration(p)).toContain('9,400')
+      expect(d.warnings.bankDischarge(p)).toContain('463')
+      expect(d.warnings.bankDischarge(p)).toContain('12 V 200 Ah AGM')
+      expect(d.warnings.bankPeak(p)).toContain('540')
+      expect(d.warnings.fuseAboveBank(p)).toContain('200 A')
+      expect(d.warnings.fuseAboveCable({ ...p, count: 6, maxA: 173 })).toContain('173')
+      expect(d.warnings.fuseSurge(p)).toContain('309')
+      expect(d.warnings.fuseInterrupt(p)).toContain('21,600')
+      expect(d.warnings.startupDrop(p)).toContain('12.5%')
+      expect(d.warnings.cableAmbient(p)).toContain('90 °C')
+    }
+  })
+  test('es has every kind and parallel note that en has', () => {
+    expect(Object.keys(es.kinds).sort()).toEqual(Object.keys(en.kinds).sort())
+    expect(Object.keys(es.parallelNotes).sort()).toEqual(Object.keys(en.parallelNotes).sort())
+    expect(Object.keys(es.parts).sort()).toEqual(Object.keys(en.parts).sort())
+  })
   test('highCurrent ends the sentence when there is no higher voltage to suggest', () => {
     const p = { amps: 463, volts: 48, nextVolts: null }
     for (const d of [en, es]) {

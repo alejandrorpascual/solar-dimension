@@ -764,4 +764,42 @@ export const APPLIANCE_SEED: readonly ApplianceRecord[] = [
   }
 ]
 
-export const CATALOG_SNAPSHOT: readonly CatalogItem[] = APPLIANCE_SEED.map(toCatalogItem)
+/**
+ * Momentary loads added by migration 0012: motors that run for seconds at a time. Their energy comes from the bursts;
+ * the stored duty only shows the same figure. Typical residential operators; confirm against a datasheet before
+ * changing them.
+ */
+export const APPLIANCE_SEED_MOMENTARY: readonly ApplianceRecord[] = [
+  {
+    id: 'gate-slide', category: 'Security', watts: 550, surge: 1650, duty: 0.033, tons: null, acType: null,
+    kind: 'momentary', surgeClass: 'motor', burstSeconds: 20, cyclesPerHour: 6,
+    labels: {
+      en: { name: 'Sliding gate motor', note: '~20 s per open or close, 6 an hour' },
+      es: { name: 'Motor de portón corredizo', note: '~20 s por apertura o cierre, 6 por hora' },
+    },
+    sortOrder: 342, retired: false,
+  },
+  {
+    id: 'gate-swing', category: 'Security', watts: 300, surge: 900, duty: 0.025, tons: null, acType: null,
+    kind: 'momentary', surgeClass: 'motor', burstSeconds: 15, cyclesPerHour: 6,
+    labels: {
+      en: { name: 'Swing gate motor', note: '~15 s per open or close, 6 an hour' },
+      es: { name: 'Motor de portón batiente', note: '~15 s por apertura o cierre, 6 por hora' },
+    },
+    sortOrder: 344, retired: false,
+  },
+  {
+    id: 'barrier', category: 'Security', watts: 150, surge: 450, duty: 0.033, tons: null, acType: null,
+    kind: 'momentary', surgeClass: 'motor', burstSeconds: 4, cyclesPerHour: 30,
+    labels: {
+      en: { name: 'Parking barrier', note: '4 s lifts, 30 an hour' },
+      es: { name: 'Barrera de estacionamiento', note: 'Subidas de 4 s, 30 por hora' },
+    },
+    sortOrder: 346, retired: false,
+  },
+]
+
+/** Every seeded appliance in sort order, as the engine sees it. */
+export const CATALOG_SNAPSHOT: readonly CatalogItem[] = [...APPLIANCE_SEED, ...APPLIANCE_SEED_MOMENTARY]
+  .sort((a, b) => a.sortOrder - b.sortOrder)
+  .map(toCatalogItem)

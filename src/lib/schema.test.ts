@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { SIZING } from './catalog'
-import { StoreSchema } from './schema'
+import { DEFAULT_ELECTRICAL, StoreSchema } from './schema'
 
 const project = { id: 'p1', name: 'Home', qty: { fridge: 1 }, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4' }
 
@@ -49,4 +49,27 @@ test('a saved requester with a malformed ID is dropped, and the project still lo
   const badRif = { kind: 'company', country: 'VE', name: 'Acme C.A.', contact: '', docPrefix: 'J', doc: '4012', phone: '', email: '', address: '' }
   const parsed = StoreSchema.parse({ version: 1, projects: [{ ...project, requester: badRif }], currentId: 'p1' })
   expect(parsed.projects[0]?.requester).toBeNull()
+})
+
+const parseOne = (patch: object) => StoreSchema.parse({ version: 1, projects: [{ ...project, ...patch }], currentId: 'p1' }).projects[0]!
+
+test('a project saved before duty overrides and electrical settings reads as the defaults', () => {
+  const p = parseOne({})
+  expect(p.dutyOverrides).toEqual({})
+  expect(p.electrical).toEqual(DEFAULT_ELECTRICAL)
+  expect(DEFAULT_ELECTRICAL).toEqual({ simultaneousStarts: 1, runLengthM: 1.5, ambientC: 30, bundled: false, insulationC: 90 })
+})
+
+test('duty overrides keep valid shares and are dropped whole when unreadable, without losing the project', () => {
+  expect(parseOne({ dutyOverrides: { fridge: 0.6, ac2c: 1 } }).dutyOverrides).toEqual({ fridge: 0.6, ac2c: 1 })
+  expect(parseOne({ dutyOverrides: { fridge: 2 } }).dutyOverrides).toEqual({})
+  expect(parseOne({ dutyOverrides: 'x' }).dutyOverrides).toEqual({})
+})
+
+test('a partial electrical object keeps the defaults for what it lacks, and a bad field falls back on its own', () => {
+  expect(parseOne({ electrical: { ambientC: 40 } }).electrical).toEqual({ ...DEFAULT_ELECTRICAL, ambientC: 40 })
+  expect(parseOne({ electrical: { simultaneousStarts: 'all', bundled: true, insulationC: 75, runLengthM: 10 } }).electrical)
+    .toEqual({ simultaneousStarts: 'all', runLengthM: 10, ambientC: 30, bundled: true, insulationC: 75 })
+  expect(parseOne({ electrical: { ambientC: 35, runLengthM: 99 } }).electrical).toEqual(DEFAULT_ELECTRICAL)
+  expect(parseOne({ electrical: 7 }).electrical).toEqual(DEFAULT_ELECTRICAL)
 })

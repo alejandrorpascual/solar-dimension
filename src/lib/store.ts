@@ -1,8 +1,10 @@
 import { SIZING } from './catalog'
-import { HOURS_MAX, HOURS_MIN, type CustomLoad, type Project, type Store } from './schema'
+import { DEFAULT_ELECTRICAL, HOURS_MAX, HOURS_MIN, type CustomLoad, type Electrical, type Project, type Store } from './schema'
 
 export const DEFAULT_QTY: Record<string, number> = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
 const DEFAULT_HOURS = 10
+/** The smallest duty a typed value can store; the engine applies its own floor too. */
+const DUTY_FLOOR = 0.01
 const ID_PREFIX = 'p'
 const SEED_ID = `${ID_PREFIX}1`
 const SEED_NAME = 'Home'
@@ -16,7 +18,10 @@ function nextId(projects: readonly Project[]): string {
 const now = (): number => Date.now()
 
 function newProject(projects: readonly Project[], name?: string, id: string = nextId(projects), updatedAt: number = now()): Project {
-  return { id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4', batteryUnit: null, requester: null, updatedAt }
+  return {
+    id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4',
+    batteryUnit: null, requester: null, dutyOverrides: {}, electrical: { ...DEFAULT_ELECTRICAL }, updatedAt,
+  }
 }
 
 /** The seed project is stamped 0 so server and client render the same first store, and so any saved copy outranks it. */
@@ -46,7 +51,10 @@ export function addProject(store: Store, name?: string): Store {
 
 export function duplicateProject(store: Store): Store {
   const src = currentProject(store)
-  const copy: Project = { ...src, id: nextId(store.projects), name: `${src.name} copy`, qty: { ...src.qty }, custom: [...src.custom], updatedAt: now() }
+  const copy: Project = {
+    ...src, id: nextId(store.projects), name: `${src.name} copy`, qty: { ...src.qty }, custom: [...src.custom],
+    dutyOverrides: { ...src.dutyOverrides }, electrical: { ...src.electrical }, updatedAt: now(),
+  }
   return { ...store, projects: [...store.projects, copy], currentId: copy.id }
 }
 
@@ -92,19 +100,43 @@ export function setHoursIn(store: Store, id: string, hours: number): Store {
   return patchProject(store, id, { hours: clampHours(hours) })
 }
 
+/** A duty as stored: a finite share of each hour, above 0 and at most 1. */
+export function clampDuty(n: number): number {
+  if (!Number.isFinite(n) || n <= 0) return DUTY_FLOOR
+  return Math.min(1, n)
+}
+
+/** Set an appliance's duty for one project; null puts the catalog value back. */
+export function setDutyIn(store: Store, id: string, itemId: string, duty: number | null): Store {
+  const p = store.projects.find((x) => x.id === id)
+  if (!p) return store
+  const { [itemId]: _dropped, ...rest } = p.dutyOverrides
+  return patchProject(store, id, { dutyOverrides: duty === null ? rest : { ...rest, [itemId]: clampDuty(duty) } })
+}
+
+export function setElectricalIn(store: Store, id: string, patch: Partial<Electrical>): Store {
+  const p = store.projects.find((x) => x.id === id)
+  if (!p) return store
+  return patchProject(store, id, { electrical: { ...p.electrical, ...patch } })
+}
+
 const activeQty = (qty: Record<string, number>) =>
   Object.entries(qty).filter(([, n]) => n > 0).sort(([a], [b]) => a.localeCompare(b))
+const sortedEntries = (o: Record<string, number>) => Object.entries(o).sort(([a], [b]) => a.localeCompare(b))
 
-/** Whether two versions of a project size the same kit: same window, same non-zero quantities, same custom loads. */
+/** Whether two versions of a project size the same kit: same window, same non-zero quantities, custom loads and duties. */
 export function hasSameLoads(a: Project, b: Project): boolean {
   return a.hours === b.hours
     && JSON.stringify(activeQty(a.qty)) === JSON.stringify(activeQty(b.qty))
     && JSON.stringify(a.custom.map((c) => c.id)) === JSON.stringify(b.custom.map((c) => c.id))
+    && JSON.stringify(sortedEntries(a.dutyOverrides)) === JSON.stringify(sortedEntries(b.dutyOverrides))
 }
 
-/** Undo quick edits: bring back a snapshot's loads and window, keeping anything else changed since (a rename). */
+/** Undo quick edits: bring back a snapshot's loads, duties and window, keeping anything else changed since (a rename). */
 export function restoreProject(store: Store, snapshot: Project): Store {
-  return patchProject(store, snapshot.id, { qty: { ...snapshot.qty }, custom: [...snapshot.custom], hours: snapshot.hours })
+  return patchProject(store, snapshot.id, {
+    qty: { ...snapshot.qty }, custom: [...snapshot.custom], hours: snapshot.hours, dutyOverrides: { ...snapshot.dutyOverrides },
+  })
 }
 
 export function addCustom(store: Store, item: CustomLoad): Store {
@@ -115,5 +147,6 @@ export function addCustom(store: Store, item: CustomLoad): Store {
 export function removeCustom(store: Store, itemId: string): Store {
   const p = currentProject(store)
   const { [itemId]: _dropped, ...qty } = p.qty
-  return patchCurrent(store, { custom: p.custom.filter((c) => c.id !== itemId), qty })
+  const { [itemId]: _duty, ...dutyOverrides } = p.dutyOverrides
+  return patchCurrent(store, { custom: p.custom.filter((c) => c.id !== itemId), qty, dutyOverrides })
 }

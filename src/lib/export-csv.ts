@@ -2,7 +2,7 @@ const BOM = '﻿'
 const EOL = '\r\n'
 const FALLBACK_NAME = 'kit'
 
-export interface CsvApplianceRow { name: string; qty: number; eachW: number; runningW: number; wh: number }
+export interface CsvApplianceRow { name: string; kind: string; qty: number; eachW: number; runningW: number; averageW: number; wh: number }
 export interface CsvPartRow { name: string; spec: string; note: string; qty: string }
 
 export interface CsvInput {
@@ -35,7 +35,7 @@ const line = (cells: ReadonlyArray<string | number>) => cells.map(csvCell).join(
 export function buildCsv(input: CsvInput): string {
   const blocks: string[][] = []
   if (input.include.appliances) {
-    blocks.push([line(input.headers.appliances), ...input.appliances.map((a) => line([a.name, a.qty, a.eachW, a.runningW, a.wh]))])
+    blocks.push([line(input.headers.appliances), ...input.appliances.map((a) => line([a.name, a.kind, a.qty, a.eachW, a.runningW, a.averageW, a.wh]))])
   }
   if (input.include.parts) {
     blocks.push([line(input.headers.parts), ...input.parts.map((p) => line([p.name, p.spec, p.note, p.qty]))])
