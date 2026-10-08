@@ -21,11 +21,16 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
     <div className="planner">
       <div className="planner__roof">
         <label className="lab" htmlFor={roofId}>{t.ui.roofSpace}</label>
-        <div className="planner__stepper">
-          <button type="button" className="planner__step" aria-label={t.ui.roofLess} disabled={s.roofM2 <= SOLAR.ROOF_RANGE[0]} onClick={() => onRoof(s.roofM2 - SOLAR.ROOF_STEP)}>−</button>
-          <output id={roofId} className="in num planner__roof-value" aria-live="polite">{`${s.roofM2} m²`}</output>
-          <button type="button" className="planner__step" aria-label={t.ui.roofMore} disabled={s.roofM2 >= SOLAR.ROOF_RANGE[1]} onClick={() => onRoof(s.roofM2 + SOLAR.ROOF_STEP)}>+</button>
-          <span className="muted planner__fits">{tr(t, s.fit === 1 ? 'roofFitsOne' : 'roofFitsMany', { panels: panelCount(t, s.fit) })} {t.ui.roofHint}</span>
+        <div className="planner__roof-row">
+          <div className="planner__stepper">
+            <button type="button" className="planner__step" aria-label={t.ui.roofLess} disabled={s.roofM2 <= SOLAR.ROOF_RANGE[0]} onClick={() => onRoof(s.roofM2 - SOLAR.ROOF_STEP)}>−</button>
+            <output id={roofId} className="in num planner__roof-value" aria-live="polite">{`${s.roofM2} m²`}</output>
+            <button type="button" className="planner__step" aria-label={t.ui.roofMore} disabled={s.roofM2 >= SOLAR.ROOF_RANGE[1]} onClick={() => onRoof(s.roofM2 + SOLAR.ROOF_STEP)}>+</button>
+          </div>
+          <p className="planner__fits">
+            <span className="planner__fits-line">{tr(t, s.fit === 1 ? 'roofFitsOne' : 'roofFitsMany', { panels: panelCount(t, s.fit) })}</span>
+            <span className="muted planner__fits-hint">{t.ui.roofHint}</span>
+          </p>
         </div>
       </div>
       <div className="planner__head">

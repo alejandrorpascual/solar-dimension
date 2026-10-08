@@ -1,16 +1,24 @@
-/* Step 3: panels or not, roof planner and the clear-day flow. Phones stack the two columns. */
+/* Step 3: panels or not, roof planner and the clear-day flow. Phones stack the two columns.
+   The roof block and the flow strip are container queries, so they lay out by the width they get, not the viewport. */
 .solar { display: flex; flex-direction: column; gap: 14px; }
 .solar__choice { max-width: 640px; }
 .solar__skipped { max-width: 640px; }
 .solar__cols { display: flex; flex-direction: column; gap: 20px; }
 .planner { display: flex; flex-direction: column; gap: 14px; }
-.planner__roof { display: flex; flex-direction: column; gap: 6px; }
-.planner__stepper { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.planner__roof { display: flex; flex-direction: column; gap: 6px; container-type: inline-size; }
+.planner__roof-row { display: flex; flex-direction: column; gap: 8px; }
+.planner__stepper { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .planner__step { width: var(--tap); height: var(--tap); border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 20px; font-weight: 600; flex-shrink: 0; }
 .planner__step:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .planner__step:disabled { color: var(--faint); }
 .planner__roof-value { width: auto; min-width: 120px; text-align: center; font-weight: 700; font-size: 18px; line-height: var(--tap); }
-.planner__fits { font-size: 13px; flex: 1 1 100%; }
+.planner__fits { margin: 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.planner__fits-line { font-size: 14px; font-weight: 600; color: var(--ink); }
+.planner__fits-hint { font-size: 13px; }
+/* A wide planner (stacked columns on a tablet) has room for the fit line beside the stepper. */
+@container (min-width: 640px) {
+  .planner__roof-row { flex-direction: row; align-items: center; gap: 16px; }
+}
 .planner__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12px; }
 .planner__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
 .tile { aspect-ratio: 1.13 / 2.28; min-height: var(--tap); border-radius: 6px; border: 1.5px dashed var(--line-strong); background: var(--ground); padding: 0; transition: background 120ms, border-color 120ms; }
@@ -25,15 +33,15 @@
 .planner__sun-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 600; }
 .planner__sun-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--accent); }
 .planner__hint { font-size: 12px; }
-.flow { display: flex; flex-direction: column; gap: 14px; }
-.flow__strip { display: grid; grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr) 24px minmax(0, 1fr) 24px minmax(0, 1fr); gap: 4px; align-items: center; }
-.flow__node { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; padding: 10px 6px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); min-width: 0; }
+.flow { display: flex; flex-direction: column; gap: 14px; container-type: inline-size; }
+.flow__strip { display: grid; grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr) 32px minmax(0, 1fr) 32px minmax(0, 1fr); gap: 6px; align-items: stretch; }
+.flow__node { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 12px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); min-width: 0; }
 .flow__node--sun { background: var(--sun-tint); border-color: var(--sun-line); color: var(--sun-ink); }
 .flow__node--bank { background: var(--accent-tint); border-color: #C9D3FF; color: var(--accent); }
-.flow__v { font-family: var(--font-display); font-size: 15px; font-weight: 700; line-height: 1.1; }
-.flow__s { font-size: 11px; color: var(--muted); }
+.flow__v { font-family: var(--font-display); font-size: 17px; font-weight: 700; line-height: 1.1; white-space: nowrap; }
+.flow__s { font-size: 11px; line-height: 1.3; color: var(--muted); text-wrap: balance; }
 .flow__panel { width: 34px; height: 22px; border-radius: 4px; background: var(--panel); background-image: linear-gradient(var(--panel-line) 1px, transparent 1px), linear-gradient(90deg, var(--panel-line) 1px, transparent 1px); background-size: 100% 50%, 33.4% 100%; }
-.flow__arrow { position: relative; height: 3px; border-radius: 2px; background: #E0A800; }
+.flow__arrow { position: relative; align-self: center; height: 3px; border-radius: 2px; background: #E0A800; }
 .flow__arrow::after { content: ''; position: absolute; right: -2px; top: -5px; border-left: 9px solid #E0A800; border-top: 6.5px solid transparent; border-bottom: 6.5px solid transparent; }
 .flow__arrow--ink { background: var(--accent); }
 .flow__arrow--ink::after { border-left-color: var(--accent); }
@@ -49,10 +57,19 @@
 .note-box--sun { background: var(--sun-tint); color: var(--sun-ink); }
 @media (min-width: 1024px) {
   .solar__cols { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px; align-items: start; }
-  .flow__strip { grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr) 64px minmax(0, 1fr) 64px minmax(0, 1fr); gap: 8px; }
-  .flow__node { padding: 14px 10px; border-radius: 14px; }
-  .flow__v { font-size: 20px; }
-  .flow__s { font-size: 12px; }
+  .flow__strip { grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr) 36px minmax(0, 1fr) 36px minmax(0, 1fr); gap: 8px; }
+  .flow__node { padding: 14px 6px; border-radius: 14px; }
+  .flow__v { font-size: 18px; }
   .cover__notes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .planner__fits { flex: 1; }
+}
+/* A narrow strip (phones) reads top to bottom: one row per node, a short down arrow with its label between rows. */
+@container (max-width: 500px) {
+  .flow__strip { display: flex; flex-direction: column; gap: 0; }
+  .flow__node { flex-direction: row; align-items: center; text-align: left; gap: 12px; padding: 12px 14px; border-radius: 14px; }
+  .flow__v { font-size: 20px; }
+  .flow__s { margin-left: auto; text-align: right; font-size: 12px; text-wrap: initial; }
+  .flow__arrow { align-self: flex-start; width: 3px; height: 22px; margin: 2px 0 2px 25px; }
+  .flow__arrow::after { right: auto; top: auto; left: -5px; bottom: -2px; border-top: 9px solid #E0A800; border-left: 6.5px solid transparent; border-right: 6.5px solid transparent; border-bottom: 0; }
+  .flow__arrow--ink::after { border-top-color: var(--accent); border-left-color: transparent; }
+  .flow__arrow-t { top: 50%; left: 14px; transform: translateY(-50%); }
 }
