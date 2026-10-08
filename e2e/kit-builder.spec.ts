@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { switchLanguage } from './header'
 import { hideProjects, showProjects } from './projects'
 
@@ -12,9 +12,13 @@ test('shell renders the stepper, a Home project and step navigation', async ({ p
   await expect(page).toHaveURL(/step=1|\/$/)
 })
 
+/** Web fonts swap in late on a cold CI browser and reflow the quick-edit rows; measure clicks after they settle. */
+const fontsReady = (page: Page) => page.evaluate(() => document.fonts.ready.then(() => undefined))
+
 test('moving between steps does not wait on the server', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+  await fontsReady(page)
   const serverCalls: string[] = []
   page.on('request', (r) => { if (r.url().includes('/_serverFn/')) serverCalls.push(r.url()) })
   await page.getByRole('button', { name: 'Next: backup window' }).click()
@@ -30,6 +34,7 @@ test('moving between steps does not wait on the server', async ({ page }) => {
 test('the kit edits appliances and the window in place, shows what moved, and undoes it', async ({ page }) => {
   await page.goto('/?step=3')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await fontsReady(page)
   const summary = page.getByText(/^Backs up \d+ appliances for/)
   await expect(summary).toContainText('for 10 hours')
   await page.getByRole('button', { name: /^Appliances · 6/ }).click()
@@ -272,6 +277,7 @@ test('the battery size can be chosen on the kit, is remembered, and Auto brings 
 test("a cycling appliance's on-time can be changed on the kit, moves the runtime, and is undone", async ({ page }) => {
   await page.goto('/?step=3')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await fontsReady(page)
   await page.getByRole('button', { name: /^Appliances · 6/ }).click()
   const panel = page.locator('.qedit__panel')
   await expect(panel.getByRole('heading', { level: 3 })).toHaveCount(0)
