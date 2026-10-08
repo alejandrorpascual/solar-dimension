@@ -49,6 +49,18 @@ describe('sizeMainCable', () => {
     expect(fixed.runs).toBe(1)
   })
 
+  test('adds a run when the fuse the top gauge needs would exceed what it carries, and warns when even six runs cannot', () => {
+    // 2 kW at 36 V in 50 °C air on 75 °C cable: 4/0 carries 172.5 A, under the 175 A fuse that one run would need.
+    const hot = { ...room, ambientC: 50, insulationC: 75 as const }
+    const r = sizeMainCable(2860 / 36 / 0.9 * 1.5, 300, 36, hot, GAUGES, FUSES, noBank)
+    expect(r.runs).toBe(2)
+    expect(r.fuse.a).toBeLessThanOrEqual(r.ampacity)
+    expect(r.warnings.map((w) => w.code)).not.toContain('fuseAboveCable')
+    const huge = sizeMainCable(1500, 3000, 12, hot, GAUGES, FUSES, noBank)
+    expect(huge.runs).toBe(6)
+    expect(huge.warnings.map((w) => w.code)).toContain('fuseAboveCable')
+  })
+
   test('warns on a start-up drop the inverter would not ride through, and on air too hot for any cable', () => {
     const far = sizeMainCable(90, 1800, 12, { ...room, runLengthM: 10 }, GAUGES, FUSES, noBank)
     expect(far.warnings.map((w) => w.code)).toContain('startupDrop')

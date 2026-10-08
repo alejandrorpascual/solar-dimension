@@ -32,6 +32,7 @@ describe('dictionaries', () => {
       expect(d.warnings.bankDischarge(p)).toContain('12 V 200 Ah AGM')
       expect(d.warnings.bankPeak(p)).toContain('540')
       expect(d.warnings.fuseAboveBank(p)).toContain('200 A')
+      expect(d.warnings.fuseAboveCable({ ...p, count: 6, maxA: 173 })).toContain('173')
       expect(d.warnings.fuseSurge(p)).toContain('309')
       expect(d.warnings.fuseInterrupt(p)).toContain('21,600')
       expect(d.warnings.startupDrop(p)).toContain('12.5%')

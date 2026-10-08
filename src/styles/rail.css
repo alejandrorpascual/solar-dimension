@@ -27,6 +27,7 @@
 .qedit__panel { display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: var(--radius-md); background: var(--ground); border: 1px solid var(--line); animation: qedit-open 160ms ease-out; }
 @keyframes qedit-open { from { opacity: 0; transform: translateY(-4px); } }
 .qedit__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 6px; }
+.qedit__row, .qedit__all { scroll-margin-bottom: 120px; }
 .qedit__row { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 8px 8px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
 .qedit__name { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .qedit__title { font-size: 15px; font-weight: 700; line-height: 1.2; }
@@ -184,7 +185,7 @@
 .ksheet__table tfoot .ksheet__note { font-weight: 400; }
 .ksheet__group th { padding: 14px 0 6px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
 .ksheet__checks { display: flex; flex-direction: column; }
-.ksheet__check { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #EEF0F4; font-size: 13px; }
+.ksheet__check { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid #EEF0F4; font-size: 13px; }
 .ksheet__check-name { font-weight: 700; }
 .ksheet__check--warn .ksheet__note { color: var(--warn-ink); }
 .ksheet__qty { font-family: var(--font-display); font-size: 18px; font-weight: 700; }

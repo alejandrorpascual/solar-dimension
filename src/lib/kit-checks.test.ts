@@ -46,6 +46,16 @@ describe('kitChecks', () => {
     expect(by.cable!.lines[0]).toContain('(30 °C · bundled)')
   })
 
+  test('with several runs the cable line reads per run', () => {
+    const custom = [{ id: 'custom1', name: 'Workshop', watts: 7000, surge: 7000, note: '' }]
+    const r = kit({ custom1: 1 }, { custom })
+    const cable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
+    expect(r.cable.runs).toBe(2)
+    expect(cable.status).toBe('pass')
+    expect(cable.lines[0]).toContain('2 × 1/0 AWG carries 150 A')
+    expect(cable.lines[0]).toContain('145 A design current per run')
+  })
+
   test('nothing to check for an empty kit', () => {
     expect(kitChecks(en, kit({}), 'en')).toEqual([])
   })

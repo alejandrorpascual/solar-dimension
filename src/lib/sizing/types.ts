@@ -179,7 +179,7 @@ export interface CablePick {
 
 export type WarningCode =
   | 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase'
-  | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseSurge' | 'fuseInterrupt' | 'startupDrop' | 'cableAmbient'
+  | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'startupDrop' | 'cableAmbient'
   | 'missingAppliances'
 
 export interface WarningParams {

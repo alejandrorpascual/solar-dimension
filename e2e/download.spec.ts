@@ -31,8 +31,7 @@ test('the kit downloads as a CSV parts list and a PDF spec sheet', async ({ page
   expect(pdf.suggestedFilename()).toBe('Home-kit.pdf')
   const bytes = await readFile((await pdf.path())!)
   expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-')
-  // Without the appliance list the checks still spill onto a second page.
-  expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
+  expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(1)
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
@@ -69,8 +68,6 @@ test('the parts list comes first, and the load schedule gets a PDF page of its o
   expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(2)
 
   await page.getByRole('checkbox', { name: 'Appliance list' }).uncheck()
-  expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(2)
-  await page.getByRole('checkbox', { name: 'Checks' }).uncheck()
   expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(1)
 })
 

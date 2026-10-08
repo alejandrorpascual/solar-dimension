@@ -26,11 +26,13 @@ export function surgeClassOf(item: CatalogItem): SurgeClass | null {
 
 /** The share of each hour the appliance runs: the user's override, the momentary burst math, or the catalog duty. */
 export function effectiveDuty(item: CatalogItem, overrides: Record<string, number>): { duty: number; overridden: boolean } {
+  const kind = loadKindOf(item)
   const override = overrides[item.id]
-  if (typeof override === 'number' && Number.isFinite(override)) {
+  // Only a cycling load takes an override: a saved one must not keep shrinking an appliance the catalog now calls continuous.
+  if (kind === 'cycling' && typeof override === 'number' && Number.isFinite(override)) {
     return { duty: clamp(override, SIZING.DUTY_MIN, 1), overridden: true }
   }
-  if (loadKindOf(item) === 'momentary' && item.burstSeconds && item.cyclesPerHour) {
+  if (kind === 'momentary' && item.burstSeconds && item.cyclesPerHour) {
     // Bursts can add up to well under the override floor: a barrier lifting 4 s thirty times an hour runs 3% of it.
     return { duty: Math.min(1, (item.burstSeconds * item.cyclesPerHour) / SECONDS_PER_HOUR), overridden: false }
   }

@@ -29,7 +29,7 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
     { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: batteriesNote, qty: String(b.count) },
     {
       id: 'mainCable', name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }),
-      note: tr(t, 'mainCableNote', { amps: fmtInt(c.designA, locale), ampacity: fmtInt(c.ampacity, locale), drop: c.startupDropPct }), qty: String(c.mainCount),
+      note: tr(t, 'mainCableNote', { amps: fmtInt(Math.round(c.designA / c.runs), locale), perRun: c.runs > 1 ? t.ui.perRun : '', ampacity: fmtInt(c.ampacity, locale), drop: c.startupDropPct }), qty: String(c.mainCount),
     },
     { id: 'interconnects', name: t.parts.interconnects, spec: tr(t, 'interconnectsSpec', { gauge: c.gauge, cm }), note: interconnectsNote, qty: String(c.seriesLinks + c.parallelLinks) },
     {

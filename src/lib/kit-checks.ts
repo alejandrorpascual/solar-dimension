@@ -12,7 +12,7 @@ export const CHECK_WARNINGS: Record<CheckId, readonly WarningCode[]> = {
   batteryContinuous: ['bankDischarge'],
   batteryPeak: ['bankPeak'],
   parallel: ['parallelStrings'],
-  fuse: ['fuseAboveBank', 'fuseSurge', 'fuseInterrupt'],
+  fuse: ['fuseAboveBank', 'fuseAboveCable', 'fuseSurge', 'fuseInterrupt'],
   cable: ['highCurrent', 'startupDrop', 'cableAmbient'],
 }
 const CHECKED_CODES = new Set<WarningCode>(Object.values(CHECK_WARNINGS).flat())
@@ -61,7 +61,8 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
       return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, startA: a(startupA / c.runs) })
     case 'cable':
       return tr(t, 'checkCableOk', {
-        gauge: c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '', designA: a(c.designA), drop: c.startupDropPct,
+        gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
+        designA: a(c.designA / c.runs), perRun: c.runs > 1 ? t.ui.perRun : '', drop: c.startupDropPct,
       })
   }
 }

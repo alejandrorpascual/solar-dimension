@@ -53,26 +53,33 @@ export function sizeMainCable(
   const designA = amps * SIZING.NEC_CONTINUOUS
   const last = gauges.length - 1
   const top = gauges[last]!
-  let runs = fixedRuns ?? 1
-  if (fixedRuns === undefined) {
-    while (runs < SIZING.MAX_RUNS && designA / runs > correctedAmpacity(top, cond, conductorsFor(cond, runs))) runs++
+  const sizeWithRuns = (runs: number) => {
+    const conductors = conductorsFor(cond, runs)
+    const perRun = amps / runs
+    const ampacityAt = (gi: number) => correctedAmpacity(gauges[gi]!, cond, conductors)
+    let gi = gauges.findIndex((_g, i) => ampacityAt(i) >= designA / runs)
+    if (gi < 0) gi = last
+    while (gi < last && dropPct(gauges[gi]!, perRun, cond.runLengthM, volts) > SIZING.MAX_DROP_PCT) gi++
+    const sized = pickFuse({
+      perRunA: perRun, surgePerRunA: surgeAmps / runs, surgeSeconds: protection.surgeSeconds, runs, volts,
+      ampacityAt, gaugeIndex: gi, lastGaugeIndex: last,
+      bankContinuousA: protection.bankContinuousA, bankShortCircuitA: protection.bankShortCircuitA, fuses,
+    })
+    return { runs, conductors, perRun, ampacityAt, sized }
   }
-  const conductors = conductorsFor(cond, runs)
-  const perRun = amps / runs
-  const designPerRun = designA / runs
-  const ampacityAt = (gi: number) => correctedAmpacity(gauges[gi]!, cond, conductors)
-
-  let gi = gauges.findIndex((_g, i) => ampacityAt(i) >= designPerRun)
-  if (gi < 0) gi = last
-  while (gi < last && dropPct(gauges[gi]!, perRun, cond.runLengthM, volts) > SIZING.MAX_DROP_PCT) gi++
-
-  const sized = pickFuse({
-    perRunA: perRun, surgePerRunA: surgeAmps / runs, surgeSeconds: protection.surgeSeconds, runs, volts,
-    ampacityAt, gaugeIndex: gi, lastGaugeIndex: last,
-    bankContinuousA: protection.bankContinuousA, bankShortCircuitA: protection.bankShortCircuitA, fuses,
-  })
+  // More runs until the design current fits the largest gauge and the fuse that protects it fits under that gauge too.
+  let attempt = sizeWithRuns(fixedRuns ?? 1)
+  if (fixedRuns === undefined) {
+    while (attempt.runs < SIZING.MAX_RUNS && (
+      designA / attempt.runs > correctedAmpacity(top, cond, conductorsFor(cond, attempt.runs)) || attempt.sized.fuse.a > attempt.ampacityAt(attempt.sized.gaugeIndex)
+    )) attempt = sizeWithRuns(attempt.runs + 1)
+  }
+  const { runs, conductors, perRun, ampacityAt, sized } = attempt
   const g = gauges[sized.gaugeIndex]!
   const warnings = [...sized.warnings]
+  if (sized.fuse.a > ampacityAt(sized.gaugeIndex)) {
+    warnings.push({ code: 'fuseAboveCable', params: { fuseA: sized.fuse.a, maxA: Math.round(ampacityAt(sized.gaugeIndex)), count: runs } })
+  }
   const startupDropPct = dropPct(g, surgeAmps / runs, cond.runLengthM, volts)
   if (startupDropPct > SIZING.MAX_STARTUP_DROP_PCT) {
     warnings.push({ code: 'startupDrop', params: { dropPct: Math.round(startupDropPct * 10) / 10 } })

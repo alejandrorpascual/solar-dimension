@@ -39,6 +39,10 @@ describe('effectiveDuty', () => {
     const halfGate = make({ duty: 0.5, kind: 'momentary' })
     expect(effectiveDuty(halfGate, {})).toEqual({ duty: 0.5, overridden: false })
   })
+  test('an override saved for an appliance that no longer cycles is ignored', () => {
+    expect(effectiveDuty(make({ duty: 1 }), { x: 0.25 })).toEqual({ duty: 1, overridden: false })
+    expect(effectiveDuty(make({ duty: 0.03, kind: 'momentary', burstSeconds: 20, cyclesPerHour: 6 }), { x: 0.5 })).toEqual({ duty: 120 / 3600, overridden: false })
+  })
 })
 
 describe('surgeProfile', () => {
