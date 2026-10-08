@@ -17,7 +17,7 @@ export interface ProjectSummary {
 
 export function computeProject(p: Project, appliances: readonly CatalogItem[]): SizingResult {
   return compute(
-    { qty: p.qty, custom: p.custom, hours: p.hours, volts: p.volts, chemistry: p.chemistry, batteryUnit: p.batteryUnit },
+    { qty: p.qty, custom: p.custom, hours: p.hours, volts: p.volts, chemistry: p.chemistry, batteryUnit: p.batteryUnit, solar: p.solar },
     appliances,
   )
 }

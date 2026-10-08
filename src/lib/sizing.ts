@@ -2,6 +2,7 @@ import {
   CHEMISTRIES, FUSES, GAUGES, INVERTERS, needsSplitPhase, SIZING, VOLTAGES,
   type CatalogItem, type Chemistry, type ChemistryId, type Inverter, type Voltage,
 } from './catalog'
+import { panelsToRefill, sizeSolar, type SolarChoice, type SolarPick } from './solar'
 
 export interface CustomLoadLike { id: string; name: string; watts: number; surge: number; note: string }
 
@@ -14,6 +15,7 @@ export interface SizingInput {
   runLengthM?: number
   /** A battery unit id such as "12-200" (volts-Ah); null or unavailable means the automatic pick. */
   batteryUnit?: string | null
+  solar?: SolarChoice | null
 }
 
 export interface SelectedItem extends CatalogItem { qty: number; totalWatts: number; wh: number }
@@ -33,10 +35,11 @@ export interface CablePick {
   mainCount: number; mainLengthM: number; seriesLinks: number; parallelLinks: number; linkLengthM: number
   totalLengthM: number; fuseA: number; dropPct: number
 }
-export type WarningCode = 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase' | 'missingAppliances'
+export type WarningCode = 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase' | 'missingAppliances' | 'roofLimited'
 export interface WarningParams {
   inverterW?: number; volts?: number; voltsList?: string; amps?: number; nextVolts?: number | null
   strings?: number; itemId?: string; itemName?: string; sharePct?: number; count?: number
+  fit?: number; need?: number
 }
 export interface Warning { code: WarningCode; params: WarningParams }
 export interface SizingResult {
@@ -45,7 +48,10 @@ export interface SizingResult {
   runningW: number; surgeW: number; largestSurgeName: string; largestSurgeId: string
   /** Duty-weighted energy over the window, and the average draw it implies (what the runtime is based on). */
   loadWh: number; averageW: number; requiredWh: number; requiredAh: number
-  inverter: InverterPick; battery: BatteryPick | null; cable: CablePick; warnings: Warning[]
+  inverter: InverterPick; battery: BatteryPick | null
+  /** The solar side, or null for a battery-only kit. */
+  solar: SolarPick | null
+  cable: CablePick; warnings: Warning[]
   batteryOptions: BatteryOption[]
   /** The unit actually used when it came from the user's choice; null when the automatic pick is in effect. */
   batteryUnit: string | null
@@ -205,6 +211,13 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[]):
   const chosen = candidates.find((c) => c.id === input.batteryUnit) ?? null
   const battery = toBatteryPick(chosen ?? auto, { chem, loadWh, hours })
   const cable = sizeCable(inverter.w, volts, runLengthM)
+  const averageW = Math.round(loadWh / hours)
+  // An empty project still gets a (smallest) bank from autoPick; panels for it would be nonsense, so size against 0.
+  const bankWh = items.length === 0 ? 0 : battery?.bankWh ?? 0
+  const solar = sizeSolar({ solar: input.solar ?? null, bankWh, volts, averageW })
+  const roofWarning: Warning[] = solar && items.length > 0 && solar.isRoofLimited
+    ? [{ code: 'roofLimited', params: { fit: solar.fit, need: panelsToRefill(bankWh, solar.sunHours) } }]
+    : []
   const seriesLinks = battery ? (battery.series - 1) * battery.parallel : 0
   const parallelLinks = battery ? 2 * (battery.parallel - 1) : 0
   const linkLengthM = SIZING.LINK_LENGTH_M
@@ -215,9 +228,10 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[]):
     count: sum(items, (i) => i.qty),
     hours, volts, chemistry: chem.id, chemistryLabel: chem.label,
     runningW, surgeW, largestSurgeName: largest?.name ?? '', largestSurgeId: largest?.id ?? '',
-    loadWh, averageW: Math.round(loadWh / hours), requiredWh: Math.round(requiredWh), requiredAh: Math.round(requiredAh),
+    loadWh, averageW, requiredWh: Math.round(requiredWh), requiredAh: Math.round(requiredAh),
     inverter: { w: inverter.w, surge: inverter.surge, volts: inverter.volts, voltsOk: inverterVoltsOk },
     battery,
+    solar,
     cable: {
       amps: Math.round(cable.amps), perRun: Math.round(cable.perRun), runs: cable.runs,
       gauge: cable.gauge, mm2: cable.mm2, ampacity: cable.ampacity,
@@ -228,6 +242,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[]):
     },
     warnings: [
       ...buildWarnings({ items, inverter, inverterVoltsOk, amps: cable.amps, volts, battery, loadWh }),
+      ...roofWarning,
       ...(missing > 0 ? [{ code: 'missingAppliances' as const, params: { count: missing } }] : []),
     ],
     batteryOptions: candidates.map((c) => ({
