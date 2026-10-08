@@ -34,6 +34,8 @@ export function KitSheet({ projectName, result: r, parts, requester, include, da
   const totalWh = r.items.reduce((sum, i) => sum + i.wh, 0)
   const showParts = include.parts && parts.length > 0
   const showAppliances = include.appliances && r.items.length > 0
+  /* The average draw the Wh over the window implies: the figure the app's summary shows under the running load. */
+  const averageDraw = tr(t, 'averageDraw', { w: fmtW(r.averageW, locale) })
   return (
     <div ref={ref} className="ksheet">
       <header className="ksheet__head" data-pdf-block="">
@@ -61,7 +63,10 @@ export function KitSheet({ projectName, result: r, parts, requester, include, da
 
       {include.summary && (
         <div className="ksheet__figs" data-pdf-block="">
-          <div><span className="ksheet__lab">{t.ui.runningLoad}</span><strong>{fmtW(r.runningW, locale)}</strong></div>
+          <div>
+            <span className="ksheet__lab">{t.ui.runningLoad}</span><strong>{fmtW(r.runningW, locale)}</strong>
+            {!r.empty && <span className="ksheet__note">{averageDraw}</span>}
+          </div>
           <div><span className="ksheet__lab">{t.ui.startupPeak}</span><strong>{fmtW(r.surgeW, locale)}</strong></div>
           <div><span className="ksheet__lab">{t.ui.batteryNeeded}</span><strong>{fmtKwh(r.requiredWh, locale)}</strong></div>
           <div className="ksheet__fig--accent"><span className="ksheet__lab">{t.ui.runtime}</span><strong>{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</strong></div>
@@ -109,7 +114,8 @@ export function KitSheet({ projectName, result: r, parts, requester, include, da
             <tfoot data-pdf-block="">
               <tr>
                 <td>{t.ui.total}</td><td className="ksheet__n">{r.count}</td><td />
-                <td className="ksheet__n">{fmtW(r.runningW, locale)}</td><td className="ksheet__n">{`${fmtInt(totalWh, locale)} Wh`}</td>
+                <td className="ksheet__n">{fmtW(r.runningW, locale)}<div className="ksheet__note">{averageDraw}</div></td>
+                <td className="ksheet__n">{`${fmtInt(totalWh, locale)} Wh`}</td>
               </tr>
             </tfoot>
           </table>
