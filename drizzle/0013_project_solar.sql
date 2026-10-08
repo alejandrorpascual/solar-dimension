@@ -1,1 +1,1 @@
-ALTER TABLE "projects" ADD COLUMN "solar" jsonb;
+ALTER TABLE "projects" ADD COLUMN IF NOT EXISTS "solar" jsonb;
