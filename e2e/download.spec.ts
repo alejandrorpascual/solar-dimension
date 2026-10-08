@@ -9,7 +9,7 @@ async function downloadAs(page: Page, format: RegExp, button: string): Promise<D
 }
 
 test('the kit downloads as a CSV parts list and a PDF spec sheet', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await showDownload(page)
 
@@ -36,7 +36,7 @@ test('the kit downloads as a CSV parts list and a PDF spec sheet', async ({ page
 })
 
 test('export progress is visible while the file is being prepared', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   // Hold the on-demand PDF library request to observe progress without a timing race.
   let release!: () => void
@@ -61,7 +61,7 @@ const pdfPageCount = async (file: Download) =>
   (await readFile((await file.path())!)).toString('latin1').match(/\/Type\s*\/Page\b/g)?.length ?? 0
 
 test('the parts list comes first, and the load schedule gets a PDF page of its own', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const sheet = page.locator('.ksheet').filter({ visible: true })
   await expect(sheet.locator('h3')).toHaveText(['Parts list', 'Load schedule'])
@@ -72,7 +72,7 @@ test('the parts list comes first, and the load schedule gets a PDF page of its o
 })
 
 test('the preview opens larger, page by page as the PDF prints, or as one image for PNG', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   await page.getByRole('button', { name: 'View larger' }).click()
   const view = page.getByRole('dialog', { name: 'Preview' })
@@ -98,7 +98,7 @@ test('the preview opens larger, page by page as the PDF prints, or as one image 
 })
 
 test('a CSV has no printed pages, so there is no larger view to open', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   await page.getByRole('radio', { name: /^Parts list \(CSV\)/ }).check()
   await expect(page.getByRole('button', { name: 'View larger' })).toHaveCount(0)

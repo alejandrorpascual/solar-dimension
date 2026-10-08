@@ -37,7 +37,7 @@ export async function signUp(page: Page, { verified = true }: { verified?: boole
 export async function uploadQuotes(
   page: Page, files: { name: string; mimeType: string; buffer: Buffer }[], label = 'Upload quotes', origin = '',
 ): Promise<void> {
-  await page.goto(`${origin}/?step=3`)
+  await page.goto(`${origin}/?step=4`)
   const button = page.getByRole('button', { name: label })
   await expect(button).toBeEnabled({ timeout: 15_000 })
   // The server-rendered button is enabled before the page hydrates, and a click before then opens nothing: click again

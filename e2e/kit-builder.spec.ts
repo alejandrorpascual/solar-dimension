@@ -18,6 +18,7 @@ test('moving between steps does not wait on the server', async ({ page }) => {
   const serverCalls: string[] = []
   page.on('request', (r) => { if (r.url().includes('/_serverFn/')) serverCalls.push(r.url()) })
   await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await expect(page.getByRole('button', { name: 'Build my kit' })).toBeVisible()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
@@ -28,7 +29,7 @@ test('moving between steps does not wait on the server', async ({ page }) => {
 })
 
 test('the kit edits appliances and the window in place, shows what moved, and undoes it', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   const summary = page.getByText(/^Backs up \d+ appliances for/)
   await expect(summary).toContainText('for 10 hours')
@@ -133,7 +134,7 @@ test('project names can be erased with backspace and replaced', async ({ page })
 })
 
 test('project cards show each kit and quick edit a project without opening it', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showProjects(page)
   await page.getByRole('button', { name: '+ New project' }).click()
   await hideProjects(page)
@@ -206,6 +207,7 @@ test('full flow: appliances → window → kit, and the project survives a reloa
   await page.getByRole('button', { name: 'Air conditioning' }).click()
   await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
   await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await expect(page.getByText('4,000 W pure sine, 48 V DC input')).toBeVisible()
@@ -245,6 +247,7 @@ test.describe('on a device whose preferred languages put Spanish first among the
 test('the battery size can be chosen on the kit, is remembered, and Auto brings back the fewest batteries', async ({ page }) => {
   await page.goto('/?step=2')
   await page.getByRole('button', { name: /^12 V/ }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   const trigger = page.getByRole('button', { name: /Battery size/ })
   const batteries = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Batteries' }) })
