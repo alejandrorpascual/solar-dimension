@@ -16,7 +16,7 @@ import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
 import { useRootData } from '../hooks/useRootData'
-import { batteryCount, tr, type Dictionary, type Locale } from '../i18n'
+import { batteryCount, panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { computeProject } from '../lib/project-summary'
 import { patchCurrent } from '../lib/store'
@@ -38,11 +38,11 @@ function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary,
   if (step === 2) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) })
   if (step === 3) {
     const base = { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) }
-    return r.solar ? tr(t, 'footerSolar', { ...base, panels: r.solar.panels, kw: fmtKw(r.solar.arrayW, locale) }) : tr(t, 'footerSolarNone', base)
+    return r.solar ? tr(t, 'footerSolar', { ...base, panels: panelCount(t, r.solar.panels), kw: fmtKw(r.solar.arrayW, locale) }) : tr(t, 'footerSolarNone', base)
   }
   if (r.empty || !r.battery) return t.ui.footerEmpty
   const base = { batteries: batteryCount(t, r.battery.count), inverter: fmtW(r.inverter.w, locale), gauge: r.cable.gauge }
-  return r.solar ? tr(t, 'footer4Solar', { ...base, panels: r.solar.panels }) : tr(t, 'footer3', base)
+  return r.solar ? tr(t, 'footer4Solar', { ...base, panels: panelCount(t, r.solar.panels) }) : tr(t, 'footer3', base)
 }
 
 function KitBuilderPage() {

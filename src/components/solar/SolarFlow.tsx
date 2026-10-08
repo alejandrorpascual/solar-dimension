@@ -1,6 +1,6 @@
 import { Battery, Home, Sun } from 'lucide-react'
 import { useLocale } from '../../hooks/useLocale'
-import { batteryCount, tr } from '../../i18n'
+import { batteryCount, panelCount, tr } from '../../i18n'
 import { fmtDecimal, fmtHours, fmtKw, fmtKwh, fmtW } from '../../i18n/format'
 import { SOLAR } from '../../lib/solar'
 import type { SizingResult } from '../../lib/sizing'
@@ -29,7 +29,7 @@ export function SolarFlow({ result: r }: Props) {
       <div className="flow__strip">
         <div className="flow__node flow__node--sun"><Sun size={26} aria-hidden="true" /><span className="num flow__v">{`${fmtDecimal(s.sunHours, 1, locale)} h`}</span><span className="flow__s">{t.ui.flowSun}</span></div>
         <div className="flow__arrow" aria-hidden="true" />
-        <div className="flow__node"><span className="flow__panel" aria-hidden="true" /><span className="num flow__v">{fmtKw(s.arrayW, locale)}</span><span className="flow__s num">{tr(t, 'flowPanels', { panels: s.panels })}</span></div>
+        <div className="flow__node"><span className="flow__panel" aria-hidden="true" /><span className="num flow__v">{fmtKw(s.arrayW, locale)}</span><span className="flow__s num">{panelCount(t, s.panels)}</span></div>
         <div className="flow__arrow" aria-hidden="true"><span className="num flow__arrow-t">{fmtKwh(s.dailyWh, locale)}</span></div>
         <div className="flow__node flow__node--bank"><Battery size={26} aria-hidden="true" /><span className="num flow__v">{fmtKwh(r.battery.bankWh, locale)}</span><span className="flow__s">{tr(t, 'flowBank', { volts: r.volts, batteries: batteryCount(t, r.battery.count) })}</span></div>
         <div className="flow__arrow flow__arrow--ink" aria-hidden="true"><span className="num flow__arrow-t">{fmtKwh(s.dailyUseWh, locale)}</span></div>

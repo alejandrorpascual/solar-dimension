@@ -2,19 +2,17 @@ import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { kitDeltas } from '../lib/kit-deltas'
 import { BatteryPicker } from './BatteryPicker'
-import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
+import { applianceName, panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtDecimal, fmtHours, fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
 import { SOLAR } from '../lib/solar'
-import type { SelectedItem, SizingResult, Warning } from '../lib/sizing'
+import { hasPanels, type SelectedItem, type SizingResult, type Warning } from '../lib/sizing'
 
 export interface Part { id: string; name: string; spec: string; note: string; qty: string; group?: 'solar' }
 
-const hasPanels = (r: SizingResult) => r.solar !== null && r.solar.panels > 0
-
 function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
+  if (!hasPanels(r)) return []
   const s = r.solar
-  if (!s || s.panels === 0) return []
   const strings = s.strings === 1 ? tr(t, 'stringsOne', { n: s.perString }) : tr(t, 'stringsMany', { strings: s.strings, n: s.perString })
   const panelW = `${SOLAR.PANEL_W} W`
   return [
@@ -22,14 +20,14 @@ function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
     { id: 'chargeController', group: 'solar', name: t.parts.chargeController, spec: tr(t, 'chargeControllerSpec', { amps: s.controllerA, voc: SOLAR.CONTROLLER_MAX_VOC, volts: r.volts }), note: tr(t, 'chargeControllerNote', { chargeA: fmtInt(s.chargeA, locale), stringVoc: s.stringVoc }), qty: String(s.controllers) },
     { id: 'pvCable', group: 'solar', name: t.parts.pvCable, spec: tr(t, 'pvCableSpec', { mm2: SOLAR.PV_CABLE.mm2, awg: SOLAR.PV_CABLE.awg, length: s.pvRunM }), note: t.ui.pvCableNote, qty: String(s.pvCablePairs) },
     { id: 'pvDisconnect', group: 'solar', name: t.parts.pvDisconnect, spec: tr(t, 'pvDisconnectSpec', { amps: s.breakerA }), note: t.ui.pvDisconnectNote, qty: String(s.controllers) },
-    { id: 'mounting', group: 'solar', name: t.parts.mounting, spec: tr(t, 'mountingSpec', { panels: s.panels }), note: t.ui.mountingNote, qty: '1' },
+    { id: 'mounting', group: 'solar', name: t.parts.mounting, spec: tr(t, 'mountingSpec', { panels: panelCount(t, s.panels) }), note: t.ui.mountingNote, qty: '1' },
   ]
 }
 
 /** The kit's fine print, shared by the screen and the sheet; a panel kit adds the solar assumptions. */
 export function finePrint(r: SizingResult, t: Dictionary, locale: Locale, dod: number): string {
   const base = tr(t, 'fine', { dod })
-  if (!r.solar || r.solar.panels === 0) return base
+  if (!hasPanels(r)) return base
   return base + tr(t, 'fineSolar', { w: `${SOLAR.PANEL_W} W`, sun: fmtDecimal(r.solar.sunHours, 1, locale) })
 }
 
@@ -140,7 +138,7 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
             <Delta text={d ? signed(d.runtimeH, (n) => fmtHours(n, locale)) : ''} />
           </div>
         </div>
-        {r.solar && hasPanels(r) && (
+        {hasPanels(r) && (
           <div className="stat stat--sun">
             <div className="lab">{t.ui.solarRecharge}</div>
             <div className="stat__row"><span className="stat__v num">{fmtKw(r.solar.arrayW, locale)}</span></div>

@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { useLocale } from '../../hooks/useLocale'
-import { tr } from '../../i18n'
+import { panelCount, tr } from '../../i18n'
 import { fmtDecimal, fmtKw } from '../../i18n/format'
 import { SOLAR, type SolarPick } from '../../lib/solar'
 
@@ -25,7 +25,7 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
           <button type="button" className="planner__step" aria-label={t.ui.roofLess} disabled={s.roofM2 <= SOLAR.ROOF_RANGE[0]} onClick={() => onRoof(s.roofM2 - SOLAR.ROOF_STEP)}>−</button>
           <output id={roofId} className="in num planner__roof-value" aria-live="polite">{`${s.roofM2} m²`}</output>
           <button type="button" className="planner__step" aria-label={t.ui.roofMore} disabled={s.roofM2 >= SOLAR.ROOF_RANGE[1]} onClick={() => onRoof(s.roofM2 + SOLAR.ROOF_STEP)}>+</button>
-          <span className="muted planner__fits">{tr(t, 'roofFits', { fit: s.fit })} {t.ui.roofHint}</span>
+          <span className="muted planner__fits">{tr(t, s.fit === 1 ? 'roofFitsOne' : 'roofFitsMany', { panels: panelCount(t, s.fit) })} {t.ui.roofHint}</span>
         </div>
       </div>
       <div className="planner__head">
@@ -42,9 +42,9 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
         })}
       </div>
       <div className="planner__count">
-        <span className="num planner__big">{tr(t, 'panelsLine', { panels: s.panels, kw: fmtKw(s.arrayW, locale) })}</span>
+        <span className="num planner__big">{tr(t, 'panelsLine', { panels: panelCount(t, s.panels), kw: fmtKw(s.arrayW, locale) })}</span>
         {s.isRecommended
-          ? <span className="planner__pill">{t.ui.recommendedPill}</span>
+          ? <span className="planner__pill">{s.isRoofLimited ? t.ui.recommendedPillLimited : t.ui.recommendedPill}</span>
           : <button type="button" className="chip" onClick={() => onPanels(null)}>{tr(t, 'backToRecommended', { n: s.recommended })}</button>}
       </div>
       <div className="planner__sun">

@@ -51,4 +51,15 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     const r = compute({ qty: DEFAULT_QTY, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: 0, sunHours: 5 } }, CATALOG_SNAPSHOT)
     expect(buildParts(r, t, locale).some((p) => p.group === 'solar')).toBe(false)
   })
+
+  test('a one-panel kit says "panel" in the mounting spec', () => {
+    const r = compute({ qty: DEFAULT_QTY, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-200', solar: { roofM2: 5, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    const mounting = buildParts(r, t, locale).find((p) => p.id === 'mounting')!
+    expect(mounting.spec).toBe(locale === 'es' ? 'Rieles de aluminio y grapas para 1 panel' : 'Aluminium rails and mid/end clamps for 1 panel')
+  })
+
+  test('an empty project has no solar rows even with panels chosen', () => {
+    const r = compute({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-200', solar: { roofM2: 40, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    expect(buildParts(r, t, locale).some((p) => p.group === 'solar')).toBe(false)
+  })
 })

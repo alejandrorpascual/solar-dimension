@@ -186,6 +186,10 @@ function missingCount(list: readonly CatalogItem[], qty: Record<string, number>)
   return Object.entries(qty).filter(([id, n]) => n > 0 && !known.has(id)).length
 }
 
+/** True when the kit has a solar array worth showing: panels chosen and at least one appliance. */
+export const hasPanels = (r: SizingResult): r is SizingResult & { solar: SolarPick } =>
+  r.solar !== null && r.solar.panels > 0 && !r.empty
+
 export function compute(input: SizingInput, appliances: readonly CatalogItem[]): SizingResult {
   const hours = clamp(finite(input.hours, 10), HOURS_RANGE[0], HOURS_RANGE[1])
   const volts: Voltage = VOLTAGES.includes(input.volts) ? input.volts : 48

@@ -36,7 +36,7 @@ test('the roof area fills the planner with the recommended panels, taps override
   await expect(page.getByText('10 m²')).toBeVisible()
   await expect(planner.getByRole('button')).toHaveCount(3)
   await expect(planner.getByRole('button', { pressed: true })).toHaveCount(3)
-  await expect(page.getByText('Recommended · refills the bank in a day')).toBeVisible()
+  await expect(page.getByText('Recommended · the most your roof fits')).toBeVisible()
   await expect(page.getByRole('button', { name: /^Back to recommended/ })).toHaveCount(0)
   for (let i = 0; i < 4; i++) await more.click()
   await expect(planner.getByRole('button')).toHaveCount(10)

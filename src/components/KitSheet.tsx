@@ -1,9 +1,9 @@
 import type { Ref } from 'react'
-import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
+import { applianceName, panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtHours, fmtInt, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
 import { requesterLines, type Requester } from '../lib/requester'
-import type { SizingResult } from '../lib/sizing'
+import { hasPanels, type SizingResult } from '../lib/sizing'
 import { finePrint, type Part } from './KitSummary'
 
 /** The sheet's width in CSS pixels: A4 at 96 dpi. The PDF, the PNG and every preview are cut from this layout. */
@@ -39,7 +39,7 @@ export function KitSheet({ projectName, result: r, parts, requester, include, da
       <header className="ksheet__head" data-pdf-block="">
         <div className="ksheet__kicker"><span>{t.ui.sheetTitle}</span><span>{date}</span></div>
         <h2 className="ksheet__title">{projectName}</h2>
-        <p className="ksheet__sub">{`${r.volts} V ${t.chemistries[r.chemistry]} · ${tr(t, 'hoursShort', { hours: r.hours })}${r.solar && r.solar.panels > 0 ? ` · ${tr(t, 'sheetPanels', { panels: r.solar.panels })}` : ''}`}</p>
+        <p className="ksheet__sub">{`${r.volts} V ${t.chemistries[r.chemistry]} · ${tr(t, 'hoursShort', { hours: r.hours })}${hasPanels(r) ? ` · ${panelCount(t, r.solar.panels)}` : ''}`}</p>
       </header>
 
       {requester && (
