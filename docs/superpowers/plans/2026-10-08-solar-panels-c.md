@@ -33,7 +33,7 @@
 | Default sun hours | 4.8 (Caracas, yearly average). Range 3–6.5 in 0.5 steps. |
 | Roof range | 5–500 m² in 5 m² steps. |
 | Strings | Up to 5 panels in series (248 V open circuit, under the 450 V controller limit). |
-| Charge controller | MPPT, 450 V max PV, from `[30, 40, 60, 80, 100]` A. Charge current = `arrayW / chargeV(volts)` with chargeV = 14.4 / 28.8 / 43.2 / 57.6. Over 100 A: two or more controllers, strings split between them, and **each controller gets at least one string** (`strings = max(ceil(panels / 5), controllers)`, `perString = ceil(panels / strings)`). |
+| Charge controller | MPPT, 450 V max PV, from `[30, 40, 60, 80, 100]` A. Charge current = `arrayW / chargeV(volts)` with chargeV = 14.4 / 28.8 / 43.2 / 57.6. Over 100 A: two or more controllers, strings split between them, sized from whole panels: a controller takes at most `floor(100 A × chargeV / 550 W)` panels, strings are cut evenly across controllers (at least one each), and the rating comes from the fullest controller. |
 | PV cable | 6 mm² (10 AWG) solar cable, one pair per string, 20 m each (`PV_RUN_M`). |
 | PV disconnect | One DC breaker per controller, ≥ 1.25 × Isc × strings on that controller, from `[16, 20, 25, 32, 40, 63]` A. |
 | URL for the kit | `?step=4`. Every e2e that visited `/?step=3` for the kit moves to `/?step=4`. |
@@ -1485,7 +1485,7 @@ git commit -m "test: e2e for the solar panels step and the solar parts in export
 
 ## Implementation notes (what changed while building this)
 
-- **Engine:** each charge controller needs its own string, so `sizeSolar` sets `strings = max(ceil(panels / 5), controllers)`; at 12 V four panels give two strings of two. The decisions table above was updated.
+- **Engine:** controllers are sized from whole panels (a controller takes at most `floor(100 A × chargeV / 550 W)` panels, 2 at 12 V and 10 at 48 V), strings are cut evenly across controllers with at least one each, and the rating comes from the fullest controller. At 12 V five panels need three controllers of 80 A, one string each. The decisions table above was updated.
 - **Tests that could not pass as written:** `roofM2: 2` clamps to the 5 m² minimum, which fits one panel. The Task 1 "no panels" test uses `bankWh: 0`; the Task 8 "zero panels" test uses `panels: 0`. `fmtKw(5500, 'es')` is `'5.5 kW'` (es-419 uses a dot).
 - **Step rename misses:** `src/components/quotes/VerdictView.tsx` (back-to-kit link) and `e2e/quotes.ts` (template-literal URL) also moved to step 4.
 - **Copy:** panel counts are pluralised through `panelCount` (`panelCountOne`/`panelCountMany`, `roofFitsOne`/`roofFitsMany`); `flowPanels`, `sheetPanels` and `roofUsed` were dropped. A roof-limited project shows `recommendedPillLimited` ("the most your roof fits") instead of promising a one-day refill. Mounting faces south (Caracas is at 10.5° N).

@@ -86,7 +86,8 @@ describe('sizeSolar', () => {
     expect(s.chargeA).toBe(229)
     expect(s.controllers).toBe(3)
     expect(s.controllerA).toBe(80)
-    expect(s.strings).toBe(5)
+    expect(s.strings).toBe(6)
+    expect(s.perString).toBe(4)
     expect(s.breakerA).toBe(40)
   })
 
@@ -103,14 +104,16 @@ describe('sizeSolar', () => {
     expect(s.breakerA).toBe(20)
   })
 
-  test('a second controller gets its own string even when the panel count fits one', () => {
-    // 5 × 550 / 14.4 = 191 A → 2 controllers; 5 panels would be 1 string, so 2 strings of 3
+  test('every controller gets its own string and is rated for the panels it carries', () => {
+    // 100 A at 14.4 V passes 2 panels, so 5 panels need 3 controllers (2 + 2 + 1), one string each; no controller sees more than 2 × 550 / 14.4 = 76 A
     const s = sizeSolar({ ...base, volts: 12, solar: { roofM2: 40, panels: 5, sunHours: 5 } })!
-    expect(s.controllers).toBe(2)
-    expect(s.strings).toBe(2)
-    expect(s.perString).toBe(3)
-    expect(s.stringVoc).toBe(149)
-    expect(s.pvCablePairs).toBe(2)
+    expect(s.controllers).toBe(3)
+    expect(s.controllerA).toBe(80)
+    expect(s.strings).toBe(3)
+    expect(s.perString).toBe(2)
+    expect(s.stringVoc).toBe(99)
+    expect(s.pvCablePairs).toBe(3)
+    expect(s.breakerA).toBe(20)
   })
 
   test('an uneven split rounds the string length up', () => {

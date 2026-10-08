@@ -16,12 +16,12 @@ export function SolarFlow({ result: r }: Props) {
   const { t, locale } = useLocale()
   const s = r.solar
   if (!s || !r.battery) return null
-  const axisWh = Math.max(AXIS_MIN_WH, Math.ceil(s.dailyWh / AXIS_STEP_WH) * AXIS_STEP_WH)
+  const axisWh = Math.max(AXIS_MIN_WH, Math.ceil(Math.max(s.dailyWh, s.dailyUseWh) / AXIS_STEP_WH) * AXIS_STEP_WH)
   const pct = (wh: number) => `${Math.min(PERCENT, Math.round((wh / axisWh) * PERCENT))}%`
   const clearNote = s.panels === 0
     ? t.ui.noPanelsYet
     : s.refillsInOneDay && s.refillHours !== null
-      ? tr(t, 'refillSameDay', { hours: fmtHours(s.refillHours, locale), spare: fmtKwh(Math.max(0, s.dailyWh - s.dailyUseWh), locale) })
+      ? tr(t, 'refillSameDay', { hours: fmtHours(s.refillHours, locale), spare: fmtKwh(Math.max(0, s.dailyWh - r.battery.bankWh), locale) })
       : tr(t, 'refillDays', { days: fmtDecimal(s.refillDays ?? 0, 1, locale) })
   return (
     <div className="flow">

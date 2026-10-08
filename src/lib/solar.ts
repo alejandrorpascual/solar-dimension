@@ -98,26 +98,32 @@ export function recommendedPanels(p: { bankWh: number; roofM2: number; sunHours:
 const pickRating = (ratings: readonly number[], need: number) => ratings.find((r) => r >= need) ?? ratings[ratings.length - 1]!
 
 /** Controllers needed for the array's charge current; each one is later given at least one string. */
-function sizeControllers(arrayW: number, volts: Voltage) {
-  if (arrayW === 0) return { chargeA: 0, controllers: 0, controllerA: 0 }
-  const chargeA = Math.round(arrayW / SOLAR.CHARGE_V[volts])
+/**
+ * Controllers, strings and the PV breaker from whole panels. A controller takes at most the panels its biggest
+ * rating can pass at the bank's charge voltage; strings are cut evenly across controllers (never fewer than one each);
+ * the rating comes from the fullest controller, not from the current split evenly.
+ */
+function sizeElectrical(panels: number, volts: Voltage) {
+  if (panels === 0) return { chargeA: 0, controllers: 0, controllerA: 0, strings: 0, perString: 0, breakerA: 0 }
+  const chargeV = SOLAR.CHARGE_V[volts]
   const maxA = SOLAR.CONTROLLER_AMPS[SOLAR.CONTROLLER_AMPS.length - 1]!
-  const controllers = Math.max(1, Math.ceil(chargeA / maxA))
-  const controllerA = pickRating(SOLAR.CONTROLLER_AMPS, chargeA / controllers)
-  return { chargeA, controllers, controllerA }
+  const panelsPerControllerMax = Math.max(1, Math.floor((maxA * chargeV) / SOLAR.PANEL_W))
+  for (let controllers = Math.ceil(panels / panelsPerControllerMax); ; controllers++) {
+    const stringsPerController = Math.ceil(Math.ceil(panels / controllers) / SOLAR.MAX_PER_STRING)
+    const strings = controllers * stringsPerController
+    const perString = Math.ceil(panels / strings)
+    const fullest = Math.min(panels, stringsPerController * perString)
+    if (fullest > panelsPerControllerMax && controllers < panels) continue
+    return {
+      chargeA: Math.round((panels * SOLAR.PANEL_W) / chargeV),
+      controllers,
+      controllerA: pickRating(SOLAR.CONTROLLER_AMPS, (fullest * SOLAR.PANEL_W) / chargeV),
+      strings,
+      perString,
+      breakerA: pickRating(SOLAR.BREAKERS, SOLAR.PANEL_ISC * stringsPerController * SOLAR.BREAKER_MARGIN),
+    }
+  }
 }
-
-/** Strings cut at the per-string cap, but never fewer than one per controller. */
-function sizeStrings(panels: number, controllers: number) {
-  if (panels === 0) return { strings: 0, perString: 0 }
-  const strings = Math.max(Math.ceil(panels / SOLAR.MAX_PER_STRING), controllers)
-  return { strings, perString: Math.ceil(panels / strings) }
-}
-
-const sizeBreaker = (strings: number, controllers: number) =>
-  controllers === 0
-    ? 0
-    : pickRating(SOLAR.BREAKERS, SOLAR.PANEL_ISC * Math.ceil(strings / controllers) * SOLAR.BREAKER_MARGIN)
 
 /** The solar side of the kit, or null when the project has no panels. Every input is clamped, never trusted. */
 export function sizeSolar(input: SolarInput): SolarPick | null {
@@ -136,8 +142,7 @@ export function sizeSolar(input: SolarInput): SolarPick | null {
   const dailyUseWh = Math.round(Math.max(0, finite(input.averageW, 0)) * HOURS_PER_DAY)
   const refillHours = arrayW > 0 ? bankWh / (arrayW * SOLAR.SYSTEM_EFF) : null
   const refillsInOneDay = refillHours !== null && refillHours <= sunHours
-  const electrical = sizeControllers(arrayW, input.volts)
-  const { strings, perString } = sizeStrings(panels, electrical.controllers)
+  const electrical = sizeElectrical(panels, input.volts)
 
   return {
     roofM2, sunHours, fit, recommended, panels,
@@ -152,11 +157,9 @@ export function sizeSolar(input: SolarInput): SolarPick | null {
     refillHours,
     refillsInOneDay,
     refillDays: refillHours === null ? null : refillsInOneDay ? null : bankWh / dailyWh,
-    strings, perString,
-    stringVoc: Math.round(perString * SOLAR.PANEL_VOC),
     ...electrical,
-    breakerA: sizeBreaker(strings, electrical.controllers),
-    pvCablePairs: strings,
+    stringVoc: Math.round(electrical.perString * SOLAR.PANEL_VOC),
+    pvCablePairs: electrical.strings,
     pvRunM: SOLAR.PV_RUN_M,
   }
 }
