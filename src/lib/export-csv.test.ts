@@ -2,8 +2,8 @@ import { describe, expect, test } from 'vitest'
 import { buildCsv, csvCell, exportFileName, type CsvInput } from './export-csv'
 
 const input = (include: CsvInput['include']): CsvInput => ({
-  headers: { appliances: ['Appliance', 'Qty', 'Each (W)', 'Running (W)', 'Wh over 10 h'], parts: ['Part', 'Specification', 'Note', 'Qty'] },
-  appliances: [{ name: 'Refrigerator', qty: 1, eachW: 150, runningW: 150, wh: 525 }],
+  headers: { appliances: ['Appliance', 'Kind', 'Qty', 'Each (W)', 'Running (W)', 'Average (W)', 'Wh over 10 h'], parts: ['Part', 'Specification', 'Note', 'Qty'] },
+  appliances: [{ name: 'Refrigerator', kind: 'Cycles on and off', qty: 1, eachW: 150, runningW: 150, averageW: 53, wh: 525 }],
   parts: [{ name: 'Fuse', spec: '80 A class T', note: 'Inline, close to the bank', qty: '1' }],
   include,
 })
@@ -34,8 +34,8 @@ describe('buildCsv', () => {
     const csv = buildCsv(input({ appliances: true, parts: true }))
     expect(csv.startsWith('﻿')).toBe(true)
     expect(csv.slice(1).split('\r\n')).toEqual([
-      'Appliance,Qty,Each (W),Running (W),Wh over 10 h',
-      'Refrigerator,1,150,150,525',
+      'Appliance,Kind,Qty,Each (W),Running (W),Average (W),Wh over 10 h',
+      'Refrigerator,Cycles on and off,1,150,150,53,525',
       '',
       'Part,Specification,Note,Qty',
       'Fuse,80 A class T,"Inline, close to the bank",1',

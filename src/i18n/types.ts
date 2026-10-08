@@ -1,6 +1,6 @@
-import type { Category, ChemistryId, Voltage } from '../lib/catalog'
+import type { Category, ChemistryId, LoadKind, Voltage } from '../lib/catalog'
 import type { ItemId } from '../lib/quote-items'
-import type { WarningCode, WarningParams } from '../lib/sizing'
+import type { ParallelNote, WarningCode, WarningParams } from '../lib/sizing'
 import type { quotesEn } from './quotes-en'
 import type { requesterEn } from './requester-en'
 
@@ -13,7 +13,11 @@ export interface Dictionary {
   chemistries: Record<ChemistryId, string>
   voltageHints: Record<Voltage, string>
   warnings: Record<WarningCode, (p: WarningParams) => string>
-  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'fuse', string>
+  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'fuse' | 'stringFuses', string>
+  /** Load kinds as the schedule groups them. */
+  kinds: Record<LoadKind, string>
+  /** Installation notes a bank with parallel strings carries. */
+  parallelNotes: Record<ParallelNote, string>
   privacy: LegalPage
   terms: LegalPage
   quotes: Record<QuoteKey, string>
@@ -58,6 +62,18 @@ export type UiKey =
   | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'
   | 'downloadPdf' | 'downloadPng' | 'downloadCsv' | 'share' | 'making' | 'downloadReady' | 'exportFailed'
   | 'sheetTitle' | 'loadSchedule' | 'appliance' | 'each' | 'overHours' | 'total' | 'note' | 'eachW' | 'runningWatts' | 'whOver'
+  | 'average' | 'averageWatts' | 'kind'
+  | 'runsLabel' | 'dutyOf' | 'dutyOption' | 'dutyTypical' | 'dutyNonstop'
+  | 'startsLabel' | 'startsOne' | 'startsOneHelp' | 'startsTwo' | 'startsTwoHelp' | 'startsAll' | 'startsAllHelp'
+  | 'cableRun' | 'cableSummary' | 'cableBundledShort' | 'runLength' | 'ambientLabel' | 'ambient30' | 'ambient40' | 'ambient50'
+  | 'bundledLabel' | 'bundledHelp' | 'insulationLabel' | 'insulation75' | 'insulation90'
+  | 'runtimeRange'
+  | 'checks' | 'incChecks' | 'checkPass' | 'checkWarn'
+  | 'checkSurge' | 'checkSurgeOk' | 'checkSurgeContributors' | 'checkBatteryContinuous' | 'checkBatteryContinuousOk'
+  | 'checkBatteryPeak' | 'checkBatteryPeakOk' | 'checkParallel' | 'checkParallelOk' | 'checkParallelSingle'
+  | 'checkFuse' | 'checkFuseOk' | 'checkCable' | 'checkCableOk'
+  | 'fuseAicNote' | 'stringFuseSpec' | 'stringFuseNote' | 'batteriesCurrentNote'
+  | 'fineStartsOne' | 'fineStartsTwo' | 'fineStartsAll' | 'fineBundled'
 
 export type QuoteKey = keyof typeof quotesEn
 export type RequesterKey = keyof typeof requesterEn
