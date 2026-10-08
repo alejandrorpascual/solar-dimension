@@ -48,6 +48,20 @@ describe('dictionaries', () => {
     expect(en.privacy.sections[0]?.body).toContain('client details for the spec sheet')
     expect(es.privacy.sections[0]?.body).toContain('datos del solicitante para la ficha')
   })
+  test('the roof warning names what fits and what is needed in both languages', () => {
+    expect(en.warnings.roofLimited({ fit: 6, need: 10 })).toContain('6')
+    expect(en.warnings.roofLimited({ fit: 6, need: 10 })).toContain('10')
+    expect(es.warnings.roofLimited({ fit: 6, need: 10 })).toContain('caben 6')
+  })
+  test('every part the kit can list has a name in both languages', () => {
+    const keys = ['inverter', 'batteries', 'mainCable', 'interconnects', 'fuse', 'solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'] as const
+    for (const d of [en, es]) for (const k of keys) expect(d.parts[k]).toBeTruthy()
+  })
+  test('the four steps are named in both languages', () => {
+    expect(en.ui.step3).toBe('Solar panels')
+    expect(en.ui.step4).toBe('Your kit')
+    expect(es.ui.step4).toBe('Tu kit')
+  })
 })
 
 describe('batteryCount', () => {
@@ -71,7 +85,7 @@ describe('isLocale', () => {
 
 describe('tr', () => {
   test('replaces placeholders and blanks missing params', () => {
-    expect(tr(en, 'stepOf', { n: 2 })).toBe('Step 2 of 3')
+    expect(tr(en, 'stepOf', { n: 2 })).toBe('Step 2 of 4')
     expect(tr(es, 'kitFor', { name: 'Casa' })).toBe('Kit para Casa')
     expect(tr(en, 'kitFor')).toBe('Kit for ')
     expect(tr(en, 'back')).toBe('Back')

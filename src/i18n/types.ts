@@ -13,7 +13,7 @@ export interface Dictionary {
   chemistries: Record<ChemistryId, string>
   voltageHints: Record<Voltage, string>
   warnings: Record<WarningCode, (p: WarningParams) => string>
-  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'fuse', string>
+  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'fuse' | 'solarPanels' | 'chargeController' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
   privacy: LegalPage
   terms: LegalPage
   quotes: Record<QuoteKey, string>
@@ -30,7 +30,7 @@ export interface Dictionary {
 export interface LegalPage { title: string; updated: string; sections: readonly { heading: string; body: string }[] }
 
 export type UiKey =
-  | 'step1' | 'step2' | 'step3' | 'stepOf'
+  | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
   | 'q1' | 'q1Help' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'
   | 'search' | 'nothingMatches' | 'sectionAdded' | 'add' | 'addOne' | 'qtyOf' | 'removeOne' | 'remove'
@@ -58,6 +58,15 @@ export type UiKey =
   | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'
   | 'downloadPdf' | 'downloadPng' | 'downloadCsv' | 'share' | 'making' | 'downloadReady' | 'exportFailed'
   | 'sheetTitle' | 'loadSchedule' | 'appliance' | 'each' | 'overHours' | 'total' | 'note' | 'eachW' | 'runningWatts' | 'whOver'
+  | 'q3' | 'q3Help' | 'solarNo' | 'solarNoHelp' | 'solarYes' | 'solarYesHelp' | 'solarSkipped'
+  | 'roofSpace' | 'roofLess' | 'roofMore' | 'roofFits' | 'roofHint' | 'plannerLabel' | 'plannerTile' | 'addPanel' | 'removePanel'
+  | 'panelsLine' | 'roofUsed' | 'recommendedPill' | 'backToRecommended' | 'sunHours' | 'sunHint'
+  | 'clearDay' | 'flowSun' | 'flowPanels' | 'flowBank' | 'flowHome' | 'coverFull' | 'coverPart' | 'coverAxis'
+  | 'refillSameDay' | 'refillDays' | 'noPanelsYet' | 'cloudyDay' | 'cloudyNote' | 'solarAssumptions'
+  | 'solarRecharge' | 'solarRechargeSub' | 'nextSolar' | 'footerSolar' | 'footerSolarNone' | 'footer4Solar'
+  | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'pvCableSpec' | 'pvCableNote'
+  | 'pvDisconnectSpec' | 'pvDisconnectNote' | 'mountingSpec' | 'mountingNote' | 'solarTag' | 'fineSolar' | 'sheetPanels'
+  | 'stringsOne' | 'stringsMany'
 
 export type QuoteKey = keyof typeof quotesEn
 export type RequesterKey = keyof typeof requesterEn
