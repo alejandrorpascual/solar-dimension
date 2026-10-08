@@ -65,7 +65,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
 
   const result = computeProject(data.project, catalog)
   const back = (
-    <Link className="qlink qv__back" to="/" search={{ step: 3 }}>
+    <Link className="qlink qv__back" to="/" search={{ step: 4 }}>
       <ArrowLeft size={16} aria-hidden="true" />{trq(t, 'backToKit', { project: data.project.name })}
     </Link>
   )
