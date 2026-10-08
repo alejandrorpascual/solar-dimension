@@ -16,8 +16,13 @@ export interface ProjectSummary {
 }
 
 export function computeProject(p: Project, appliances: readonly CatalogItem[]): SizingResult {
+  const e = p.electrical
   return compute(
-    { qty: p.qty, custom: p.custom, hours: p.hours, volts: p.volts, chemistry: p.chemistry, batteryUnit: p.batteryUnit, solar: p.solar },
+    {
+      qty: p.qty, custom: p.custom, hours: p.hours, volts: p.volts, chemistry: p.chemistry, batteryUnit: p.batteryUnit,
+      dutyOverrides: p.dutyOverrides, solar: p.solar, simultaneousStarts: e.simultaneousStarts,
+      cable: { runLengthM: e.runLengthM, ambientC: e.ambientC, bundled: e.bundled, insulationC: e.insulationC },
+    },
     appliances,
   )
 }

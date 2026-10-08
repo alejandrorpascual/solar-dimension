@@ -626,7 +626,7 @@ git commit -m "feat: size the solar side inside compute and warn when the roof i
 **Files:**
 - Modify: `src/db/schema.ts` (`projects` table)
 - Modify: `src/server/projects.ts` (`toProject`, `upsertAll`)
-- Create: `drizzle/0011_project_solar.sql` (+ `drizzle/meta/0011_snapshot.json`, `drizzle/meta/_journal.json`, all generated)
+- Create: `drizzle/0013_project_solar.sql` (+ `drizzle/meta/0013_snapshot.json`, `drizzle/meta/_journal.json`, all generated)
 - Test: `src/db/schema.test.ts`
 
 - [ ] **Step 1: Link the env files into the worktree (once)**
@@ -670,13 +670,13 @@ In `src/server/projects.ts`, in `toProject`, add `solar: row.solar,` after `requ
 - [ ] **Step 5: Generate the migration (offline, touches no database)**
 
 Run: `npx drizzle-kit generate --name project_solar`
-Expected: a new `drizzle/0011_project_solar.sql` containing exactly:
+Expected: a new `drizzle/0013_project_solar.sql` containing exactly:
 
 ```sql
 ALTER TABLE "projects" ADD COLUMN "solar" jsonb;
 ```
 
-plus an updated `drizzle/meta/_journal.json` and a new `drizzle/meta/0011_snapshot.json`. If the SQL differs, stop and fix the schema; don't hand-edit the SQL.
+plus an updated `drizzle/meta/_journal.json` and a new `drizzle/meta/0013_snapshot.json`. If the SQL differs, stop and fix the schema; don't hand-edit the SQL.
 
 - [ ] **Step 6: Apply it to the e2e branch only (guarded)**
 
@@ -704,7 +704,7 @@ Expected: PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/db/schema.ts src/server/projects.ts src/db/schema.test.ts drizzle/0011_project_solar.sql drizzle/meta/0011_snapshot.json drizzle/meta/_journal.json
+git add src/db/schema.ts src/server/projects.ts src/db/schema.test.ts drizzle/0013_project_solar.sql drizzle/meta/0011_snapshot.json drizzle/meta/_journal.json
 git commit -m "feat: solar column on projects, synced with the account"
 ```
 
@@ -1491,6 +1491,7 @@ git commit -m "test: e2e for the solar panels step and the solar parts in export
 - **Copy:** panel counts are pluralised through `panelCount` (`panelCountOne`/`panelCountMany`, `roofFitsOne`/`roofFitsMany`); `flowPanels`, `sheetPanels` and `roofUsed` were dropped. A roof-limited project shows `recommendedPillLimited` ("the most your roof fits") instead of promising a one-day refill. Mounting faces south (Caracas is at 10.5° N).
 - **One guard:** `hasPanels(r)` in `src/lib/sizing.ts` (`solar` present, panels > 0, project not empty) gates the tile, the parts rows and the fine print on the kit and the sheet.
 - **e2e:** the Review Focus items (2) and (3) are exercised by shrinking a roof below a tapped count and by changing sun hours after a tap; the CSV test also checks row order.
+- **Migration number:** main gained 0011 (engineering checks) and 0012 (momentary appliances) while this branch was open, so the solar column is migration **0013**, regenerated after merging main.
 - **Follow-ups (not done):** cap `withSolarPanels` at the schema max and guard NaN; move `DEFAULT_ROOF_M2` into `SOLAR`; a pure `toProject` round-trip test; an e2e for the verdict back-to-kit link; pass `{pct}` from `SOLAR.CLOUDY_SHARE` into `cloudyDay`; row-anchored CSV order checks; unit tests for `finePrint`.
 
 ## Out of scope (say so in the hand-off)

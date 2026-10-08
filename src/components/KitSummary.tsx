@@ -1,62 +1,16 @@
 import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
-import { kitDeltas } from '../lib/kit-deltas'
-import { BatteryPicker } from './BatteryPicker'
-import { applianceName, panelCount, tr, type Dictionary, type Locale } from '../i18n'
-import { fmtDecimal, fmtHours, fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
+import { tr, type Dictionary } from '../i18n'
+import { fmtHours, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
-import { SOLAR } from '../lib/solar'
-import { hasPanels, type SelectedItem, type SizingResult, type Warning } from '../lib/sizing'
-
-export interface Part { id: string; name: string; spec: string; note: string; qty: string; group?: 'solar' }
-
-function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
-  if (!hasPanels(r)) return []
-  const s = r.solar
-  const strings = s.strings === 1 ? tr(t, 'stringsOne', { n: s.perString }) : tr(t, 'stringsMany', { strings: s.strings, n: s.perString })
-  const panelW = `${SOLAR.PANEL_W} W`
-  return [
-    { id: 'solarPanels', group: 'solar', name: t.parts.solarPanels, spec: tr(t, 'solarPanelsSpec', { w: panelW, size: SOLAR.PANEL_SIZE }), note: tr(t, 'solarPanelsNote', { strings, kw: fmtKw(s.arrayW, locale), m2: s.roofUsedM2 }), qty: String(s.panels) },
-    { id: 'chargeController', group: 'solar', name: t.parts.chargeController, spec: tr(t, 'chargeControllerSpec', { amps: s.controllerA, voc: SOLAR.CONTROLLER_MAX_VOC, volts: r.volts }), note: tr(t, 'chargeControllerNote', { chargeA: fmtInt(s.chargeA, locale), stringVoc: s.stringVoc }), qty: String(s.controllers) },
-    { id: 'pvCable', group: 'solar', name: t.parts.pvCable, spec: tr(t, 'pvCableSpec', { mm2: SOLAR.PV_CABLE.mm2, awg: SOLAR.PV_CABLE.awg, length: s.pvRunM }), note: t.ui.pvCableNote, qty: String(s.pvCablePairs) },
-    { id: 'pvDisconnect', group: 'solar', name: t.parts.pvDisconnect, spec: tr(t, 'pvDisconnectSpec', { amps: s.breakerA }), note: t.ui.pvDisconnectNote, qty: String(s.controllers) },
-    { id: 'mounting', group: 'solar', name: t.parts.mounting, spec: tr(t, 'mountingSpec', { panels: panelCount(t, s.panels) }), note: t.ui.mountingNote, qty: '1' },
-  ]
-}
-
-/** The kit's fine print, shared by the screen and the sheet; a panel kit adds the solar assumptions. */
-export function finePrint(r: SizingResult, t: Dictionary, locale: Locale, dod: number): string {
-  const base = tr(t, 'fine', { dod })
-  if (!hasPanels(r)) return base
-  return base + tr(t, 'fineSolar', { w: `${SOLAR.PANEL_W} W`, sun: fmtDecimal(r.solar.sunHours, 1, locale) })
-}
-
-export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
-  const b = r.battery
-  if (r.empty || !b) return []
-  const c = r.cable
-  const cm = Math.round(c.linkLengthM * 100)
-  const perRun = c.runs > 1 ? t.ui.perRun : ''
-  const interconnectsNote = [
-    c.seriesLinks > 0 ? tr(t, 'seriesLinksNote', { count: c.seriesLinks }) : '',
-    c.parallelLinks > 0 ? tr(t, 'parallelLinksNote', { count: c.parallelLinks }) : '',
-  ].filter(Boolean).join(' · ')
-  const w = (n: number) => fmtW(n, locale)
-  const base: Part[] = [
-    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: tr(t, 'inverterNote', { surge: w(r.inverter.surge), running: w(r.runningW), peak: w(r.surgeW) }), qty: '1' },
-    { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: tr(t, 'batteriesNote', { series: b.series, parallel: b.parallel, config: b.config, bank: fmtKwh(b.bankWh, locale), usable: fmtKwh(b.usableWh, locale) }), qty: String(b.count) },
-    { id: 'mainCable', name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }), note: tr(t, 'mainCableNote', { amps: fmtInt(c.amps, locale), drop: c.dropPct }), qty: String(c.mainCount) },
-    { id: 'interconnects', name: t.parts.interconnects, spec: tr(t, 'interconnectsSpec', { gauge: c.gauge, cm }), note: interconnectsNote, qty: String(c.seriesLinks + c.parallelLinks) },
-    { id: 'fuse', name: t.parts.fuse, spec: tr(t, 'fuseSpec', { amps: c.fuseA, perRun }), note: t.ui.fuseNote, qty: String(c.runs) },
-  ]
-  return [...base.filter((part) => Number(part.qty) > 0), ...solarParts(r, t, locale)]
-}
-
-function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[]): string {
-  const item = items.find((i) => i.id === w.params.itemId)
-  const itemName = item ? applianceName(t, item) : w.params.itemName
-  return t.warnings[w.code]({ ...w.params, itemName })
-}
+import { finePrint } from '../lib/fine-print'
+import { kitChecks, uncheckedWarnings, warningKey, warningText } from '../lib/kit-checks'
+import { kitDeltas } from '../lib/kit-deltas'
+import { buildParts, type Part } from '../lib/kit-parts'
+import { hasPanels, type SizingResult } from '../lib/sizing'
+import { BatteryPicker } from './BatteryPicker'
+import { ChecksList } from './ChecksList'
+import { RuntimeRange } from './RuntimeRange'
 
 /**
  * A real table so every spec shares one column; components.css restacks the rows on phones. The explicit roles look
@@ -107,6 +61,8 @@ function Delta({ text }: { text: string }) {
 export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatteryUnit }: Props) {
   const { t, locale } = useLocale()
   const parts = buildParts(r, t, locale)
+  const checks = kitChecks(t, r, locale)
+  const notes = uncheckedWarnings(r)
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
   const summary = r.empty ? t.ui.kitEmpty : tr(t, 'kitSummary', { count: r.count, hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
   const d = baseline ? kitDeltas(baseline, r) : null
@@ -137,6 +93,7 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
             <span className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</span>
             <Delta text={d ? signed(d.runtimeH, (n) => fmtHours(n, locale)) : ''} />
           </div>
+          {r.battery && !r.empty && <RuntimeRange runtime={r.battery.runtime} t={t} locale={locale} className="stat__sub num" />}
         </div>
         {hasPanels(r) && (
           <div className="stat stat--sun">
@@ -150,12 +107,13 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
       <div className="parts">
         {parts.length > 0 ? <PartsTable parts={parts} t={t} /> : <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}
       </div>
-      {r.warnings.length > 0 && (
+      <ChecksList checks={checks} t={t} />
+      {notes.length > 0 && (
         <div className="warn" role="status">
-          {r.warnings.map((w) => <div key={w.code}>{warningText(t, w, r.items)}</div>)}
+          {notes.map((n) => <div key={warningKey(n)}>{warningText(t, n, r.items)}</div>)}
         </div>
       )}
-      <p className="fine muted">{finePrint(r, t, locale, dod)}</p>
+      <p className="fine muted">{finePrint(t, r, dod, locale)}</p>
     </div>
   )
 }

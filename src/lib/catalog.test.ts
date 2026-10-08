@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { CATEGORIES, CHEMISTRIES, forPicker, GAUGES, INVERTERS, needsSplitPhase, SIZING, VOLTAGES } from './catalog'
+import { CATEGORIES, CHEMISTRIES, forPicker, FUSES, GAUGES, INVERTERS, needsSplitPhase, SIZING, VOLTAGES } from './catalog'
 
 describe('catalog', () => {
   test('lists every tonnage twice, once per compressor type, with tonnage-based watts', () => {
@@ -36,8 +36,35 @@ describe('catalog', () => {
   test('inverters, gauges and fuses are sorted ascending', () => {
     const w = INVERTERS.map((i) => i.w)
     expect(w).toEqual([...w].sort((a, b) => a - b))
-    const amps = GAUGES.map((g) => g.amps)
-    expect(amps).toEqual([...amps].sort((a, b) => a - b))
+    for (const col of ['amps75', 'amps90'] as const) {
+      const amps = GAUGES.map((g) => g[col])
+      expect(amps).toEqual([...amps].sort((a, b) => a - b))
+    }
+    const ratings = FUSES.map((f) => f.a)
+    expect(ratings).toEqual([...ratings].sort((a, b) => a - b))
+  })
+
+  test('every fuse is class T, 20 kA interrupting, listed for 125 V DC', () => {
+    for (const f of FUSES) expect(f).toMatchObject({ class: 'T', aicA: 20000, maxVdc: 125 })
+  })
+
+  test('every battery unit states discharge limits its peak is above, and a parallel limit', () => {
+    for (const chem of Object.values(CHEMISTRIES)) {
+      for (const u of chem.units) {
+        expect(u.peakA).toBeGreaterThanOrEqual(u.maxContinuousA)
+        expect(u.peakSeconds).toBeGreaterThan(0)
+        expect(u.maxParallel).toBeGreaterThanOrEqual(1)
+      }
+    }
+    expect(CHEMISTRIES.lifepo4.peukertK).toBe(1)
+    expect(CHEMISTRIES.agm.peukertK).toBeGreaterThan(1)
+  })
+
+  test('inverters hold their surge for a few seconds, longer on bigger units, and a 1.5× surge for 30 s from 3 kW up', () => {
+    expect(INVERTERS.find((i) => i.w === 1000)).toMatchObject({ surgeSeconds: 3 })
+    expect(INVERTERS.find((i) => i.w === 1000)?.surgeLong).toBeUndefined()
+    expect(INVERTERS.find((i) => i.w === 3000)).toMatchObject({ surgeSeconds: 5, surgeLong: { w: 4500, seconds: 30 } })
+    expect(INVERTERS.find((i) => i.w === 8000)).toMatchObject({ surgeSeconds: 10, surgeLong: { w: 12000, seconds: 30 } })
   })
 
   test('exposes 12, 24, 36 and 48 V and two chemistries', () => {
@@ -47,10 +74,11 @@ describe('catalog', () => {
   })
 })
 
-test('Security lists a CCTV camera and two recorder sizes, all running continuously', () => {
+test('Security lists a CCTV camera, two recorder sizes running continuously, and three momentary gate motors', () => {
   const security = CATALOG_SNAPSHOT.filter((a) => a.cat === 'Security')
   expect(security.map((a) => [a.id, a.watts, a.surge, a.duty])).toEqual([
     ['cctv', 7, 7, 1], ['nvr16', 20, 20, 1], ['nvr32', 50, 50, 1],
+    ['gate-slide', 550, 1650, 0.033], ['gate-swing', 300, 900, 0.025], ['barrier', 150, 450, 0.033],
   ])
   expect(CATEGORIES.indexOf('Security')).toBe(CATEGORIES.indexOf('Utility') + 1)
 })

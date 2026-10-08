@@ -1,5 +1,5 @@
 {
-  "id": "4b5fafb5-1e21-49ec-bab1-5d92a1d3e9d4",
+  "id": "4dd9f8b5-0d8b-48e2-8fa2-acb00286ecc4",
   "prevId": "6bedc5a8-5be5-44cd-b057-c85ae9e2ec38",
   "version": "7",
   "dialect": "postgresql",
@@ -47,6 +47,30 @@
         "ac_type": {
           "name": "ac_type",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "surge_class": {
+          "name": "surge_class",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "burst_seconds": {
+          "name": "burst_seconds",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cycles_per_hour": {
+          "name": "cycles_per_hour",
+          "type": "double precision",
           "primaryKey": false,
           "notNull": false
         },
@@ -106,6 +130,18 @@
         "appliances_duty_check": {
           "name": "appliances_duty_check",
           "value": "\"appliances\".\"duty\" > 0 and \"appliances\".\"duty\" <= 1"
+        },
+        "appliances_kind_check": {
+          "name": "appliances_kind_check",
+          "value": "\"appliances\".\"kind\" is null or \"appliances\".\"kind\" in ('continuous', 'cycling', 'momentary')"
+        },
+        "appliances_surge_class_check": {
+          "name": "appliances_surge_class_check",
+          "value": "\"appliances\".\"surge_class\" is null or \"appliances\".\"surge_class\" in ('inrush', 'motor', 'compressor')"
+        },
+        "appliances_momentary_check": {
+          "name": "appliances_momentary_check",
+          "value": "(\"appliances\".\"kind\" is not distinct from 'momentary') = (\"appliances\".\"burst_seconds\" is not null and \"appliances\".\"cycles_per_hour\" is not null)"
         }
       },
       "isRLSEnabled": false
@@ -174,11 +210,19 @@
           "primaryKey": false,
           "notNull": false
         },
-        "solar": {
-          "name": "solar",
+        "duty_overrides": {
+          "name": "duty_overrides",
           "type": "jsonb",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "electrical": {
+          "name": "electrical",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
         },
         "created_at": {
           "name": "created_at",

@@ -7,8 +7,9 @@ import { fmtW } from '../i18n/format'
 import { searchAppliances } from '../lib/appliance-search'
 import { forPicker } from '../lib/catalog'
 import { HOURS_MAX, HOURS_MIN, type Project } from '../lib/schema'
+import { groupByKind } from '../lib/load-kinds'
 import { catalog, type SizingResult } from '../lib/sizing'
-import { QtyStepper } from './QtyStepper'
+import { QuickEditRow } from './QuickEditRow'
 
 interface Props {
   project: Project
@@ -17,12 +18,14 @@ interface Props {
   isDirty: boolean
   onQty: (itemId: string, n: number) => void
   onHours: (hours: number) => void
+  /** null puts the catalog duty back. */
+  onDuty: (itemId: string, duty: number | null) => void
   onUndo: () => void
   onAllAppliances: () => void
 }
 
 /** The kit's edit bar: an appliance list that opens in place, the backup window stepper, and Undo. */
-export function KitQuickEdit({ project, result, isDirty, onQty, onHours, onUndo, onAllAppliances }: Props) {
+export function KitQuickEdit({ project, result, isDirty, onQty, onHours, onDuty, onUndo, onAllAppliances }: Props) {
   const { t, locale } = useLocale()
   const appliances = useCatalog()
   const [isOpen, setOpen] = useState(false)
@@ -64,19 +67,16 @@ export function KitQuickEdit({ project, result, isDirty, onQty, onHours, onUndo,
 
       {isOpen && (
         <div id={panelId} className="qedit__panel">
-          {result.items.length > 0 && (
-            <ul className="qedit__list">
-              {result.items.map((item) => (
-                <li key={item.id} className="qedit__row">
-                  <div className="qedit__name">
-                    <span className="qedit__title">{nameOf(item)}</span>
-                    <span className="num qedit__watts">{fmtW(item.totalWatts, locale)}</span>
-                  </div>
-                  <QtyStepper name={nameOf(item)} qty={item.qty} onSet={(n) => onQty(item.id, n)} />
-                </li>
-              ))}
-            </ul>
-          )}
+          {groupByKind(result.items).map((g) => (
+            <div key={g.kind} className="qedit__group">
+              <span className="lab qedit__group-label">{t.kinds[g.kind]}</span>
+              <ul className="qedit__list">
+                {g.items.map((item) => (
+                  <QuickEditRow key={item.id} item={item} name={nameOf(item)} onQty={(n) => onQty(item.id, n)} onDuty={(duty) => onDuty(item.id, duty)} />
+                ))}
+              </ul>
+            </div>
+          ))}
           <div className="qedit__add">
             <label htmlFor={searchId} className="visually-hidden">{t.ui.addApplianceSearch}</label>
             <Search size={16} aria-hidden="true" className="qedit__search-icon" />

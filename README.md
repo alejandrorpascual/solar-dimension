@@ -58,4 +58,13 @@ To add a language: add a dictionary in `src/i18n/` (typed against `Dictionary` i
 
 ## Sizing assumptions
 
-Inverter efficiency 90%, inverter headroom 25%, surge = running load + the largest single motor start-up delta, LiFePO₄ depth of discharge 85% (AGM 50%), 1,100 W per ton of cooling, conventional compressors 3× start surge (inverter compressors 1.3×), copper cable ampacity at 105 °C insulation, 3% maximum voltage drop, class T fuse ≥ 1.1× current. Verify conductor sizes against local code before building anything.
+Inverter efficiency 90%, inverter headroom 25%, LiFePO₄ depth of discharge 85% (AGM 50%), 1,100 W per ton of cooling, conventional compressors 3× start surge (inverter compressors 1.3×). The engine (`src/lib/sizing.ts`, split into `src/lib/sizing/*`) then runs eight checks, with the hardware specs it needs as typed constants in `src/lib/catalog.ts` (passed to `compute()` as a `HardwareCatalog`, so a managed table can replace them later):
+
+- **Start-up peak:** the running load plus the surge of the motors assumed to start together (one by default; two or all, per project). Each appliance has a surge class (inrush ~20 ms, motor ~1 s, compressor ~3 s), derived from its compressor type and surge ratio unless the catalog states one, and each inverter holds its surge for a stated number of seconds, so a long compressor start is checked against the right rating.
+- **Battery bank:** strings follow the largest of the energy, the inverter's continuous DC draw and its surge, within what the unit's maker allows in parallel; each unit states its BMS continuous and peak current, peak window and parallel limit. A bank that cannot feed the inverter is flagged, not hidden.
+- **Runtime:** typical is the headline figure; a worst case runs cycling loads 30% harder at 85% efficiency (with Peukert capacity loss for AGM) and reads 0 h when the bank cannot carry the full load; an optimistic case runs them 20% lighter at 93%.
+- **Cable (NEC):** design current = continuous DC amps × 1.25; ampacity from the 310.16 copper table at 75 °C or 90 °C (90 °C capped at the 75 °C terminations), corrected for ambient (310.15(B)(1)) and for bundled runs (310.15(C)(1)); 3% drop at continuous current and a warning above 10% at start-up. The run length, ambient, bundling and insulation are per project (step 2).
+- **Fuse:** the standard class T rating ≥ 1.25× the continuous current and ≤ the cable's corrected ampacity, checked against the bank's continuous current (so the fuse opens before the BMS), the start-up current it must hold, and the bank's prospective short-circuit current against its 20 kA interrupting rating; one fuse per parallel string.
+- **Load kinds:** appliances are continuous, cycling or momentary (gates and barriers: burst seconds × cycles per hour); users can change a cycling appliance's duty on the kit.
+
+Verify conductor sizes against local code before building anything.

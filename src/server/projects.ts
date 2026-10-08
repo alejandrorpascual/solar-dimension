@@ -20,6 +20,8 @@ export function toProject(row: typeof projects.$inferSelect): Project {
     batteryUnit: row.batteryUnit,
     requester: row.requester,
     solar: row.solar,
+    dutyOverrides: row.dutyOverrides,
+    electrical: row.electrical,
     updatedAt: row.updatedAt.getTime(),
   })
 }
@@ -50,6 +52,8 @@ async function upsertAll(userId: string, list: Project[]): Promise<void> {
         batteryUnit: sql`excluded.battery_unit`,
         requester: sql`excluded.requester`,
         solar: sql`excluded.solar`,
+        dutyOverrides: sql`excluded.duty_overrides`,
+        electrical: sql`excluded.electrical`,
         updatedAt: sql`excluded.updated_at`,
       },
       setWhere: sql`excluded.updated_at >= ${projects.updatedAt}`,
