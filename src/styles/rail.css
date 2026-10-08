@@ -176,6 +176,7 @@
 .ksheet__table .ksheet__n { text-align: right; padding-left: 16px; white-space: nowrap; }
 .ksheet__parts th { width: 1%; white-space: nowrap; padding-right: 24px; font-size: 14px; }
 .ksheet__note { margin-top: 2px; font-size: 12px; color: var(--muted); }
+.ksheet__table tfoot .ksheet__note { font-weight: 400; }
 .ksheet__qty { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
 .ksheet__fine { font-size: 11px; line-height: 1.5; color: var(--muted); padding-top: 14px; border-top: 1px solid var(--line); }
 
