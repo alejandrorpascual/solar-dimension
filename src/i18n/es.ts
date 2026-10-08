@@ -60,6 +60,14 @@ export const es: Dictionary = {
     parallelStrings: (p) => `${p.strings} ramas en paralelo se desbalancean. Prefiere unidades más grandes o un voltaje mayor.`,
     dominantLoad: (p) => `${p.itemName} es el ${p.sharePct}% de la energía. Quitarlo es la forma más barata de reducir el banco.`,
     splitPhase: (p) => `${p.itemName} normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.`,
+    surgeDuration: (p) => `Un arranque de ${p.surgeW?.toLocaleString('es-419')} W durante ${p.seconds} s supera la ventana de arranque del inversor de ${p.inverterW?.toLocaleString('es-419')} W; solo sostiene ${p.ratedW?.toLocaleString('es-419')} W ese tiempo. Elige un inversor mayor o deja que arranquen menos motores a la vez.`,
+    bankDischarge: (p) => `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.`,
+    bankPeak: (p) => `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; el BMS del banco permite ${p.maxA?.toLocaleString('es-419')} A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.`,
+    fuseAboveBank: (p) => `El fusible de ${p.fuseA} A supera los ${p.maxA?.toLocaleString('es-419')} A que el banco puede entregar, así que el BMS corta antes que el fusible en cada sobrecarga. Usa un fusible por debajo del límite del BMS.`,
+    fuseSurge: (p) => `El arranque pasa ${p.surgeA?.toLocaleString('es-419')} A por un fusible de ${p.fuseA} A durante ${p.seconds} s; puede quemarse en un arranque normal. El siguiente tamaño aún protege el cable.`,
+    fuseInterrupt: (p) => `Un banco en corto puede entregar unos ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible. Usa un fusible con esa capacidad o menos ramas.`,
+    startupDrop: (p) => `El cable cae ${p.dropPct}% con la corriente de arranque; el inversor puede apagarse cuando arranque un motor. Acorta el tramo o sube un calibre.`,
+    cableAmbient: (p) => `Ningún cable de la tabla está certificado para aire a ${p.ambientC} °C. Lleva el tramo a un lugar más fresco.`,
     missingAppliances: (p) => p.count === 1
       ? 'No se pudo cargar 1 aparato de este proyecto, así que este kit lo deja fuera. Recarga en un minuto para incluirlo.'
       : `No se pudieron cargar ${p.count} aparatos de este proyecto, así que este kit los deja fuera. Recarga en un minuto para incluirlos.`,

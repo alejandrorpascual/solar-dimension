@@ -60,6 +60,14 @@ export const en: Dictionary = {
     parallelStrings: (p) => `${p.strings} parallel strings drift out of balance. Prefer bigger units or a higher voltage.`,
     dominantLoad: (p) => `${p.itemName} is ${p.sharePct}% of the energy. Dropping it is the cheapest way to shrink the bank.`,
     splitPhase: (p) => `${p.itemName} usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.`,
+    surgeDuration: (p) => `A ${p.surgeW?.toLocaleString('en-US')} W start-up lasting ${p.seconds} s is longer than the ${p.inverterW?.toLocaleString('en-US')} W inverter's surge window; it only holds ${p.ratedW?.toLocaleString('en-US')} W that long. Choose a bigger inverter or let fewer motors start at once.`,
+    bankDischarge: (p) => `The inverter draws up to ${p.needA?.toLocaleString('en-US')} A at full load; ${p.strings} × ${p.unitLabel} allows ${p.maxA?.toLocaleString('en-US')} A continuous and its BMS would cut out. Pick a larger unit or a higher voltage.`,
+    bankPeak: (p) => `Start-up pulls ${p.needA?.toLocaleString('en-US')} A for ${p.seconds} s; the bank's BMS allows ${p.maxA?.toLocaleString('en-US')} A peak and may shut off. Let fewer motors start at once or add a string.`,
+    fuseAboveBank: (p) => `The ${p.fuseA} A fuse is above the ${p.maxA?.toLocaleString('en-US')} A the bank can deliver, so the BMS trips before the fuse on every overload. Use a fuse under the BMS limit.`,
+    fuseSurge: (p) => `Start-up pushes ${p.surgeA?.toLocaleString('en-US')} A through a ${p.fuseA} A fuse for ${p.seconds} s; it may blow on a normal start. The next size up still protects the cable.`,
+    fuseInterrupt: (p) => `A shorted bank can deliver about ${p.shortCircuitA?.toLocaleString('en-US')} A, more than the fuse's ${p.aicA?.toLocaleString('en-US')} A interrupting rating. Use a fuse rated for it or fewer strings.`,
+    startupDrop: (p) => `The cable drops ${p.dropPct}% at start-up current; the inverter may cut out when a motor starts. Shorten the run or go up a gauge.`,
+    cableAmbient: (p) => `No cable in the table is rated for ${p.ambientC} °C air. Move the run somewhere cooler.`,
     missingAppliances: (p) => p.count === 1
       ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute to include it.'
       : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute to include them.`,
