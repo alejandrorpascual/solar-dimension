@@ -27,9 +27,22 @@ test('the roof area fills the planner with the recommended panels, taps override
   await planner.getByRole('button', { name: 'Remove panel 3' }).click()
   await expect(planner.getByRole('button', { pressed: true })).toHaveCount(2)
 
-  await page.getByRole('button', { name: 'Five square metres less' }).click()
-  await page.getByRole('button', { name: 'Five square metres less' }).click()
+  // Grow the tapped count back above what a small roof fits, then shrink the roof to exercise the clamp.
+  await planner.getByRole('button', { name: 'Add panel 8' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(8)
+  const less = page.getByRole('button', { name: 'Five square metres less' })
+  const more = page.getByRole('button', { name: 'Five square metres more' })
+  for (let i = 0; i < 6; i++) await less.click()
+  await expect(page.getByText('10 m²')).toBeVisible()
+  await expect(planner.getByRole('button')).toHaveCount(3)
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(3)
+  await expect(page.getByText('Recommended · refills the bank in a day')).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Back to recommended/ })).toHaveCount(0)
+  for (let i = 0; i < 4; i++) await more.click()
   await expect(planner.getByRole('button')).toHaveCount(10)
+  // The clamp is display-only: the tapped 8 is kept and returns once the roof fits it again.
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(8)
+  await expect(page.getByRole('button', { name: 'Back to recommended · 5' })).toBeVisible()
   await page.getByRole('button', { name: 'Back to recommended · 5' }).click()
   await expect(planner.getByRole('button', { pressed: true })).toHaveCount(5)
 
@@ -52,12 +65,19 @@ test('a small roof shows fewer tiles and the kit warns about it', async ({ page 
 test('sun hours change the recommendation and the flow', async ({ page }) => {
   await page.goto('/?step=3')
   await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  const planner = page.getByRole('group', { name: /Roof planner/ })
+  await planner.getByRole('button', { name: 'Add panel 6' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(6)
   await page.getByLabel('Peak sun hours a day').fill('3')
-  await expect(page.getByRole('group', { name: /Roof planner/ }).getByRole('button', { pressed: true })).toHaveCount(8)
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(6)
+  await expect(page.getByRole('button', { name: 'Back to recommended · 8' })).toBeVisible()
+  await page.getByRole('button', { name: 'Back to recommended · 8' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(8)
   await expect(page.getByText(/^8 panels · 4\.4 kW$/)).toBeVisible()
+  await expect(page.getByText('Recommended · refills the bank in a day')).toBeVisible()
 })
 
-test('the kit lists the solar parts and the CSV carries them', async ({ page }) => {
+test('the kit lists the solar parts', async ({ page }) => {
   await page.goto('/?step=3')
   await page.getByRole('button', { name: /^Yes, add panels/ }).click()
   await page.getByRole('button', { name: 'Build my kit' }).click()

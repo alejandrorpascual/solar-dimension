@@ -45,6 +45,12 @@ test('the CSV parts list carries the solar parts when panels are chosen', async 
   const text = await readFile((await csv.path())!, 'utf8')
   expect(text).toContain('Solar panels')
   expect(text).toContain('Charge controller')
+  expect(text.indexOf('Inverter')).toBeGreaterThan(-1)
+  expect(text.indexOf('Inverter')).toBeLessThan(text.indexOf('Fuse'))
+  expect(text.indexOf('Fuse')).toBeLessThan(text.indexOf('Solar panels'))
+  expect(text.indexOf('Solar panels')).toBeLessThan(text.indexOf('Mounting'))
+  const panelsLine = text.split('\n').find(line => line.startsWith('Solar panels'))
+  expect(panelsLine?.trim()).toMatch(/,5$/)
 })
 
 test('export progress is visible while the file is being prepared', async ({ page }) => {
