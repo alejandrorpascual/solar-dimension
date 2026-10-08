@@ -1,8 +1,10 @@
 import { SIZING } from './catalog'
-import { HOURS_MAX, HOURS_MIN, type CustomLoad, type Project, type Store } from './schema'
+import { HOURS_MAX, HOURS_MIN, type CustomLoad, type Project, type Solar, type Store } from './schema'
+import { SOLAR } from './solar'
 
 export const DEFAULT_QTY: Record<string, number> = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
 const DEFAULT_HOURS = 10
+const DEFAULT_ROOF_M2 = 40
 const ID_PREFIX = 'p'
 const SEED_ID = `${ID_PREFIX}1`
 const SEED_NAME = 'Home'
@@ -16,7 +18,7 @@ function nextId(projects: readonly Project[]): string {
 const now = (): number => Date.now()
 
 function newProject(projects: readonly Project[], name?: string, id: string = nextId(projects), updatedAt: number = now()): Project {
-  return { id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4', batteryUnit: null, requester: null, updatedAt }
+  return { id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4', batteryUnit: null, solar: null, requester: null, updatedAt }
 }
 
 /** The seed project is stamped 0 so server and client render the same first store, and so any saved copy outranks it. */
@@ -116,4 +118,37 @@ export function removeCustom(store: Store, itemId: string): Store {
   const p = currentProject(store)
   const { [itemId]: _dropped, ...qty } = p.qty
   return patchCurrent(store, { custom: p.custom.filter((c) => c.id !== itemId), qty })
+}
+
+const DEFAULT_SOLAR: Solar = { roofM2: DEFAULT_ROOF_M2, panels: null, sunHours: SOLAR.DEFAULT_SUN_HOURS }
+
+const snap = (n: number, step: number, lo: number, hi: number) => {
+  if (!Number.isFinite(n)) return lo
+  return Math.max(lo, Math.min(hi, Math.round(n / step) * step))
+}
+
+/** Turns panels on (keeping an earlier choice, else the defaults) or off. */
+export function setSolarIn(store: Store, id: string, on: boolean): Store {
+  const p = store.projects.find((x) => x.id === id)
+  if (!p) return store
+  return patchProject(store, id, { solar: on ? (p.solar ?? DEFAULT_SOLAR) : null })
+}
+
+function patchSolar(store: Store, id: string, patch: Partial<Solar>): Store {
+  const p = store.projects.find((x) => x.id === id)
+  if (!p?.solar) return store
+  return patchProject(store, id, { solar: { ...p.solar, ...patch } })
+}
+
+export function withSolarRoof(store: Store, id: string, roofM2: number): Store {
+  return patchSolar(store, id, { roofM2: snap(roofM2, SOLAR.ROOF_STEP, SOLAR.ROOF_RANGE[0], SOLAR.ROOF_RANGE[1]) })
+}
+
+export function withSolarSun(store: Store, id: string, sunHours: number): Store {
+  return patchSolar(store, id, { sunHours: snap(sunHours, SOLAR.SUN_STEP, SOLAR.SUN_RANGE[0], SOLAR.SUN_RANGE[1]) })
+}
+
+/** A tapped count, or null to go back to the recommended one. The engine clamps it to the roof. */
+export function withSolarPanels(store: Store, id: string, panels: number | null): Store {
+  return patchSolar(store, id, { panels: panels === null ? null : Math.max(0, Math.trunc(panels)) })
 }

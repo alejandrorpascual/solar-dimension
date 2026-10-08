@@ -5,7 +5,7 @@ import type { Project } from './schema'
 import { compute } from './sizing'
 
 const project = (id: string, qty: Record<string, number>, patch: Partial<Project> = {}): Project => ({
-  id, name: id, qty, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: null, requester: null, updatedAt: 0, ...patch,
+  id, name: id, qty, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: null, solar: null, requester: null, updatedAt: 0, ...patch,
 })
 
 describe('computeProject', () => {

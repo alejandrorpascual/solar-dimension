@@ -2,7 +2,9 @@ import { describe, expect, test } from 'vitest'
 import {
   addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
   hasSameLoads, removeCustom, restoreProject, selectProject, setHoursIn, setQty, setQtyIn,
+  setSolarIn, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
+import { SOLAR } from './solar'
 
 describe('project store', () => {
   test('starts with one Home project of essentials at 48 V for 10 h', () => {
@@ -144,4 +146,40 @@ describe('editing any project, not just the open one', () => {
     expect(home.name).toBe('Casa')
     expect(home.updatedAt).toBeGreaterThan(0)
   })
+})
+
+test('a new project is battery-only', () => {
+  expect(currentProject(initialStore()).solar).toBeNull()
+})
+
+test('setSolarIn turns panels on with the defaults and off again', () => {
+  const store = initialStore()
+  const id = currentProject(store).id
+  const on = setSolarIn(store, id, true)
+  expect(currentProject(on).solar).toEqual({ roofM2: 40, panels: null, sunHours: SOLAR.DEFAULT_SUN_HOURS })
+  expect(currentProject(setSolarIn(on, id, false)).solar).toBeNull()
+  expect(setSolarIn(store, 'nope', true)).toBe(store)
+})
+
+test('turning panels on again keeps the previous choice', () => {
+  const store = initialStore()
+  const id = currentProject(store).id
+  const tuned = withSolarPanels(setSolarIn(store, id, true), id, 12)
+  expect(currentProject(setSolarIn(tuned, id, true)).solar?.panels).toBe(12)
+})
+
+test('roof, sun and panels are clamped and snapped to their steps', () => {
+  const store = setSolarIn(initialStore(), 'p1', true)
+  expect(currentProject(withSolarRoof(store, 'p1', 9999)).solar?.roofM2).toBe(500)
+  expect(currentProject(withSolarRoof(store, 'p1', 0)).solar?.roofM2).toBe(5)
+  expect(currentProject(withSolarRoof(store, 'p1', 42)).solar?.roofM2).toBe(40)
+  expect(currentProject(withSolarSun(store, 'p1', 0)).solar?.sunHours).toBe(3)
+  expect(currentProject(withSolarSun(store, 'p1', 5.3)).solar?.sunHours).toBe(5.5)
+  expect(currentProject(withSolarPanels(store, 'p1', -3)).solar?.panels).toBe(0)
+  expect(currentProject(withSolarPanels(store, 'p1', null)).solar?.panels).toBeNull()
+})
+
+test('solar edits on a battery-only project do nothing', () => {
+  const store = initialStore()
+  expect(withSolarPanels(store, 'p1', 3)).toBe(store)
 })
