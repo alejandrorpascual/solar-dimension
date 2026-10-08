@@ -80,7 +80,7 @@ describe('sizeSolar', () => {
     expect(s.refillDays).toBeCloseTo(1.55, 2)
   })
 
-  test('a big array at 48 V needs two controllers and splits the strings', () => {
+  test('a big array at 48 V needs three controllers and splits the strings', () => {
     const s = sizeSolar({ ...base, solar: { roofM2: 100, panels: 24, sunHours: 5 } })!
     expect(s.arrayW).toBe(13200)
     expect(s.chargeA).toBe(229)
@@ -95,6 +95,31 @@ describe('sizeSolar', () => {
     expect(s.chargeA).toBe(153)
     expect(s.controllers).toBe(2)
     expect(s.controllerA).toBe(80)
+    expect(s.strings).toBe(2)
+    expect(s.perString).toBe(2)
+    expect(s.stringVoc).toBe(99)
+    expect(s.pvCablePairs).toBe(2)
+    // 14 A × 1 string per controller × 1.25 = 17.5 → 20 A
+    expect(s.breakerA).toBe(20)
+  })
+
+  test('a second controller gets its own string even when the panel count fits one', () => {
+    // 5 × 550 / 14.4 = 191 A → 2 controllers; 5 panels would be 1 string, so 2 strings of 3
+    const s = sizeSolar({ ...base, volts: 12, solar: { roofM2: 40, panels: 5, sunHours: 5 } })!
+    expect(s.controllers).toBe(2)
+    expect(s.strings).toBe(2)
+    expect(s.perString).toBe(3)
+    expect(s.stringVoc).toBe(149)
+    expect(s.pvCablePairs).toBe(2)
+  })
+
+  test('an uneven split rounds the string length up', () => {
+    // 7 panels → 2 strings of 4 (not 5 + 2); 3,850 W / 57.6 V = 67 A → 1 controller
+    const s = sizeSolar({ ...base, solar: { roofM2: 40, panels: 7, sunHours: 5 } })!
+    expect(s.strings).toBe(2)
+    expect(s.perString).toBe(4)
+    expect(s.stringVoc).toBe(198)
+    expect(s.controllers).toBe(1)
   })
 
   test('no panels gives zero production and no refill time', () => {
