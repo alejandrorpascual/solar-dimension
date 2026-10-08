@@ -210,16 +210,15 @@ describe('engineering checks', () => {
   })
 
   test('a momentary load counts its bursts as energy and joins the start-up only when every motor starts', () => {
-    const barrier = { ...item('cctv'), id: 'barrier', name: 'Parking barrier', watts: 150, surge: 450, duty: 0.033, kind: 'momentary' as const, burstSeconds: 4, cyclesPerHour: 30 }
-    const list = [...CATALOG_SNAPSHOT, barrier]
-    const r = compute({ qty: { fridge: 1, barrier: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, list)
+    // The catalog's parking barrier: 150 W, 450 W surge, 4 s lifts thirty times an hour.
+    const r = at48({ fridge: 1, barrier: 1 })
     const b = r.items.find((i) => i.id === 'barrier')!
-    expect(b.kind).toBe('momentary')
+    expect(b).toMatchObject({ kind: 'momentary', startClass: 'motor', surgeSeconds: 1, overridden: false })
     expect(b.effectiveDuty).toBeCloseTo(120 / 3600)
     expect(b.wh).toBe(Math.round(150 * (120 / 3600) * 10))
-    const two = compute({ qty: { fridge: 1, barrier: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4', simultaneousStarts: 2 }, list)
+    const two = at48({ fridge: 1, barrier: 1 }, { simultaneousStarts: 2 })
     expect(two.surgeW).toBe(two.runningW + (1200 - 150))
-    const all = compute({ qty: { fridge: 1, barrier: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4', simultaneousStarts: 'all' }, list)
+    const all = at48({ fridge: 1, barrier: 1 }, { simultaneousStarts: 'all' })
     expect(all.surgeW).toBe(all.runningW + (1200 - 150) + 300)
   })
 

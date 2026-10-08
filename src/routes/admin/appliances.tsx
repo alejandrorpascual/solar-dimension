@@ -48,14 +48,15 @@ function AdminAppliances() {
         />
       )}
       <table className="admin__table">
-        <thead><tr><th>Name</th><th>Watts</th><th>Surge</th><th>Duty</th><th>Status</th><th /></tr></thead>
+        <thead><tr><th>Name</th><th>Watts</th><th>Surge</th><th>Duty</th><th>Kind</th><th>Status</th><th /></tr></thead>
         {APPLIANCE_CATEGORIES.map((cat) => (
           <tbody key={cat}>
-            <tr><th colSpan={6} scope="rowgroup">{cat}</th></tr>
+            <tr><th colSpan={7} scope="rowgroup">{cat}</th></tr>
             {items.filter((r) => r.category === cat).map((r) => (
               <tr key={r.id} className={r.retired ? 'is-retired' : undefined}>
                 <td>{r.labels.en.name}<br /><small>{r.labels.es.name} · {r.id}</small></td>
                 <td>{r.watts}</td><td>{r.surge}</td><td>{r.duty}</td>
+                <td>{r.kind ?? 'auto'}{r.surgeClass ? ` · ${r.surgeClass}` : ''}{r.kind === 'momentary' ? ` · ${r.burstSeconds} s × ${r.cyclesPerHour}/h` : ''}</td>
                 <td>{r.retired ? 'Retired' : 'Active'}</td>
                 <td>
                   <button type="button" onClick={() => setEditing(r)}>Edit</button>

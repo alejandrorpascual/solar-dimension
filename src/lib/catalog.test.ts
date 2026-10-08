@@ -74,10 +74,11 @@ describe('catalog', () => {
   })
 })
 
-test('Security lists a CCTV camera and two recorder sizes, all running continuously', () => {
+test('Security lists a CCTV camera, two recorder sizes running continuously, and three momentary gate motors', () => {
   const security = CATALOG_SNAPSHOT.filter((a) => a.cat === 'Security')
   expect(security.map((a) => [a.id, a.watts, a.surge, a.duty])).toEqual([
     ['cctv', 7, 7, 1], ['nvr16', 20, 20, 1], ['nvr32', 50, 50, 1],
+    ['gate-slide', 550, 1650, 0.033], ['gate-swing', 300, 900, 0.025], ['barrier', 150, 450, 0.033],
   ])
   expect(CATEGORIES.indexOf('Security')).toBe(CATEGORIES.indexOf('Utility') + 1)
 })
