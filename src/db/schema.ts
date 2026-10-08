@@ -4,6 +4,7 @@ import type { ApplianceLabels } from '../lib/catalog'
 import { APPLIANCE_CATEGORIES } from '../lib/catalog-schema'
 import type { Musts, Overrides } from '../lib/quote-items'
 import type { Requester } from '../lib/requester'
+import type { Solar } from '../lib/schema'
 import { QUOTE_STATUSES, type StoredExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
 
 import { user } from './auth-schema'
@@ -24,6 +25,8 @@ export const projects = pgTable(
     batteryUnit: text('battery_unit'),
     /** Who asked for the kit (printed on the spec sheet); null until added. Validated by RequesterSchema on read. */
     requester: jsonb('requester').$type<Requester>(),
+    /** Panels on the roof (step 3); null for a battery-only kit. Validated by SolarSchema on read. */
+    solar: jsonb('solar').$type<Solar>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
