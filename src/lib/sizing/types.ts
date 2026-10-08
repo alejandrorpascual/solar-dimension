@@ -142,6 +142,8 @@ export interface StringCable {
   fuse: FusePick
   /** One lead per string. */
   count: number
+  /** The string fuse's own checks against one unit's limits. */
+  warnings: Warning[]
 }
 
 export interface CablePick {

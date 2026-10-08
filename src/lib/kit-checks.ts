@@ -1,5 +1,6 @@
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtInt, fmtList, fmtW } from '../i18n/format'
+import { SIZING } from './catalog'
 import type { SelectedItem, SizingResult, Warning, WarningCode } from './sizing'
 
 export type CheckId = 'surge' | 'batteryContinuous' | 'batteryPeak' | 'parallel' | 'fuse' | 'cable'
@@ -46,17 +47,18 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
   const c = r.cable
   const w = (n: number) => fmtW(n, locale)
   const a = (n: number) => fmtInt(Math.round(n), locale)
+  const startupA = r.surgeW / r.volts / SIZING.INVERTER_EFF
   switch (id) {
     case 'surge':
       return tr(t, 'checkSurgeOk', { peak: w(r.surgeW), seconds: r.surgeSeconds, rating: w(r.inverter.surgeRatedW) })
     case 'batteryContinuous':
       return tr(t, 'checkBatteryContinuousOk', { bankA: a(b.bankContinuousA), needA: a(r.inverter.continuousA) })
     case 'batteryPeak':
-      return tr(t, 'checkBatteryPeakOk', { bankA: a(b.bankPeakA), needA: a(r.inverter.surgeA), seconds: r.surgeSeconds })
+      return tr(t, 'checkBatteryPeakOk', { bankA: a(b.bankPeakA), needA: a(startupA), seconds: r.surgeSeconds })
     case 'parallel':
       return b.parallel > 1 ? tr(t, 'checkParallelOk', { parallel: b.parallel, max: b.unit.maxParallel }) : t.ui.checkParallelSingle
     case 'fuse':
-      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, startA: a(r.inverter.surgeA / c.runs) })
+      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, startA: a(startupA / c.runs) })
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '', designA: a(c.designA), drop: c.startupDropPct,

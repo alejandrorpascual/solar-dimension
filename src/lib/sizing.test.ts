@@ -65,8 +65,8 @@ describe('compute', () => {
     expect(r.inverter.voltsOk).toBe(false)
     expect(r.cable.runs).toBe(3)
     const codes = r.warnings.map((w) => w.code)
-    // Three 200 A fuses add up past the 540 A nine AGM strings can give, and nine strings can short at 21.6 kA.
-    expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad', 'fuseAboveBank', 'fuseInterrupt'])
+    // Nine AGM strings can short at 21.6 kA, past a class T fuse's 20 kA.
+    expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad', 'fuseInterrupt'])
     expect(r.warnings[2]?.params).toMatchObject({ strings: 9, maxParallel: 4 })
     expect(r.warnings[3]?.params.itemId).toBe('ac1c')
     expect(r.warnings[3]?.params.sharePct).toBeGreaterThan(50)
@@ -244,7 +244,8 @@ describe('engineering checks', () => {
   test('the inverter draw, not only the energy, sets how many strings a bank needs', () => {
     const r = compute({ qty: { fridge: 1, ac2c: 1, ac15i: 1 }, hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-100' }, CATALOG_SNAPSHOT)
     expect(r.inverter.w).toBe(5000)
-    expect(r.battery?.parallelFor).toEqual({ energy: 1, continuous: 2, peak: 2 })
+    // 8,400 W at start-up is 194 A, one unit's 200 A peak; the 116 A continuous draw needs two.
+    expect(r.battery?.parallelFor).toEqual({ energy: 1, continuous: 2, peak: 1 })
     expect(r.battery?.parallel).toBe(2)
     expect(r.battery).toMatchObject({ dischargeOk: true, peakOk: true, bankContinuousA: 200, bankPeakA: 400 })
   })
@@ -293,6 +294,16 @@ describe('engineering checks', () => {
     const r = at48({ ac2c: 6 }, { simultaneousStarts: 'all' })
     expect(r.inverter.surgeOk).toBe(false)
     expect(r.warnings.map((w) => w.code)).toContain('surgeDuration')
+  })
+
+  test('the configured start-up, not the inverter rating, is what the fuse must hold', () => {
+    // The stock inverters surge exactly 2× and the fuse is at least 1.25×, so a 3× inverter is needed to reach the hold.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 1000, surge: 3000, volts: [12] as const, surgeSeconds: 3 }] }
+    const r = compute({ qty: { well: 1 }, hours: 2, volts: 12, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    expect(r.surgeW).toBe(3000)
+    expect(r.warnings.map((w) => w.code)).toContain('fuseSurge')
+    const calm = compute({ qty: { lights: 1, well: 1 }, hours: 2, volts: 12, chemistry: 'lifepo4', dutyOverrides: {} }, CATALOG_SNAPSHOT)
+    expect(calm.warnings.map((w) => w.code)).not.toContain('fuseSurge')
   })
 
   test('a replacement hardware catalog drives the picks', () => {

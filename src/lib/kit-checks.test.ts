@@ -19,10 +19,10 @@ describe('kitChecks', () => {
     expect(by.surge!.lines[0]).toBe("1,515 W for 3 s, within the inverter's 6,000 W surge rating")
     expect(by.surge!.lines[1]).toBe('465 W running + 1,050 W (Refrigerator) starting')
     expect(by.batteryContinuous!.lines).toEqual(['Bank gives 200 A continuous; the inverter draws up to 69 A'])
-    expect(by.batteryPeak!.lines).toEqual(['Bank peak 400 A covers the 139 A start-up for 3 s'])
+    expect(by.batteryPeak!.lines).toEqual(['Bank peak 400 A covers the 35 A start-up for 3 s'])
     expect(by.parallel!.lines).toEqual(['One string, nothing to balance'])
-    expect(by.fuse!.lines[0]).toBe("100 A class T: under the cable's 115 A, 20 kA interrupting, start-up 139 A within what it holds")
-    expect(by.cable!.lines[0]).toBe('2 AWG carries 115 A after derating (30 °C) for a 87 A design current · 0.5% drop at start-up')
+    expect(by.fuse!.lines[0]).toBe("100 A class T: under the cable's 115 A, 20 kA interrupting, start-up 35 A within what it holds")
+    expect(by.cable!.lines[0]).toBe('2 AWG carries 115 A after derating (30 °C) for a 87 A design current · 0.1% drop at start-up')
   })
 
   test('names come from the dictionary in both languages', () => {

@@ -24,7 +24,7 @@ export function ChecksList({ checks, t }: { checks: readonly KitCheck[]; t: Dict
             <CheckMark status={c.status} t={t} />
             <div className="check__body">
               <span className="check__name">{c.name}</span>
-              {c.lines.map((line) => <span key={line} className="check__line">{line}</span>)}
+              {c.lines.map((line, i) => <span key={`${c.id}-${i}`} className="check__line">{line}</span>)}
             </div>
           </li>
         ))}

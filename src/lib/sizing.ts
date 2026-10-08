@@ -85,7 +85,9 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const requiredAh = requiredWh / volts
 
   const inverter = toInverterPick(pickInverter(runningW, profile, volts, hardware.inverters), profile, volts)
-  const demand = { continuousA: inverter.continuousA, surgeA: inverter.surgeA, surgeSeconds: profile.seconds }
+  // What flows at start-up is the load's surge, not the inverter's rating: the bank, fuse and cable see that current.
+  const startupA = dcAmps(profile.surgeW, volts)
+  const demand = { continuousA: inverter.continuousA, surgeA: startupA, surgeSeconds: profile.seconds }
   const candidates = batteryCandidates(chem, volts, requiredAh, demand)
   const auto = autoPick(candidates)
   const chosen = candidates.find((c) => c.id === input.batteryUnit) ?? null
@@ -93,12 +95,12 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const runtimeCtx: RuntimeContext = { chem, items, hours, loadWh, runningW, volts }
   const battery: BatteryPick | null = bank ? toBatteryPick(bank, runtimeScenarios(bank, runtimeCtx)) : null
 
-  const main = sizeMainCable(inverter.continuousA, inverter.surgeA, volts, cond, hardware.gauges, hardware.fuses, {
+  const main = sizeMainCable(inverter.continuousA, startupA, volts, cond, hardware.gauges, hardware.fuses, {
     surgeSeconds: profile.seconds, bankContinuousA: battery?.bankContinuousA ?? null, bankShortCircuitA: battery?.bankShortCircuitA ?? null,
   })
   const string = battery && battery.parallel > 1
     ? sizeStringCable({
-      bankAmps: inverter.continuousA, bankSurgeAmps: inverter.surgeA, parallel: battery.parallel, volts, cond,
+      bankAmps: inverter.continuousA, bankSurgeAmps: startupA, parallel: battery.parallel, volts, cond,
       gauges: hardware.gauges, fuses: hardware.fuses, surgeSeconds: profile.seconds,
       unitContinuousA: battery.unit.maxContinuousA, unitShortCircuitA: battery.unit.shortCircuitA,
     })
@@ -132,7 +134,8 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     fuse: main.fuse,
     parallelNotes: parallelNotes(battery),
     warnings: buildWarnings({
-      items, inverter, surgeProfile: profile, amps: dcAmps(inverter.w, volts), volts, battery, loadWh, protection: main.warnings, missing,
+      items, inverter, surgeProfile: profile, amps: dcAmps(inverter.w, volts), volts, battery, loadWh,
+      protection: [...main.warnings, ...(string?.warnings ?? [])], missing, startupA,
     }),
     batteryOptions: candidates.map((c) => toOption(c, runtimeCtx, auto?.id)),
     batteryUnit: chosen?.id ?? null,

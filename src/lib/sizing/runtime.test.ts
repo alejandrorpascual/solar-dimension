@@ -15,17 +15,17 @@ describe('scenarioLoadWh', () => {
     expect(scenarioLoadWh(items, 10, 0.8)).toBe(1000 + 200 * 0.4 * 10)
     expect(scenarioLoadWh(items, 10, 1.3)).toBe(1000 + 200 * 0.65 * 10)
     expect(scenarioLoadWh(items, 10, 5)).toBe(1000 + 200 * 1 * 10)
-    expect(scenarioLoadWh(items, 10, 0)).toBe(1000 + 200 * 0.05 * 10)
+    expect(scenarioLoadWh(items, 10, 0)).toBe(1000)
   })
 })
 
 describe('peukertFactor', () => {
-  test('is 1 for lithium and for no current, below 1 for lead-acid drawn faster than its hour rate', () => {
+  test('is 1 for lithium, for no current and for a slow draw; below 1 for lead-acid drawn faster than its hour rate', () => {
     expect(peukertFactor(CHEMISTRIES.lifepo4, 200, 100)).toBe(1)
     expect(peukertFactor(CHEMISTRIES.agm, 200, 0)).toBe(1)
     expect(peukertFactor(CHEMISTRIES.agm, 200, 10)).toBe(1)
     expect(peukertFactor(CHEMISTRIES.agm, 200, 40)).toBeCloseTo((10 / 40) ** 0.15)
-    expect(peukertFactor(CHEMISTRIES.agm, 200, 1)).toBe(1.2)
+    expect(peukertFactor(CHEMISTRIES.agm, 200, 1)).toBe(1)
   })
 })
 
@@ -52,6 +52,12 @@ describe('runtimeScenarios', () => {
     const lfp = runtimeScenarios(bank, ctx)
     const pb = runtimeScenarios(bank, agm)
     expect(pb.worst / pb.typical).toBeLessThan(lfp.worst / lfp.typical)
+  })
+
+  test('a slow lead-acid draw never makes the hard day outlast the typical one', () => {
+    const light = { ...ctx, chem: CHEMISTRIES.agm, loadWh: 500, runningW: 50 }
+    const rt = runtimeScenarios({ bankWh: 2400, bankAh: 200, bankContinuousA: 60 }, light)
+    expect(rt.worst).toBeLessThan(rt.typical)
   })
 
   test('no load means no runtime', () => {

@@ -14,7 +14,7 @@ export function SheetChecks({ checks, t }: { checks: readonly KitCheck[]; t: Dic
             <CheckMark status={c.status} t={t} />
             <div>
               <div className="ksheet__check-name">{c.name}</div>
-              {c.lines.map((line) => <div key={line} className="ksheet__note">{line}</div>)}
+              {c.lines.map((line, i) => <div key={`${c.id}-${i}`} className="ksheet__note">{line}</div>)}
             </div>
           </div>
         ))}

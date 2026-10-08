@@ -12,23 +12,26 @@ export interface RuntimeContext {
 
 export interface BankForRuntime { bankWh: number; bankAh: number; bankContinuousA: number }
 
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
-/** A lead-acid bank drawn slowly can read slightly over its 20 h rating; cap how far. */
-const MAX_PEUKERT_GAIN = 1.2
 
-/** Energy over the window with every cycling or momentary duty scaled; continuous loads do not move. */
+/**
+ * Energy over the window with every cycling or momentary duty scaled; continuous loads do not move. No floor here:
+ * a barrier's 3% stays 3%, the override floor lives in effectiveDuty.
+ */
 export function scenarioLoadWh(items: readonly SelectedItem[], hours: number, dutyFactor: number): number {
   return items.reduce((sum, i) => {
-    const duty = i.kind === 'continuous' ? i.effectiveDuty : clamp(i.effectiveDuty * dutyFactor, SIZING.DUTY_MIN, 1)
+    const duty = i.kind === 'continuous' ? i.effectiveDuty : Math.min(1, i.effectiveDuty * dutyFactor)
     return sum + i.watts * duty * hours * i.qty
   }, 0)
 }
 
-/** Capacity available at this discharge current relative to the rated hour rate (Peukert); 1 when the chemistry is flat. */
+/**
+ * Capacity available at this discharge current relative to the rated hour rate (Peukert); 1 when the chemistry is
+ * flat or the draw is below the rated rate. Only ever a loss, so the hard day never outlasts the typical one.
+ */
 export function peukertFactor(chem: Chemistry, bankAh: number, dischargeA: number): number {
   if (chem.peukertK <= 1 || dischargeA <= 0 || bankAh <= 0) return 1
   const ratedA = bankAh / chem.ratedHours
-  return Math.min(MAX_PEUKERT_GAIN, (ratedA / dischargeA) ** (chem.peukertK - 1))
+  return Math.min(1, (ratedA / dischargeA) ** (chem.peukertK - 1))
 }
 
 function hoursFor(bank: BankForRuntime, ctx: RuntimeContext, loadWh: number, eff: number, withPeukert: boolean): number {

@@ -64,6 +64,12 @@ describe('sizeStringCable', () => {
       bankAmps: 92.6, bankSurgeAmps: 185, parallel: 2, volts: 12, cond: { ...room, bundled: true }, gauges: GAUGES, fuses: FUSES,
       surgeSeconds: 3, unitContinuousA: 200, unitShortCircuitA: 7500,
     })
-    expect(s).toMatchObject({ amps: 46, designA: 58, gauge: '6 AWG', lengthM: 0.3, count: 2, fuse: { a: 60, count: 2 } })
+    expect(s).toMatchObject({ amps: 46, designA: 58, gauge: '6 AWG', lengthM: 0.3, count: 2, fuse: { a: 60, count: 2 }, warnings: [] })
+    // 100 A per string against a 30 A unit: the unit would only justify the smallest fuse, and it can short past 20 kA.
+    const weak = sizeStringCable({
+      bankAmps: 200, bankSurgeAmps: 400, parallel: 2, volts: 12, cond: room, gauges: GAUGES, fuses: FUSES,
+      surgeSeconds: 3, unitContinuousA: 30, unitShortCircuitA: 30000,
+    })
+    expect(weak.warnings.map((w) => w.code)).toEqual(['fuseAboveBank', 'fuseInterrupt'])
   })
 })

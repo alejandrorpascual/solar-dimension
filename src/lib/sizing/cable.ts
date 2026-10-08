@@ -109,6 +109,6 @@ export function sizeStringCable(ctx: StringContext): StringCable {
   return {
     amps: Math.round(amps), designA: Math.round(sized.designA), gauge: sized.gauge.awg, mm2: sized.gauge.mm2,
     ampacity: Math.round(sized.ampacity), lengthM: SIZING.LINK_LENGTH_M, dropPct: Math.round(sized.dropPct * 10) / 10,
-    fuse: { ...sized.fuse, count: ctx.parallel }, count: ctx.parallel,
+    fuse: { ...sized.fuse, count: ctx.parallel }, count: ctx.parallel, warnings: sized.warnings,
   }
 }

@@ -12,6 +12,8 @@ export interface WarningContext {
   /** Warnings the cable and fuse sizing already raised, in their own order. */
   protection: readonly Warning[]
   missing: number
+  /** DC current at the configured start-up. */
+  startupA: number
 }
 
 /** The order codes appear in: the original five first, then the engineering checks, then the catalog note. */
@@ -44,7 +46,7 @@ export function buildWarnings(ctx: WarningContext): Warning[] {
     w.push({ code: 'bankDischarge', params: { unitLabel: b.unitLabel, needA: Math.round(inv.continuousA), maxA: b.bankContinuousA, strings: b.parallel, maxParallel: b.unit.maxParallel } })
   }
   if (b && !b.peakOk) {
-    w.push({ code: 'bankPeak', params: { unitLabel: b.unitLabel, needA: Math.round(inv.surgeA), maxA: b.bankPeakA, seconds: ctx.surgeProfile.seconds } })
+    w.push({ code: 'bankPeak', params: { unitLabel: b.unitLabel, needA: Math.round(ctx.startupA), maxA: b.bankPeakA, seconds: ctx.surgeProfile.seconds } })
   }
   return [...w, ...ctx.protection, ...missing]
 }

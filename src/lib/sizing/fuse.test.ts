@@ -23,12 +23,18 @@ describe('pickFuse', () => {
     expect(r.gaugeIndex).toBe(4)
   })
 
-  test('one fuse per run, and their ratings add up against the bank', () => {
-    const r = pickFuse(ctx({ runs: 3, bankContinuousA: 250 }))
+  test('one fuse per run; the bank is the weak link when it would only justify a smaller fuse', () => {
+    const r = pickFuse(ctx({ runs: 3, bankContinuousA: 150 }))
     expect(r.fuse.count).toBe(3)
-    expect(r.warnings).toEqual([{ code: 'fuseAboveBank', params: { fuseA: 100, maxA: 250 } }])
-    expect(pickFuse(ctx({ runs: 3, bankContinuousA: 300 })).warnings).toEqual([])
+    expect(r.warnings).toEqual([{ code: 'fuseAboveBank', params: { fuseA: 100, maxA: 150 } }])
+    // 250 A over three runs justifies a 125 A fuse per run, so a 100 A fuse is not above it.
+    expect(pickFuse(ctx({ runs: 3, bankContinuousA: 250 })).warnings).toEqual([])
     expect(pickFuse(ctx({ runs: 3, bankContinuousA: null })).warnings).toEqual([])
+  })
+
+  test('a bank that just covers the inverter is not flagged for the 125% fuse rule', () => {
+    // 185 A continuous → 250 A fuse; a 200 A bank would itself get a 250 A fuse.
+    expect(pickFuse(ctx({ perRunA: 185, surgePerRunA: 200, gaugeIndex: 7, bankContinuousA: 200 })).warnings).toEqual([])
   })
 
   test('a start-up over twice the rating, or over the rating for longer than the fuse holds, may blow it', () => {

@@ -35,8 +35,11 @@ export function pickFuse(ctx: FuseContext): FuseSizing {
   while (gi < ctx.lastGaugeIndex && fuse.a > ctx.ampacityAt(gi)) gi++
 
   const warnings: Warning[] = []
-  if (ctx.bankContinuousA !== null && fuse.a * ctx.runs > ctx.bankContinuousA) {
-    warnings.push({ code: 'fuseAboveBank', params: { fuseA: fuse.a, maxA: ctx.bankContinuousA } })
+  // The bank is the weak link when the fuse is bigger than the one the bank's own continuous current would get.
+  if (ctx.bankContinuousA !== null) {
+    const bankMinA = (ctx.bankContinuousA / ctx.runs) * SIZING.NEC_CONTINUOUS
+    const bankFuseA = pool.find((f) => f.a >= bankMinA)?.a ?? pool[pool.length - 1]!.a
+    if (fuse.a > bankFuseA) warnings.push({ code: 'fuseAboveBank', params: { fuseA: fuse.a, maxA: ctx.bankContinuousA } })
   }
   const hold = SIZING.FUSE_SURGE_HOLD[fuse.class]
   const ratio = ctx.surgePerRunA / fuse.a
