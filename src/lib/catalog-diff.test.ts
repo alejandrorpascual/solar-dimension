@@ -1,11 +1,13 @@
 import { expect, test } from 'vitest'
 import { assignSortOrders, diffAppliances } from './catalog-diff'
+import { ApplianceSchema } from './catalog-schema'
 import { APPLIANCE_SEED } from './catalog-snapshot'
 
 const fridge = APPLIANCE_SEED.find((r) => r.id === 'fridge')!
 const fridgeInput = {
   id: fridge.id, category: fridge.category, watts: fridge.watts, surge: fridge.surge, duty: fridge.duty,
   tons: fridge.tons, acType: fridge.acType, labels: fridge.labels,
+  kind: null, surgeClass: null, burstSeconds: null, cyclesPerHour: null,
 }
 
 test('marks new, changed (with the fields) and unchanged items', () => {
@@ -39,4 +41,12 @@ test('a requested sort order counts as a change; leaving it out never does', () 
 
 test('an explicit sortOrder wins', () => {
   expect(assignSortOrders(APPLIANCE_SEED, [{ ...fridgeInput, sortOrder: 5 }])[0]!.sortOrder).toBe(5)
+})
+
+test('a surge class or load kind change counts as a change, and a record that never had them matches null', () => {
+  const current = { ...APPLIANCE_SEED[0]!, kind: undefined, surgeClass: undefined, burstSeconds: undefined, cyclesPerHour: undefined }
+  const same = ApplianceSchema.parse(Object.fromEntries(Object.entries(APPLIANCE_SEED[0]!).filter(([k]) => k !== 'retired')))
+  expect(diffAppliances([current], [same])).toEqual([{ id: current.id, kind: 'unchanged' }])
+  const classed = { ...same, surgeClass: 'compressor' as const }
+  expect(diffAppliances([current], [classed])).toEqual([{ id: current.id, kind: 'changed', fields: [{ field: 'surgeClass', from: undefined, to: 'compressor' }] }])
 })

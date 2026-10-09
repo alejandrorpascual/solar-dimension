@@ -1,39 +1,16 @@
 import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
-import { kitDeltas } from '../lib/kit-deltas'
-import { BatteryPicker } from './BatteryPicker'
-import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
-import { fmtHours, fmtInt, fmtKwh, fmtW } from '../i18n/format'
+import { tr, type Dictionary } from '../i18n'
+import { fmtHours, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
-import type { SelectedItem, SizingResult, Warning } from '../lib/sizing'
-
-export interface Part { id: string; name: string; spec: string; note: string; qty: string }
-
-export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
-  const b = r.battery
-  if (r.empty || !b) return []
-  const c = r.cable
-  const cm = Math.round(c.linkLengthM * 100)
-  const perRun = c.runs > 1 ? t.ui.perRun : ''
-  const interconnectsNote = [
-    c.seriesLinks > 0 ? tr(t, 'seriesLinksNote', { count: c.seriesLinks }) : '',
-    c.parallelLinks > 0 ? tr(t, 'parallelLinksNote', { count: c.parallelLinks }) : '',
-  ].filter(Boolean).join(' · ')
-  const w = (n: number) => fmtW(n, locale)
-  return [
-    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: tr(t, 'inverterNote', { surge: w(r.inverter.surge), running: w(r.runningW), peak: w(r.surgeW) }), qty: '1' },
-    { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: tr(t, 'batteriesNote', { series: b.series, parallel: b.parallel, config: b.config, bank: fmtKwh(b.bankWh, locale), usable: fmtKwh(b.usableWh, locale) }), qty: String(b.count) },
-    { id: 'mainCable', name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }), note: tr(t, 'mainCableNote', { amps: fmtInt(c.amps, locale), drop: c.dropPct }), qty: String(c.mainCount) },
-    { id: 'interconnects', name: t.parts.interconnects, spec: tr(t, 'interconnectsSpec', { gauge: c.gauge, cm }), note: interconnectsNote, qty: String(c.seriesLinks + c.parallelLinks) },
-    { id: 'fuse', name: t.parts.fuse, spec: tr(t, 'fuseSpec', { amps: c.fuseA, perRun }), note: t.ui.fuseNote, qty: String(c.runs) },
-  ].filter((part) => Number(part.qty) > 0)
-}
-
-function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[]): string {
-  const item = items.find((i) => i.id === w.params.itemId)
-  const itemName = item ? applianceName(t, item) : w.params.itemName
-  return t.warnings[w.code]({ ...w.params, itemName })
-}
+import { finePrint } from '../lib/fine-print'
+import { kitChecks, uncheckedWarnings, warningKey, warningText } from '../lib/kit-checks'
+import { kitDeltas } from '../lib/kit-deltas'
+import { buildParts, type Part } from '../lib/kit-parts'
+import { hasPanels, type SizingResult } from '../lib/sizing'
+import { BatteryPicker } from './BatteryPicker'
+import { ChecksList } from './ChecksList'
+import { RuntimeRange } from './RuntimeRange'
 
 /**
  * A real table so every spec shares one column; components.css restacks the rows on phones. The explicit roles look
@@ -52,7 +29,7 @@ function PartsTable({ parts, t }: { parts: Part[]; t: Dictionary }) {
       <tbody role="rowgroup">
         {parts.map((pt) => (
           <tr key={pt.id} className="part" role="row">
-            <th scope="row" role="rowheader" className="part__name">{pt.name}</th>
+            <th scope="row" role="rowheader" className="part__name">{pt.name}{pt.group === 'solar' && <span className="part__tag">{t.ui.solarTag}</span>}</th>
             <td role="cell" className="part__body">
               <div className="part__spec">{pt.spec}</div>
               <div className="part__note">{pt.note}</div>
@@ -84,6 +61,8 @@ function Delta({ text }: { text: string }) {
 export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatteryUnit }: Props) {
   const { t, locale } = useLocale()
   const parts = buildParts(r, t, locale)
+  const checks = kitChecks(t, r, locale)
+  const notes = uncheckedWarnings(r)
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
   const summary = r.empty ? t.ui.kitEmpty : tr(t, 'kitSummary', { count: r.count, hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
   const d = baseline ? kitDeltas(baseline, r) : null
@@ -94,7 +73,7 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
         <p className="muted">{summary}</p>
         {quickEdit}
       </div>
-      <div className="stats">
+      <div className={`stats${hasPanels(r) ? ' stats--five' : ''}`}>
         <div className="stat">
           <div className="lab">{t.ui.runningLoad}</div>
           <div className="stat__row"><span className="stat__v num">{fmtW(r.runningW, locale)}</span><Delta text={d ? signed(d.runningW, w) : ''} /></div>
@@ -114,18 +93,27 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
             <span className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</span>
             <Delta text={d ? signed(d.runtimeH, (n) => fmtHours(n, locale)) : ''} />
           </div>
+          {r.battery && !r.empty && <RuntimeRange runtime={r.battery.runtime} t={t} locale={locale} className="stat__sub num" />}
         </div>
+        {hasPanels(r) && (
+          <div className="stat stat--sun">
+            <div className="lab">{t.ui.solarRecharge}</div>
+            <div className="stat__row"><span className="stat__v num">{fmtKw(r.solar.arrayW, locale)}</span></div>
+            <div className="stat__sub num">{tr(t, 'solarRechargeSub', { wh: fmtKwh(r.solar.dailyWh, locale) })}</div>
+          </div>
+        )}
       </div>
       {!r.empty && <BatteryPicker options={r.batteryOptions} selected={r.batteryUnit} onSelect={onBatteryUnit} />}
       <div className="parts">
         {parts.length > 0 ? <PartsTable parts={parts} t={t} /> : <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}
       </div>
-      {r.warnings.length > 0 && (
+      <ChecksList checks={checks} t={t} />
+      {notes.length > 0 && (
         <div className="warn" role="status">
-          {r.warnings.map((w) => <div key={w.code}>{warningText(t, w, r.items)}</div>)}
+          {notes.map((n) => <div key={warningKey(n)}>{warningText(t, n, r.items)}</div>)}
         </div>
       )}
-      <p className="fine muted">{tr(t, 'fine', { dod })}</p>
+      <p className="fine muted">{finePrint(t, r, dod, locale)}</p>
     </div>
   )
 }

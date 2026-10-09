@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { switchLanguage } from './header'
 import { hideProjects, showProjects } from './projects'
 
@@ -12,12 +12,17 @@ test('shell renders the stepper, a Home project and step navigation', async ({ p
   await expect(page).toHaveURL(/step=1|\/$/)
 })
 
+/** Web fonts swap in late on a cold CI browser and reflow the quick-edit rows; measure clicks after they settle. */
+const fontsReady = (page: Page) => page.evaluate(() => document.fonts.ready.then(() => undefined))
+
 test('moving between steps does not wait on the server', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+  await fontsReady(page)
   const serverCalls: string[] = []
   page.on('request', (r) => { if (r.url().includes('/_serverFn/')) serverCalls.push(r.url()) })
   await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await expect(page.getByRole('button', { name: 'Build my kit' })).toBeVisible()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
@@ -28,8 +33,9 @@ test('moving between steps does not wait on the server', async ({ page }) => {
 })
 
 test('the kit edits appliances and the window in place, shows what moved, and undoes it', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await fontsReady(page)
   const summary = page.getByText(/^Backs up \d+ appliances for/)
   await expect(summary).toContainText('for 10 hours')
   await page.getByRole('button', { name: /^Appliances · 6/ }).click()
@@ -133,7 +139,7 @@ test('project names can be erased with backspace and replaced', async ({ page })
 })
 
 test('project cards show each kit and quick edit a project without opening it', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showProjects(page)
   await page.getByRole('button', { name: '+ New project' }).click()
   await hideProjects(page)
@@ -206,6 +212,7 @@ test('full flow: appliances → window → kit, and the project survives a reloa
   await page.getByRole('button', { name: 'Air conditioning' }).click()
   await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
   await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await expect(page.getByText('4,000 W pure sine, 48 V DC input')).toBeVisible()
@@ -245,6 +252,7 @@ test.describe('on a device whose preferred languages put Spanish first among the
 test('the battery size can be chosen on the kit, is remembered, and Auto brings back the fewest batteries', async ({ page }) => {
   await page.goto('/?step=2')
   await page.getByRole('button', { name: /^12 V/ }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   const trigger = page.getByRole('button', { name: /Battery size/ })
   const batteries = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Batteries' }) })
@@ -267,4 +275,43 @@ test('the battery size can be chosen on the kit, is remembered, and Auto brings 
   await page.getByRole('option', { name: /^Auto/ }).click()
   await expect(batteries).toContainText('12 V 300 Ah')
   await expect(trigger).toContainText('Auto · 12 V 300 Ah')
+})
+
+test("a cycling appliance's on-time can be changed on the kit, moves the runtime, and is undone", async ({ page }) => {
+  await page.goto('/?step=4')
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await fontsReady(page)
+  await page.getByRole('button', { name: /^Appliances · 6/ }).click()
+  const panel = page.locator('.qedit__panel')
+  await expect(panel.getByRole('heading', { level: 3 })).toHaveCount(0)
+  await expect(panel.getByText('Cycles on and off')).toBeVisible()
+  const duty = panel.getByRole('combobox', { name: 'Refrigerator: share of each hour it runs' })
+  await expect(duty).toHaveValue('0.35')
+  await duty.selectOption('1')
+  await expect(panel.getByText('150 W · ~150 W average')).toBeVisible()
+  await expect(page.locator('.stat--accent .stat__delta')).toHaveText(/^−/)
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(duty).toHaveValue('0.35')
+  await expect(page.locator('.stat__delta')).toHaveCount(0)
+})
+
+test('motors starting together and a hot cable run change the inverter, the checks and the assumptions', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Air conditioning' }).click()
+  await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
+  await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await page.getByRole('button', { name: /^All at once/ }).click()
+  await page.locator('summary', { hasText: 'Cable run' }).click()
+  await page.getByRole('button', { name: /^50 °C/ }).click()
+  await expect(page.locator('summary', { hasText: 'Cable run' })).toContainText('50 °C')
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  // Fridge and AC starting together: 8,115 W peak, past a 4 kW inverter's 8,000 W surge.
+  await expect(page.getByText('5,000 W pure sine, 48 V DC input')).toBeVisible()
+  const checks = page.getByRole('region', { name: 'Checks' })
+  await expect(checks.getByText(/^Start-up peak$/)).toBeVisible()
+  await expect(checks.getByText(/\(50 °C\)/)).toBeVisible()
+  await expect(page.getByText(/every motor starting at once/)).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('5,000 W pure sine, 48 V DC input')).toBeVisible()
 })

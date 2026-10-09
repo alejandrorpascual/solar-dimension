@@ -13,7 +13,7 @@ const PAUSED = 'Quote reading is paused for today. Try again tomorrow.'
 /** Signs up, waits for the default project to reach the server, and returns its id. */
 async function signUpWithProject(page: Parameters<typeof signUp>[0]): Promise<{ email: string; projectId: string }> {
   const email = await signUp(page)
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
   return { email, projectId: await firstProjectId(email) }
 }

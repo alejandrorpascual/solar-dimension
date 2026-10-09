@@ -1,11 +1,11 @@
 import { useLocale } from '../hooks/useLocale'
 
-export type Step = 1 | 2 | 3
+export type Step = 1 | 2 | 3 | 4
 
 export function Stepper({ step }: { step: Step }) {
   const { t } = useLocale()
-  const steps: Step[] = [1, 2, 3]
-  const labels: Record<Step, string> = { 1: t.ui.step1, 2: t.ui.step2, 3: t.ui.step3 }
+  const steps: Step[] = [1, 2, 3, 4]
+  const labels: Record<Step, string> = { 1: t.ui.step1, 2: t.ui.step2, 3: t.ui.step3, 4: t.ui.step4 }
   return (
     <nav aria-label="Steps" className="stepper">
       {steps.map((s, i) => (

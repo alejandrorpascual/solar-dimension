@@ -1,19 +1,28 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { computeProject, summarizeProjects } from './project-summary'
-import type { Project } from './schema'
+import { DEFAULT_ELECTRICAL, type Project } from './schema'
 import { compute } from './sizing'
 
 const project = (id: string, qty: Record<string, number>, patch: Partial<Project> = {}): Project => ({
-  id, name: id, qty, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: null, requester: null, updatedAt: 0, ...patch,
+  id, name: id, qty, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: null, requester: null,
+  dutyOverrides: {}, electrical: DEFAULT_ELECTRICAL, solar: null, updatedAt: 0, ...patch,
 })
 
 describe('computeProject', () => {
   test('sizes a saved project exactly as the kit step does', () => {
-    const p = project('home', { fridge: 1, tv: 2 }, { hours: 6, volts: 24, batteryUnit: '24-100' })
+    const electrical = { simultaneousStarts: 2 as const, runLengthM: 4, ambientC: 40 as const, bundled: true, insulationC: 75 as const }
+    const p = project('home', { fridge: 1, tv: 2 }, { hours: 6, volts: 24, batteryUnit: '24-100', dutyOverrides: { fridge: 0.6 }, electrical })
     expect(computeProject(p, CATALOG_SNAPSHOT)).toEqual(
-      compute({ qty: p.qty, custom: p.custom, hours: 6, volts: 24, chemistry: 'lifepo4', batteryUnit: '24-100' }, CATALOG_SNAPSHOT),
+      compute({
+        qty: p.qty, custom: p.custom, hours: 6, volts: 24, chemistry: 'lifepo4', batteryUnit: '24-100',
+        dutyOverrides: { fridge: 0.6 }, simultaneousStarts: 2, cable: { runLengthM: 4, ambientC: 40, bundled: true, insulationC: 75 },
+      }, CATALOG_SNAPSHOT),
     )
+    const r = computeProject(p, CATALOG_SNAPSHOT)
+    expect(r.items.find((i) => i.id === 'fridge')?.effectiveDuty).toBe(0.6)
+    expect(r.cable).toMatchObject({ mainLengthM: 4, ambientC: 40, bundled: true, insulationC: 75 })
+    expect(r.simultaneousStarts).toBe(2)
   })
 })
 

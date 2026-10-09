@@ -5,7 +5,7 @@ import { tr } from '../i18n'
 import { computeProject } from '../lib/project-summary'
 import type { Project, Store } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
-import { hasSameLoads, patchCurrent, restoreProject, setHoursIn, setQtyIn } from '../lib/store'
+import { hasSameLoads, patchCurrent, restoreProject, setDutyIn, setHoursIn, setQtyIn } from '../lib/store'
 import { KitQuickEdit } from './KitQuickEdit'
 import { KitSummary } from './KitSummary'
 import { QuotesCard } from './quotes/QuotesCard'
@@ -48,6 +48,7 @@ export function KitStep({ store, commit, project, result, isSaving, onAllApplian
             isDirty={isDirty}
             onQty={(itemId, n) => quickEdit(setQtyIn(store, project.id, itemId, n))}
             onHours={(hours) => quickEdit(setHoursIn(store, project.id, hours))}
+            onDuty={(itemId, duty) => quickEdit(setDutyIn(store, project.id, itemId, duty))}
             onUndo={restore}
             onAllAppliances={onAllAppliances}
           />

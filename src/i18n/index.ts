@@ -65,6 +65,11 @@ export function batteryCount(t: Dictionary, count: number): string {
   return tr(t, count === 1 ? 'batteryCountOne' : 'batteryCountMany', { count })
 }
 
+/** "1 panel" / "5 panels" in the active language. */
+export function panelCount(t: Dictionary, count: number): string {
+  return tr(t, count === 1 ? 'panelCountOne' : 'panelCountMany', { count })
+}
+
 type Labelled = { id: string; name?: string; isCustom?: boolean; labels?: ApplianceLabels }
 
 export function applianceName(t: Dictionary, item: Labelled & { name: string }): string {

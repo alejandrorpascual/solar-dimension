@@ -10,13 +10,14 @@ import { KitStep } from '../components/KitStep'
 import { ProjectBar } from '../components/ProjectBar'
 import { RailSheet, SideRail, type RailTab } from '../components/SideRail'
 import type { Step } from '../components/Stepper'
+import { SolarStep } from '../components/solar/SolarStep'
 import { WizardFooter } from '../components/WizardFooter'
 import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
 import { useRootData } from '../hooks/useRootData'
-import { batteryCount, tr, type Dictionary, type Locale } from '../i18n'
-import { fmtKwh, fmtW } from '../i18n/format'
+import { batteryCount, panelCount, tr, type Dictionary, type Locale } from '../i18n'
+import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { computeProject } from '../lib/project-summary'
 import { patchCurrent } from '../lib/store'
 import type { SizingResult } from '../lib/sizing'
@@ -24,7 +25,7 @@ import type { SizingResult } from '../lib/sizing'
 interface Search { step: Step }
 
 function parseStep(v: unknown): Step {
-  return v === 2 || v === '2' ? 2 : v === 3 || v === '3' ? 3 : 1
+  return v === 2 || v === '2' ? 2 : v === 3 || v === '3' ? 3 : v === 4 || v === '4' ? 4 : 1
 }
 
 export const Route = createFileRoute('/')({
@@ -35,8 +36,13 @@ export const Route = createFileRoute('/')({
 function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary, locale: Locale): string {
   if (step === 1) return tr(t, 'footer1', { name, count: r.count, running: fmtW(r.runningW, locale), peak: fmtW(r.surgeW, locale) })
   if (step === 2) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) })
+  if (step === 3) {
+    const base = { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) }
+    return r.solar ? tr(t, 'footerSolar', { ...base, panels: panelCount(t, r.solar.panels), kw: fmtKw(r.solar.arrayW, locale) }) : tr(t, 'footerSolarNone', base)
+  }
   if (r.empty || !r.battery) return t.ui.footerEmpty
-  return tr(t, 'footer3', { batteries: batteryCount(t, r.battery.count), inverter: fmtW(r.inverter.w, locale), gauge: r.cable.gauge })
+  const base = { batteries: batteryCount(t, r.battery.count), inverter: fmtW(r.inverter.w, locale), gauge: r.cable.gauge }
+  return r.solar ? tr(t, 'footer4Solar', { ...base, panels: panelCount(t, r.solar.panels) }) : tr(t, 'footer3', base)
 }
 
 function KitBuilderPage() {
@@ -78,7 +84,13 @@ function KitBuilderPage() {
               <BackupWindow store={store} commit={commit} result={result} />
             </>
           )}
-          {step === 3 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={() => go(1)} />}
+          {step === 3 && (
+            <>
+              <h2>{t.ui.q3}</h2>
+              <SolarStep store={store} commit={commit} project={project} result={result} />
+            </>
+          )}
+          {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={() => go(1)} />}
         </section>
         <WizardFooter
           step={step}

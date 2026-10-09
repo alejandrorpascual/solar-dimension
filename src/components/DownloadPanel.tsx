@@ -4,14 +4,14 @@ import { canShareFiles, renderPdf, renderPng, saveBlob, shareFile } from '../cli
 import { useLocale } from '../hooks/useLocale'
 import { usePreparedImage } from '../hooks/usePreparedImage'
 import { usePreviewScale } from '../hooks/usePreviewScale'
-import { applianceName, tr, type Dictionary } from '../i18n'
 import { fmtDate } from '../i18n/format'
-import { buildCsv, exportFileName } from '../lib/export-csv'
+import { exportFileName } from '../lib/export-csv'
+import { csvFor } from '../lib/kit-csv'
+import { buildParts } from '../lib/kit-parts'
 import type { Requester } from '../lib/requester'
 import type { Project } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
 import { KitSheet, SHEET_WIDTH, type ExportInclude } from './KitSheet'
-import { buildParts, type Part } from './KitSummary'
 import { RequesterCard } from './RequesterCard'
 import { RequesterSheet } from './RequesterSheet'
 import { SheetPreview } from './SheetPreview'
@@ -25,31 +25,20 @@ const FORMATS: ReadonlyArray<{ id: Format; name: 'fmtPdf' | 'fmtPng' | 'fmtCsv';
   { id: 'png', name: 'fmtPng', hint: 'fmtPngHint', action: 'downloadPng' },
   { id: 'csv', name: 'fmtCsv', hint: 'fmtCsvHint', action: 'downloadCsv' },
 ]
-const INCLUDES: ReadonlyArray<{ key: keyof ExportInclude; label: 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'; inCsv: boolean }> = [
+const INCLUDES: ReadonlyArray<{ key: keyof ExportInclude; label: 'incSummary' | 'incAppliances' | 'incParts' | 'incChecks' | 'incNotes' | 'incRequester'; inCsv: boolean }> = [
   { key: 'summary', label: 'incSummary', inCsv: false },
   { key: 'appliances', label: 'incAppliances', inCsv: true },
   { key: 'parts', label: 'incParts', inCsv: true },
+  { key: 'checks', label: 'incChecks', inCsv: false },
   { key: 'notes', label: 'incNotes', inCsv: false },
   { key: 'requester', label: 'incRequester', inCsv: false },
 ]
-
-function csvFor(result: SizingResult, parts: Part[], include: ExportInclude, t: Dictionary): string {
-  return buildCsv({
-    headers: {
-      appliances: [t.ui.appliance, t.ui.quantity, t.ui.eachW, t.ui.runningWatts, tr(t, 'whOver', { hours: result.hours })],
-      parts: [t.ui.part, t.ui.specification, t.ui.note, t.ui.quantity],
-    },
-    appliances: result.items.map((i) => ({ name: applianceName(t, i), qty: i.qty, eachW: i.watts, runningW: i.totalWatts, wh: i.wh })),
-    parts: parts.map((p) => ({ name: p.name, spec: p.spec, note: p.note, qty: p.qty })),
-    include: { appliances: include.appliances, parts: include.parts },
-  })
-}
 
 /** Download the open project as a PDF spec sheet, a phone-sized image or a CSV, with a live preview of the sheet. */
 export function DownloadPanel({ project, result, onRequesterChange }: { project: Project; result: SizingResult; onRequesterChange: (requester: Requester | null) => void }) {
   const { t, locale } = useLocale()
   const [format, setFormat] = useState<Format>('pdf')
-  const [include, setInclude] = useState<ExportInclude>({ summary: true, appliances: true, parts: true, notes: true, requester: true })
+  const [include, setInclude] = useState<ExportInclude>({ summary: true, appliances: true, parts: true, checks: true, notes: true, requester: true })
   const [status, setStatus] = useState<Status>('idle')
   const [canShare, setCanShare] = useState(false)
   const preview = usePreviewScale(SHEET_WIDTH, PREVIEW_MAX_HEIGHT)
@@ -113,7 +102,7 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
     await new Promise<void>((resolve) => requestAnimationFrame(() => { setTimeout(resolve, 0) }))
     const name = exportFileName(project.name, format)
     if (format === 'csv') {
-      saveBlob(new Blob([csvFor(result, parts, include, t)], { type: 'text/csv;charset=utf-8' }), name)
+      saveBlob(new Blob([csvFor(result, parts, { appliances: include.appliances, parts: include.parts }, t)], { type: 'text/csv;charset=utf-8' }), name)
       return
     }
     saveBlob(format === 'pdf' ? await renderPdf(sheetNode()) : await renderPng(sheetNode()), name)
@@ -157,6 +146,7 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
       </section>
       <RequesterSheet
         isOpen={isRequesterOpen}
+        projectId={project.id}
         onOpenChange={setRequesterOpen}
         requester={project.requester}
         onSave={changeRequester}
