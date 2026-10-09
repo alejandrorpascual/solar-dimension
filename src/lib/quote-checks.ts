@@ -18,17 +18,35 @@ export const hasTotal = (n: number | null | undefined): n is number => typeof n 
 const includedSum = (lines: readonly QuoteLine[]): number => lines.filter((l) => !l.optional).reduce((a, l) => a + l.lineTotal, 0)
 
 /**
- * Each option's price: the total the document writes for it, else its own included lines plus the shared ones. An
- * option whose own lines carry no price has none: shared lines alone (installation, transport) don't price a system.
+ * Each option's price: the total the document writes for it, else its own included lines plus the shared ones, plus
+ * the tax written for that option, so an option stated as "subtotal + tax" ranks at what it costs. The document's own
+ * tax is not spread over options: which option it belongs to is unknown, and options are compared as written. An
+ * option whose own lines carry no price has none: shared lines or tax alone don't price a system.
  */
 export function optionPrices(x: QuoteExtraction): { id: string; total: number | null }[] {
   const shared = includedSum(x.lines.filter((l) => l.option === null))
   return x.options.map((o) => {
     if (hasTotal(o.total)) return { id: o.id, total: o.total }
-    const own = includedSum(x.lines.filter((l) => l.option === o.id))
-    return { id: o.id, total: own > 0 ? own + shared : null }
+    const ownLines = x.lines.filter((l) => l.option === o.id)
+    const own = includedSum(ownLines)
+    const tax = hasTotal(o.tax) && !isTaxListed(ownLines, o.tax) ? o.tax : 0
+    return { id: o.id, total: own > 0 ? own + shared + tax : null }
   })
 }
+
+/** Words a tax line is written with ("IVA", "I.V.A.", "VAT", "sales tax", "impuesto"), once accents and dots are dropped. */
+const TAX_WORDS = /\b(iva|vat|tax(es)?|impuestos?)\b/
+const DIACRITICS = /\p{Diacritic}/gu
+const namesTax = (text: string): boolean => TAX_WORDS.test(text.normalize('NFD').replace(DIACRITICS, '').replace(/\./g, '').toLowerCase())
+
+/**
+ * Whether an option's tax is already one of its own included lines, which adding it again would count twice. A VAT
+ * line can only be read as kind `other`; it has to say it is a tax and be for the same amount, so a separate charge
+ * that happens to cost the same (freight, say) still leaves the tax to add.
+ */
+const isTaxListed = (lines: readonly QuoteLine[], tax: number): boolean =>
+  lines.some((l) =>
+    !l.optional && l.kind === 'other' && near(l.lineTotal, tax, LINE_TOLERANCE) && (namesTax(l.description) || namesTax(l.source.text)))
 
 /**
  * The totals an option priced at `base` may be written as: the base itself, with the tax written for that option, or

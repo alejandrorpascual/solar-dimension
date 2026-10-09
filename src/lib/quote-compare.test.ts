@@ -197,6 +197,28 @@ describe('a quote that offers two systems', () => {
     expect(u.unranked.map((e) => [entryKey(e), e.reason])).toEqual([['suna:o1', 'no_price']])
     expect(keys(u.ranked)).toEqual(['suna:o2'])
   })
+  test('an option that writes its own tax but no total ranks at its price with that tax', () => {
+    const x = { ...SAMPLE_QUOTES.suna, options: SAMPLE_QUOTES.suna.options.map((o) => (o.id === 'o1' ? { ...o, tax: 416 } : o)) }
+    const taxed = compareQuotes(KIT, DEFAULT_MUSTS, [view('suna', { extraction: x })])
+    expect(taxed.ranked.find((r) => r.optionId === 'o1')).toMatchObject({ total: 3016 })
+    expect(taxed.ranked.find((r) => r.optionId === 'o2')).toMatchObject({ total: 6200 })
+  })
+  test('the tax an option writes can change which quote is the best fit', () => {
+    // Confirm what the 10 kW option leaves unclear, so it fits: untaxed, it is cheaper than SolarTec and wins.
+    const plain = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { createdAt: 0 }), suna])
+    const unclear = plain.ranked.find((r) => r.optionId === 'o2')!.items.filter((c) => c.status === 'unknown')
+    const confirmed = { ...suna, overrides: Object.fromEntries(unclear.map((c) => [c.id, 'included'])) }
+    const before = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { createdAt: 0 }), confirmed])
+    expect(before.best && entryKey(before.best)).toBe('suna:o2')
+    const solartecTotal = before.ranked.find((r) => r.quote.id === 'solartec')!.total!
+
+    // Its written tax takes it past SolarTec's total: SolarTec is now the best fit.
+    const tax = solartecTotal - 6200 + 500
+    const x = { ...SAMPLE_QUOTES.suna, options: SAMPLE_QUOTES.suna.options.map((o) => (o.id === 'o2' ? { ...o, tax } : o)) }
+    const after = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { createdAt: 0 }), { ...confirmed, extraction: x }])
+    expect(after.best && entryKey(after.best)).toBe('solartec')
+    expect(after.ranked.find((r) => r.optionId === 'o2')!.total).toBe(6200 + tax)
+  })
   test("a quote's typed total never prices an option", () => {
     const x = { ...SAMPLE_QUOTES.suna, lines: SAMPLE_QUOTES.suna.lines.map((l) => (l.option === 'o1' ? { ...l, lineTotal: 0 } : l)) }
     const u = compareQuotes(KIT, DEFAULT_MUSTS, [view('suna', { extraction: x, totalOverride: 9000 })])
