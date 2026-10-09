@@ -28,6 +28,36 @@ Out of scope:
 - **Search country is US for now** (`PRODUCT_SEARCH_COUNTRY`). Products don't vary by user, and the US market is where both runs found full datasheets. A per-market library can come later.
 - **Model `gpt-6-luna`** (`PRODUCTS_MODEL`), through the Responses API with the `web_search` tool, structured output and `store: false`. The request is streamed: a non-streamed request that sat silent for minutes was dropped in the spike.
 
+## Admin research skill (`.claude/skills/research-product/SKILL.md`)
+
+This works like `/research-appliance`. It runs on the subscription with Claude Code's own web search and fetch, and it writes through a token-protected endpoint after a dry run and an explicit yes.
+
+**Inputs:** `/research-product <what> [--target local|prod] [--replace]`. `<what>` is one of:
+
+1. **Named models:** `EG4 6000XP, Pytes V5`. Research exactly these. This is the main way to seed the library and to fix a product.
+2. **A need:** `48 V inverter, ≥ 6 kW, split-phase` or `48 V LiFePO4 rack battery, ≥ 5 kWh`. Find up to 4 current models that meet it, then research each as in 1.
+3. **A saved search run:** `--from <run.json>` (a spike or app search). Verify each product it found against its datasheet, then import it. The spike's three runs are the first seed: 8 inverters and 10 batteries.
+
+**For each product:**
+1. Find the maker's product page and datasheet.
+2. Read the datasheet itself. A PDF is fetched and its pages are read, not summarised.
+3. Fill the product schema. Every stated spec carries `{ value, source, asWritten }`: `asWritten` is the datasheet's own line, so each number can be checked against its words.
+4. List the library (`GET /api/catalog/products`) to find duplicates by key.
+5. Dry run: `POST /api/catalog/products?dryRun=true`. The API answers per product:
+   - `new`;
+   - `fills` (null values it would fill);
+   - `conflicts` (stored → found);
+   - `unchanged`;
+   - or 422 with the issues.
+6. Show a table: kind, brand and model, status, and each spec's value, `asWritten` and source. Flag products with no datasheet (rejected), a VA-only surge, or no parallel limit.
+7. Wait for an explicit yes, then `POST` and report what was created, filled and left in conflict.
+
+**Merging:** stated values are kept unless `--replace` is given. With it, the admin's values overwrite stated ones and clear their conflicts.
+
+**Targets:** the same warning as `/research-appliance`. `--target local` writes to whatever database the local server uses, which is production unless dev has its own Neon branch.
+
+**Endpoint** (`src/routes/api/catalog/products.ts`): `GET` and `POST` (`?dryRun=true`), behind `authorize()` from `catalog-api.ts` with `CATALOG_API_TOKEN`. The Zod schema in `src/lib/product-schema.ts` is shared by this endpoint, the in-app search and the fit rules.
+
 ## Flow
 
 ```
@@ -59,7 +89,7 @@ The **fingerprint** is the kit's needs rounded up to steps, so that nearby kits 
 | `key` | text unique | kind + brand + model, lowercased, spaces and punctuation removed |
 | `brand`, `model` | text | |
 | `maker_url`, `datasheet_url` | text | datasheet required |
-| `specs` | jsonb | per kind, Zod-checked on read; each spec `{ value, source }`, surge as levels |
+| `specs` | jsonb | per kind, Zod-checked on read; each spec `{ value, source, asWritten }`, surge as levels |
 | `extra_specs` | jsonb | up to 8 `{ name, value, source }` lines as written (transfer time, IP rating, temperature…) |
 | `price` | jsonb null | `{ amount, currency, seller, url, seenOn }` |
 | `origin` | text | `search` or `admin` |
