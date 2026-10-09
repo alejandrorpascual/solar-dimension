@@ -43,12 +43,13 @@ This works like `/research-appliance`. It runs on the subscription with Claude C
 2. Read the datasheet itself. A PDF is fetched and its pages are read, not summarised.
 3. Fill the product schema. Every stated spec carries `{ value, source, asWritten }`: `asWritten` is the datasheet's own line, so each number can be checked against its words.
 4. List the library (`GET /api/catalog/products`) to find duplicates by key.
-5. Dry run: `POST /api/catalog/products?dryRun=true`. The API answers per product:
+5. Dry run: `POST /api/catalog/products?dryRun=true`. The API answers per product with a `status`:
    - `new`;
-   - `fills` (null values it would fill);
-   - `conflicts` (stored → found);
-   - `unchanged`;
-   - or 422 with the issues.
+   - `updated`, listing the null values it fills (`fills`) and, with `--replace`, the values it overwrites (`replaced`);
+   - `conflicts`, listing the differing values (stored → found);
+   - `unchanged`.
+
+   An invalid product gets a 422 with its issues.
 6. Show a table: kind, brand and model, status, and each spec's value, `asWritten` and source. Flag products with no datasheet (rejected), a VA-only surge, or no parallel limit.
 7. Wait for an explicit yes, then `POST` and report what was created, filled and left in conflict.
 
