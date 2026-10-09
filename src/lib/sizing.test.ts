@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
+import { DEFAULT_HARDWARE } from './catalog'
 import { catalog, compute } from './sizing'
 
 const ESSENTIALS = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
@@ -26,8 +27,14 @@ describe('compute', () => {
     expect(r.inverter.voltsOk).toBe(true)
     expect(r.battery?.config).toBe('1S1P')
     expect(r.battery?.unitLabel).toBe('48 V 200 Ah LiFePO₄')
-    expect(r.cable.gauge).toBe('8 AWG')
-    expect(r.cable.fuseA).toBe(80)
+    // NEC: 69 A × 1.25 = 87 A design current; 4 AWG carries 85 A at the 75 °C lugs, so 2 AWG, and a 100 A class T fuse.
+    expect(r.cable.gauge).toBe('2 AWG')
+    expect(r.cable.designA).toBe(87)
+    expect(r.cable.ampacity).toBe(115)
+    expect(r.cable.fuseA).toBe(100)
+    expect(r.fuse).toEqual({ a: 100, class: 'T', aicA: 20000, maxVdc: 125, count: 1 })
+    expect(r.cable.string).toBeNull()
+    expect(r.parallelNotes).toEqual([])
     expect(r.warnings).toEqual([])
   })
 
@@ -37,8 +44,11 @@ describe('compute', () => {
     expect(r.inverter.voltsOk).toBe(true)
     expect(r.battery?.config).toBe('1S2P')
     expect(r.battery?.unitLabel).toBe('12 V 300 Ah LiFePO₄')
-    expect(r.cable.gauge).toBe('4 AWG')
+    expect(r.cable.gauge).toBe('1 AWG')
     expect(r.cable.fuseA).toBe(125)
+    // Two strings: each gets its own short lead and fuse, and the sheet gets the parallel-bank notes.
+    expect(r.cable.string).toMatchObject({ count: 2, gauge: '6 AWG', lengthM: 0.3, fuse: { a: 60, count: 2 } })
+    expect(r.parallelNotes).toEqual(['sameModelAge', 'equalLeadsOrBusbar', 'stringFuses'])
   })
 
   test('a conventional AC drives the surge and the inverter pick', () => {
@@ -53,9 +63,11 @@ describe('compute', () => {
   test('warns on a big load at 12 V with AGM and flags the dominant appliance', () => {
     const r = compute({ qty: { fridge: 1, ac1c: 1, well: 1, micro: 1, lights: 1 }, hours: 10, volts: 12, chemistry: 'agm' }, CATALOG_SNAPSHOT)
     expect(r.inverter.voltsOk).toBe(false)
-    expect(r.cable.runs).toBe(2)
+    expect(r.cable.runs).toBe(3)
     const codes = r.warnings.map((w) => w.code)
-    expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad'])
+    // Nine AGM strings can short at 21.6 kA, past a class T fuse's 20 kA.
+    expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad', 'fuseInterrupt'])
+    expect(r.warnings[2]?.params).toMatchObject({ strings: 9, maxParallel: 4 })
     expect(r.warnings[3]?.params.itemId).toBe('ac1c')
     expect(r.warnings[3]?.params.sharePct).toBeGreaterThan(50)
   })
@@ -73,6 +85,11 @@ describe('compute', () => {
     expect(r.volts).toBe(48)
     expect(r.chemistry).toBe('lifepo4')
     expect(r.cable.mainLengthM).toBe(0.5)
+    const c = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', cable: { runLengthM: 99, ambientC: 500, insulationC: 60 as never }, simultaneousStarts: 0 }, CATALOG_SNAPSHOT)
+    expect(c.cable.mainLengthM).toBe(10)
+    expect(c.cable.ambientC).toBe(80)
+    expect(c.cable.insulationC).toBe(90)
+    expect(c.simultaneousStarts).toBe(1)
   })
 
   test('includes custom loads as continuous items', () => {
@@ -157,5 +174,167 @@ describe('battery unit choice', () => {
     expect(r.batteryUnit).toBeNull()
     expect(r.battery?.unitLabel).toBe(r.batteryOptions.find((o) => o.isAuto)?.label)
     expect(compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: 'nonsense' }, CATALOG_SNAPSHOT).batteryUnit).toBeNull()
+  })
+
+  test('has no solar side unless the project chose panels', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.solar).toBeNull()
+  })
+
+  test('sizes the solar side from the bank it picked and the average draw', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    // 48 V 200 Ah × 1 = 9,600 Wh bank → 9,600 / (550 × 5 × 0.75) = 4.65 → 5 panels
+    expect(r.battery?.bankWh).toBe(9600)
+    expect(r.solar?.panels).toBe(5)
+    expect(r.solar?.dailyUseWh).toBe(r.averageW * 24)
+    expect(r.warnings.some((w) => w.code === 'roofLimited')).toBe(false)
+  })
+
+  test('warns when the roof cannot hold the panels that refill the bank', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 6, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    expect(r.solar?.panels).toBe(2)
+    expect(r.warnings).toContainEqual({ code: 'roofLimited', params: { fit: 2, need: 5 } })
+  })
+
+  test('an empty project with panels sizes nothing and warns nothing', () => {
+    const r = compute({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    expect(r.solar?.panels).toBe(0)
+    expect(r.warnings).toEqual([])
+  })
+})
+
+describe('engineering checks', () => {
+  const at48 = (qty: Record<string, number>, extra: Partial<Parameters<typeof compute>[0]> = {}) =>
+    compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4', ...extra }, CATALOG_SNAPSHOT)
+  const item = (id: string) => CATALOG_SNAPSHOT.find((a) => a.id === id)!
+
+  test('a duty override changes the energy and the average, and is clamped to 5%..100%', () => {
+    const base = at48(ESSENTIALS)
+    const full = at48(ESSENTIALS, { dutyOverrides: { fridge: 1 } })
+    expect(full.loadWh).toBe(base.loadWh - 525 + 1500)
+    expect(full.averageW).toBe(465)
+    expect(full.items.find((i) => i.id === 'fridge')).toMatchObject({ effectiveDuty: 1, overridden: true })
+    expect(base.items.find((i) => i.id === 'fridge')).toMatchObject({ effectiveDuty: 0.35, overridden: false, kind: 'cycling' })
+    expect(at48(ESSENTIALS, { dutyOverrides: { fridge: 0 } }).items.find((i) => i.id === 'fridge')?.effectiveDuty).toBe(0.05)
+    expect(at48(ESSENTIALS, { dutyOverrides: { fridge: 2 } }).items.find((i) => i.id === 'fridge')?.effectiveDuty).toBe(1)
+    expect(at48(ESSENTIALS, { dutyOverrides: { ghost: 0.5 } }).loadWh).toBe(base.loadWh)
+  })
+
+  test('motors starting together add their surges, largest first; "all" counts every unit of a quantity', () => {
+    const one = at48({ fridge: 2, ac2c: 1, well: 1 })
+    const two = at48({ fridge: 2, ac2c: 1, well: 1 }, { simultaneousStarts: 2 })
+    const all = at48({ fridge: 2, ac2c: 1, well: 1 }, { simultaneousStarts: 'all' })
+    const delta = (id: string) => item(id).surge - item(id).watts
+    expect(one.surgeW).toBe(one.runningW + delta('ac2c'))
+    expect(two.surgeW).toBe(one.runningW + delta('ac2c') + Math.max(delta('well'), delta('fridge')))
+    expect(all.surgeW).toBe(one.runningW + delta('ac2c') + delta('well') + 2 * delta('fridge'))
+    expect(all.surgeProfile.starters).toHaveLength(4)
+    expect(all.surgeProfile.starters[0]?.itemId).toBe('ac2c')
+    expect(one.surgeSeconds).toBe(3)
+    expect(one.items.find((i) => i.id === 'ac2c')?.startClass).toBe('compressor')
+    expect(one.items.find((i) => i.id === 'lights')?.startClass ?? null).toBeNull()
+  })
+
+  test('a momentary load counts its bursts as energy and joins the start-up only when every motor starts', () => {
+    // The catalog's parking barrier: 150 W, 450 W surge, 4 s lifts thirty times an hour.
+    const r = at48({ fridge: 1, barrier: 1 })
+    const b = r.items.find((i) => i.id === 'barrier')!
+    expect(b).toMatchObject({ kind: 'momentary', startClass: 'motor', surgeSeconds: 1, overridden: false })
+    expect(b.effectiveDuty).toBeCloseTo(120 / 3600)
+    expect(b.wh).toBe(Math.round(150 * (120 / 3600) * 10))
+    const two = at48({ fridge: 1, barrier: 1 }, { simultaneousStarts: 2 })
+    expect(two.surgeW).toBe(two.runningW + (1200 - 150))
+    const all = at48({ fridge: 1, barrier: 1 }, { simultaneousStarts: 'all' })
+    expect(all.surgeW).toBe(all.runningW + (1200 - 150) + 300)
+  })
+
+  test('hot air and bundled runs derate the cable and step the gauge up', () => {
+    // 1 AWG at 75% carries 97.5 A, enough for the 87 A design current but not for the 100 A fuse: 1/0 AWG.
+    const hot = at48(ESSENTIALS, { cable: { ambientC: 50, insulationC: 75 } })
+    expect(hot.cable).toMatchObject({ gauge: '1/0 AWG', ambientFactor: 0.75, insulationC: 75, ampacity: 113, fuseA: 100 })
+    const cool = at48(ESSENTIALS, { cable: { ambientC: 50, insulationC: 90 } })
+    expect(cool.cable).toMatchObject({ gauge: '2 AWG', ambientFactor: 0.82, ampacity: 107 })
+    const bundled = compute({ qty: { fridge: 1, ac1c: 1, well: 1, micro: 1, lights: 1 }, hours: 10, volts: 12, chemistry: 'agm', cable: { bundled: true } }, CATALOG_SNAPSHOT)
+    expect(bundled.cable.runs).toBeGreaterThanOrEqual(3)
+    expect(bundled.cable.conductors).toBe(2 * bundled.cable.runs)
+    expect(bundled.cable.bundleFactor).toBeLessThan(1)
+    expect(bundled.cable.bundled).toBe(true)
+  })
+
+  test('warns when no cable is rated for the air temperature', () => {
+    const r = at48(ESSENTIALS, { cable: { ambientC: 80, insulationC: 75 } })
+    expect(r.warnings.map((w) => w.code)).toContain('cableAmbient')
+    expect(r.cable.ambientFactor).toBe(0)
+  })
+
+  test('the inverter draw, not only the energy, sets how many strings a bank needs', () => {
+    const r = compute({ qty: { fridge: 1, ac2c: 1, ac15i: 1 }, hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-100' }, CATALOG_SNAPSHOT)
+    expect(r.inverter.w).toBe(5000)
+    // 8,400 W at start-up is 194 A, one unit's 200 A peak; the 116 A continuous draw needs two.
+    expect(r.battery?.parallelFor).toEqual({ energy: 1, continuous: 2, peak: 1 })
+    expect(r.battery?.parallel).toBe(2)
+    expect(r.battery).toMatchObject({ dischargeOk: true, peakOk: true, bankContinuousA: 200, bankPeakA: 400 })
+  })
+
+  test('a unit that cannot feed the inverter within its parallel limit is flagged, warned about and runs 0 h worst case', () => {
+    // 1,150 W running → 1.5 kW inverter → 139 A; a 12 V 100 Ah AGM gives 30 A and may only go four in parallel.
+    const r = compute({ qty: { fridge: 1, micro: 1 }, hours: 2, volts: 12, chemistry: 'agm', batteryUnit: '12-100' }, CATALOG_SNAPSHOT)
+    expect(r.battery?.unitLabel).toBe('12 V 100 Ah AGM')
+    expect(r.battery?.parallelFor.continuous).toBeGreaterThan(4)
+    expect(r.battery?.overMaxParallel).toBe(false)
+    expect(r.battery?.dischargeOk).toBe(false)
+    expect(r.warnings.map((w) => w.code)).toContain('bankDischarge')
+    expect(r.battery?.runtime.worstLimitedByDischarge).toBe(true)
+    expect(r.battery?.runtime.worst).toBe(0)
+    expect(r.batteryOptions.find((o) => o.id === '12-100')).toMatchObject({ dischargeOk: false, maxParallel: 4 })
+    expect(r.batteryOptions.find((o) => o.isAuto)?.dischargeOk).toBe(true)
+  })
+
+  test('the automatic pick skips banks that fail a check when a healthy one exists', () => {
+    const r = compute({ qty: { fridge: 1, micro: 1 }, hours: 2, volts: 12, chemistry: 'agm' }, CATALOG_SNAPSHOT)
+    const small = r.batteryOptions.find((o) => o.id === '12-100')!
+    expect(small.dischargeOk).toBe(false)
+    expect(small.count).toBeLessThanOrEqual(r.battery!.count)
+    expect(r.battery).toMatchObject({ unitLabel: '12 V 200 Ah AGM', dischargeOk: true, peakOk: true })
+  })
+
+  test('when no bank passes every check the automatic pick still returns the fewest batteries', () => {
+    const r = compute({ qty: { fridge: 1, micro: 1, kettle: 1 }, hours: 2, volts: 12, chemistry: 'agm' }, CATALOG_SNAPSHOT)
+    expect(r.inverter.w).toBe(4000)
+    expect(r.batteryOptions.every((o) => !o.dischargeOk)).toBe(true)
+    expect(r.battery).not.toBeNull()
+    expect(r.warnings.map((w) => w.code)).toContain('bankDischarge')
+  })
+
+  test('runtime scenarios bracket the typical figure, and typical is the headline hours', () => {
+    const r = at48(ESSENTIALS)
+    const rt = r.battery!.runtime
+    expect(rt.optimistic).toBeGreaterThan(rt.typical)
+    expect(rt.typical).toBeGreaterThan(rt.worst)
+    expect(rt.worst).toBeGreaterThan(0)
+    expect(r.battery?.hoursActual).toBe(rt.typical)
+    for (const o of r.batteryOptions) expect(o.hoursActual).toBe(o.runtime.typical)
+  })
+
+  test('a start-up no inverter holds long enough is warned about', () => {
+    const r = at48({ ac2c: 6 }, { simultaneousStarts: 'all' })
+    expect(r.inverter.surgeOk).toBe(false)
+    expect(r.warnings.map((w) => w.code)).toContain('surgeDuration')
+  })
+
+  test('the configured start-up, not the inverter rating, is what the fuse must hold', () => {
+    // The stock inverters surge exactly 2× and the fuse is at least 1.25×, so a 3× inverter is needed to reach the hold.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 1000, surge: 3000, volts: [12] as const, surgeSeconds: 3 }] }
+    const r = compute({ qty: { well: 1 }, hours: 2, volts: 12, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    expect(r.surgeW).toBe(3000)
+    expect(r.warnings.map((w) => w.code)).toContain('fuseSurge')
+    const calm = compute({ qty: { lights: 1, well: 1 }, hours: 2, volts: 12, chemistry: 'lifepo4', dutyOverrides: {} }, CATALOG_SNAPSHOT)
+    expect(calm.warnings.map((w) => w.code)).not.toContain('fuseSurge')
+  })
+
+  test('a replacement hardware catalog drives the picks', () => {
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 20000, surge: 40000, volts: [48] as const, surgeSeconds: 10 }] }
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    expect(r.inverter.w).toBe(20000)
   })
 })

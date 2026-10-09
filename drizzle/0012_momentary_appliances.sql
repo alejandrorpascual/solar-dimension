@@ -1,0 +1,5 @@
+INSERT INTO "appliances" ("id", "category", "watts", "surge", "duty", "tons", "ac_type", "labels", "sort_order", "updated_by", "kind", "surge_class", "burst_seconds", "cycles_per_hour") VALUES
+('gate-slide', 'Security', 550, 1650, 0.033, NULL, NULL, '{"en":{"name":"Sliding gate motor","note":"~20 s per open or close, 6 an hour"},"es":{"name":"Motor de portón corredizo","note":"~20 s por apertura o cierre, 6 por hora"}}'::jsonb, 342, 'seed', 'momentary', 'motor', 20, 6),
+('gate-swing', 'Security', 300, 900, 0.025, NULL, NULL, '{"en":{"name":"Swing gate motor","note":"~15 s per open or close, 6 an hour"},"es":{"name":"Motor de portón batiente","note":"~15 s por apertura o cierre, 6 por hora"}}'::jsonb, 344, 'seed', 'momentary', 'motor', 15, 6),
+('barrier', 'Security', 150, 450, 0.033, NULL, NULL, '{"en":{"name":"Parking barrier","note":"4 s lifts, 30 an hour"},"es":{"name":"Barrera de estacionamiento","note":"Subidas de 4 s, 30 por hora"}}'::jsonb, 346, 'seed', 'momentary', 'motor', 4, 30)
+ON CONFLICT ("id") DO NOTHING;

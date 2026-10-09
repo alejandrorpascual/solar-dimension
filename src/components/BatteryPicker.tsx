@@ -3,7 +3,6 @@ import { Button, Header, Label, ListBox, ListBoxItem, ListBoxSection, Popover, S
 import { useLocale } from '../hooks/useLocale'
 import { batteryCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtHours, fmtKwh } from '../i18n/format'
-import { SIZING } from '../lib/catalog'
 import type { BatteryOption } from '../lib/sizing'
 
 interface Props {
@@ -35,7 +34,7 @@ function groupTitle(t: Dictionary, g: VoltageGroup): string {
 }
 
 function OptionRow({ id, title, sub, option, t }: { id: string; title: string; sub: string; option: BatteryOption; t: Dictionary }) {
-  const isManyStrings = option.parallel > SIZING.MAX_PARALLEL_STRINGS
+  const isManyStrings = option.overMaxParallel
   return (
     <ListBoxItem id={id} textValue={title} className="bopt">
       <span className="bopt__mark" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>

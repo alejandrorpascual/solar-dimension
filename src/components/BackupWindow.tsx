@@ -4,7 +4,8 @@ import { fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES, VOLTAGES, type ChemistryId, type Voltage } from '../lib/catalog'
 import type { Store } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
-import { currentProject, patchCurrent } from '../lib/store'
+import { currentProject, patchCurrent, setElectricalIn } from '../lib/store'
+import { CableConditions, StartsPicker } from './ElectricalSettings'
 
 const PRESET_HOURS = [4, 8, 10, 12, 24, 48] as const
 const HOURS_MIN = 1
@@ -16,6 +17,7 @@ export function BackupWindow({ store, commit, result }: Props) {
   const { t, locale } = useLocale()
   const p = currentProject(store)
   const setHours = (hours: number) => commit(patchCurrent(store, { hours }))
+  const setElectrical = (patch: Parameters<typeof setElectricalIn>[2]) => commit(setElectricalIn(store, p.id, patch))
   const summary = result.empty
     ? t.ui.step2Empty
     : tr(t, 'step2Summary', {
@@ -57,8 +59,10 @@ export function BackupWindow({ store, commit, result }: Props) {
               </button>
             ))}
           </div>
+          <StartsPicker electrical={p.electrical} onChange={setElectrical} />
         </div>
       </div>
+      <CableConditions electrical={p.electrical} onChange={setElectrical} />
     </div>
   )
 }

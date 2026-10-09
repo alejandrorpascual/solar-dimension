@@ -1,6 +1,6 @@
 import type { ApplianceInput, ApplianceRecord } from './catalog-schema'
 
-const COMPARED = ['category', 'watts', 'surge', 'duty', 'tons', 'acType', 'labels'] as const
+const COMPARED = ['category', 'watts', 'surge', 'duty', 'tons', 'acType', 'labels', 'kind', 'surgeClass', 'burstSeconds', 'cyclesPerHour'] as const
 const SORT_STEP = 10
 
 export interface FieldChange { field: (typeof COMPARED)[number] | 'sortOrder'; from: unknown; to: unknown }
@@ -11,7 +11,8 @@ export type ApplianceChange =
 
 /** JSON with object keys sorted, so jsonb's key reordering never reads as a change. */
 function stable(v: unknown): string {
-  if (v === null || typeof v !== 'object') return JSON.stringify(v)
+  // A field a stored record never had reads as null, the same as the schema's default for it.
+  if (v === undefined || v === null || typeof v !== 'object') return JSON.stringify(v ?? null)
   if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`
   return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${stable((v as Record<string, unknown>)[k])}`).join(',')}}`
 }

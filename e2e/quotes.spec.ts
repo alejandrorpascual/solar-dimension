@@ -359,7 +359,7 @@ test('a project that already has 10 quotes refuses an eleventh, with the reason'
   // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
   test.slow()
   const email = await signUp(page)
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
   const projectId = await firstProjectId(email)
   await seedQuoteRows(email, projectId, 10)
@@ -376,7 +376,7 @@ test('an account that used its 20 uploads this month is refused, with the reason
   // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
   test.slow()
   const email = await signUp(page)
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
   const projectId = await firstProjectId(email)
   await setQuoteUploadsThisMonth(email, 20)
@@ -443,7 +443,7 @@ test('an unverified account sees a note and Connect Google instead of the Upload
   }
 
   const email = await signUp(page, { verified: false })
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   const card = page.getByRole('region', { name: 'Got quotes from installers?' })
   await expect(card).toContainText('Uploading quotes needs a verified account.')
   await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toHaveCount(0)
@@ -473,7 +473,7 @@ test('on the verdict page, an unverified account gets Connect Google instead of 
   // Sign-up and database seeding over Neon's HTTP driver can pass 30 s on a slow CI runner.
   test.slow()
   const email = await signUp(page, { verified: false })
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect.poll(() => firstProjectId(email).then(() => true, () => false), { timeout: 15_000 }).toBe(true)
   const projectId = await firstProjectId(email)
   await seedQuoteRows(email, projectId, 1)
@@ -498,7 +498,7 @@ test('a password account with a Google account whose token verifies its email ca
   test.slow()
   const email = await signUp(page, { verified: false })
   await linkGoogleAccount(email)
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toBeEnabled({ timeout: 15_000 })
   await expect(page.getByRole('button', { name: 'Connect Google to upload quotes' })).toHaveCount(0)
 })
@@ -508,7 +508,7 @@ test('a Google account whose email Google did not verify does not unlock uploads
   test.slow()
   const email = await signUp(page, { verified: false })
   await linkGoogleAccount(email, { emailVerified: false })
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   const card = page.getByRole('region', { name: 'Got quotes from installers?' })
   await expect(card).toContainText('Uploading quotes needs a verified account.')
   await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toHaveCount(0)
@@ -518,7 +518,7 @@ test('a project whose quotes all failed says none could be read, not that a verd
   // Sign-up and database seeding over Neon's HTTP driver can pass 30 s on a slow CI runner.
   test.slow()
   const email = await signUp(page)
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toBeEnabled({ timeout: 15_000 })
   const projectId = await firstProjectId(email)
   await seedQuoteRows(email, projectId, 2)
