@@ -27,11 +27,19 @@ export function optionPrices(x: QuoteExtraction): { id: string; total: number | 
   const shared = includedSum(x.lines.filter((l) => l.option === null))
   return x.options.map((o) => {
     if (hasTotal(o.total)) return { id: o.id, total: o.total }
-    const own = includedSum(x.lines.filter((l) => l.option === o.id))
-    const tax = hasTotal(o.tax) ? o.tax : 0
+    const ownLines = x.lines.filter((l) => l.option === o.id)
+    const own = includedSum(ownLines)
+    const tax = hasTotal(o.tax) && !isTaxListed(ownLines, o.tax) ? o.tax : 0
     return { id: o.id, total: own > 0 ? own + shared + tax : null }
   })
 }
+
+/**
+ * Whether an option's tax is already one of its own included lines: a VAT line can only be read as kind `other`, so an
+ * `other` line for the same amount is that tax, and adding it again would count it twice.
+ */
+const isTaxListed = (lines: readonly QuoteLine[], tax: number): boolean =>
+  lines.some((l) => !l.optional && l.kind === 'other' && near(l.lineTotal, tax, LINE_TOLERANCE))
 
 /**
  * The totals an option priced at `base` may be written as: the base itself, with the tax written for that option, or

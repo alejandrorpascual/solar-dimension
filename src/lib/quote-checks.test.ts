@@ -72,6 +72,16 @@ describe('optionPrices', () => {
       const x = extraction(lines, { options: opts(), subtotal: 1100, tax: 176 })
       expect(optionPrices(x)).toEqual([{ id: 'a', total: 1100 }, { id: 'b', total: 1200 }])
     })
+    test("a tax the option already lists as one of its own included lines is not added again", () => {
+      const withVatLine = [line('inverter', 1000, { option: 'a' }), line('other', 160, { option: 'a' }), line('inverter', 1100, { option: 'b' })]
+      const x = extraction(withVatLine, { options: [{ id: 'a', label: 'A', total: null, tax: 160 }, { id: 'b', label: 'B', total: null, tax: null }] })
+      expect(optionPrices(x)).toEqual([{ id: 'a', total: 1160 }, { id: 'b', total: 1100 }])
+    })
+    test('a line of another kind that only costs the same as the tax still leaves the tax to add', () => {
+      const sameAmount = [line('inverter', 1000, { option: 'a' }), line('wiring', 160, { option: 'a' }), line('inverter', 1100, { option: 'b' })]
+      const x = extraction(sameAmount, { options: [{ id: 'a', label: 'A', total: null, tax: 160 }, { id: 'b', label: 'B', total: null, tax: null }] })
+      expect(optionPrices(x)).toEqual([{ id: 'a', total: 1320 }, { id: 'b', total: 1100 }])
+    })
     test('tax alone never prices an option whose own lines carry no price', () => {
       const unpriced = [line('inverter', 1000, { option: 'a' }), line('inverter', 0, { option: 'b' })]
       const x = extraction(unpriced, { options: [{ id: 'a', label: 'A', total: null, tax: null }, { id: 'b', label: 'B', total: null, tax: 160 }] })
