@@ -1,6 +1,7 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
+import { productKey } from '../src/lib/product-schema'
 import { catalogAuthHeader as auth } from './catalog-token'
-import { deleteTestProduct } from './db'
+import { deleteTestProduct, insertUnreadableTestProduct, rawTestProduct } from './db'
 
 test.beforeEach(({}, info) => {
   test.skip(info.project.name !== 'desktop', 'API checks run once')
@@ -28,17 +29,17 @@ const stored = async (request: APIRequestContext, key: string) =>
 
 test('the products API needs the token', async ({ request }) => {
   expect((await request.get('/api/catalog/products')).status()).toBe(401)
+  expect((await request.post('/api/catalog/products', { data: [inverter(`X${Date.now()}`)] })).status()).toBe(401)
 })
 
 test('dry run, create, keep a conflicting reading aside, then replace it', async ({ request }) => {
   const model = `X${Date.now()}`
-  let key = ''
+  // Known before anything is written, so `finally` always cleans up.
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
   try {
     const dry = await post(request, '?dryRun=true', [inverter(model)])
     expect(dry.status()).toBe(200)
-    const { changes } = await dry.json()
-    expect(changes).toEqual([expect.objectContaining({ status: 'new', brand: 'E2E Power', model })])
-    key = changes[0].key
+    expect((await dry.json()).changes).toEqual([expect.objectContaining({ status: 'new', key, brand: 'E2E Power', model })])
 
     const base = inverter(model)
     const unsourced = { ...base, specs: { ...base.specs, continuousW: { value: 6000, source: null, asWritten: null } } }
@@ -56,6 +57,26 @@ test('dry run, create, keep a conflicting reading aside, then replace it', async
     expect(await stored(request, key)).toMatchObject({ specs: { continuousW: { value: 5000 } }, conflicts: [] })
   } finally {
     // Runs even when an assertion fails midway, so no run leaves its row behind.
-    if (key) await deleteTestProduct(key)
+    await deleteTestProduct(key)
+  }
+})
+
+test('a stored product that no longer passes the schema is never overwritten', async ({ request }) => {
+  const model = `U${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  const refusal = { error: expect.stringContaining('no longer pass the schema'), keys: [key] }
+  try {
+    await insertUnreadableTestProduct(key)
+    const untouched = { specs: {}, updatedBy: 'e2e' }
+
+    for (const query of ['?dryRun=true', '?dryRun=true&replace=true', '', '?replace=true']) {
+      const res = await post(request, query, [inverter(model)])
+      expect(res.status(), `POST ${query || '(write)'}`).toBe(409)
+      expect(await res.json()).toEqual(refusal)
+      expect(await rawTestProduct(key)).toEqual(untouched)
+    }
+    expect(await stored(request, key)).toBeUndefined()
+  } finally {
+    await deleteTestProduct(key)
   }
 })

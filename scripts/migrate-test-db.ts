@@ -10,5 +10,7 @@ import { endpointOf, loadTestEnv } from '../e2e/test-env'
 loadTestEnv()
 const url = process.env.DATABASE_URL
 if (!url) throw new Error('DATABASE_URL is not set after loadTestEnv()')
+const endpoint = endpointOf(url)
+console.log(`migrating ${endpoint}`)
 await migrate(drizzle({ client: neon(url) }), { migrationsFolder: './drizzle' })
-console.log(`migrated ${endpointOf(url)}`)
+console.log(`migrated ${endpoint}`)

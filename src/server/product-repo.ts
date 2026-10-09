@@ -29,9 +29,21 @@ export async function listProducts(): Promise<ProductRecord[]> {
   return rows.map(toRecord).filter(isRecord)
 }
 
+/** Stored products an incoming item matches but that no longer pass the schema. Merging would call them new and overwrite them. */
+export class UnreadableProductsError extends Error {
+  constructor(readonly keys: readonly string[]) {
+    super(`Stored products no longer pass the schema: ${keys.join(', ')}`)
+    this.name = 'UnreadableProductsError'
+  }
+}
+
+/** Throws UnreadableProductsError, before anything is merged or written, when a stored row can't be read: a dry run and a write both refuse. */
 async function plan(items: readonly ProductInput[], replace: boolean): Promise<MergeResult[]> {
   const rows = await db.select().from(products).where(inArray(products.key, items.map(productKey)))
-  const byKey = new Map(rows.map(toRecord).filter(isRecord).map((r) => [r.key, r]))
+  const decoded = rows.map((row) => ({ key: row.key, record: toRecord(row) }))
+  const unreadable = decoded.filter((d) => d.record === null).map((d) => d.key)
+  if (unreadable.length > 0) throw new UnreadableProductsError(unreadable)
+  const byKey = new Map(decoded.map((d) => d.record).filter(isRecord).map((r) => [r.key, r]))
   const now = new Date().toISOString()
   return items.map((item) => mergeProduct(byKey.get(productKey(item)) ?? null, item, { replace, now }))
 }
@@ -51,7 +63,7 @@ export async function upsertProducts(items: readonly ProductInput[], opts: { rep
       .insert(products)
       .values(toWrite.map(({ change, next, conflicts }) => ({
         kind: next.kind, key: change.key, brand: next.brand, model: next.model, makerUrl: next.makerUrl, datasheetUrl: next.datasheetUrl,
-        specs: next.specs, extraSpecs: next.extraSpecs, price: next.price, origin: 'admin', conflicts, updatedBy: opts.actor,
+        specs: next.specs, extraSpecs: next.extraSpecs, price: next.price, origin: 'admin' satisfies ProductOrigin, conflicts, updatedBy: opts.actor,
       })))
       .onConflictDoUpdate({
         target: products.key,

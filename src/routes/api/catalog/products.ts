@@ -1,7 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { parseProducts, productKey } from '../../../lib/product-schema'
 import { API_ACTOR, authorize, json } from '../../../server/catalog-api'
-import { listProducts, previewProducts, upsertProducts } from '../../../server/product-repo'
+import { listProducts, previewProducts, UnreadableProductsError, upsertProducts } from '../../../server/product-repo'
+
+const unreadable = (error: UnreadableProductsError) =>
+  json({ error: 'Stored products no longer pass the schema; fix or delete them before writing', keys: error.keys }, 409)
 
 /** The product library, for the /research-product skill. Same token, throttle and envelope as the appliance API. */
 export const Route = createFileRoute('/api/catalog/products')({
@@ -29,6 +32,7 @@ export const Route = createFileRoute('/api/catalog/products')({
           try {
             return json({ changes: await previewProducts(parsed.items, replace) })
           } catch (error) {
+            if (error instanceof UnreadableProductsError) return unreadable(error)
             console.error('[catalog-api] product dry run failed', { keys, error })
             return json({ error: 'Could not read the products' }, 500)
           }
@@ -36,6 +40,7 @@ export const Route = createFileRoute('/api/catalog/products')({
         try {
           return json(await upsertProducts(parsed.items, { replace, actor: API_ACTOR }))
         } catch (error) {
+          if (error instanceof UnreadableProductsError) return unreadable(error)
           console.error('[catalog-api] product upsert failed', { keys, error })
           return json({ error: 'Could not save; nothing was written' }, 500)
         }

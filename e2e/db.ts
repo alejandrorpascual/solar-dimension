@@ -1,4 +1,5 @@
 import { neon, Pool } from '@neondatabase/serverless'
+import type { ProductOrigin } from '../src/lib/product-schema'
 import { utcDay } from '../src/lib/quote-budget'
 
 const TEST_APPLIANCE_PREFIX = 'e2e-'
@@ -24,10 +25,32 @@ export async function deleteTestAppliance(id: string): Promise<void> {
   await testDb()`delete from appliances where id = ${id}`
 }
 
-/** Deletes a product a test created. Only keys of the "E2E …" brand, so a wrong key never removes a real product. */
+/** Product helpers only touch keys of the "E2E …" brand, so a wrong key never reaches a real product. */
+function assertTestProductKey(key: string): void {
+  if (!/^(inverter|battery):e2e:/.test(key)) throw new Error(`refusing to touch "${key}": not an e2e product key`)
+}
+
+/** Deletes a product a test created. Deleting nothing (never created) is fine. */
 export async function deleteTestProduct(key: string): Promise<void> {
-  if (!/^(inverter|battery):e2e:/.test(key)) throw new Error(`refusing to delete "${key}": not an e2e product key`)
+  assertTestProductKey(key)
   await testDb()`delete from products where key = ${key}`
+}
+
+/** Adds a product row that fails the schema (empty `specs`), as one edited by hand would. Its model is the key's. */
+export async function insertUnreadableTestProduct(key: string): Promise<void> {
+  assertTestProductKey(key)
+  const model = key.split(':')[2] ?? key
+  const origin = 'admin' satisfies ProductOrigin
+  await testDb()`
+    insert into products (kind, key, brand, model, datasheet_url, specs, origin, updated_by)
+    values ('inverter', ${key}, 'E2E Power', ${model}, 'https://example.com/e2e-datasheet.pdf', '{}'::jsonb, ${origin}, 'e2e')`
+}
+
+/** A product row as stored, undecoded: what a write must leave alone. Null when there is no such row. */
+export async function rawTestProduct(key: string): Promise<{ specs: unknown; updatedBy: string } | null> {
+  assertTestProductKey(key)
+  const rows = await testDb()`select specs, updated_by from products where key = ${key}`
+  return rows[0] ? { specs: rows[0].specs, updatedBy: rows[0].updated_by as string } : null
 }
 
 /** The id of the user's first saved project. Projects are created in the browser and synced, so tests read the id back here. */
