@@ -9,7 +9,7 @@ async function downloadAs(page: Page, format: RegExp, button: string): Promise<D
 }
 
 test('the kit downloads as a CSV parts list and a PDF spec sheet', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await showDownload(page)
 
@@ -35,8 +35,26 @@ test('the kit downloads as a CSV parts list and a PDF spec sheet', async ({ page
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
-test('export progress is visible while the file is being prepared', async ({ page }) => {
+test('the CSV parts list carries the solar parts when panels are chosen', async ({ page }) => {
   await page.goto('/?step=3')
+  await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await showDownload(page)
+  const csv = await downloadAs(page, /^Parts list \(CSV\)/, 'Download CSV')
+  const text = await readFile((await csv.path())!, 'utf8')
+  expect(text).toContain('Solar panels')
+  expect(text).toContain('Charge controller')
+  expect(text.indexOf('Inverter')).toBeGreaterThan(-1)
+  expect(text.indexOf('Inverter')).toBeLessThan(text.indexOf('Fuse'))
+  expect(text.indexOf('Fuse')).toBeLessThan(text.indexOf('Solar panels'))
+  expect(text.indexOf('Solar panels')).toBeLessThan(text.indexOf('Mounting'))
+  const panelsLine = text.split('\n').find(line => line.startsWith('Solar panels'))
+  expect(panelsLine?.trim()).toMatch(/,5$/)
+})
+
+test('export progress is visible while the file is being prepared', async ({ page }) => {
+  await page.goto('/?step=4')
   await showDownload(page)
   // Hold the on-demand PDF library request to observe progress without a timing race.
   let release!: () => void
@@ -61,7 +79,7 @@ const pdfPageCount = async (file: Download) =>
   (await readFile((await file.path())!)).toString('latin1').match(/\/Type\s*\/Page\b/g)?.length ?? 0
 
 test('the parts list comes first, and the load schedule gets a PDF page of its own', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const sheet = page.locator('.ksheet').filter({ visible: true })
   await expect(sheet.locator('h3')).toHaveText(['Parts list', 'Load schedule', 'Checks'])
@@ -72,7 +90,7 @@ test('the parts list comes first, and the load schedule gets a PDF page of its o
 })
 
 test('the preview opens larger, page by page as the PDF prints, or as one image for PNG', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   await page.getByRole('button', { name: 'View larger' }).click()
   const view = page.getByRole('dialog', { name: 'Preview' })
@@ -98,7 +116,7 @@ test('the preview opens larger, page by page as the PDF prints, or as one image 
 })
 
 test('a CSV has no printed pages, so there is no larger view to open', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   await page.getByRole('radio', { name: /^Parts list \(CSV\)/ }).check()
   await expect(page.getByRole('button', { name: 'View larger' })).toHaveCount(0)
@@ -107,7 +125,7 @@ test('a CSV has no printed pages, so there is no larger view to open', async ({ 
 })
 
 test('the checks print last on the sheet and can be left out', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const sheet = page.locator('.ksheet').filter({ visible: true })
   await expect(sheet.getByText('Battery continuous current')).toBeVisible()

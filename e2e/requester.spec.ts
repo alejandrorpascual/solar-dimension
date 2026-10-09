@@ -22,7 +22,7 @@ async function seedRequester(page: Page, requester: Record<string, string> = LOS
 
 test('the spec sheet prints the requester band, and Include takes it off', async ({ page }) => {
   await seedRequester(page)
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const band = visibleBand(page)
   await expect(band.getByText('Client details')).toBeVisible()
@@ -62,7 +62,7 @@ async function openForm(page: Page) {
 }
 
 test('a client added in the Download panel prints on the sheet and stays after a reload', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const form = await openForm(page)
   await form.getByRole('button', { name: 'Company' }).click()
@@ -83,7 +83,7 @@ test('a client added in the Download panel prints on the sheet and stays after a
 })
 
 test('the form explains a bad RIF, caps long text, and Escape closes only the form', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const form = await openForm(page)
   await form.getByRole('button', { name: 'Company' }).click()
@@ -106,7 +106,7 @@ test('the form explains a bad RIF, caps long text, and Escape closes only the fo
 })
 
 test('a person in the United States is not asked for an ID', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const form = await openForm(page)
   await expect(form.getByLabel('Country')).toHaveValue('US')
@@ -116,7 +116,7 @@ test('a person in the United States is not asked for an ID', async ({ page }) =>
 })
 
 test('saved details fill the form of a new project when "use in my other projects" is on', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const form = await openForm(page)
   await form.getByLabel('Full name').fill('Ann Lee')
@@ -140,7 +140,7 @@ test('saved details fill the form of a new project when "use in my other project
 
 test('Remove takes the client off this project', async ({ page }) => {
   await seedRequester(page)
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   await page.getByRole('button', { name: `Edit: ${LOS_SAMANES.name}` }).click()
   await page.getByRole('dialog', { name: 'Client details' }).getByRole('button', { name: 'Remove' }).click()
@@ -153,7 +153,7 @@ test('a signed-in client comes back from the account on a fresh browser', async 
   const email = `e2e-req-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
   const password = 'correct-horse-battery'
   await signUp(page, email, password)
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByText('Syncing your projects…')).toBeHidden()
   await showDownload(page)
 
@@ -171,7 +171,7 @@ test('a signed-in client comes back from the account on a fresh browser', async 
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByText('Syncing your projects…')).toBeHidden()
   await showDownload(page)
   await expect(page.getByRole('button', { name: 'Edit: Ann Lee' })).toBeVisible()
@@ -179,7 +179,7 @@ test('a signed-in client comes back from the account on a fresh browser', async 
 
 test('a cédula added later to a client saved without one prints on the sheet', async ({ page }) => {
   await seedRequester(page, { kind: 'person', country: 'VE', name: 'Ana Rondón', contact: '', docPrefix: '', doc: '', phone: '', email: '', address: '' })
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   await page.getByRole('button', { name: 'Edit: Ana Rondón' }).click()
   const form = page.getByRole('dialog', { name: 'Client details' })
@@ -191,7 +191,7 @@ test('a cédula added later to a client saved without one prints on the sheet', 
 })
 
 test('details remembered while signed out are not offered to an account that signs in on the same browser', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const form = await openForm(page)
   await form.getByLabel('Full name').fill('Ann Lee')
@@ -200,7 +200,7 @@ test('details remembered while signed out are not offered to an account that sig
 
   const email = `e2e-req-scope-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
   await signUp(page, email, 'correct-horse-battery')
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByText('Syncing your projects…')).toBeHidden()
 
   await hideProjects(page)
@@ -225,7 +225,7 @@ test('a client with every field at its longest still leaves the parts list whole
     email: `${longest('administracion.junta', 108)}@example.com`,
     address: longest('Avenida Principal de La Trinidad, Urbanización Los Samanes, Torre B, piso 12, ', 160),
   })
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   await expect(visibleBand(page).getByText('J-40123456-7')).toBeVisible()
   // A parts list cut by the page edge would make three pages: parts, the rest of the parts, then the load schedule.
@@ -259,7 +259,7 @@ async function stubKeyboard(page: Page): Promise<(visibleHeight: number) => Prom
 test('with the phone keyboard open, the form sheet ends above it and its last field can be reached', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'the on-screen keyboard is a phone matter')
   const openKeyboard = await stubKeyboard(page)
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const form = await openForm(page)
   const sheet = page.locator('.qdialog').filter({ has: form })
@@ -273,7 +273,7 @@ test('with the phone keyboard open, the form sheet ends above it and its last fi
 
 test('on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tapped', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'iOS zooms on focus only on touch devices')
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showDownload(page)
   const form = await openForm(page)
   await form.getByRole('button', { name: 'Company' }).click()

@@ -4,7 +4,7 @@ import { appliances, projects, quotes, quoteSettings, quoteUsage } from './schem
 
 test('projects table has the columns the store needs', () => {
   const cols = Object.keys(getTableColumns(projects)).sort()
-  expect(cols).toEqual(['batteryUnit', 'chemistry', 'createdAt', 'custom', 'dutyOverrides', 'electrical', 'hours', 'id', 'name', 'qty', 'requester', 'updatedAt', 'userId', 'volts'])
+  expect(cols).toEqual(['batteryUnit', 'chemistry', 'createdAt', 'custom', 'dutyOverrides', 'electrical', 'hours', 'id', 'name', 'qty', 'requester', 'solar', 'updatedAt', 'userId', 'volts'])
 })
 
 test('project settings columns default to empty objects so an old client can never null them', () => {

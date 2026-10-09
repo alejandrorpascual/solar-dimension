@@ -175,6 +175,32 @@ describe('battery unit choice', () => {
     expect(r.battery?.unitLabel).toBe(r.batteryOptions.find((o) => o.isAuto)?.label)
     expect(compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: 'nonsense' }, CATALOG_SNAPSHOT).batteryUnit).toBeNull()
   })
+
+  test('has no solar side unless the project chose panels', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.solar).toBeNull()
+  })
+
+  test('sizes the solar side from the bank it picked and the average draw', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    // 48 V 200 Ah × 1 = 9,600 Wh bank → 9,600 / (550 × 5 × 0.75) = 4.65 → 5 panels
+    expect(r.battery?.bankWh).toBe(9600)
+    expect(r.solar?.panels).toBe(5)
+    expect(r.solar?.dailyUseWh).toBe(r.averageW * 24)
+    expect(r.warnings.some((w) => w.code === 'roofLimited')).toBe(false)
+  })
+
+  test('warns when the roof cannot hold the panels that refill the bank', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 6, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    expect(r.solar?.panels).toBe(2)
+    expect(r.warnings).toContainEqual({ code: 'roofLimited', params: { fit: 2, need: 5 } })
+  })
+
+  test('an empty project with panels sizes nothing and warns nothing', () => {
+    const r = compute({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    expect(r.solar?.panels).toBe(0)
+    expect(r.warnings).toEqual([])
+  })
 })
 
 describe('engineering checks', () => {

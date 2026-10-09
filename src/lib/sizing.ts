@@ -6,9 +6,10 @@ import { dcAmps, pickInverter, toInverterPick } from './sizing/inverter'
 import { selectItems, surgeProfile } from './sizing/loads'
 import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
 import type {
-  BatteryOption, BatteryPick, CableConditions, CustomLoadLike, SelectedItem, SimultaneousStarts, SizingInput, SizingResult,
+  BatteryOption, BatteryPick, CableConditions, CustomLoadLike, SelectedItem, SimultaneousStarts, SizingInput, SizingResult, Warning,
 } from './sizing/types'
 import { buildWarnings, parallelNotes } from './sizing/warnings'
+import { panelsToRefill, sizeSolar, type SolarPick } from './solar'
 
 export type * from './sizing/types'
 
@@ -67,6 +68,10 @@ const toOption = (c: BankCandidate, ctx: RuntimeContext, autoId: string | undefi
   }
 }
 
+/** True when the kit has a solar array worth showing: panels chosen and at least one appliance. */
+export const hasPanels = (r: SizingResult): r is SizingResult & { solar: SolarPick } =>
+  r.solar !== null && r.solar.panels > 0 && !r.empty
+
 export function compute(input: SizingInput, appliances: readonly CatalogItem[], hardware: HardwareCatalog = DEFAULT_HARDWARE): SizingResult {
   const hours = clamp(finite(input.hours, 10), HOURS_RANGE[0], HOURS_RANGE[1])
   const volts: Voltage = VOLTAGES.includes(input.volts) ? input.volts : 48
@@ -94,6 +99,13 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const bank = chosen ?? auto
   const runtimeCtx: RuntimeContext = { chem, items, hours, loadWh, runningW, volts }
   const battery: BatteryPick | null = bank ? toBatteryPick(bank, runtimeScenarios(bank, runtimeCtx)) : null
+  const averageW = Math.round(loadWh / hours)
+  // An empty project still gets a (smallest) bank from autoPick; panels for it would be nonsense, so size against 0.
+  const bankWh = items.length === 0 ? 0 : battery?.bankWh ?? 0
+  const solar = sizeSolar({ solar: input.solar ?? null, bankWh, volts, averageW })
+  const roofWarning: Warning[] = solar && items.length > 0 && solar.isRoofLimited
+    ? [{ code: 'roofLimited', params: { fit: solar.fit, need: panelsToRefill(bankWh, solar.sunHours) } }]
+    : []
 
   const main = sizeMainCable(inverter.continuousA, startupA, volts, cond, hardware.gauges, hardware.fuses, {
     surgeSeconds: profile.seconds, bankContinuousA: battery?.bankContinuousA ?? null, bankShortCircuitA: battery?.bankShortCircuitA ?? null,
@@ -116,9 +128,10 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     hours, volts, chemistry: chem.id, chemistryLabel: chem.label,
     runningW, surgeW: profile.surgeW, surgeSeconds: profile.seconds, surgeProfile: profile, simultaneousStarts: starts,
     largestSurgeName: largest?.name ?? '', largestSurgeId: largest?.id ?? '',
-    loadWh, averageW: Math.round(loadWh / hours), requiredWh: Math.round(requiredWh), requiredAh: Math.round(requiredAh),
+    loadWh, averageW, requiredWh: Math.round(requiredWh), requiredAh: Math.round(requiredAh),
     inverter,
     battery,
+    solar,
     cable: {
       amps: Math.round(main.amps), perRun: Math.round(main.perRun), runs: main.runs,
       gauge: main.gauge.awg, mm2: main.gauge.mm2, ampacity: Math.round(main.ampacity), tableAmpacity: ampsAt(main.gauge, cond.insulationC),
@@ -133,10 +146,13 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     },
     fuse: main.fuse,
     parallelNotes: parallelNotes(battery),
-    warnings: buildWarnings({
-      items, inverter, surgeProfile: profile, amps: dcAmps(inverter.w, volts), volts, battery, loadWh,
-      protection: [...main.warnings, ...(string?.warnings ?? [])], missing, startupA,
-    }),
+    warnings: [
+      ...buildWarnings({
+        items, inverter, surgeProfile: profile, amps: dcAmps(inverter.w, volts), volts, battery, loadWh,
+        protection: [...main.warnings, ...(string?.warnings ?? [])], missing, startupA,
+      }),
+      ...roofWarning,
+    ],
     batteryOptions: candidates.map((c) => toOption(c, runtimeCtx, auto?.id)),
     batteryUnit: chosen?.id ?? null,
   }

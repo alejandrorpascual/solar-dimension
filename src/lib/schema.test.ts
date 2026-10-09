@@ -51,6 +51,26 @@ test('a saved requester with a malformed ID is dropped, and the project still lo
   expect(parsed.projects[0]?.requester).toBeNull()
 })
 
+const solar = { roofM2: 40, panels: null, sunHours: 4.8 }
+
+test('a project has no solar choice until one is made, and keeps a valid one', () => {
+  expect(StoreSchema.parse({ version: 1, projects: [project], currentId: 'p1' }).projects[0]?.solar).toBeNull()
+  expect(StoreSchema.parse({ version: 1, projects: [{ ...project, solar }], currentId: 'p1' }).projects[0]?.solar).toEqual(solar)
+  expect(StoreSchema.parse({ version: 1, projects: [{ ...project, solar: { ...solar, panels: 12 } }], currentId: 'p1' }).projects[0]?.solar?.panels).toBe(12)
+})
+
+test('an unreadable solar choice is dropped instead of losing every saved project', () => {
+  const parsed = StoreSchema.safeParse({ version: 1, projects: [{ ...project, solar: { roofM2: 'big' } }], currentId: 'p1' })
+  expect(parsed.success).toBe(true)
+  expect(parsed.data?.projects[0]?.solar).toBeNull()
+})
+
+test('solar values outside their ranges are dropped', () => {
+  for (const bad of [{ ...solar, roofM2: 0 }, { ...solar, roofM2: 501 }, { ...solar, sunHours: 2 }, { ...solar, sunHours: 7 }, { ...solar, panels: -1 }, { ...solar, panels: 1.5 }]) {
+    expect(StoreSchema.parse({ version: 1, projects: [{ ...project, solar: bad }], currentId: 'p1' }).projects[0]?.solar).toBeNull()
+  }
+})
+
 const parseOne = (patch: object) => StoreSchema.parse({ version: 1, projects: [{ ...project, ...patch }], currentId: 'p1' }).projects[0]!
 
 test('a project saved before duty overrides and electrical settings reads as the defaults', () => {

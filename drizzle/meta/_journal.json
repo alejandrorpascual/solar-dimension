@@ -92,6 +92,13 @@
       "when": 1791487218798,
       "tag": "0012_momentary_appliances",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791501597655,
+      "tag": "0013_project_solar",
+      "breakpoints": true
     }
   ]
 }

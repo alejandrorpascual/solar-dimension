@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { fmtDate, fmtDecimal, fmtHours, fmtInt, fmtKwh, fmtList, fmtMoney, fmtW } from './format'
+import { fmtDate, fmtDecimal, fmtHours, fmtInt, fmtKw, fmtKwh, fmtList, fmtMoney, fmtW } from './format'
 
 test('formats numbers per locale', () => {
   expect(fmtInt(1234, 'en')).toBe('1,234')
@@ -13,6 +13,11 @@ test('keeps watts below 10 kW in W', () => {
   expect(fmtW(465, 'en')).toBe('465 W')
   expect(fmtW(9999, 'es')).toBe('9,999 W')
   expect(fmtW(10000, 'en')).toBe('10.0 kW')
+})
+
+test('formats watts as kilowatts with one decimal', () => {
+  expect(fmtKw(5500, 'en')).toBe('5.5 kW')
+  expect(fmtKw(5500, 'es')).toBe('5.5 kW')
 })
 
 test('formats a date the way each language writes it', () => {

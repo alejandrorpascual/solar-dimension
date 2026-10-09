@@ -1,13 +1,29 @@
-import { tr, type Dictionary, type Locale } from '../i18n'
-import { fmtInt, fmtKwh, fmtW } from '../i18n/format'
-import type { SizingResult } from './sizing'
+import { panelCount, tr, type Dictionary, type Locale } from '../i18n'
+import { fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
+import { hasPanels, type SizingResult } from './sizing'
+import { SOLAR } from './solar'
 
-export interface Part { id: string; name: string; spec: string; note: string; qty: string }
+export interface Part { id: string; name: string; spec: string; note: string; qty: string; group?: 'solar' }
 
 const KA = 1000
 const joinNotes = (notes: readonly string[]) => notes.filter(Boolean).join(' · ')
 
-/** The parts list the screen, the sheet, the image and the CSV all share. Rows with nothing to buy are dropped. */
+/** Panels, controller, PV cable, disconnect and mounting, tagged so the table can mark them; nothing for a battery-only kit. */
+function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
+  if (!hasPanels(r)) return []
+  const s = r.solar
+  const strings = s.strings === 1 ? tr(t, 'stringsOne', { n: s.perString }) : tr(t, 'stringsMany', { strings: s.strings, n: s.perString })
+  const panelW = `${SOLAR.PANEL_W} W`
+  return [
+    { id: 'solarPanels', group: 'solar', name: t.parts.solarPanels, spec: tr(t, 'solarPanelsSpec', { w: panelW, size: SOLAR.PANEL_SIZE }), note: tr(t, 'solarPanelsNote', { strings, kw: fmtKw(s.arrayW, locale), m2: s.roofUsedM2 }), qty: String(s.panels) },
+    { id: 'chargeController', group: 'solar', name: t.parts.chargeController, spec: tr(t, 'chargeControllerSpec', { amps: s.controllerA, voc: SOLAR.CONTROLLER_MAX_VOC, volts: r.volts }), note: tr(t, 'chargeControllerNote', { chargeA: fmtInt(s.chargeA, locale), stringVoc: s.stringVoc }), qty: String(s.controllers) },
+    { id: 'pvCable', group: 'solar', name: t.parts.pvCable, spec: tr(t, 'pvCableSpec', { mm2: SOLAR.PV_CABLE.mm2, awg: SOLAR.PV_CABLE.awg, length: s.pvRunM }), note: t.ui.pvCableNote, qty: String(s.pvCablePairs) },
+    { id: 'pvDisconnect', group: 'solar', name: t.parts.pvDisconnect, spec: tr(t, 'pvDisconnectSpec', { amps: s.breakerA }), note: t.ui.pvDisconnectNote, qty: String(s.controllers) },
+    { id: 'mounting', group: 'solar', name: t.parts.mounting, spec: tr(t, 'mountingSpec', { panels: panelCount(t, s.panels) }), note: t.ui.mountingNote, qty: '1' },
+  ]
+}
+
+/** The parts list the screen, the sheet, the image and the CSV all share. Rows with nothing to buy are dropped; solar rows come last. */
 export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
   const b = r.battery
   if (r.empty || !b) return []
@@ -24,7 +40,7 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
     ...r.parallelNotes.map((n) => t.parallelNotes[n]),
   ])
   const w = (n: number) => fmtW(n, locale)
-  return [
+  const base: Part[] = [
     { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: tr(t, 'inverterNote', { surge: w(r.inverter.surge), running: w(r.runningW), peak: w(r.surgeW) }), qty: '1' },
     { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: batteriesNote, qty: String(b.count) },
     {
@@ -42,5 +58,6 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
         note: t.ui.stringFuseNote, qty: String(c.string.count),
       }]
       : []),
-  ].filter((part) => Number(part.qty) > 0)
+  ]
+  return [...base.filter((part) => Number(part.qty) > 0), ...solarParts(r, t, locale)]
 }

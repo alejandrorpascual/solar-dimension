@@ -1,4 +1,5 @@
 import type { BmsComms, CatalogItem, ChemistryId, FuseClass, InsulationC, LoadKind, SurgeClass, Voltage } from '../catalog'
+import type { SolarChoice, SolarPick } from '../solar'
 
 export interface CustomLoadLike { id: string; name: string; watts: number; surge: number; note: string }
 
@@ -25,6 +26,8 @@ export interface SizingInput {
   runLengthM?: number
   /** A battery unit id such as "12-200" (volts-Ah); null or unavailable means the automatic pick. */
   batteryUnit?: string | null
+  /** Roof, panel count and sun hours from the solar step; null or absent for a battery-only kit. */
+  solar?: SolarChoice | null
   /** Share of each hour an appliance runs, by id, when the user changed it from the catalog value. */
   dutyOverrides?: Record<string, number>
   simultaneousStarts?: SimultaneousStarts
@@ -181,6 +184,7 @@ export type WarningCode =
   | 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase'
   | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'startupDrop' | 'cableAmbient'
   | 'missingAppliances'
+  | 'roofLimited'
 
 export interface WarningParams {
   inverterW?: number
@@ -206,6 +210,8 @@ export interface WarningParams {
   aicA?: number
   dropPct?: number
   ambientC?: number
+  fit?: number
+  need?: number
 }
 export interface Warning { code: WarningCode; params: WarningParams }
 
@@ -234,6 +240,8 @@ export interface SizingResult {
   requiredAh: number
   inverter: InverterPick
   battery: BatteryPick | null
+  /** The solar side, or null for a battery-only kit. */
+  solar: SolarPick | null
   cable: CablePick
   fuse: FusePick
   parallelNotes: ParallelNote[]

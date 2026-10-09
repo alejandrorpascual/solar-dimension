@@ -5,7 +5,7 @@ import { APPLIANCE_CATEGORIES } from '../lib/catalog-schema'
 import { LOAD_KINDS, SURGE_CLASSES } from '../lib/catalog'
 import type { Musts, Overrides } from '../lib/quote-items'
 import type { Requester } from '../lib/requester'
-import type { Electrical } from '../lib/schema'
+import type { Electrical, Solar } from '../lib/schema'
 import { QUOTE_STATUSES, type StoredExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
 
 import { user } from './auth-schema'
@@ -30,6 +30,8 @@ export const projects = pgTable(
     dutyOverrides: jsonb('duty_overrides').$type<Record<string, number>>().notNull().default({}),
     /** Starts and cable conditions; `{}` means every default. Validated by ElectricalSchema on read. */
     electrical: jsonb('electrical').$type<Partial<Electrical>>().notNull().default({}),
+    /** Panels on the roof (step 3); null for a battery-only kit. Validated by SolarSchema on read. */
+    solar: jsonb('solar').$type<Solar>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

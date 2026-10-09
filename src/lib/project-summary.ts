@@ -20,7 +20,7 @@ export function computeProject(p: Project, appliances: readonly CatalogItem[]): 
   return compute(
     {
       qty: p.qty, custom: p.custom, hours: p.hours, volts: p.volts, chemistry: p.chemistry, batteryUnit: p.batteryUnit,
-      dutyOverrides: p.dutyOverrides, simultaneousStarts: e.simultaneousStarts,
+      dutyOverrides: p.dutyOverrides, solar: p.solar, simultaneousStarts: e.simultaneousStarts,
       cable: { runLengthM: e.runLengthM, ambientC: e.ambientC, bundled: e.bundled, insulationC: e.insulationC },
     },
     appliances,

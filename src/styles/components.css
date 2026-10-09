@@ -200,6 +200,10 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .stat { padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
 .stat--accent { background: var(--accent-tint); border-color: #C9D3FF; }
 .stat--accent .lab, .stat--accent .stat__v { color: var(--accent); }
+.stat--sun { background: var(--sun-tint); border-color: var(--sun-line); }
+.stat--sun .lab, .stat--sun .stat__v { color: var(--sun-ink); }
+.stats--five .stat--sun { grid-column: span 2; }
+.part__tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--sun-tint); color: var(--sun-ink); border: 1px solid var(--sun-line); margin-left: 6px; vertical-align: middle; }
 .stat__v { font-family: var(--font-display); font-size: 22px; font-weight: 700; line-height: 1; }
 .stat__sub { margin-top: 4px; font-size: 12px; line-height: 1.3; color: var(--muted); }
 /* Battery size picker: a select whose rows show count, bank energy and runtime. Phone: the list opens as a bottom sheet. */
@@ -300,7 +304,10 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 @media (min-width: 1024px) {
   .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
   .stat { padding: 16px 18px; border-radius: var(--radius-md); background: var(--ground); border: 0; }
+  .stats--five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .stats--five .stat--sun { grid-column: auto; }
   .stat--accent { background: var(--accent-tint); }
+  .stat--sun { background: var(--sun-tint); }
   .stat__v { font-size: 28px; }
   .parts { padding: 0; border: 0; background: transparent; border-radius: 0; }
   .part > th, .part > td { padding: 16px 0; }

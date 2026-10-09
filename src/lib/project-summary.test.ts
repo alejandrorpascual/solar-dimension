@@ -6,7 +6,7 @@ import { compute } from './sizing'
 
 const project = (id: string, qty: Record<string, number>, patch: Partial<Project> = {}): Project => ({
   id, name: id, qty, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: null, requester: null,
-  dutyOverrides: {}, electrical: DEFAULT_ELECTRICAL, updatedAt: 0, ...patch,
+  dutyOverrides: {}, electrical: DEFAULT_ELECTRICAL, solar: null, updatedAt: 0, ...patch,
 })
 
 describe('computeProject', () => {

@@ -22,6 +22,7 @@ test('moving between steps does not wait on the server', async ({ page }) => {
   const serverCalls: string[] = []
   page.on('request', (r) => { if (r.url().includes('/_serverFn/')) serverCalls.push(r.url()) })
   await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await expect(page.getByRole('button', { name: 'Build my kit' })).toBeVisible()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
@@ -32,7 +33,7 @@ test('moving between steps does not wait on the server', async ({ page }) => {
 })
 
 test('the kit edits appliances and the window in place, shows what moved, and undoes it', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await fontsReady(page)
   const summary = page.getByText(/^Backs up \d+ appliances for/)
@@ -138,7 +139,7 @@ test('project names can be erased with backspace and replaced', async ({ page })
 })
 
 test('project cards show each kit and quick edit a project without opening it', async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await showProjects(page)
   await page.getByRole('button', { name: '+ New project' }).click()
   await hideProjects(page)
@@ -211,6 +212,7 @@ test('full flow: appliances → window → kit, and the project survives a reloa
   await page.getByRole('button', { name: 'Air conditioning' }).click()
   await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
   await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await expect(page.getByText('4,000 W pure sine, 48 V DC input')).toBeVisible()
@@ -250,6 +252,7 @@ test.describe('on a device whose preferred languages put Spanish first among the
 test('the battery size can be chosen on the kit, is remembered, and Auto brings back the fewest batteries', async ({ page }) => {
   await page.goto('/?step=2')
   await page.getByRole('button', { name: /^12 V/ }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   const trigger = page.getByRole('button', { name: /Battery size/ })
   const batteries = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Batteries' }) })
@@ -275,7 +278,7 @@ test('the battery size can be chosen on the kit, is remembered, and Auto brings 
 })
 
 test("a cycling appliance's on-time can be changed on the kit, moves the runtime, and is undone", async ({ page }) => {
-  await page.goto('/?step=3')
+  await page.goto('/?step=4')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await fontsReady(page)
   await page.getByRole('button', { name: /^Appliances · 6/ }).click()
@@ -301,6 +304,7 @@ test('motors starting together and a hot cable run change the inverter, the chec
   await page.locator('summary', { hasText: 'Cable run' }).click()
   await page.getByRole('button', { name: /^50 °C/ }).click()
   await expect(page.locator('summary', { hasText: 'Cable run' })).toContainText('50 °C')
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await page.getByRole('button', { name: 'Build my kit' }).click()
   // Fridge and AC starting together: 8,115 W peak, past a 4 kW inverter's 8,000 W surge.
   await expect(page.getByText('5,000 W pure sine, 48 V DC input')).toBeVisible()

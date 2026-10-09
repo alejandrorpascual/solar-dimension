@@ -1,12 +1,12 @@
 import type { Ref } from 'react'
-import { tr, type Dictionary, type Locale } from '../i18n'
+import { panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtHours, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
 import { finePrint } from '../lib/fine-print'
 import { kitChecks } from '../lib/kit-checks'
 import type { Part } from '../lib/kit-parts'
 import { requesterLines, type Requester } from '../lib/requester'
-import type { SizingResult } from '../lib/sizing'
+import { hasPanels, type SizingResult } from '../lib/sizing'
 import { RuntimeRange } from './RuntimeRange'
 import { SheetChecks } from './SheetChecks'
 import { SheetSchedule } from './SheetSchedule'
@@ -46,7 +46,7 @@ export function KitSheet({ projectName, result: r, parts, requester, include, da
       <header className="ksheet__head" data-pdf-block="">
         <div className="ksheet__kicker"><span>{t.ui.sheetTitle}</span><span>{date}</span></div>
         <h2 className="ksheet__title">{projectName}</h2>
-        <p className="ksheet__sub">{`${r.volts} V ${t.chemistries[r.chemistry]} · ${tr(t, 'hoursShort', { hours: r.hours })}`}</p>
+        <p className="ksheet__sub">{`${r.volts} V ${t.chemistries[r.chemistry]} · ${tr(t, 'hoursShort', { hours: r.hours })}${hasPanels(r) ? ` · ${panelCount(t, r.solar.panels)}` : ''}`}</p>
       </header>
 
       {requester && (
@@ -98,7 +98,7 @@ export function KitSheet({ projectName, result: r, parts, requester, include, da
         </section>
       )}
 
-      {include.notes && <p className="ksheet__fine" data-pdf-block="">{finePrint(t, r, dod)}</p>}
+      {include.notes && <p className="ksheet__fine" data-pdf-block="">{finePrint(t, r, dod, locale)}</p>}
 
       {/* The load schedule supports the parts list: with one on the sheet it starts a page of its own. */}
       {showAppliances && <SheetSchedule result={r} t={t} locale={locale} breakBefore={showParts} />}

@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr, type Dictionary } from '../i18n'
-import { fmtHours, fmtKwh, fmtW } from '../i18n/format'
+import { fmtHours, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
 import { finePrint } from '../lib/fine-print'
 import { kitChecks, uncheckedWarnings, warningKey, warningText } from '../lib/kit-checks'
 import { kitDeltas } from '../lib/kit-deltas'
 import { buildParts, type Part } from '../lib/kit-parts'
-import type { SizingResult } from '../lib/sizing'
+import { hasPanels, type SizingResult } from '../lib/sizing'
 import { BatteryPicker } from './BatteryPicker'
 import { ChecksList } from './ChecksList'
 import { RuntimeRange } from './RuntimeRange'
@@ -29,7 +29,7 @@ function PartsTable({ parts, t }: { parts: Part[]; t: Dictionary }) {
       <tbody role="rowgroup">
         {parts.map((pt) => (
           <tr key={pt.id} className="part" role="row">
-            <th scope="row" role="rowheader" className="part__name">{pt.name}</th>
+            <th scope="row" role="rowheader" className="part__name">{pt.name}{pt.group === 'solar' && <span className="part__tag">{t.ui.solarTag}</span>}</th>
             <td role="cell" className="part__body">
               <div className="part__spec">{pt.spec}</div>
               <div className="part__note">{pt.note}</div>
@@ -73,7 +73,7 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
         <p className="muted">{summary}</p>
         {quickEdit}
       </div>
-      <div className="stats">
+      <div className={`stats${hasPanels(r) ? ' stats--five' : ''}`}>
         <div className="stat">
           <div className="lab">{t.ui.runningLoad}</div>
           <div className="stat__row"><span className="stat__v num">{fmtW(r.runningW, locale)}</span><Delta text={d ? signed(d.runningW, w) : ''} /></div>
@@ -95,6 +95,13 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
           </div>
           {r.battery && !r.empty && <RuntimeRange runtime={r.battery.runtime} t={t} locale={locale} className="stat__sub num" />}
         </div>
+        {hasPanels(r) && (
+          <div className="stat stat--sun">
+            <div className="lab">{t.ui.solarRecharge}</div>
+            <div className="stat__row"><span className="stat__v num">{fmtKw(r.solar.arrayW, locale)}</span></div>
+            <div className="stat__sub num">{tr(t, 'solarRechargeSub', { wh: fmtKwh(r.solar.dailyWh, locale) })}</div>
+          </div>
+        )}
       </div>
       {!r.empty && <BatteryPicker options={r.batteryOptions} selected={r.batteryUnit} onSelect={onBatteryUnit} />}
       <div className="parts">
@@ -106,7 +113,7 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
           {notes.map((n) => <div key={warningKey(n)}>{warningText(t, n, r.items)}</div>)}
         </div>
       )}
-      <p className="fine muted">{finePrint(t, r, dod)}</p>
+      <p className="fine muted">{finePrint(t, r, dod, locale)}</p>
     </div>
   )
 }
