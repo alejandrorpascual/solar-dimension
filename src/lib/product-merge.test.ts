@@ -7,11 +7,13 @@ const NOW = '2026-10-09T12:00:00.000Z'
 const record = (p: ProductInput, conflicts: ProductRecord['conflicts'] = []): ProductRecord =>
   ({ ...p, id: 'id-1', key: productKey(p), origin: 'admin', conflicts, retired: false })
 const merge = (stored: ProductRecord | null, incoming: ProductInput, replace = false) => mergeProduct(stored, incoming, { replace, now: NOW })
+const extraLine = (name: string, value: string) => ({ name, value, source: SHEET })
+const OLD = '2026-10-01T00:00:00.000Z'
 
 describe('mergeProduct', () => {
   test('a new key is stored as sent', () => {
     const out = merge(null, inverter())
-    expect(out.change).toEqual({ key: 'inverter:eg4:6000xp', kind: 'inverter', brand: 'EG4 Electronics', model: '6000XP', status: 'new', fills: [], replaced: [], conflicts: [] })
+    expect(out.change).toEqual({ key: 'inverter:eg4:6000xp', kind: 'inverter', brand: 'EG4 Electronics', model: '6000XP', status: 'new', fills: [], replaced: [], cleared: [], conflicts: [] })
     expect(out.next).toEqual(inverter())
   })
 
@@ -76,6 +78,89 @@ describe('mergeProduct', () => {
   test('a conflict seen again is not stored twice', () => {
     const seen = { field: 'specs.continuousW', found: 5000, source: SHEET, seenAt: '2026-10-01T00:00:00.000Z' }
     const out = merge(record(inverter(), [seen]), inverter({ continuousW: stated(5000, '5000W') }))
+    expect(out.conflicts).toEqual([seen])
+  })
+
+  test('two incoming lines with one new name add it once', () => {
+    const incoming = { ...inverter(), extraSpecs: [extraLine('Weight', '24 kg'), extraLine('weight', '25 kg')] }
+    const out = merge(record(inverter()), incoming)
+    expect(out.change.fills).toEqual(['extraSpecs.Weight'])
+    expect(out.next.extraSpecs).toEqual([extraLine('Weight', '24 kg')])
+  })
+
+  test('replace with the stored value clears that field’s conflicts', () => {
+    const old = { field: 'specs.continuousW', found: 5500, source: SHEET, seenAt: OLD }
+    const out = merge(record(inverter(), [old]), inverter({ continuousW: stated(6000, '6000W') }), true)
+    expect(out.change).toMatchObject({ status: 'updated', cleared: ['specs.continuousW'], fills: [], replaced: [], conflicts: [] })
+    expect(out.next.kind === 'inverter' && out.next.specs.continuousW.value).toBe(6000)
+    expect(out.conflicts).toEqual([])
+  })
+
+  test('replace with the stored value and no stored conflict is unchanged', () => {
+    const out = merge(record(inverter()), inverter({ continuousW: stated(6000, '6000W') }), true)
+    expect(out.change).toMatchObject({ status: 'unchanged', cleared: [], fills: [], replaced: [], conflicts: [] })
+    expect(out.conflicts).toEqual([])
+  })
+
+  test('a replaced field with a stored conflict is also reported cleared', () => {
+    const old = { field: 'specs.continuousW', found: 5500, source: SHEET, seenAt: OLD }
+    const out = merge(record(inverter(), [old]), inverter({ continuousW: stated(5000, '5000W') }), true)
+    expect(out.change).toMatchObject({ replaced: ['specs.continuousW'], cleared: ['specs.continuousW'] })
+  })
+
+  test('a stored row missing a spec key takes the incoming value as a fill', () => {
+    const { idleW: _omitted, ...rest } = inverter().specs
+    const stored = record({ ...inverter(), specs: rest as ReturnType<typeof inverter>['specs'] })
+    const out = merge(stored, inverter({ idleW: stated(40, '40W idle') }))
+    expect(out.change).toMatchObject({ status: 'updated', fills: ['specs.idleW'], conflicts: [] })
+    expect(out.next.kind === 'inverter' && out.next.specs.idleW.value).toBe(40)
+  })
+
+  test('surge levels compare in any order', () => {
+    const reversed = [...inverter().specs.surges].reverse()
+    expect(merge(record(inverter()), inverter({ surges: reversed })).change.status).toBe('unchanged')
+  })
+
+  test('replace on an extra line keeps the stored name', () => {
+    const stored = record({ ...inverter(), extraSpecs: [extraLine('IP rating', 'IP20')] })
+    const out = merge(stored, { ...inverter(), extraSpecs: [extraLine('ip rating', 'IP65')] }, true)
+    expect(out.change).toMatchObject({ status: 'updated', replaced: ['extraSpecs.IP rating'] })
+    expect(out.next.extraSpecs[0]).toEqual({ name: 'IP rating', value: 'IP65', source: SHEET })
+  })
+
+  test('makerUrl fills a stored null', () => {
+    const out = merge(record(inverter()), { ...inverter(), makerUrl: 'https://eg4.example.com' })
+    expect(out.change).toMatchObject({ status: 'updated', fills: ['makerUrl'] })
+    expect(out.next.makerUrl).toBe('https://eg4.example.com')
+  })
+
+  test('a different makerUrl is a conflict unless replacing', () => {
+    const stored = record({ ...inverter(), makerUrl: 'https://eg4.example.com' })
+    const incoming = { ...inverter(), makerUrl: 'https://eg4electronics.example.com' }
+    const kept = merge(stored, incoming)
+    expect(kept.change).toMatchObject({ status: 'conflicts', conflicts: [{ field: 'makerUrl', stored: 'https://eg4.example.com', found: 'https://eg4electronics.example.com' }] })
+    expect(kept.next.makerUrl).toBe('https://eg4.example.com')
+    const replaced = merge(stored, incoming, true)
+    expect(replaced.change).toMatchObject({ status: 'updated', replaced: ['makerUrl'] })
+    expect(replaced.next.makerUrl).toBe('https://eg4electronics.example.com')
+  })
+
+  test('a list conflict records the values as found', () => {
+    const out = merge(record(battery({ compatibleInverterBrands: ['Victron'] })), battery({ compatibleInverterBrands: ['Growatt'] }))
+    expect(out.change.conflicts).toEqual([{ field: 'specs.compatibleInverterBrands', stored: ['Victron'], found: ['Growatt'] }])
+    expect(out.conflicts).toEqual([{ field: 'specs.compatibleInverterBrands', found: ['Growatt'], source: null, seenAt: NOW }])
+  })
+
+  test('a surge conflict records the levels as found', () => {
+    const levels = [{ w: 9000, seconds: 5, asWritten: '9 kW 5 s', source: SHEET }]
+    const out = merge(record(inverter()), inverter({ surges: levels }))
+    expect(out.change.conflicts).toEqual([{ field: 'specs.surges', stored: inverter().specs.surges, found: levels }])
+    expect(out.conflicts).toEqual([{ field: 'specs.surges', found: levels, source: SHEET, seenAt: NOW }])
+  })
+
+  test('a list conflict seen again in other casing is not stored twice', () => {
+    const seen = { field: 'specs.compatibleInverterBrands', found: ['Growatt'], source: null, seenAt: OLD }
+    const out = merge(record(battery({ compatibleInverterBrands: ['Victron'] }), [seen]), battery({ compatibleInverterBrands: ['growatt'] }))
     expect(out.conflicts).toEqual([seen])
   })
 })
