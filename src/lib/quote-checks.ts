@@ -34,12 +34,19 @@ export function optionPrices(x: QuoteExtraction): { id: string; total: number | 
   })
 }
 
+/** Words a tax line is written with ("IVA", "I.V.A.", "VAT", "sales tax", "impuesto"), once accents and dots are dropped. */
+const TAX_WORDS = /\b(iva|vat|tax(es)?|impuestos?)\b/
+const DIACRITICS = /\p{Diacritic}/gu
+const namesTax = (text: string): boolean => TAX_WORDS.test(text.normalize('NFD').replace(DIACRITICS, '').replace(/\./g, '').toLowerCase())
+
 /**
- * Whether an option's tax is already one of its own included lines: a VAT line can only be read as kind `other`, so an
- * `other` line for the same amount is that tax, and adding it again would count it twice.
+ * Whether an option's tax is already one of its own included lines, which adding it again would count twice. A VAT
+ * line can only be read as kind `other`; it has to say it is a tax and be for the same amount, so a separate charge
+ * that happens to cost the same (freight, say) still leaves the tax to add.
  */
 const isTaxListed = (lines: readonly QuoteLine[], tax: number): boolean =>
-  lines.some((l) => !l.optional && l.kind === 'other' && near(l.lineTotal, tax, LINE_TOLERANCE))
+  lines.some((l) =>
+    !l.optional && l.kind === 'other' && near(l.lineTotal, tax, LINE_TOLERANCE) && (namesTax(l.description) || namesTax(l.source.text)))
 
 /**
  * The totals an option priced at `base` may be written as: the base itself, with the tax written for that option, or

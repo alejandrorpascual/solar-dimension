@@ -72,10 +72,24 @@ describe('optionPrices', () => {
       const x = extraction(lines, { options: opts(), subtotal: 1100, tax: 176 })
       expect(optionPrices(x)).toEqual([{ id: 'a', total: 1100 }, { id: 'b', total: 1200 }])
     })
+    const vat = { option: 'a', description: 'IVA 16 %', source: { page: 1, text: 'I.V.A. (16%) 160,00' } }
     test("a tax the option already lists as one of its own included lines is not added again", () => {
-      const withVatLine = [line('inverter', 1000, { option: 'a' }), line('other', 160, { option: 'a' }), line('inverter', 1100, { option: 'b' })]
+      const withVatLine = [line('inverter', 1000, { option: 'a' }), line('other', 160, vat), line('inverter', 1100, { option: 'b' })]
       const x = extraction(withVatLine, { options: [{ id: 'a', label: 'A', total: null, tax: 160 }, { id: 'b', label: 'B', total: null, tax: null }] })
       expect(optionPrices(x)).toEqual([{ id: 'a', total: 1160 }, { id: 'b', total: 1100 }])
+    })
+    test('a separate charge that only costs the same as the tax, such as freight, still leaves the tax to add', () => {
+      const freight = { option: 'a', description: 'Flete a Valencia', source: { page: 1, text: 'Flete a Valencia 160,00' } }
+      const withFreight = [line('inverter', 1000, { option: 'a' }), line('other', 160, freight), line('inverter', 1100, { option: 'b' })]
+      const x = extraction(withFreight, { options: [{ id: 'a', label: 'A', total: null, tax: 160 }, { id: 'b', label: 'B', total: null, tax: null }] })
+      expect(optionPrices(x)).toEqual([{ id: 'a', total: 1320 }, { id: 'b', total: 1100 }])
+    })
+    test('a tax line in English, or written without accents or dots, is recognised too', () => {
+      for (const text of ['VAT 16%', 'Sales tax', 'Impuesto al valor agregado', 'IVA']) {
+        const lines = [line('inverter', 1000, { option: 'a' }), line('other', 160, { option: 'a', description: text, source: { page: 1, text } })]
+        const x = extraction(lines, { options: [{ id: 'a', label: 'A', total: null, tax: 160 }, { id: 'b', label: 'B', total: 900, tax: null }] })
+        expect(optionPrices(x)[0], text).toEqual({ id: 'a', total: 1160 })
+      }
     })
     test('a line of another kind that only costs the same as the tax still leaves the tax to add', () => {
       const sameAmount = [line('inverter', 1000, { option: 'a' }), line('wiring', 160, { option: 'a' }), line('inverter', 1100, { option: 'b' })]
