@@ -132,3 +132,30 @@ export function productKey(p: Pick<ProductInput, 'kind' | 'brand' | 'model'>): s
   const withoutBrand = brand && model.startsWith(brand) && model.length > brand.length ? model.slice(brand.length) : model
   return `${p.kind}:${brand}:${withoutBrand}`
 }
+
+const MAX_BATCH = 50
+
+export type ParsedProducts =
+  | { ok: true; items: ProductInput[] }
+  | { ok: false; errors: Array<{ index: number; issues: Array<{ path: string; message: string }> }> }
+
+export function parseProducts(body: unknown): ParsedProducts {
+  const list = Array.isArray(body) ? body : [body]
+  if (list.length === 0 || list.length > MAX_BATCH) {
+    return { ok: false, errors: [{ index: -1, issues: [{ path: '', message: `send 1 to ${MAX_BATCH} products` }] }] }
+  }
+  const results = list.map((item) => ProductInputSchema.safeParse(item))
+  const errors = results.flatMap((r, index) =>
+    r.success ? [] : [{ index, issues: r.error.issues.map((i) => ({ path: i.path.map(String).join('.'), message: i.message })) }],
+  )
+  if (errors.length > 0) return { ok: false, errors }
+  const items = results.map((r) => r.data!)
+  const seen = new Set<string>()
+  const duplicates = items.flatMap((item, index) => {
+    const key = productKey(item)
+    if (seen.has(key)) return [{ index, issues: [{ path: 'model', message: 'the same product twice in this request' }] }]
+    seen.add(key)
+    return []
+  })
+  return duplicates.length > 0 ? { ok: false, errors: duplicates } : { ok: true, items }
+}

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ProductInputSchema, productKey } from './product-schema'
+import { ProductInputSchema, parseProducts, productKey } from './product-schema'
 import { battery, inverter, stated } from './product-fixtures'
 
 describe('ProductInputSchema', () => {
@@ -47,5 +47,27 @@ describe('productKey', () => {
 
   test('the kind is part of the key', () => {
     expect(productKey({ kind: 'battery', brand: 'EG4', model: '6000XP' })).not.toBe(productKey({ kind: 'inverter', brand: 'EG4', model: '6000XP' }))
+  })
+})
+
+describe('parseProducts', () => {
+  test('takes one product or an array of up to 50', () => {
+    expect(parseProducts(inverter())).toMatchObject({ ok: true, items: [expect.objectContaining({ model: '6000XP' })] })
+    expect(parseProducts([])).toMatchObject({ ok: false })
+    expect(parseProducts(Array.from({ length: 51 }, (_, i) => ({ ...inverter(), model: `M${i}` })))).toMatchObject({ ok: false })
+  })
+
+  test('reports issues per index with a dotted path', () => {
+    const bad = inverter({ continuousW: { value: 6000, source: null, asWritten: null } })
+    const out = parseProducts([battery(), bad])
+    expect(out.ok).toBe(false)
+    if (out.ok) return
+    expect(out.errors[0]!.index).toBe(1)
+    expect(out.errors[0]!.issues[0]!.path).toBe('specs.continuousW')
+  })
+
+  test('refuses two items with the same key', () => {
+    const out = parseProducts([inverter(), { ...inverter(), brand: 'EG4' }])
+    expect(out).toMatchObject({ ok: false, errors: [{ index: 1, issues: [{ path: 'model', message: 'the same product twice in this request' }] }] })
   })
 })
