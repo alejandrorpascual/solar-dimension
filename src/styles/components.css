@@ -32,6 +32,8 @@
 .btn:hover { background: var(--ground); }
 .btn--primary { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
 .btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn--primary:disabled:hover { background: var(--accent); border-color: var(--accent); }
 /* A link styled as a button: centred like one, never underlined. */
 a.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; text-decoration: none; }
 a.btn:hover { color: var(--ink); }
