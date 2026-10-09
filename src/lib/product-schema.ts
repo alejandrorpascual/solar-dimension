@@ -1,0 +1,134 @@
+import { z } from 'zod'
+
+/** Upper bounds that catch a slipped unit or digit; no real product comes near them. */
+export const PRODUCT_LIMITS = {
+  WATTS: 100_000, VOLTS: 1000, AMPS: 2000, PERCENT: 100, YEARS: 30, CYCLES: 100_000, SECONDS: 3600, UNITS: 100, KWH: 1000, AH: 5000,
+} as const
+const MAX_SURGE_LEVELS = 6
+const MAX_EXTRA_SPECS = 8
+const MAX_BRANDS = 30
+const MAX_TEXT = 200
+
+export const PRODUCT_KINDS = ['inverter', 'battery'] as const
+export type ProductKind = (typeof PRODUCT_KINDS)[number]
+export const PRODUCT_ORIGINS = ['admin', 'search'] as const
+export type ProductOrigin = (typeof PRODUCT_ORIGINS)[number]
+const BMS_PROTOCOLS = ['can', 'rs485'] as const
+const BATTERY_CHEMISTRIES = ['lifepo4', 'agm', 'other'] as const
+
+const httpsUrl = z.url({ protocol: /^https$/, message: 'an https URL' })
+const text = (max = MAX_TEXT) => z.string().trim().min(1).max(max)
+
+/**
+ * One spec as the datasheet states it: the value, the page it is on and the datasheet's own words. A stated value needs
+ * both, so every number can be checked against where it came from. A spec the datasheet does not give is all null.
+ */
+function spec<O>(value: z.ZodType<O>) {
+  return z
+    .object({ value: value.nullable(), source: httpsUrl.nullable(), asWritten: text().nullable() })
+    .strict()
+    .refine((s) => s.value === null || (s.source !== null && s.asWritten !== null), {
+      message: 'a stated value needs its source and its words as written',
+    })
+}
+const amount = (max: number) => spec(z.number().positive().max(max))
+
+/** One surge or overload level and how long it holds; w is null for a level the maker gives only in VA. */
+const SurgeLevelSchema = z
+  .object({
+    w: z.number().positive().max(PRODUCT_LIMITS.WATTS).nullable(),
+    seconds: z.number().positive().max(PRODUCT_LIMITS.SECONDS).nullable(),
+    asWritten: text(),
+    source: httpsUrl,
+  })
+  .strict()
+const ExtraSpecSchema = z.object({ name: text(60), value: text(), source: httpsUrl }).strict()
+const PriceSchema = z
+  .object({ amount: z.number().positive(), currency: z.string().regex(/^[A-Z]{3}$/), seller: text(80), url: httpsUrl, seenOn: z.iso.date() })
+  .strict()
+const comms = z.array(z.enum(BMS_PROTOCOLS)).max(BMS_PROTOCOLS.length)
+const brands = z.array(text(60)).max(MAX_BRANDS)
+
+export const InverterSpecsSchema = z
+  .object({
+    continuousW: amount(PRODUCT_LIMITS.WATTS),
+    /** Every level the maker states, shortest first: "12,000W for ≈3.5 s | 11,000W for ≈5 s" is two. */
+    surges: z.array(SurgeLevelSchema).max(MAX_SURGE_LEVELS),
+    batteryVolts: amount(PRODUCT_LIMITS.VOLTS),
+    splitPhase: spec(z.boolean()),
+    chargerA: amount(PRODUCT_LIMITS.AMPS),
+    pvInputW: amount(PRODUCT_LIMITS.WATTS),
+    pvVocMax: amount(PRODUCT_LIMITS.VOLTS),
+    maxParallelUnits: amount(PRODUCT_LIMITS.UNITS),
+    idleW: amount(PRODUCT_LIMITS.WATTS),
+    peakEfficiencyPct: amount(PRODUCT_LIMITS.PERCENT),
+    warrantyYears: amount(PRODUCT_LIMITS.YEARS),
+    bmsComms: comms,
+    /** Only brands the maker itself lists as compatible. */
+    compatibleBatteryBrands: brands,
+  })
+  .strict()
+
+export const BatterySpecsSchema = z
+  .object({
+    chemistry: spec(z.enum(BATTERY_CHEMISTRIES)),
+    /** As the datasheet states it (51.2 V for a "48 V" LiFePO₄ unit), not the system class. */
+    nominalV: amount(PRODUCT_LIMITS.VOLTS),
+    ah: amount(PRODUCT_LIMITS.AH),
+    kWh: amount(PRODUCT_LIMITS.KWH),
+    maxContinuousA: amount(PRODUCT_LIMITS.AMPS),
+    peakA: amount(PRODUCT_LIMITS.AMPS),
+    peakSeconds: amount(PRODUCT_LIMITS.SECONDS),
+    maxParallel: amount(PRODUCT_LIMITS.UNITS),
+    cycleLife: amount(PRODUCT_LIMITS.CYCLES),
+    warrantyYears: amount(PRODUCT_LIMITS.YEARS),
+    bmsComms: comms,
+    compatibleInverterBrands: brands,
+  })
+  .strict()
+
+const common = {
+  brand: text(60),
+  model: text(80),
+  makerUrl: httpsUrl.nullable(),
+  /** Required: the library is a reference users can check, so every product links its datasheet. */
+  datasheetUrl: httpsUrl,
+  extraSpecs: z.array(ExtraSpecSchema).max(MAX_EXTRA_SPECS),
+  price: PriceSchema.nullable(),
+}
+
+export const ProductInputSchema = z
+  .discriminatedUnion('kind', [
+    z.object({ kind: z.literal('inverter'), ...common, specs: InverterSpecsSchema }).strict(),
+    z.object({ kind: z.literal('battery'), ...common, specs: BatterySpecsSchema }).strict(),
+  ])
+  .refine((p) => normalize(p.model) !== '', { path: ['model'], message: 'the model needs letters or digits' })
+
+/** A value a later write read differently from the stored one, kept for the admin to settle. */
+export const ProductConflictSchema = z.object({
+  field: z.string(), found: z.unknown(), source: z.string().nullable(), seenAt: z.iso.datetime(),
+})
+
+export type ProductInput = z.infer<typeof ProductInputSchema>
+export type InverterSpecs = z.infer<typeof InverterSpecsSchema>
+export type BatterySpecs = z.infer<typeof BatterySpecsSchema>
+export type SurgeLevel = z.infer<typeof SurgeLevelSchema>
+export type ExtraSpec = z.infer<typeof ExtraSpecSchema>
+export type ProductConflict = z.infer<typeof ProductConflictSchema>
+export type ProductRecord = ProductInput & { id: string; key: string; origin: ProductOrigin; conflicts: ProductConflict[]; retired: boolean }
+
+/** Lowercase letters and digits only, accents dropped. */
+function normalize(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+/**
+ * The product's identity: kind, the brand's first word ("EG4" and "EG4 Electronics" are one maker) and the model
+ * without a repeated brand ("Pytes V5" is "V5"). The skill also reuses a stored product's spelling; this catches the rest.
+ */
+export function productKey(p: Pick<ProductInput, 'kind' | 'brand' | 'model'>): string {
+  const brand = normalize(p.brand.trim().split(/\s+/)[0] ?? '')
+  const model = normalize(p.model)
+  const withoutBrand = brand && model.startsWith(brand) && model.length > brand.length ? model.slice(brand.length) : model
+  return `${p.kind}:${brand}:${withoutBrand}`
+}
