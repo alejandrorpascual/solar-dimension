@@ -24,6 +24,12 @@ export async function deleteTestAppliance(id: string): Promise<void> {
   await testDb()`delete from appliances where id = ${id}`
 }
 
+/** Deletes a product a test created. Only keys of the "E2E …" brand, so a wrong key never removes a real product. */
+export async function deleteTestProduct(key: string): Promise<void> {
+  if (!/^(inverter|battery):e2e:/.test(key)) throw new Error(`refusing to delete "${key}": not an e2e product key`)
+  await testDb()`delete from products where key = ${key}`
+}
+
 /** The id of the user's first saved project. Projects are created in the browser and synced, so tests read the id back here. */
 export async function firstProjectId(email: string): Promise<string> {
   const rows = await testDb()`select p.id from projects p join "user" u on u.id = p.user_id where u.email = ${email} order by p.created_at limit 1`
