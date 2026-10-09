@@ -480,7 +480,7 @@ describe('mergeProduct', () => {
 
 **Step 2:** run, expect FAIL.
 
-**Step 3: implement** `src/lib/product-merge.ts`:
+**Step 3: implement** `src/lib/product-merge.ts`. Every helper returns a new value with its `Outcome`; nothing is pushed into a shared accumulator (the repo's immutability rule):
 
 ```ts
 import { productKey, type ExtraSpec, type ProductConflict, type ProductInput, type ProductKind, type ProductRecord } from './product-schema'
@@ -497,105 +497,110 @@ export interface ProductChange {
 /** What a write does to one product: the change to report, the product to store and the row's conflicts list. */
 export interface MergeResult { change: ProductChange; next: ProductInput; conflicts: ProductConflict[] }
 
-type SpecLike = { value: unknown; source: string | null }
-type Field = { comparable: unknown; isStated: boolean; source: string | null }
+/** What deciding some fields produced: which were filled or replaced, and the conflicts found. */
+interface Outcome { fills: string[]; replaced: string[]; conflicts: FieldConflict[]; found: ProductConflict[] }
+interface Decided<T> { value: T; outcome: Outcome }
+interface Ctx { replace: boolean; now: string }
+/** How a field compares: specs by value, surge levels by watts and seconds, lists sorted. */
+interface Field { comparable: unknown; isStated: boolean; source: string | null }
 
+const NOTHING: Outcome = { fills: [], replaced: [], conflicts: [], found: [] }
+const combine = (a: Outcome, b: Outcome): Outcome => ({
+  fills: [...a.fills, ...b.fills], replaced: [...a.replaced, ...b.replaced],
+  conflicts: [...a.conflicts, ...b.conflicts], found: [...a.found, ...b.found],
+})
+const keep = <T>(value: T): Decided<T> => ({ value, outcome: NOTHING })
 const sortedLower = (xs: readonly string[]) => [...xs].map((x) => x.toLowerCase()).sort()
 const nameKey = (s: string) => s.trim().toLowerCase()
 
-/** How one spec entry compares: a spec by its value, surge levels by watts and seconds, a list sorted. */
 function read(key: string, v: unknown): Field {
   if (Array.isArray(v)) {
     const comparable = key === 'surges'
       ? (v as Array<{ w: number | null; seconds: number | null }>).map((l) => [l.w, l.seconds])
       : sortedLower(v as string[])
-    const first = v[0] as { source?: string } | undefined
-    return { comparable, isStated: v.length > 0, source: first?.source ?? null }
+    return { comparable, isStated: v.length > 0, source: (v[0] as { source?: string } | undefined)?.source ?? null }
   }
-  const s = v as SpecLike
+  const s = v as { value: unknown; source: string | null }
   return { comparable: s.value, isStated: s.value !== null, source: s.source }
 }
 
-interface Acc { fills: string[]; replaced: string[]; conflicts: FieldConflict[]; found: ProductConflict[] }
-
-/** Decides one field: keep, fill, replace or conflict. Returns the value to store. */
-function decide<T>(field: string, stored: T, incoming: T, a: Field, b: Field, replace: boolean, now: string, acc: Acc): T {
-  if (!b.isStated) return stored
-  if (!a.isStated) {
-    acc.fills.push(field)
-    return incoming
+/** One field: keep the stored value, fill a stored null, replace it, or keep it and record a conflict. */
+function decide<T>(field: string, stored: T, incoming: T, a: Field, b: Field, ctx: Ctx): Decided<T> {
+  if (!b.isStated) return keep(stored)
+  if (!a.isStated) return { value: incoming, outcome: { ...NOTHING, fills: [field] } }
+  if (stable(a.comparable) === stable(b.comparable)) return keep(stored)
+  if (ctx.replace) return { value: incoming, outcome: { ...NOTHING, replaced: [field] } }
+  return {
+    value: stored,
+    outcome: {
+      ...NOTHING,
+      conflicts: [{ field, stored: a.comparable, found: b.comparable }],
+      found: [{ field, found: b.comparable, source: b.source, seenAt: ctx.now }],
+    },
   }
-  if (stable(a.comparable) === stable(b.comparable)) return stored
-  if (replace) {
-    acc.replaced.push(field)
-    return incoming
-  }
-  acc.conflicts.push({ field, stored: a.comparable, found: b.comparable })
-  acc.found.push({ field, found: b.comparable, source: b.source, seenAt: now })
-  return stored
 }
 
-function mergeSpecs(stored: Record<string, unknown>, incoming: Record<string, unknown>, replace: boolean, now: string, acc: Acc) {
-  return Object.fromEntries(Object.keys(incoming).map((key) => [
-    key, decide(`specs.${key}`, stored[key], incoming[key], read(key, stored[key]), read(key, incoming[key]), replace, now, acc),
-  ]))
+function mergeSpecs(stored: Record<string, unknown>, incoming: Record<string, unknown>, ctx: Ctx): Decided<Record<string, unknown>> {
+  const decided = Object.keys(incoming).map((key) =>
+    [key, decide(`specs.${key}`, stored[key], incoming[key], read(key, stored[key]), read(key, incoming[key]), ctx)] as const)
+  return { value: Object.fromEntries(decided.map(([k, d]) => [k, d.value])), outcome: decided.map(([, d]) => d.outcome).reduce(combine, NOTHING) }
 }
 
-function mergeExtras(stored: readonly ExtraSpec[], incoming: readonly ExtraSpec[], replace: boolean, now: string, acc: Acc): ExtraSpec[] {
-  const merged = stored.map((line) => {
+const extraField = (l: ExtraSpec | undefined): Field => ({ comparable: l?.value.trim() ?? null, isStated: l !== undefined, source: l?.source ?? null })
+
+/** Extra lines by name (case-insensitive): known names decide like specs, new names are fills, never more than 8. */
+function mergeExtras(stored: readonly ExtraSpec[], incoming: readonly ExtraSpec[], ctx: Ctx): Decided<ExtraSpec[]> {
+  const known = stored.map((line) => {
     const other = incoming.find((l) => nameKey(l.name) === nameKey(line.name))
-    if (!other || other.value.trim() === line.value.trim()) return line
-    const field = `extraSpecs.${line.name}`
-    if (replace) {
-      acc.replaced.push(field)
-      return other
-    }
-    acc.conflicts.push({ field, stored: line.value, found: other.value })
-    acc.found.push({ field, found: other.value, source: other.source, seenAt: now })
-    return line
+    return decide(`extraSpecs.${line.name}`, line, other ?? line, extraField(line), extraField(other), ctx)
   })
-  const added = incoming.filter((l) => !stored.some((s) => nameKey(s.name) === nameKey(l.name)))
-  const room = Math.max(0, MAX_EXTRA_SPECS - merged.length)
-  acc.fills.push(...added.slice(0, room).map((l) => `extraSpecs.${l.name}`))
-  return [...merged, ...added.slice(0, room)]
+  const added = incoming
+    .filter((l) => !stored.some((s) => nameKey(s.name) === nameKey(l.name)))
+    .slice(0, Math.max(0, MAX_EXTRA_SPECS - stored.length))
+  const addedOutcome: Outcome = { ...NOTHING, fills: added.map((l) => `extraSpecs.${l.name}`) }
+  return { value: [...known.map((d) => d.value), ...added], outcome: [...known.map((d) => d.outcome), addedOutcome].reduce(combine, NOTHING) }
 }
 
 /** The row's conflicts after this write: settled fields leave, new readings join once per field and value. */
-function nextConflicts(stored: readonly ProductConflict[], acc: Acc): ProductConflict[] {
-  const settled = new Set([...acc.fills, ...acc.replaced])
+function nextConflicts(stored: readonly ProductConflict[], o: Outcome): ProductConflict[] {
+  const settled = new Set([...o.fills, ...o.replaced])
   const kept = stored.filter((c) => !settled.has(c.field))
   const isKnown = (c: ProductConflict) => kept.some((k) => k.field === c.field && stable(k.found) === stable(c.found))
-  return [...kept, ...acc.found.filter((c) => !isKnown(c))]
+  return [...kept, ...o.found.filter((c) => !isKnown(c))]
 }
 
-function statusOf(acc: Acc): ChangeStatus {
-  if (acc.fills.length > 0 || acc.replaced.length > 0) return 'updated'
-  return acc.conflicts.length > 0 ? 'conflicts' : 'unchanged'
+function statusOf(o: Outcome): ChangeStatus {
+  if (o.fills.length > 0 || o.replaced.length > 0) return 'updated'
+  return o.conflicts.length > 0 ? 'conflicts' : 'unchanged'
 }
 
-export function mergeProduct(stored: ProductRecord | null, incoming: ProductInput, opts: { replace: boolean; now: string }): MergeResult {
-  const head = { key: productKey(incoming), kind: incoming.kind, brand: incoming.brand, model: incoming.model }
+export function mergeProduct(stored: ProductRecord | null, incoming: ProductInput, ctx: Ctx): MergeResult {
+  const key = productKey(incoming)
   if (stored === null) {
-    return { change: { ...head, status: 'new', fills: [], replaced: [], conflicts: [] }, next: incoming, conflicts: [] }
+    const change: ProductChange = { key, kind: incoming.kind, brand: incoming.brand, model: incoming.model, status: 'new', fills: [], replaced: [], conflicts: [] }
+    return { change, next: incoming, conflicts: [] }
   }
-  const acc: Acc = { fills: [], replaced: [], conflicts: [], found: [] }
   const url = (u: string | null): Field => ({ comparable: u, isStated: u !== null, source: u })
-  const specs = mergeSpecs(stored.specs as Record<string, unknown>, incoming.specs as Record<string, unknown>, opts.replace, opts.now, acc)
-  const makerUrl = stored.makerUrl ?? incoming.makerUrl
-  if (stored.makerUrl === null && incoming.makerUrl !== null) acc.fills.push('makerUrl')
-  const datasheetUrl = decide('datasheetUrl', stored.datasheetUrl, incoming.datasheetUrl, url(stored.datasheetUrl), url(incoming.datasheetUrl), opts.replace, opts.now, acc)
-  const extraSpecs = mergeExtras(stored.extraSpecs, incoming.extraSpecs, opts.replace, opts.now, acc)
-  const isNewPrice = incoming.price !== null && stable(incoming.price) !== stable(stored.price)
-  if (isNewPrice) acc.fills.push('price')
+  const specs = mergeSpecs(stored.specs as Record<string, unknown>, incoming.specs as Record<string, unknown>, ctx)
+  const makerUrl: Decided<string | null> = stored.makerUrl === null && incoming.makerUrl !== null
+    ? { value: incoming.makerUrl, outcome: { ...NOTHING, fills: ['makerUrl'] } }
+    : keep(stored.makerUrl)
+  const datasheetUrl = decide('datasheetUrl', stored.datasheetUrl, incoming.datasheetUrl, url(stored.datasheetUrl), url(incoming.datasheetUrl), ctx)
+  const extraSpecs = mergeExtras(stored.extraSpecs, incoming.extraSpecs, ctx)
+  // Price is dated and secondary: a different one simply takes the old one's place.
+  const price: Decided<ProductInput['price']> = incoming.price !== null && stable(incoming.price) !== stable(stored.price)
+    ? { value: incoming.price, outcome: { ...NOTHING, fills: ['price'] } }
+    : keep(stored.price)
+  const outcome = [specs, makerUrl, datasheetUrl, extraSpecs, price].map((d) => d.outcome).reduce(combine, NOTHING)
   const next = {
-    kind: stored.kind, brand: stored.brand, model: stored.model, makerUrl, datasheetUrl, extraSpecs,
-    price: isNewPrice ? incoming.price : stored.price, specs,
+    kind: stored.kind, brand: stored.brand, model: stored.model, makerUrl: makerUrl.value, datasheetUrl: datasheetUrl.value,
+    extraSpecs: extraSpecs.value, price: price.value, specs: specs.value,
   } as ProductInput
-  return {
-    change: { ...head, brand: stored.brand, model: stored.model, status: statusOf(acc), fills: acc.fills, replaced: acc.replaced, conflicts: acc.conflicts },
-    next,
-    conflicts: nextConflicts(stored.conflicts, acc),
+  const change: ProductChange = {
+    key, kind: stored.kind, brand: stored.brand, model: stored.model, status: statusOf(outcome),
+    fills: outcome.fills, replaced: outcome.replaced, conflicts: outcome.conflicts,
   }
+  return { change, next, conflicts: nextConflicts(stored.conflicts, outcome) }
 }
 ```
 
@@ -745,8 +750,8 @@ test('dry run, create, keep a conflicting reading aside, then replace it', async
     expect(changes).toEqual([expect.objectContaining({ status: 'new', brand: 'E2E Power', model })])
     key = changes[0].key
 
-    const unsourced = inverter(model)
-    unsourced.specs.continuousW = { value: 6000, source: null, asWritten: null } as never
+    const base = inverter(model)
+    const unsourced = { ...base, specs: { ...base.specs, continuousW: { value: 6000, source: null, asWritten: null } } }
     expect((await post(request, '', [unsourced])).status()).toBe(422)
 
     expect(await (await post(request, '', [inverter(model)])).json()).toEqual({ created: [key], updated: [], unchanged: [], conflicts: [] })
