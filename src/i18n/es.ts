@@ -76,7 +76,7 @@ export const es: Dictionary = {
     stringsOne: '1 cadena de {n} en serie', stringsMany: '{strings} cadenas de hasta {n} en serie',
     average: 'Promedio', averageWatts: 'Promedio (W)', kind: 'Tipo',
     runsLabel: 'Funciona', dutyOf: '{name}: parte de cada hora que funciona', dutyOption: '{pct}% de cada hora', dutyTypical: '{pct}% · típico', dutyNonstop: '100% · no se apaga',
-    rename: 'Renombrar', projectActions: 'Más acciones de {name}', stepLocked: 'Agrega al menos un aparato primero', stepGo: 'Paso {n}: {label}', dutyCycles: 'Cicla · {pct}% de cada hora', dutyBursts: '~{min} min por hora', dutyTypicalAt: 'típico {pct}%', averageDrawFor: '~{w} de promedio entre los {qty}',
+    rename: 'Renombrar', projectActions: 'Más acciones de {name}', stepLocked: 'Agrega al menos un aparato primero', stepGo: 'Paso {n}: {label}', dutyRuns: 'Funciona · {pct}% de cada hora', dutyBursts: '~{min} min por hora', dutyTypicalAt: 'típico {pct}%', averageDrawFor: '~{w} de promedio entre los {qty}',
     startsLabel: 'Motores que arrancan a la vez',
     startsOne: 'Uno a la vez', startsOneHelp: 'Lo típico: arranca el motor más grande mientras los demás funcionan.',
     startsTwo: 'Dos a la vez', startsTwoHelp: 'La nevera y el aire pueden arrancar en el mismo segundo.',

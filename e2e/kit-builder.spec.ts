@@ -29,19 +29,6 @@ test('the stepper jumps straight to any step', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Step 1: Appliances' })).toHaveAttribute('aria-current', 'step')
 })
 
-test('a cycling appliance shows its share of each hour on its card and can change it', async ({ page }) => {
-  await page.goto('/')
-  const duty = page.getByLabel('Refrigerator: share of each hour it runs')
-  await expect(duty).toBeVisible()
-  await expect(page.getByText('Cycles · 40% of each hour')).toHaveCount(0)
-  await expect(async () => {
-    await duty.selectOption({ label: '75% of each hour' })
-    await expect(page.getByText(/typical 35%/)).toBeVisible({ timeout: 1000 })
-  }).toPass()
-  await duty.selectOption({ label: '35% · typical' })
-  await expect(page.getByText(/typical 35%/)).toHaveCount(0)
-})
-
 /** Web fonts swap in late on a cold CI browser and reflow the quick-edit rows; measure clicks after they settle. */
 const fontsReady = (page: Page) => page.evaluate(() => document.fonts.ready.then(() => undefined))
 

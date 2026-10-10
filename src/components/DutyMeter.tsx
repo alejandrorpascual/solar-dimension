@@ -1,16 +1,20 @@
-import { RefreshCw, Zap } from 'lucide-react'
+import { Clock, Zap } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import { averageDrawText, dutyPct, type DutyHint } from '../lib/load-kinds'
 import type { SelectedItem } from '../lib/sizing'
 import { DutyControl } from './DutyControl'
 
-/** One quiet line on a card not added yet: the appliance cycles, or runs in bursts. */
+/**
+ * One quiet line on a card not added yet: the share of each hour the appliance runs, or its minutes when it runs in
+ * bursts. It says "runs", with a clock, because the engine's cycling class also holds appliances used briefly by hand
+ * (a toaster, a kettle), and those do not cycle.
+ */
 export function DutyHintLine({ hint }: { hint: DutyHint }) {
   const { t } = useLocale()
   const isCycling = hint.kind === 'cycling'
-  const Icon = isCycling ? RefreshCw : Zap
-  const text = isCycling ? tr(t, 'dutyCycles', { pct: hint.pct }) : tr(t, 'dutyBursts', { min: hint.minutesPerHour })
+  const Icon = isCycling ? Clock : Zap
+  const text = isCycling ? tr(t, 'dutyRuns', { pct: hint.pct }) : tr(t, 'dutyBursts', { min: hint.minutesPerHour })
   return <div className="card__spec card__duty-hint"><Icon size={12} strokeWidth={2.5} aria-hidden="true" />{text}</div>
 }
 
