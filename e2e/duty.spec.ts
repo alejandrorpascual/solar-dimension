@@ -17,6 +17,8 @@ const VIEWPORT_HEIGHT = 900
 const SUBPIXEL = 0.5
 /** Enough for the picker's percent beside its arrow. A picker squeezed to nothing would pass the other checks. */
 const MIN_PICKER_WIDTH = 100
+/** iOS Safari zooms the page in when a form control under this size takes focus. */
+const IOS_NO_ZOOM_PX = 16
 
 interface Box { x: number; y: number; width: number; height: number }
 
@@ -109,6 +111,20 @@ for (const language of ['English', 'Español'] as const) {
     }
   })
 }
+
+test('on a touch screen the duty picker is at least 16 px, so iOS Safari does not zoom in when it is tapped', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'iOS zooms on focus only on touch devices')
+  const fontSize = (picker: Locator) => picker.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
+
+  await page.goto('/')
+  const onCard = page.getByLabel(FRIDGE_DUTY.English)
+  await expect(onCard).toBeVisible()
+  expect(await fontSize(onCard)).toBeGreaterThanOrEqual(IOS_NO_ZOOM_PX)
+
+  await page.goto('/?step=4')
+  const panel = await openQuickEdit(page)
+  expect(await fontSize(panel.getByLabel(FRIDGE_DUTY.English))).toBeGreaterThanOrEqual(IOS_NO_ZOOM_PX)
+})
 
 test('the average on a card says how many units it adds up once there are several', async ({ page }) => {
   await page.goto('/')
