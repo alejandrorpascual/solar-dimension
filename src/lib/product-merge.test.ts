@@ -244,9 +244,11 @@ describe('summarize', () => {
   test('sorts new, filled and untouched products into created, updated and unchanged', () => {
     const created = merge(null, battery()).change
     const updated = merge(record(inverter({ chargerA: NONE })), inverter({ chargerA: stated(125, 'MAX. CHARGE CURRENT 125A') })).change
-    const unchanged = merge(record(battery({ kWh: stated(5.12, '5.12kWh') })), battery()).change
+    // A different model from the created one, so a created/unchanged mix-up cannot pass.
+    const other = { ...battery(), model: 'V10' }
+    const unchanged = merge(record(other), other).change
     expect(summarize([created, updated, unchanged])).toEqual({
-      created: ['battery:pytes:v5'], updated: [KEY], unchanged: ['battery:pytes:v5'], conflicts: [],
+      created: ['battery:pytes:v5'], updated: [KEY], unchanged: ['battery:pytes:v10'], conflicts: [],
     })
   })
 
