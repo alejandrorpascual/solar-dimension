@@ -1,7 +1,7 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
 import { productKey } from '../src/lib/product-schema'
 import { catalogAuthHeader as auth } from './catalog-token'
-import { deleteTestProduct, insertUnreadableTestProduct, rawTestProduct } from './db'
+import { deleteTestProduct, insertUnreadableTestProduct, rawTestProduct, testProductDates } from './db'
 
 test.beforeEach(({}, info) => {
   test.skip(info.project.name !== 'desktop', 'API checks run once')
@@ -99,5 +99,53 @@ test('a write that fills one spec and finds another differing is in updated and 
     })
   } finally {
     await deleteTestProduct(key)
+  }
+})
+
+/** Database clocks tick in microseconds and Dates in milliseconds; a pause keeps two writes from landing on one tick. */
+const pauseForClock = () => new Promise((resolve) => setTimeout(resolve, 20))
+
+test('sending an unchanged product again moves last_seen_at and nothing else', async ({ request }) => {
+  const model = `S${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  try {
+    // Arrange
+    await post(request, '', [inverter(model)])
+    const before = await testProductDates(key)
+    const rowBefore = await rawTestProduct(key)
+    await pauseForClock()
+
+    // Act
+    const again = await post(request, '', [inverter(model)])
+
+    // Assert
+    expect(await again.json()).toEqual({ created: [], updated: [], unchanged: [key], conflicts: [] })
+    const after = await testProductDates(key)
+    expect(after!.lastSeenAt.getTime()).toBeGreaterThan(before!.lastSeenAt.getTime())
+    expect(after!.updatedAt).toEqual(before!.updatedAt)
+    expect(await rawTestProduct(key)).toEqual(rowBefore)
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
+test('a write of one new and one unchanged product creates the first and moves last_seen_at of the second', async ({ request }) => {
+  const known = `K${Date.now()}`
+  const fresh = `N${Date.now()}`
+  const knownKey = productKey({ kind: 'inverter', brand: 'E2E Power', model: known })
+  const freshKey = productKey({ kind: 'inverter', brand: 'E2E Power', model: fresh })
+  try {
+    await post(request, '', [inverter(known)])
+    const before = await testProductDates(knownKey)
+    await pauseForClock()
+
+    const res = await post(request, '', [inverter(known), inverter(fresh)])
+
+    expect(await res.json()).toEqual({ created: [freshKey], updated: [], unchanged: [knownKey], conflicts: [] })
+    expect((await testProductDates(knownKey))!.lastSeenAt.getTime()).toBeGreaterThan(before!.lastSeenAt.getTime())
+    expect(await stored(request, freshKey)).toBeDefined()
+  } finally {
+    await deleteTestProduct(knownKey)
+    await deleteTestProduct(freshKey)
   }
 })

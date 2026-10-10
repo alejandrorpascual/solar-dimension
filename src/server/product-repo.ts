@@ -52,25 +52,41 @@ export async function previewProducts(items: readonly ProductInput[], replace: b
   return (await plan(items, replace)).map((m) => m.change)
 }
 
-/** The only way products are written. Unchanged products are skipped; one statement, so it is all or nothing. */
+/** New and changed products in one insert; a product that exists is updated in place. */
+const upsertStatement = (writes: readonly MergeResult[], actor: string) =>
+  db
+    .insert(products)
+    .values(writes.map(({ change, next, conflicts }) => ({
+      kind: next.kind, key: change.key, brand: next.brand, model: next.model, makerUrl: next.makerUrl, datasheetUrl: next.datasheetUrl,
+      specs: next.specs, extraSpecs: next.extraSpecs, price: next.price, origin: 'admin' satisfies ProductOrigin, conflicts, updatedBy: actor,
+    })))
+    .onConflictDoUpdate({
+      target: products.key,
+      set: {
+        makerUrl: sql`excluded.maker_url`, datasheetUrl: sql`excluded.datasheet_url`, specs: sql`excluded.specs`,
+        extraSpecs: sql`excluded.extra_specs`, price: sql`excluded.price`, conflicts: sql`excluded.conflicts`,
+        updatedAt: sql`now()`, lastSeenAt: sql`now()`, updatedBy: sql`excluded.updated_by`,
+      },
+    })
+
+/** Moves `last_seen_at` of products found again with nothing to change; no other column is touched. */
+const seenAgainStatement = (keys: readonly string[]) => db.update(products).set({ lastSeenAt: sql`now()` }).where(inArray(products.key, keys))
+
+/**
+ * The only way products are written. New and changed products are upserted and every unchanged one has its `last_seen_at`
+ * moved, in one `db.batch` (one transaction; the neon-http driver has no interactive ones), so it is all or nothing.
+ * Known limit: the merge reads the stored rows and writes in a second statement, so two concurrent writers to one product
+ * can lose a fill or a conflict; today the only writer is one admin through the skill.
+ */
 export async function upsertProducts(items: readonly ProductInput[], opts: { replace: boolean; actor: string }): Promise<UpsertSummary> {
   const merged = await plan(items, opts.replace)
-  const toWrite = merged.filter((m) => m.change.status !== 'unchanged')
-  if (toWrite.length > 0) {
-    await db
-      .insert(products)
-      .values(toWrite.map(({ change, next, conflicts }) => ({
-        kind: next.kind, key: change.key, brand: next.brand, model: next.model, makerUrl: next.makerUrl, datasheetUrl: next.datasheetUrl,
-        specs: next.specs, extraSpecs: next.extraSpecs, price: next.price, origin: 'admin' satisfies ProductOrigin, conflicts, updatedBy: opts.actor,
-      })))
-      .onConflictDoUpdate({
-        target: products.key,
-        set: {
-          makerUrl: sql`excluded.maker_url`, datasheetUrl: sql`excluded.datasheet_url`, specs: sql`excluded.specs`,
-          extraSpecs: sql`excluded.extra_specs`, price: sql`excluded.price`, conflicts: sql`excluded.conflicts`,
-          updatedAt: sql`now()`, lastSeenAt: sql`now()`, updatedBy: sql`excluded.updated_by`,
-        },
-      })
-  }
+  const isUnchanged = (m: MergeResult) => m.change.status === 'unchanged'
+  const writes = merged.filter((m) => !isUnchanged(m))
+  const seenAgain = merged.filter(isUnchanged).map((m) => m.change.key)
+  const [first, ...rest] = [
+    ...(writes.length > 0 ? [upsertStatement(writes, opts.actor)] : []),
+    ...(seenAgain.length > 0 ? [seenAgainStatement(seenAgain)] : []),
+  ]
+  if (first) await db.batch([first, ...rest])
   return summarize(merged.map((m) => m.change))
 }

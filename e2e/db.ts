@@ -53,6 +53,13 @@ export async function rawTestProduct(key: string): Promise<{ specs: unknown; upd
   return rows[0] ? { specs: rows[0].specs, updatedBy: rows[0].updated_by as string } : null
 }
 
+/** When a product row was last changed and last seen: a product sent again unchanged must move only the second. Null when there is no such row. */
+export async function testProductDates(key: string): Promise<{ updatedAt: Date; lastSeenAt: Date } | null> {
+  assertTestProductKey(key)
+  const rows = await testDb()`select updated_at, last_seen_at from products where key = ${key}`
+  return rows[0] ? { updatedAt: new Date(rows[0].updated_at), lastSeenAt: new Date(rows[0].last_seen_at) } : null
+}
+
 /** The id of the user's first saved project. Projects are created in the browser and synced, so tests read the id back here. */
 export async function firstProjectId(email: string): Promise<string> {
   const rows = await testDb()`select p.id from projects p join "user" u on u.id = p.user_id where u.email = ${email} order by p.created_at limit 1`
