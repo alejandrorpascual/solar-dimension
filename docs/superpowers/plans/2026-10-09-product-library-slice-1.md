@@ -4,6 +4,16 @@
 
 Spec: `docs/superpowers/specs/2026-10-09-product-library-design.md` (sections "Admin research skill", "Data model", "Decisions").
 
+**Status: done.** The branch review on 2026-10-10 changed these parts after the plan was written; the spec and the code are right where this plan differs:
+- `productKey()` uses the whole brand minus trailing generic words (`brandKey()`), not the brand's first word, and a brand needs a letter or digit.
+- A change's `replaced` is `{ field, stored, found }` per field, not field names; a changed price is reported there, not under `fills`; `dropped` lists new extra lines past the cap of 8.
+- The write summary lists a product under `conflicts` whenever its change has conflicts, also when its status is `updated`.
+- A product sent again unchanged has its `last_seen_at` moved, in one `db.batch` with the upsert.
+- Query parameters other than `dryRun` and `replace`, or values other than `true` and `false`, answer 400 before the body is read.
+- `maxParallelUnits`, `maxParallel` and `cycleLife` are whole numbers.
+- Task 9's server start goes through `scripts/start-on-test-db.ts`.
+- Known limit, not fixed: two concurrent writers to one product can lose a fill or a conflict. The search job must not write products until the upsert checks a version (see the spec).
+
 **Goal:** an admin can run `/research-product EG4 6000XP`, see every datasheet value with its quote and source, confirm, and have the product stored in a `products` table through a token-protected endpoint.
 
 **Architecture:** a shared Zod schema (`src/lib/product-schema.ts`) defines a product as the datasheet states it: every spec is `{ value, source, asWritten }`, and surge is a list of levels. Pure merge rules (`src/lib/product-merge.ts`) decide what a write fills, keeps, replaces or records as a conflict. A thin repo and a route behind the appliance API's `authorize()` expose `GET` and `POST ?dryRun&replace`. The skill is a Markdown runbook like `/research-appliance`.

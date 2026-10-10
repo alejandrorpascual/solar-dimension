@@ -1,6 +1,6 @@
 # Product library: reference spec sheets for inverters and batteries
 
-Status: draft. It builds on the spike in `scripts/product-search/` (three runs on 2026-10-09; results under Cost).
+Status: slice 1 (schema, merge rules, `products` table, token API, admin skill) is built and this spec describes it as built. Slice 2 (fit, loading, card and spec sheet) is planned in `docs/superpowers/plans/2026-10-10-product-library-slice-2.md`; the in-app search and the admin page are later slices. It builds on the spike in `scripts/product-search/` (three runs on 2026-10-09; results under Cost).
 
 ## Goals
 
@@ -89,7 +89,7 @@ The **fingerprint** is the kit's needs rounded up to steps, so that nearby kits 
 |---|---|---|
 | `id` | uuid PK | |
 | `kind` | text | `inverter` or `battery` |
-| `key` | text unique | kind + brand + model, lowercased, spaces and punctuation removed |
+| `key` | text unique | `productKey()`: kind, maker and model, each lowercased with accents, spaces and punctuation removed. The maker is the whole brand minus trailing generic words (`brandKey()`: "EG4 Electronics" is `eg4`, "Fox ESS" and "FoxESS" are `foxess`, "Power Queen" stays `powerqueen`); the model drops a repeated maker name ("Pytes V5" is `v5`). It is the product's stored identity, so changing the rule later means rewriting keys |
 | `brand`, `model` | text | |
 | `maker_url`, `datasheet_url` | text | datasheet required |
 | `specs` | jsonb | per kind, Zod-checked on read; each spec `{ value, source, asWritten }`, surge as levels |
