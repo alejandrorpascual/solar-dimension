@@ -1,3 +1,5 @@
+import { tr, type Dictionary, type Locale } from '../i18n'
+import { fmtW } from '../i18n/format'
 import type { CatalogItem, LoadKind } from './catalog'
 import { effectiveDuty, loadKindOf } from './sizing/loads'
 import type { SelectedItem } from './sizing'
@@ -14,8 +16,18 @@ export function groupByKind(items: readonly SelectedItem[]): KindGroup[] {
     .filter((g) => g.items.length > 0)
 }
 
-/** The watts an item draws on average over the window: running watts scaled by its duty. */
+/** The watts an item draws on average over the window: running watts of all its units, scaled by its duty. */
 export const averageWatts = (item: SelectedItem): number => Math.round(item.totalWatts * item.effectiveDuty)
+
+/**
+ * The average draw as an appliance card prints it. The figure covers every unit, because that is what the kit is sized
+ * on, while the card's spec line above it is for one unit; so with several units it says how many it adds up.
+ */
+export function averageDrawText(item: SelectedItem, t: Dictionary, locale: Locale): string {
+  const w = fmtW(averageWatts(item), locale)
+  const hasSeveralUnits = item.qty > 1
+  return hasSeveralUnits ? tr(t, 'averageDrawFor', { w, qty: item.qty }) : tr(t, 'averageDraw', { w })
+}
 
 export type DutyHint =
   | { kind: 'cycling'; pct: number; typicalPct: number; isOverridden: boolean }

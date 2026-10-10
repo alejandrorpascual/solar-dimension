@@ -1,8 +1,7 @@
 import { RefreshCw, Zap } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
-import { fmtW } from '../i18n/format'
-import { averageWatts, dutyPct, type DutyHint } from '../lib/load-kinds'
+import { averageDrawText, dutyPct, type DutyHint } from '../lib/load-kinds'
 import type { SelectedItem } from '../lib/sizing'
 import { DutyControl } from './DutyControl'
 
@@ -26,7 +25,7 @@ interface MeterProps {
 /** On an added card: how much of each hour it runs, as a bar, with the picker for cycling loads and the average draw. */
 export function DutyMeter({ hint, item, name, onDuty }: MeterProps) {
   const { t, locale } = useLocale()
-  const average = tr(t, 'averageDraw', { w: fmtW(averageWatts(item), locale) })
+  const average = averageDrawText(item, t, locale)
   const isCycling = hint.kind === 'cycling'
   const fillPct = isCycling ? hint.pct : dutyPct(item.effectiveDuty)
   const typical = isCycling && hint.isOverridden ? ` · ${tr(t, 'dutyTypicalAt', { pct: hint.typicalPct })}` : ''

@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest'
+import { getDictionary } from '../i18n'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import type { CatalogItem } from './catalog'
-import { averageWatts, dutyHint, dutyPct, groupByKind } from './load-kinds'
+import { averageDrawText, averageWatts, dutyHint, dutyPct, groupByKind } from './load-kinds'
 import { compute } from './sizing'
 
 const kit = (qty: Record<string, number>) => compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
@@ -24,6 +25,23 @@ test('averageWatts scales the running watts by the duty in effect', () => {
   expect(averageWatts(fridge)).toBe(Math.round(300 * 0.35))
   const full = compute({ qty: { fridge: 2 }, hours: 10, volts: 48, chemistry: 'lifepo4', dutyOverrides: { fridge: 1 } }, CATALOG_SNAPSHOT).items[0]!
   expect(averageWatts(full)).toBe(300)
+})
+
+describe('averageDrawText', () => {
+  const en = getDictionary('en')
+  const es = getDictionary('es')
+
+  test('prints the average alone for a single unit', () => {
+    const fridge = kit({ fridge: 1 }).items[0]!
+    expect(averageDrawText(fridge, en, 'en')).toBe('~53 W average')
+    expect(averageDrawText(fridge, es, 'es')).toBe('~53 W de promedio')
+  })
+
+  test('says how many units the average adds up once there are several', () => {
+    const fridges = kit({ fridge: 2 }).items[0]!
+    expect(averageDrawText(fridges, en, 'en')).toBe('~105 W average for 2')
+    expect(averageDrawText(fridges, es, 'es')).toBe('~105 W de promedio entre los 2')
+  })
 })
 
 describe('dutyPct', () => {
