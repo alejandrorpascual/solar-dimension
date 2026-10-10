@@ -1,12 +1,13 @@
 /* Header and stepper */
-/* Phone and tablet: brand, language and account share the top row; the stepper gets the second to itself. */
-.header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'brand lang account' 'stepper stepper stepper'; align-items: center; column-gap: 8px; row-gap: 12px; }
+/* Brand, language and account share the top row and the stepper gets a row of its own under them: on phones, and on
+   every wider screen whose header cannot hold all four side by side (the container rule at the end of this block). */
+.header { container-type: inline-size; }
+.header__bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'brand lang account' 'stepper stepper stepper'; align-items: center; column-gap: 8px; row-gap: 12px; }
 .brand { grid-area: brand; font-family: var(--font-display); font-size: 20px; font-weight: 700; }
-.header > .stepper { grid-area: stepper; }
+.header__bar > .stepper { grid-area: stepper; }
 .header__lang { grid-area: lang; justify-self: end; }
 .header__account { grid-area: account; justify-self: end; min-width: 0; }
 .stepper { display: flex; align-items: center; gap: 8px; }
-.stepper__item { display: flex; align-items: center; gap: 8px; }
 .stepper__line { width: 16px; height: 2px; background: var(--line-strong); }
 .stepper__line--on { background: var(--ink); }
 .stepper__btn { flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px; min-width: var(--tap); min-height: var(--tap); padding: 0; border: 0; border-radius: 999px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
@@ -22,18 +23,21 @@
 .step-label { display: none; font-size: 14px; font-weight: 600; color: var(--muted); }
 .step-label--on { color: var(--ink); }
 @media (min-width: 1024px) {
-  .header { column-gap: 24px; }
-  .header > .stepper { justify-self: center; max-width: 100%; }
+  .header__bar { column-gap: 24px; }
+  .header__bar > .stepper { justify-self: center; max-width: 100%; }
   .stepper { gap: 12px; }
-  .stepper__item { gap: 10px; }
-  /* The connectors give way first, so four labelled steps fit a narrow page column instead of sliding under the header. */
+  /* The connectors give way first: they shorten from 56px to 16px before a labelled step has to leave the stepper's box. */
   .stepper__line { flex: 0 1 auto; width: 56px; min-width: 16px; }
   .dot { width: 32px; height: 32px; font-size: 14px; }
   .step-label { display: block; white-space: nowrap; }
 }
-/* One header row only once the page column holds brand, all four labelled steps, language and account side by side. */
-@media (min-width: 1600px) {
-  .header { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'brand stepper lang account'; }
+/* One row only where the header holds all four side by side. Measured at its widest, in Spanish and signed out:
+   brand 158.4 + stepper 646.3 with its connectors at their shortest + language 81.3 + "Iniciar sesión" 128.7 + three
+   24px gaps = 1086.7px (English needs 982.3px); 1100px leaves a little slack. It asks the header, not the viewport,
+   because the header's width also depends on the page's padding and on the rail: it is 1100px wide at a 1228px
+   viewport, drops to 772px when the 380px rail appears at 1280px, and is 1100px again at 1608px. */
+@container (min-width: 1100px) {
+  .header__bar { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'brand stepper lang account'; }
 }
 
 /* Chips, buttons, inputs */

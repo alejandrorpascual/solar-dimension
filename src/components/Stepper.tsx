@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react'
+import { Fragment } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import { stepStates, type Step, type StepState } from '../lib/steps'
@@ -38,7 +39,7 @@ export function Stepper(props: StepperProps) {
         const { step, isCurrent, isDone, isLocked } = state
         const isReached = isCurrent || isDone
         return (
-          <div key={step} className="stepper__item">
+          <Fragment key={step}>
             {i > 0 && <div className={`stepper__line${isReached ? ' stepper__line--on' : ''}`} aria-hidden="true" />}
             <button
               type="button"
@@ -52,7 +53,7 @@ export function Stepper(props: StepperProps) {
               <span className={dotClass(state)} aria-hidden="true">{isDone ? <Check size={16} strokeWidth={3} /> : step}</span>
               <span className={`step-label${isReached ? ' step-label--on' : ''}`} aria-hidden="true">{labels[step]}</span>
             </button>
-          </div>
+          </Fragment>
         )
       })}
     </nav>
