@@ -10,8 +10,8 @@ const FRIDGE_DUTY: Record<Language, string> = {
 }
 /** Step 1 from the narrowest phone to a wide desktop: one column, the two-column grid from 640, four columns from 1024. */
 const CARD_WIDTHS = [320, 360, 390, 640, 768, 1024, 1280, 1920] as const
-/** The kit step: its quick-edit rows are one column below 1024 and two from there. */
-const ROW_WIDTHS = [360, 390, 640, 768, 1024, 1280] as const
+/** The kit step from the narrowest phone up: its quick-edit rows are one column below 1024 and two from there. */
+const ROW_WIDTHS = [320, 360, 390, 640, 768, 1024, 1280] as const
 const VIEWPORT_HEIGHT = 900
 /** Boxes come back in fractions of a pixel; under half of one is rounding, not an overflow. */
 const SUBPIXEL = 0.5

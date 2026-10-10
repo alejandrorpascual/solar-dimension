@@ -29,16 +29,29 @@
 .qedit__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 6px; }
 /* Playwright and keyboard focus scroll the control itself into view: keep it above the phone's fixed footer. */
 .qedit__panel button, .qedit__panel select, .qedit__panel input { scroll-margin-bottom: 140px; }
-.qedit__row { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 8px 8px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
-.qedit__name { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.qedit__title { font-size: 15px; font-weight: 700; line-height: 1.2; }
+/* A row is a grid: the name and the quantity buttons share a line, and a cycling appliance's duty line goes under them.
+   On a phone that line runs the whole width of the row. In the name's column, which the buttons leave 76 to 146 px
+   wide from 320 to 390, the picker would be cut to "35% · …". */
+.qedit__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 10px; min-height: 60px; padding: 8px 8px 8px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.qedit__name { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+/* At 320 the name's column is narrower than one long word ("Refrigerator"); it breaks there instead of running into
+   the buttons. */
+.qedit__title { font-size: 15px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
 .qedit__watts { font-size: 12px; color: var(--muted); }
+.qedit__row > .qstep { grid-area: 1 / 2; }
+.qedit__row > .qedit__duty { grid-area: 2 / 1 / auto / -1; }
+/* From 640 the name's column is never under 150 px, which holds the picker at its 13 px size: the duty line goes in
+   it, under the name, and the buttons are centred beside the two. */
+@media (min-width: 640px) {
+  .qedit__row > .qedit__duty { grid-column: 1; }
+  .qedit__row:has(> .qedit__duty) > .qstep { grid-row: 1 / span 2; }
+}
 .qedit__group { display: flex; flex-direction: column; gap: 6px; }
 .qedit__group-label { padding: 0 2px; }
 /* A native select is as wide as its longest option, and that width counted into its row or card pushes the page
    sideways on a phone. So the duty line takes the width it is given: its content sets none (contain), the label gives
    up its line before the picker is squeezed (wrap), and the picker never grows past the line (max-width). */
-.qedit__duty { contain: inline-size; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.qedit__duty { contain: inline-size; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; color: var(--muted); }
 .qedit__duty-select { min-width: 0; max-width: 100%; text-overflow: ellipsis; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); min-height: 34px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
 .qedit__duty--on .qedit__duty-select { border-color: var(--accent); color: var(--accent); }
 /* iOS Safari zooms the page in when a form control under 16 px takes focus (see the .in rule in components.css). */

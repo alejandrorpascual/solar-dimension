@@ -110,7 +110,6 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 /* Duty on an added card: the picker or burst minutes, a bar of the hour, and the average draw. In the card's row layout
    it takes a line of its own under the name and the quantity buttons, so the picker has the card's width to fit in. */
 .duty { order: 1; flex: 0 0 100%; display: flex; flex-direction: column; gap: 6px; }
-.duty .qedit__duty { margin-top: 0; }
 .duty__burst { color: var(--ink); font-size: 13px; }
 .duty__bar { position: relative; height: 6px; border-radius: 999px; background: var(--accent-ring); }
 .duty__fill { display: block; min-width: 6px; max-width: 100%; height: 100%; border-radius: 999px; background: var(--accent); }
