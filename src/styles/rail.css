@@ -98,7 +98,9 @@
 .pcards__head { display: flex; align-items: center; justify-content: space-between; }
 .pcards__new { border: 0; background: transparent; min-height: 36px; padding: 0 4px; font-size: 13px; font-weight: 700; color: var(--accent); }
 .pcards__new:hover { color: var(--accent-hover); text-decoration: underline; }
-.pcard { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); transition: border-color 120ms, box-shadow 120ms; }
+/* Each card is its own stacking context: the z-index on its controls orders them inside the card only, so in the sheet
+   they scroll under the sticky header instead of painting over it and taking its Close button's taps. */
+.pcard { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); transition: border-color 120ms, box-shadow 120ms; }
 .pcard:hover { border-color: var(--line-strong); box-shadow: 0 8px 24px rgba(18, 22, 28, 0.06); }
 /* Stretched link: another project's name button covers its whole card, so a click anywhere on it opens the project. */
 .pcard--pickable { cursor: pointer; }

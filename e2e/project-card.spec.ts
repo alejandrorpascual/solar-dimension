@@ -169,3 +169,60 @@ test('renaming an existing project with Enter keeps the sheet open', async ({ pa
   await expect(title).toBeFocused()
   await expectSheet(page, testInfo, 'open')
 })
+
+test("a card's controls scroll under the sheet's header, never over its Close button", async ({ page }, testInfo) => {
+  test.skip(!isPhone(testInfo), 'only the phone shows the cards in a sheet')
+  await page.goto('/')
+  await addProject(page)
+  await addProject(page)
+  await expect(page.getByRole('article')).toHaveCount(3)
+  const sheet = page.getByRole('dialog')
+  const close = sheet.getByRole('button', { name: 'Close' })
+  const more = openProjectMore(page)
+  const closeBox = await close.boundingBox()
+  const moreBox = await more.boundingBox()
+  if (!closeBox || !moreBox) throw new Error('the sheet header or the open card is not on screen')
+  // Scroll the sheet until the ··· button's centre sits level with the Close button's.
+  const lift = moreBox.y + moreBox.height / 2 - (closeBox.y + closeBox.height / 2)
+  await more.evaluate((el, dy) => {
+    const scrolls = (node: Element) => /auto|scroll/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight
+    let scroller = el.parentElement
+    while (scroller && !scrolls(scroller)) scroller = scroller.parentElement
+    if (!scroller) throw new Error('the sheet does not scroll')
+    scroller.scrollBy(0, dy)
+  }, lift)
+  const isOverlapping = async () => {
+    const [a, b] = [await close.boundingBox(), await more.boundingBox()]
+    return !!a && !!b && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+  }
+  await expect.poll(isOverlapping).toBe(true)
+  const isCloseOnTop = () => close.evaluate((el) => {
+    const box = el.getBoundingClientRect()
+    return el.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2))
+  })
+  expect(await isCloseOnTop()).toBe(true)
+  await close.click()
+  await expect(sheet).toBeHidden()
+})
+
+test("another project's card still shows its focus ring around the whole card", async ({ page }) => {
+  await page.goto('/')
+  await addProject(page)
+  const name = page.getByRole('button', { name: 'Home', exact: true })
+  // Out and back in with the keyboard, so the browser treats the focus as keyboard focus and draws the ring.
+  await name.focus()
+  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press('Tab')
+  await expect(name).toBeFocused()
+  const ring = await name.evaluate((el) => {
+    const card = el.closest('article')
+    if (!card) throw new Error('the name button is not on a card')
+    const layer = getComputedStyle(el, '::after')
+    return {
+      outline: `${layer.outlineStyle} ${layer.outlineWidth}`,
+      isAsWideAsCard: Math.abs(parseFloat(layer.width) - card.clientWidth) < 1,
+      isAsTallAsCard: Math.abs(parseFloat(layer.height) - card.clientHeight) < 1,
+    }
+  })
+  expect(ring).toEqual({ outline: 'solid 2px', isAsWideAsCard: true, isAsTallAsCard: true })
+})
