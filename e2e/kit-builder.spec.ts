@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage } from './header'
-import { hideProjects, openProjectCard, renameOpenProject, showProjects } from './projects'
+import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showProjects, startNewProject, startRename } from './projects'
 
 test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
   await page.goto('/')
@@ -123,14 +123,12 @@ test('a condo can type 32 cameras, and the AC list is grouped by compressor type
 
 test('a new project can be created, renamed and deleted', async ({ page }) => {
   await page.goto('/')
-  await showProjects(page)
-  await page.getByRole('button', { name: '+ New project' }).click()
   // The new project lands on top, already renaming with its name selected.
-  const name = page.getByLabel('Project name')
+  const name = await startNewProject(page)
   await expect(name).toBeFocused()
   await expect(name).toHaveValue('Project 2')
   await name.fill('Office')
-  await name.press('Enter')
+  await acceptNewProjectName(page)
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Office')
   await openProjectCard(page).getByRole('button', { name: 'More actions for Office' }).click()
   await page.getByRole('menuitem', { name: 'Duplicate' }).click()
@@ -143,10 +141,8 @@ test('a new project can be created, renamed and deleted', async ({ page }) => {
 
 test('project names can be erased with backspace and replaced', async ({ page }) => {
   await page.goto('/')
-  await showProjects(page)
   const title = openProjectCard(page).getByRole('heading')
-  const name = page.getByLabel('Project name')
-  await title.getByRole('button').click()
+  const name = await startRename(page)
   await name.fill('Casa')
   await name.press('End')
   for (let i = 0; i < 4; i++) await name.press('Backspace')
@@ -171,22 +167,37 @@ test('project names can be erased with backspace and replaced', async ({ page })
 /** Adds a second project and keeps its default name, so Home is no longer the open one. */
 async function openSecondProject(page: Page): Promise<void> {
   await page.goto('/')
-  await showProjects(page)
-  await page.getByRole('button', { name: '+ New project' }).click()
-  await page.getByLabel('Project name').press('Enter')
+  await startNewProject(page)
+  await acceptNewProjectName(page)
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
 }
 
-/** A real pointer click at a box's centre, wherever it lands, the way a person clicks blank space on a card. */
-async function clickAt(page: Page, box: { x: number; y: number; width: number; height: number } | null, dx = 0.5, dy = 0.5): Promise<void> {
+interface Box { x: number; y: number; width: number; height: number }
+
+/** Where an element is once it is scrolled into view and has stopped moving: the phone's sheet slides in. */
+async function settledBox(target: Locator): Promise<Box> {
+  await target.scrollIntoViewIfNeeded()
+  const box = await target.boundingBox()
   if (!box) throw new Error('nothing to click: the element is not on screen')
-  await page.mouse.click(box.x + box.width * dx, box.y + box.height * dy)
+  return box
+}
+
+/**
+ * A real pointer click at a point, wherever it lands, the way a person clicks blank space on a card. locator.click
+ * cannot do it: it refuses when something else is under the pointer, and here the card's stretched name button is.
+ * The point has to be inside `within` first, or the click would prove nothing.
+ */
+async function clickPointIn(page: Page, within: Locator, point: { x: number; y: number }): Promise<void> {
+  const isInside = await within.evaluate((el, p) => el.contains(document.elementFromPoint(p.x, p.y)), point)
+  expect(isInside, 'the point to click is not on the element it was measured for').toBe(true)
+  await page.mouse.click(point.x, point.y)
 }
 
 test("clicking another project's card away from its name opens that project", async ({ page }, testInfo) => {
   await openSecondProject(page)
   const home = page.getByRole('article', { name: 'Home' })
-  await clickAt(page, await home.locator('dl').boundingBox())
+  const figures = await settledBox(home.locator('dl'))
+  await clickPointIn(page, home, { x: figures.x + figures.width / 2, y: figures.y + figures.height / 2 })
   if (testInfo.project.name === 'phone') {
     await expect(page.getByRole('dialog')).toBeHidden()
     await showProjects(page)
@@ -223,10 +234,8 @@ test('with quick edit open, a click between stepper rows opens nothing', async (
 
 test('project cards show each kit and quick edit a project without opening it', async ({ page }) => {
   await page.goto('/?step=4')
-  await showProjects(page)
-  await page.getByRole('button', { name: '+ New project' }).click()
-  await expect(page.getByLabel('Project name')).toHaveValue('Project 2')
-  await page.getByLabel('Project name').press('Enter')
+  await expect(await startNewProject(page)).toHaveValue('Project 2')
+  await acceptNewProjectName(page)
 
   const home = page.getByRole('article', { name: 'Home' })
   await expect(home).toContainText('48 V · 10 h · 6 appliances')

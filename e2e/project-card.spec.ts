@@ -124,3 +124,48 @@ test('Escape puts back the name the rename started with, though every keystroke 
   await showProjects(page)
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Home')
 })
+
+test("Enter in a new project's name field closes the phone's sheet", async ({ page }, testInfo) => {
+  await page.goto('/')
+  const field = await startNewProject(page)
+  await expectSheet(page, testInfo, 'open')
+  await field.fill('Cabin')
+  await field.press('Enter')
+  await expectSheet(page, testInfo, 'closed')
+  await showProjects(page)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Cabin')
+})
+
+test("leaving a new project's name field keeps the sheet open", async ({ page }, testInfo) => {
+  await page.goto('/')
+  const field = await startNewProject(page)
+  await field.fill('Cabin')
+  await field.blur()
+  await expect(field).toBeHidden()
+  await expectSheet(page, testInfo, 'open')
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Cabin')
+})
+
+test("Escape in a new project's name field keeps the sheet open, and so does renaming it afterwards", async ({ page }, testInfo) => {
+  await page.goto('/')
+  await addProject(page)
+  await expectSheet(page, testInfo, 'open')
+  await expect(openProjectTitle(page)).toHaveText('Project 2')
+  // The project is no longer new: Enter now only closes the field.
+  const field = await startRename(page)
+  await field.fill('Cabin')
+  await field.press('Enter')
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Cabin')
+  await expectSheet(page, testInfo, 'open')
+})
+
+test('renaming an existing project with Enter keeps the sheet open', async ({ page }, testInfo) => {
+  await page.goto('/')
+  const field = await startRename(page)
+  await field.fill('Casa')
+  await field.press('Enter')
+  const title = openProjectTitle(page)
+  await expect(title).toHaveText('Casa')
+  await expect(title).toBeFocused()
+  await expectSheet(page, testInfo, 'open')
+})

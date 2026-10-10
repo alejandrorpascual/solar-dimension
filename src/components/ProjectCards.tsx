@@ -18,7 +18,11 @@ import { QtyStepper } from './QtyStepper'
 interface Props {
   store: Store
   commit: (s: Store) => void
-  /** Called after a project is opened or created, so a sheet can close. */
+  /**
+   * Called when the person is done with the cards, so the phone's sheet can close: after another project's card opens
+   * it, and after Enter in the name field of a project that was just created. Leaving that field or pressing Escape
+   * in it does not call this, and neither does renaming an existing project. The desktop rail passes nothing.
+   */
   onPicked?: () => void
 }
 
@@ -149,12 +153,13 @@ export function ProjectCards({ store, commit, onPicked }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [renaming, setRenaming] = useState<Renaming | null>(null)
   const { titleRef, focusTitle } = useTitleFocus()
-  const startRename = (project: Project) => setRenaming({ id: project.id, original: project.name })
-  // A new project opens on top already renaming; the sheet stays open until the name is saved.
+  // A new project opens on top already renaming, and the sheet stays open so its name field shows. Enter in that field
+  // calls onPicked, which closes the sheet on phones; leaving the field or pressing Escape keeps the sheet open.
   const createProject = () => {
     const next = addProject(store)
+    const created = currentProject(next)
     commit(next)
-    startRename(currentProject(next))
+    setRenaming({ id: created.id, original: created.name, isNew: true })
   }
   // Called from handlers of the latest render only, never from a cleanup: `commit` replaces the whole store, so an
   // older `store` here would undo whatever changed since. A blank name is stored as the fallback straight away.
@@ -164,16 +169,17 @@ export function ProjectCards({ store, commit, onPicked }: Props) {
   }
   const closeRename = (via: RenameClose) => {
     if (!renaming) return
-    const outcome = renameOutcome(via)
+    const outcome = renameOutcome(renaming, via)
     if (outcome.shouldRestore) rename(renaming.id, renaming.original)
     setRenaming(null)
     if (outcome.shouldFocusTitle) focusTitle()
+    if (outcome.shouldPick) onPicked?.()
   }
   const currentActions = (project: Project): CurrentActions => ({
     isRenaming: renaming?.id === project.id,
     titleRef,
     canDelete: store.projects.length > 1,
-    onRename: () => startRename(project),
+    onRename: () => setRenaming({ id: project.id, original: project.name, isNew: false }),
     onRenameType: (raw) => rename(project.id, raw),
     onRenameClose: closeRename,
     // The ··· button that had focus belongs to the card that was open; the project now open gets it instead.

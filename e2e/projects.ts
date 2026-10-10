@@ -70,6 +70,17 @@ export async function startNewProject(page: Page): Promise<Locator> {
   return field
 }
 
+/**
+ * Presses Enter in the name field of a project that was just created, then brings the cards back. That Enter closes
+ * the phone's sheet, and the sheet has to be gone before it can be opened again: while it animates out it still
+ * counts as open.
+ */
+export async function acceptNewProjectName(page: Page): Promise<void> {
+  await projectNameField(page).press('Enter')
+  await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  await showProjects(page)
+}
+
 /** Starts renaming the open project from its card's title and returns the name field. */
 export async function startRename(page: Page): Promise<Locator> {
   await showProjects(page)
@@ -78,10 +89,7 @@ export async function startRename(page: Page): Promise<Locator> {
   return field
 }
 
-/**
- * Renames the open project from its card's title, the way a person would. Enter on a project that was just created
- * also closes the phone's sheet, so call showProjects again before reading its card.
- */
+/** Renames the open project from its card's title, the way a person would. For a project that was just created, see acceptNewProjectName. */
 export async function renameOpenProject(page: Page, name: string): Promise<void> {
   const field = await startRename(page)
   await field.fill(name)
