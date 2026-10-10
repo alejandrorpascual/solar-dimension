@@ -5,6 +5,8 @@ import { SOLAR } from './solar'
 
 export const HOURS_MIN = 1
 export const HOURS_MAX = 72
+/** The longest name a project stores. */
+export const PROJECT_NAME_MAX = 60
 
 /** The solar choice from step 3. `panels: null` means the recommended count; the whole object is null for a battery-only kit. */
 export const SolarSchema = z.object({
@@ -45,7 +47,7 @@ export const CustomLoadSchema = z.object({
 
 export const ProjectSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1).max(60),
+  name: z.string().min(1).max(PROJECT_NAME_MAX),
   qty: z.record(z.string(), z.number().int().min(0).max(SIZING.MAX_QTY)),
   custom: z.array(CustomLoadSchema),
   hours: z.number().int().min(HOURS_MIN).max(HOURS_MAX),

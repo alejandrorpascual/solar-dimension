@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { accountAction } from './header'
-import { hideProjects, showProjects } from './projects'
+import { acceptNewProjectName, hideProjects, showProjects, startNewProject } from './projects'
 
 test('sign up, keep a project across reload and sign-out/sign-in', async ({ page }) => {
   const email = `e2e-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
@@ -11,16 +11,14 @@ test('sign up, keep a project across reload and sign-out/sign-in', async ({ page
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
-  await showProjects(page)
-  await page.getByRole('button', { name: '+ New project' }).click()
-  await hideProjects(page)
-  const name = page.getByLabel('Project name')
+  const name = await startNewProject(page)
   await name.fill('Beach house')
-  await name.blur()
-  await expect(name).toHaveValue('Beach house')
+  await acceptNewProjectName(page)
+  await expect(page.getByRole('button', { name: 'Beach house', exact: true })).toBeVisible()
+  await hideProjects(page)
   await page.reload()
   await showProjects(page)
-  await expect(page.getByRole('button', { name: 'Beach house' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Beach house', exact: true })).toBeVisible()
   await hideProjects(page)
   await page.goto('/login')
   await expect(page).not.toHaveURL(/\/login/)
@@ -35,7 +33,7 @@ test('sign up, keep a project across reload and sign-out/sign-in', async ({ page
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
   await showProjects(page)
-  await expect(page.getByRole('button', { name: 'Beach house' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Beach house', exact: true })).toBeVisible()
 })
 
 test('the account menu holds off sign-out and Google linking while a project save is in flight', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { SIZING } from './catalog'
-import { DEFAULT_ELECTRICAL, HOURS_MAX, HOURS_MIN, type CustomLoad, type Electrical, type Project, type Solar, type Store } from './schema'
+import { DEFAULT_ELECTRICAL, HOURS_MAX, HOURS_MIN, PROJECT_NAME_MAX, type CustomLoad, type Electrical, type Project, type Solar, type Store } from './schema'
 import { SOLAR } from './solar'
 
 export const DEFAULT_QTY: Record<string, number> = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
@@ -10,6 +10,8 @@ const DUTY_FLOOR = 0.01
 const ID_PREFIX = 'p'
 const SEED_ID = `${ID_PREFIX}1`
 const SEED_NAME = 'Home'
+/** Ends a duplicate's name, so its card can be told apart from the original's. */
+const COPY_SUFFIX = ' copy'
 
 function nextId(projects: readonly Project[]): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
@@ -51,10 +53,18 @@ export function addProject(store: Store, name?: string): Store {
   return { ...store, projects: [...store.projects, p], currentId: p.id }
 }
 
+/**
+ * A duplicate's name: the original plus COPY_SUFFIX. A long original is shortened, never the suffix, so the name stays
+ * within PROJECT_NAME_MAX; a longer one would make the whole saved store fail its schema on the next load.
+ */
+function copyName(name: string): string {
+  return `${name.slice(0, PROJECT_NAME_MAX - COPY_SUFFIX.length).trimEnd()}${COPY_SUFFIX}`
+}
+
 export function duplicateProject(store: Store): Store {
   const src = currentProject(store)
   const copy: Project = {
-    ...src, id: nextId(store.projects), name: `${src.name} copy`, qty: { ...src.qty }, custom: [...src.custom],
+    ...src, id: nextId(store.projects), name: copyName(src.name), qty: { ...src.qty }, custom: [...src.custom],
     dutyOverrides: { ...src.dutyOverrides }, electrical: { ...src.electrical }, updatedAt: now(),
   }
   return { ...store, projects: [...store.projects, copy], currentId: copy.id }
@@ -65,6 +75,13 @@ export function deleteProject(store: Store): Store {
   const id = currentProject(store).id
   const rest = store.projects.filter((p) => p.id !== id)
   return { ...store, projects: rest, currentId: rest[0]!.id }
+}
+
+/** Rename one project: trimmed, cut to PROJECT_NAME_MAX, the fallback when blank. No change returns the same store. */
+export function renameProject(store: Store, id: string, raw: string, fallback: string): Store {
+  const name = (raw.trim() || fallback).slice(0, PROJECT_NAME_MAX)
+  const p = store.projects.find((x) => x.id === id)
+  return !p || p.name === name ? store : patchProject(store, id, { name })
 }
 
 export function selectProject(store: Store, id: string): Store {

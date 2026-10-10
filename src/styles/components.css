@@ -1,26 +1,43 @@
 /* Header and stepper */
-/* Phone and tablet: brand, language and account share the top row; the stepper gets the second to itself. */
-.header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'brand lang account' 'stepper stepper stepper'; align-items: center; column-gap: 8px; row-gap: 12px; }
+/* Brand, language and account share the top row and the stepper gets a row of its own under them: on phones, and on
+   every wider screen whose header cannot hold all four side by side (the container rule at the end of this block). */
+.header { container-type: inline-size; }
+.header__bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'brand lang account' 'stepper stepper stepper'; align-items: center; column-gap: 8px; row-gap: 12px; }
 .brand { grid-area: brand; font-family: var(--font-display); font-size: 20px; font-weight: 700; }
-.header > .stepper { grid-area: stepper; }
+.header__bar > .stepper { grid-area: stepper; }
 .header__lang { grid-area: lang; justify-self: end; }
 .header__account { grid-area: account; justify-self: end; min-width: 0; }
 .stepper { display: flex; align-items: center; gap: 8px; }
-.stepper__item { display: flex; align-items: center; gap: 8px; }
 .stepper__line { width: 16px; height: 2px; background: var(--line-strong); }
-.dot { width: 28px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 2px solid var(--line-strong); color: var(--muted); background: var(--surface); }
+.stepper__line--on { background: var(--ink); }
+.stepper__btn { flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px; min-width: var(--tap); min-height: var(--tap); padding: 0; border: 0; border-radius: 999px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.stepper__btn:not(:disabled):hover .dot:not(.dot--cur):not(.dot--done) { border-color: var(--accent); color: var(--accent); }
+.stepper__btn:not(:disabled):hover .step-label { color: var(--accent); }
+.stepper__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.stepper__btn:disabled { cursor: not-allowed; }
+.stepper__btn[aria-current='step'] { cursor: default; }
+.dot { flex-shrink: 0; width: 28px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 2px solid var(--line-strong); color: var(--muted); background: var(--surface); }
 .dot--cur { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
 .dot--done { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.dot--locked { border-style: dashed; color: var(--faint); }
 .step-label { display: none; font-size: 14px; font-weight: 600; color: var(--muted); }
 .step-label--on { color: var(--ink); }
 @media (min-width: 1024px) {
-  .header { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'brand stepper lang account'; column-gap: 24px; }
-  .header > .stepper { justify-self: center; }
+  .header__bar { column-gap: 24px; }
+  .header__bar > .stepper { justify-self: center; max-width: 100%; }
   .stepper { gap: 12px; }
-  .stepper__item { gap: 10px; }
-  .stepper__line { width: 56px; }
+  /* The connectors give way first: they shorten from 56px to 16px before a labelled step has to leave the stepper's box. */
+  .stepper__line { flex: 0 1 auto; width: 56px; min-width: 16px; }
   .dot { width: 32px; height: 32px; font-size: 14px; }
-  .step-label { display: block; }
+  .step-label { display: block; white-space: nowrap; }
+}
+/* One row only where the header holds all four side by side. Measured at its widest, in Spanish and signed out:
+   brand 158.4 + stepper 646.3 with its connectors at their shortest + language 81.3 + "Iniciar sesión" 128.7 + three
+   24px gaps = 1086.7px (English needs 982.3px); 1100px leaves a little slack. It asks the header, not the viewport,
+   because the header's width also depends on the page's padding and on the rail: it is 1100px wide at a 1228px
+   viewport, drops to 772px when the 380px rail appears at 1280px, and is 1100px again at 1608px. */
+@container (min-width: 1100px) {
+  .header__bar { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'brand stepper lang account'; }
 }
 
 /* Chips, buttons, inputs */
@@ -52,14 +69,6 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
   .hs { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 }
 
-/* Project bar */
-.project-bar { display: flex; flex-direction: column; gap: 8px; }
-.project-bar__tools { display: flex; gap: 8px; align-items: center; }
-@media (min-width: 1024px) {
-  .project-bar { flex-direction: row; align-items: center; gap: 12px; }
-  .project-bar__chips { flex: 1 1 0; min-width: 0; }
-  .project-bar__name { width: 220px; }
-}
 
 /* Stage and footer */
 .stage { display: flex; flex-direction: column; gap: 14px; }
@@ -90,12 +99,22 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 .grid__group:first-child { padding-top: 0; }
 .grid__group-title { margin: 0; font-size: 15px; }
 .grid__group-help { margin: 0; font-size: 13px; }
-.card { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 72px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface); border: 1.5px solid var(--line); }
+.card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; min-height: 72px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface); border: 1.5px solid var(--line); }
 .card--on { border-color: var(--accent); background: var(--accent-tint); }
 .card__body { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .card__name { font-size: 15px; font-weight: 700; line-height: 1.2; }
 .card__spec { font-size: 12px; color: var(--muted); }
 .card__spec--warn { color: var(--warn-ink); }
+.card__duty-hint { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Duty on an added card: the picker or burst minutes, a bar of the hour, and the average draw. In the card's row layout
+   it takes a line of its own under the name and the quantity buttons, so the picker has the card's width to fit in. */
+.duty { order: 1; flex: 0 0 100%; display: flex; flex-direction: column; gap: 6px; }
+.duty__burst { color: var(--ink); font-size: 13px; }
+.duty__bar { position: relative; height: 6px; border-radius: 999px; background: var(--accent-ring); }
+.duty__fill { display: block; min-width: 6px; max-width: 100%; height: 100%; border-radius: 999px; background: var(--accent); }
+.duty__typical { position: absolute; top: -2px; width: 2px; height: 10px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
+.duty__avg { font-size: 11px; color: var(--muted); }
 .add { font-size: 13px; font-weight: 600; min-height: 40px; padding: 0 14px; border-radius: var(--radius-sm); border: 1px solid var(--line-strong); background: var(--surface); flex-shrink: 0; }
 .add:hover { border-color: var(--accent); color: var(--accent); }
 .stepper-qty { display: flex; align-items: center; gap: 6px; }
@@ -123,7 +142,10 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
   .toolbar { flex-direction: row; justify-content: space-between; align-items: flex-end; gap: 32px; }
   .toolbar__search { width: 260px; }
   .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-  .card { flex-direction: column; align-items: stretch; min-height: 104px; padding: 14px 16px; border-radius: 16px; }
+  .card { flex-direction: column; flex-wrap: nowrap; align-items: stretch; min-height: 104px; padding: 14px 16px; border-radius: 16px; }
+  /* Stacked, the meter follows the specs; a card stretched to its row's height puts the spare height above its buttons. */
+  .card__body { flex: 0 0 auto; }
+  .duty { order: 0; flex: 0 0 auto; margin-bottom: auto; }
   .card--on { box-shadow: 0 0 0 3px var(--accent-ring); }
   .card .x { position: absolute; }
   .card { position: relative; }
@@ -340,7 +362,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .btn--google svg { flex-shrink: 0; }
 .or { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: var(--muted); font-size: 13px; }
 .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
-/* Header menus (language, account): a compact chip that opens a small dropdown. */
+/* Dropdown menus. In the header (language, account) the trigger is a compact chip, .hmenu__trigger. A project card's
+   ··· menu (ProjectMenu) opens the same dropdown from its own icon button and adds a separator and a danger item. */
 .hmenu__trigger { gap: 6px; padding: 0 10px 0 12px; cursor: pointer; outline: none; transition: border-color 120ms, box-shadow 120ms, color 120ms; }
 .hmenu__trigger[data-focus-visible], .hmenu__trigger[data-pressed], .hmenu__trigger[aria-expanded='true'] { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
 .hmenu__trigger--avatar { padding: 0 8px 0 4px; }
@@ -361,5 +384,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .hmenu__item[data-disabled] { opacity: 0.5; cursor: default; }
 .hmenu__item[data-selected] { color: var(--accent); }
 .hmenu__label { flex: 1; min-width: 0; }
+.hmenu__sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.hmenu__item--danger { color: var(--error); }
+.hmenu__item--danger[data-focused], .hmenu__item--danger[data-hovered] { background: var(--error-tint); color: var(--error); }
 .hmenu__check { flex-shrink: 0; }
 @media (prefers-reduced-motion: reduce) { .hmenu__pop[data-entering], .hmenu__pop[data-exiting] { animation: none; } .hmenu__chev { transition: none; } }

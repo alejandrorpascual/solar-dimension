@@ -1,5 +1,6 @@
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
+import { dutyPct } from '../lib/load-kinds'
 import { DUTY_PRESETS } from '../lib/schema'
 import type { SelectedItem } from '../lib/sizing'
 
@@ -11,31 +12,31 @@ interface Props {
   onDuty: (duty: number | null) => void
 }
 
-const pct = (duty: number): number => Math.round(duty * 100)
-
 /** The catalog duty plus the presets, one per percent, ascending. */
 export function dutyOptions(item: SelectedItem): number[] {
   const seen = new Set<number>()
   return [item.duty, ...DUTY_PRESETS]
-    .filter((d) => (seen.has(pct(d)) ? false : (seen.add(pct(d)), true)))
+    .filter((d) => (seen.has(dutyPct(d)) ? false : (seen.add(dutyPct(d)), true)))
     .sort((a, b) => a - b)
 }
 
 /**
- * How much of each hour a cycling appliance runs, as a native select: a short list with nothing to compare, inside a
- * panel that may itself sit in a sheet. Choosing the catalog value is the reset, so there is no extra button.
+ * How much of each hour a cycling appliance runs, as a native select: a short list with nothing to compare. It sits
+ * on an appliance card in step 1 and in the kit's quick-edit panel; both can be narrower than its longest option, so
+ * the `.qedit__duty` rules let the label wrap and cap the select. Choosing the catalog value is the reset, so there is
+ * no extra button.
  */
 export function DutyControl({ item, name, onDuty }: Props) {
   const { t } = useLocale()
   const options = dutyOptions(item)
-  const current = options.find((d) => pct(d) === pct(item.effectiveDuty)) ?? item.effectiveDuty
+  const current = options.find((d) => dutyPct(d) === dutyPct(item.effectiveDuty)) ?? item.effectiveDuty
   const label = (d: number): string => {
-    if (pct(d) === pct(item.duty)) return tr(t, 'dutyTypical', { pct: pct(d) })
-    return d >= 1 ? t.ui.dutyNonstop : tr(t, 'dutyOption', { pct: pct(d) })
+    if (dutyPct(d) === dutyPct(item.duty)) return tr(t, 'dutyTypical', { pct: dutyPct(d) })
+    return d >= 1 ? t.ui.dutyNonstop : tr(t, 'dutyOption', { pct: dutyPct(d) })
   }
   const choose = (value: string) => {
     const d = Number(value)
-    onDuty(pct(d) === pct(item.duty) ? null : d)
+    onDuty(dutyPct(d) === dutyPct(item.duty) ? null : d)
   }
   return (
     <span className={`qedit__duty${item.overridden ? ' qedit__duty--on' : ''}`}>

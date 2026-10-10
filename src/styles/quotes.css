@@ -35,7 +35,9 @@
 @media (max-width: 639px) {
   .qcard { flex-wrap: wrap; }
   .qcard__actions { width: 100%; }
-  .qcard__actions > .qbtn { flex: 1 1 0; }
+  /* A label wider than the card ("Inicia sesión para comparar cotizaciones" on a 320 px phone) takes a second line:
+     kept on one, the button sticks out of the card and the page scrolls sideways. */
+  .qcard__actions > .qbtn { flex: 1 1 0; padding-block: 6px; white-space: normal; text-align: center; }
 }
 
 /* Hand-off dialog and must-haves sheet */
