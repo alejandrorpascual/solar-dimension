@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ProductInputSchema, parseProducts, productKey } from './product-schema'
+import { ProductInputSchema, brandKey, parseProducts, productKey } from './product-schema'
 import { battery, inverter, stated } from './product-fixtures'
 
 describe('ProductInputSchema', () => {
@@ -28,25 +28,98 @@ describe('ProductInputSchema', () => {
     expect(ProductInputSchema.safeParse(inverter({ continuousW: stated(6_000_000, '6000kW') })).success).toBe(false)
   })
 
-  test('refuses a model with no letters or digits', () => {
-    expect(ProductInputSchema.safeParse({ ...inverter(), model: '—' }).success).toBe(false)
+  test.each(['brand', 'model'] as const)('refuses a %s with no letters or digits', (field) => {
+    const result = ProductInputSchema.safeParse({ ...inverter(), [field]: '—' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues.map((i) => i.path.join('.'))).toEqual([field])
   })
 })
 
 describe('productKey', () => {
-  test('one maker whatever the brand spelling', () => {
-    expect(productKey({ kind: 'inverter', brand: 'EG4', model: '6000XP' }))
-      .toBe(productKey({ kind: 'inverter', brand: 'EG4 Electronics', model: '6000XP' }))
+  const key = (brand: string, model = '6000XP', kind: 'inverter' | 'battery' = 'inverter') => productKey({ kind, brand, model })
+
+  test.each([
+    ['EG4', 'EG4 Electronics'],
+    ['Fox ESS', 'FoxESS'],
+    ['Sol-Ark', 'Sol Ark'],
+    ['Sol Ark', 'SolArk'],
+    ['Big Battery', 'BigBattery'],
+    ['Victron', 'Victron Energy'],
+    ['MPP Solar', 'MPPSolar'],
+    ['PYTES Energy', 'Pytes'],
+    ['LG', 'LG Energy Solution'],
+    ['Énergie X', 'Energie-X'],
+    ['Discover Energy Systems', 'Discover'],
+    ['Battle Born Batteries', 'Battle Born'],
+  ])('%s and %s are one maker', (a, b) => {
+    expect(key(a)).toBe(key(b))
   })
 
-  test('ignores case, spaces, punctuation, accents and a repeated brand in the model', () => {
-    expect(productKey({ kind: 'inverter', brand: 'EG4', model: '18kPV-12LV' })).toBe('inverter:eg4:18kpv12lv')
-    expect(productKey({ kind: 'battery', brand: 'Pytes', model: 'Pytes V5' })).toBe('battery:pytes:v5')
-    expect(productKey({ kind: 'battery', brand: 'Batería Ñ', model: 'Módulo 5' })).toBe('battery:bateria:modulo5')
+  test.each([
+    ['Power Queen', 'Power Sonic'],
+    ['Sol-Ark', 'Solis'],
+    ['Fox ESS', 'Fox'],
+  ])('%s and %s are two makers, even with the same model', (a, b) => {
+    expect(key(a, '12V 100Ah', 'battery')).not.toBe(key(b, '12V 100Ah', 'battery'))
+  })
+
+  test.each([
+    ['inverter', 'EG4 Electronics', '6000XP', 'inverter:eg4:6000xp'],
+    ['battery', 'Pytes', 'V5', 'battery:pytes:v5'],
+    ['inverter', 'E2E Power', 'X123', 'inverter:e2e:x123'],
+    ['inverter', 'EG4', '18kPV-12LV', 'inverter:eg4:18kpv12lv'],
+    ['battery', 'Big Battery', '48V KONG', 'battery:big:48vkong'],
+    ['inverter', 'SMA Solar Technology', 'Sunny Island', 'inverter:sma:sunnyisland'],
+    ['battery', 'LG Energy Solution', 'RESU10H', 'battery:lg:resu10h'],
+    ['battery', 'Batería Ñ', 'Módulo 5', 'battery:baterian:modulo5'],
+  ] as const)('%s brand %s with model %s gives %s', (kind, brand, model, expected) => {
+    expect(key(brand, model, kind)).toBe(expected)
+  })
+
+  test.each([
+    ['Fox ESS', 'FoxESS H1-5.0', 'FoxESS', 'H1-5.0'],
+    ['Big Battery', 'BigBattery 48V KONG', 'BigBattery', '48V KONG'],
+    ['EG4 Electronics', 'EG4 6000XP', 'EG4', '6000XP'],
+    ['Pytes', 'Pytes V5', 'Pytes', 'V5'],
+    ['Sol-Ark', 'Sol Ark 15K', 'SolArk', '15K'],
+  ])('a repeated brand at the start of the model is dropped: %s + %s is %s + %s', (brandA, modelA, brandB, modelB) => {
+    expect(key(brandA, modelA)).toBe(key(brandB, modelB))
+  })
+
+  test('the foxess model keeps its letters once the brand is removed', () => {
+    expect(key('Fox ESS', 'FoxESS H1-5.0')).toBe('inverter:foxess:h150')
+  })
+
+  test('a model that is only the brand is kept whole', () => {
+    expect(key('Pytes', 'Pytes')).toBe('inverter:pytes:pytes')
+  })
+
+  test('a brand that is only a generic word stays as it is', () => {
+    expect(key('Power')).toBe('inverter:power:6000xp')
+    expect(key('Energy Power')).toBe('inverter:energy:6000xp')
+  })
+
+  test('a generic word is never stripped down to fewer than two characters', () => {
+    expect(key('A Power')).toBe('inverter:apower:6000xp')
+    expect(key('AB Power')).toBe('inverter:ab:6000xp')
   })
 
   test('the kind is part of the key', () => {
-    expect(productKey({ kind: 'battery', brand: 'EG4', model: '6000XP' })).not.toBe(productKey({ kind: 'inverter', brand: 'EG4', model: '6000XP' }))
+    expect(key('EG4', '6000XP', 'battery')).not.toBe(key('EG4', '6000XP', 'inverter'))
+  })
+})
+
+describe('brandKey', () => {
+  test.each([
+    ['EG4 Electronics', 'eg4'],
+    ['Fox ESS', 'foxess'],
+    ['Big Battery', 'big'],
+    ['LG Energy Solution', 'lg'],
+    ['Power', 'power'],
+    ['Sungrow Power Supply', 'sungrowpowersupply'],
+    ['—', ''],
+  ])('%s gives %s', (brand, expected) => {
+    expect(brandKey(brand)).toBe(expected)
   })
 })
 

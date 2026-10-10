@@ -102,6 +102,7 @@ export const ProductInputSchema = z
     z.object({ kind: z.literal('inverter'), ...common, specs: InverterSpecsSchema }).strict(),
     z.object({ kind: z.literal('battery'), ...common, specs: BatterySpecsSchema }).strict(),
   ])
+  .refine((p) => normalize(p.brand) !== '', { path: ['brand'], message: 'the brand needs letters or digits' })
   .refine((p) => normalize(p.model) !== '', { path: ['model'], message: 'the model needs letters or digits' })
 
 /** A value a later write read differently from the stored one, kept for the admin to settle. */
@@ -122,15 +123,38 @@ function normalize(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
+/** Words that trail a maker's legal or marketing name without telling makers apart ("Victron Energy" is Victron). */
+const GENERIC_BRAND_WORDS = [
+  'electronics', 'electric', 'technologies', 'technology', 'batteries', 'battery', 'solutions', 'solution', 'systems', 'storage', 'lithium', 'energy', 'solar', 'power',
+] as const
+const MIN_BRAND_KEY = 2
+
 /**
- * The product's identity: kind, the brand's first word ("EG4" and "EG4 Electronics" are one maker) and the model
- * without a repeated brand ("Pytes V5" is "V5"). The skill also reuses a stored product's spelling; this catches the rest.
+ * The maker as the key knows it: the whole name without spaces or punctuation, minus trailing generic words, so
+ * "EG4" and "EG4 Electronics" are one maker, "Fox ESS" and "FoxESS" too, but "Power Queen" and "Power Sonic" are not.
+ * When a real maker ends up split in two or merged with another, the word list above is the place to adjust.
+ */
+export function brandKey(brand: string): string {
+  const withoutGeneric = (name: string): string => {
+    const word = GENERIC_BRAND_WORDS.find((w) => name.endsWith(w) && name.length - w.length >= MIN_BRAND_KEY)
+    return word ? withoutGeneric(name.slice(0, -word.length)) : name
+  }
+  return withoutGeneric(normalize(brand))
+}
+
+/** The model without the maker's name repeated at its start ("Pytes V5" is "V5"); the name is kept if nothing would be left. */
+function modelKey(brand: string, model: string): string {
+  const repeated = [normalize(brand), brandKey(brand)].find((name) => model.startsWith(name) && model.length > name.length)
+  return repeated ? model.slice(repeated.length) : model
+}
+
+/**
+ * The product's identity: kind, the maker (brandKey) and the model without a repeated maker name. It is stored as the
+ * product's unique key, so changing the rule later means rewriting the stored keys. The skill also reuses a stored
+ * product's spelling; this catches the rest.
  */
 export function productKey(p: Pick<ProductInput, 'kind' | 'brand' | 'model'>): string {
-  const brand = normalize(p.brand.trim().split(/\s+/)[0] ?? '')
-  const model = normalize(p.model)
-  const withoutBrand = brand && model.startsWith(brand) && model.length > brand.length ? model.slice(brand.length) : model
-  return `${p.kind}:${brand}:${withoutBrand}`
+  return `${p.kind}:${brandKey(p.brand)}:${modelKey(p.brand, normalize(p.model))}`
 }
 
 const MAX_BATCH = 50

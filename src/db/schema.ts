@@ -86,7 +86,7 @@ export const products = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     kind: text('kind').notNull(),
-    /** productKey(): kind, the brand's first word and the model, normalised. */
+    /** productKey(): kind, the maker (the brand's whole name, minus trailing generic words) and the model, normalised. */
     key: text('key').notNull().unique(),
     brand: text('brand').notNull(),
     model: text('model').notNull(),
