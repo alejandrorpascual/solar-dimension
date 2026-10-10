@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { ProductInputSchema, brandKey, parseProducts, productKey } from './product-schema'
-import { battery, inverter, stated } from './product-fixtures'
+import { NONE, battery, inverter, stated } from './product-fixtures'
 
 describe('ProductInputSchema', () => {
   test('accepts an inverter and a battery as the datasheet states them', () => {
@@ -8,9 +8,46 @@ describe('ProductInputSchema', () => {
     expect(ProductInputSchema.safeParse(battery()).success).toBe(true)
   })
 
-  test('a stated value needs its source and its words as written', () => {
-    const p = inverter({ continuousW: { value: 6000, source: null, asWritten: null } })
-    expect(ProductInputSchema.safeParse(p).success).toBe(false)
+  test.each([
+    ['neither its source nor its words', { value: 6000, source: null, asWritten: null }],
+    ['no source', { value: 6000, source: null, asWritten: 'NOMINAL POWER OUTPUT 6000W' }],
+    ['no words as written', { value: 6000, source: 'https://example.com/sheet.pdf', asWritten: null }],
+  ])('a stated value with %s is refused at the path of that spec', (_, continuousW) => {
+    const result = ProductInputSchema.safeParse(inverter({ continuousW }))
+    expect(result.success).toBe(false)
+    expect(result.error?.issues.map((i) => i.path.join('.'))).toEqual(['specs.continuousW'])
+  })
+
+  test('a spec the datasheet does not give is all null', () => {
+    expect(ProductInputSchema.safeParse(inverter({ continuousW: NONE })).success).toBe(true)
+  })
+
+  test.each([
+    ['missing', undefined],
+    ['null', null],
+    ['not a URL', 'datasheet.pdf'],
+  ])('a datasheet link that is %s is refused at datasheetUrl', (_, datasheetUrl) => {
+    const { datasheetUrl: _omitted, ...withoutSheet } = inverter()
+    const result = ProductInputSchema.safeParse(datasheetUrl === undefined ? withoutSheet : { ...withoutSheet, datasheetUrl })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues.map((i) => i.path.join('.'))).toEqual(['datasheetUrl'])
+  })
+
+  test('accepts a surge level the maker gives only in VA (no watts)', () => {
+    const level = { w: null, seconds: 5, asWritten: '12 kVA for 5 seconds', source: 'https://example.com/sheet.pdf' }
+    expect(ProductInputSchema.safeParse(inverter({ surges: [level] })).success).toBe(true)
+  })
+
+  test('refuses a key it does not know at the top level', () => {
+    const result = ProductInputSchema.safeParse({ ...inverter(), colour: 'red' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues).toMatchObject([{ code: 'unrecognized_keys', keys: ['colour'], path: [] }])
+  })
+
+  test('refuses a key it does not know inside specs', () => {
+    const result = ProductInputSchema.safeParse({ ...inverter(), specs: { ...inverter().specs, wifi: NONE } })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues).toMatchObject([{ code: 'unrecognized_keys', keys: ['wifi'], path: ['specs'] }])
   })
 
   test('sources must be https', () => {
@@ -139,10 +176,26 @@ describe('brandKey', () => {
 })
 
 describe('parseProducts', () => {
-  test('takes one product or an array of up to 50', () => {
+  const models = (count: number) => Array.from({ length: count }, (_, i) => ({ ...inverter(), model: `M${i}` }))
+  const noDatasheet = () => ({ ...inverter(), datasheetUrl: null })
+
+  test('takes one product as well as an array', () => {
     expect(parseProducts(inverter())).toMatchObject({ ok: true, items: [expect.objectContaining({ model: '6000XP' })] })
-    expect(parseProducts([])).toMatchObject({ ok: false })
-    expect(parseProducts(Array.from({ length: 51 }, (_, i) => ({ ...inverter(), model: `M${i}` })))).toMatchObject({ ok: false })
+    expect(parseProducts([inverter(), battery()])).toMatchObject({ ok: true, items: [{ model: '6000XP' }, { model: 'V5' }] })
+  })
+
+  test('accepts a batch of 50', () => {
+    const out = parseProducts(models(50))
+    expect(out.ok && out.items).toHaveLength(50)
+  })
+
+  test.each([
+    ['an empty batch', 0],
+    ['a batch of 51', 51],
+  ])('refuses %s with one error at index -1', (_, size) => {
+    expect(parseProducts(models(size))).toEqual({
+      ok: false, errors: [{ index: -1, issues: [{ path: '', message: 'send 1 to 50 products' }] }],
+    })
   })
 
   test('reports issues per index with a dotted path', () => {
@@ -154,8 +207,28 @@ describe('parseProducts', () => {
     expect(out.errors[0]!.issues[0]!.path).toBe('specs.continuousW')
   })
 
+  test('gives one entry per bad item, all of an item\'s issues in its entry', () => {
+    const twoIssues = { ...noDatasheet(), makerUrl: 'http://example.com' }
+    const out = parseProducts([battery(), noDatasheet(), inverter(), twoIssues])
+    expect(out).toMatchObject({ ok: false, errors: [{ index: 1 }, { index: 3 }] })
+    if (out.ok) return
+    expect(out.errors).toHaveLength(2)
+    expect(out.errors[0]!.issues.map((i) => i.path)).toEqual(['datasheetUrl'])
+    expect(out.errors[1]!.issues.map((i) => i.path).sort()).toEqual(['datasheetUrl', 'makerUrl'])
+  })
+
   test('refuses two items with the same key', () => {
     const out = parseProducts([inverter(), { ...inverter(), brand: 'EG4' }])
     expect(out).toMatchObject({ ok: false, errors: [{ index: 1, issues: [{ path: 'model', message: 'the same product twice in this request' }] }] })
+  })
+
+  test('sees one maker behind two spellings of its name as the same product', () => {
+    const out = parseProducts([{ ...inverter(), brand: 'Fox ESS', model: 'H1-5.0' }, { ...inverter(), brand: 'FoxESS', model: 'FoxESS H1 5.0' }])
+    expect(out).toMatchObject({ ok: false, errors: [{ index: 1 }] })
+  })
+
+  test('keeps two makers apart when their model names are the same', () => {
+    const out = parseProducts([{ ...battery(), brand: 'Power Queen', model: '12V 100Ah' }, { ...battery(), brand: 'Power Sonic', model: '12V 100Ah' }])
+    expect(out.ok).toBe(true)
   })
 })
