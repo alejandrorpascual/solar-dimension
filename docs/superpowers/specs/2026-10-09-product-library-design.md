@@ -45,19 +45,19 @@ This works like `/research-appliance`. It runs on the subscription with Claude C
 4. List the library (`GET /api/catalog/products`) to find duplicates by key.
 5. Dry run: `POST /api/catalog/products?dryRun=true`. The API answers per product with a `status`:
    - `new`;
-   - `updated`, listing the null values it fills (`fills`) and, with `--replace`, the values it overwrites (`replaced`);
-   - `conflicts`, listing the differing values (stored → found);
+   - `updated`, listing the null values it fills (`fills`) and the values it overwrites (`replaced`, each `{ field, stored, found }`): with `--replace` any stated value, and a changed price always;
+   - `conflicts`, listing the differing values (`conflicts`, each `{ field, stored, found }`);
    - `unchanged`.
 
-   An invalid product gets a 422 with its issues.
-6. Show a table: kind, brand and model, status, and each spec's value, `asWritten` and source. Flag products with no datasheet (rejected), a VA-only surge, or no parallel limit.
-7. Wait for an explicit yes, then `POST` and report what was created, filled and left in conflict.
+   A product can carry both: an `updated` product can also list `conflicts`. Two more lists never change the status: `cleared` (fields whose stored conflicts the write settles) and `dropped` (`extraSpecs.<name>` for each new extra line not stored because the product already holds 8). An invalid product gets a 422 with its issues, and a flag other than `dryRun` or `replace`, each `true` or `false`, a 400 that names it.
+6. Show a table: kind, brand and model, status, and each spec's value, `asWritten` and source, then what the write would overwrite (`replaced`, stored → found) and the dropped lines. Flag products with no datasheet (rejected), a VA-only surge, or no parallel limit.
+7. Wait for an explicit yes, then `POST` and report what was created, updated and left in conflict. The answer is `{ created, updated, unchanged, conflicts }`. A product whose change has conflicts is in `conflicts` whatever its status, so a write that fills one field and finds another differing lists it under `updated` and under `conflicts`.
 
-**Merging:** stated values are kept unless `--replace` is given. With it, the admin's values overwrite stated ones and clear their conflicts.
+**Merging:** stated values are kept unless `--replace` is given. With it, the admin's values overwrite stated ones and clear their conflicts. The one exception is the price: it is dated and goes stale, so a different price always replaces the stored one, and the change reports it under `replaced` with both values; a first price is a fill.
 
 **Targets:** the same warning as `/research-appliance`. `--target local` writes to whatever database the local server uses, which is production unless dev has its own Neon branch.
 
-**Endpoint** (`src/routes/api/catalog/products.ts`): `GET` and `POST` (`?dryRun=true`), behind `authorize()` from `catalog-api.ts` with `CATALOG_API_TOKEN`. The Zod schema in `src/lib/product-schema.ts` is shared by this endpoint, the in-app search and the fit rules.
+**Endpoint** (`src/routes/api/catalog/products.ts`): `GET` and `POST` (`?dryRun=true`, `?replace=true`; any other parameter, or a value other than `true` or `false`, is refused with a 400 before the body is read, so a mistyped flag never writes), behind `authorize()` from `catalog-api.ts` with `CATALOG_API_TOKEN`. The Zod schema in `src/lib/product-schema.ts` is shared by this endpoint, the in-app search and the fit rules.
 
 ## Flow
 
@@ -79,6 +79,8 @@ The **fingerprint** is the kit's needs rounded up to steps, so that nearby kits 
 - split-phase, and solar array watts to 1 kW;
 - country.
 
+**`runProductSearch` must not upsert into `products` until writes are guarded against a concurrent writer.** The merge reads the stored rows and writes in a second statement, so two writers to one product can lose a fill or a conflict. Today the only writer is one admin through the skill. The guard is a `version` column checked in the upsert, with a retry.
+
 ## Data model
 
 `products`:
@@ -95,6 +97,7 @@ The **fingerprint** is the kit's needs rounded up to steps, so that nearby kits 
 | `price` | jsonb null | `{ amount, currency, seller, url, seenOn }` |
 | `origin` | text | `search` or `admin` |
 | `conflicts` | jsonb | values a later search read differently, for admin review |
+| `updated_by` | text | who last changed the row (`api-token` for the admin skill); a product sent again unchanged leaves it alone |
 | `created_at`, `updated_at`, `last_seen_at`, `retired_at` | timestamptz | |
 
 `product_searches`: `id`, `user_id`, `project_id`, `fingerprint`, `needs` (jsonb), `country`, `status` (`queued | processing | ready | failed`), `attempts`, `claimed_at`, `model_used`, `usage` (tokens and search calls by action), `product_ids` (jsonb), `error`, `created_at`, `processed_at`. A partial unique index on `fingerprint` where status is `queued` or `processing` stops two searches for the same kit running at once.
@@ -104,7 +107,9 @@ The **fingerprint** is the kit's needs rounded up to steps, so that nearby kits 
 **Merging a product found again:**
 - Stated values are never overwritten. A value that was null is filled in.
 - A different value for a spec that is already stated goes to `conflicts`.
-- `last_seen_at` moves forward.
+- `last_seen_at` moves forward for every product found again, changed or not. An unchanged product changes nothing else (`updated_at` and `updated_by` stay).
+- A price is the exception to the first rule: a different price replaces the stored one without `?replace=true`, and the change reports it as replaced.
+- New extra lines past the cap of 8 are not stored; the change lists them as `dropped`.
 - Admin writes always win.
 
 ## Fit (`src/lib/product-fit.ts`, pure)
