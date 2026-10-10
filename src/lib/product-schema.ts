@@ -7,7 +7,13 @@ export const PRODUCT_LIMITS = {
 const MAX_SURGE_LEVELS = 6
 export const MAX_EXTRA_SPECS = 8
 const MAX_BRANDS = 30
+/** Longest text of each kind, in characters. */
 const MAX_TEXT = 200
+const MAX_BRAND_LENGTH = 60
+const MAX_MODEL_LENGTH = 80
+const MAX_SPEC_NAME_LENGTH = 60
+const MAX_COMPATIBLE_BRAND_LENGTH = 60
+const MAX_SELLER_LENGTH = 80
 
 export const PRODUCT_KINDS = ['inverter', 'battery'] as const
 export type ProductKind = (typeof PRODUCT_KINDS)[number]
@@ -42,12 +48,12 @@ const SurgeLevelSchema = z
     source: httpsUrl,
   })
   .strict()
-const ExtraSpecSchema = z.object({ name: text(60), value: text(), source: httpsUrl }).strict()
+const ExtraSpecSchema = z.object({ name: text(MAX_SPEC_NAME_LENGTH), value: text(), source: httpsUrl }).strict()
 const PriceSchema = z
-  .object({ amount: z.number().positive(), currency: z.string().regex(/^[A-Z]{3}$/), seller: text(80), url: httpsUrl, seenOn: z.iso.date() })
+  .object({ amount: z.number().positive(), currency: z.string().regex(/^[A-Z]{3}$/), seller: text(MAX_SELLER_LENGTH), url: httpsUrl, seenOn: z.iso.date() })
   .strict()
 const comms = z.array(z.enum(BMS_PROTOCOLS)).max(BMS_PROTOCOLS.length)
-const brands = z.array(text(60)).max(MAX_BRANDS)
+const brands = z.array(text(MAX_COMPATIBLE_BRAND_LENGTH)).max(MAX_BRANDS)
 
 export const InverterSpecsSchema = z
   .object({
@@ -88,8 +94,8 @@ export const BatterySpecsSchema = z
   .strict()
 
 const common = {
-  brand: text(60),
-  model: text(80),
+  brand: text(MAX_BRAND_LENGTH),
+  model: text(MAX_MODEL_LENGTH),
   makerUrl: httpsUrl.nullable(),
   /** Required: the library is a reference users can check, so every product links its datasheet. */
   datasheetUrl: httpsUrl,
@@ -120,7 +126,7 @@ export type ProductRecord = ProductInput & { id: string; key: string; origin: Pr
 
 /** Lowercase letters and digits only, accents dropped. */
 function normalize(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
 /** Words that trail a maker's legal or marketing name without telling makers apart ("Victron Energy" is Victron). */
