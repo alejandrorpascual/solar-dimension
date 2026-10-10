@@ -1,10 +1,10 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 import {
-  openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, showProjects, startNewProject, startRename,
+  openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, RETRY_AFTER_MS, showProjects, startNewProject, startRename,
 } from './projects'
 
-/** How long one try at opening the menu waits before trying again: a press that lands before hydration does nothing. */
-const RETRY_AFTER_MS = 1000
+/** Sizes read back from computed styles are rounded; two that differ by less than this are the same size. */
+const SAME_SIZE_WITHIN_PX = 1
 
 const isPhone = (testInfo: TestInfo) => testInfo.project.name === 'phone'
 
@@ -251,16 +251,16 @@ test("another project's card still shows its focus ring around the whole card", 
   await page.keyboard.press('Shift+Tab')
   await page.keyboard.press('Tab')
   await expect(name).toBeFocused()
-  const ring = await name.evaluate((el) => {
+  const ring = await name.evaluate((el, within) => {
     const card = el.closest('article')
     if (!card) throw new Error('the name button is not on a card')
     const layer = getComputedStyle(el, '::after')
     return {
       outline: `${layer.outlineStyle} ${layer.outlineWidth}`,
-      isAsWideAsCard: Math.abs(parseFloat(layer.width) - card.clientWidth) < 1,
-      isAsTallAsCard: Math.abs(parseFloat(layer.height) - card.clientHeight) < 1,
+      isAsWideAsCard: Math.abs(parseFloat(layer.width) - card.clientWidth) < within,
+      isAsTallAsCard: Math.abs(parseFloat(layer.height) - card.clientHeight) < within,
     }
-  })
+  }, SAME_SIZE_WITHIN_PX)
   expect(ring).toEqual({ outline: 'solid 2px', isAsWideAsCard: true, isAsTallAsCard: true })
 })
 

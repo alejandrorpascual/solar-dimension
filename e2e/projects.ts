@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
 /** How long one try of a first interaction waits before trying again: a click that lands before the page hydrates does nothing. */
-const RETRY_AFTER_MS = 1000
+export const RETRY_AFTER_MS = 1000
 
 /** Shows the project cards: always there in the desktop rail, behind the "Projects · N" button on narrower screens. */
 export async function showProjects(page: Page): Promise<void> {
@@ -62,7 +62,7 @@ export async function openProjectAction(page: Page, action: 'Rename' | 'Duplicat
   await menu.getByRole('menuitem', { name: action }).click()
 }
 
-/** Adds a project from the cards and returns its name field: the new project opens on top, already renaming. */
+/** Adds a project from the cards and returns its name field: the new project opens on top, already renaming. Call it with no name field open. */
 export async function startNewProject(page: Page): Promise<Locator> {
   await showProjects(page)
   const field = projectNameField(page)
