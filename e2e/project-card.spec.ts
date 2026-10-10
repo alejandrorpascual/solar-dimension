@@ -1,8 +1,24 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
-import { openProjectCard, openProjectMore, projectNameField, showProjects } from './projects'
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
+import { openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, showProjects, startNewProject } from './projects'
 
 /** How long one try at opening the menu waits before trying again: a press that lands before hydration does nothing. */
 const RETRY_AFTER_MS = 1000
+
+const isPhone = (testInfo: TestInfo) => testInfo.project.name === 'phone'
+
+/** The cards sit in a sheet only on the phone; the desktop rail never has a dialog to close. */
+async function expectSheet(page: Page, testInfo: TestInfo, state: 'open' | 'closed'): Promise<void> {
+  const sheet = page.getByRole('dialog')
+  if (isPhone(testInfo) && state === 'open') await expect(sheet).toBeVisible()
+  else await expect(sheet).toBeHidden()
+}
+
+/** Adds a second project and leaves it open with its default name, the cards still showing. */
+async function addProject(page: Page): Promise<void> {
+  const field = await startNewProject(page)
+  await field.press('Escape')
+  await expect(field).toBeHidden()
+}
 
 const selectedText = (field: Locator) =>
   field.evaluate((el: HTMLInputElement) => el.value.slice(el.selectionStart ?? 0, el.selectionEnd ?? 0))
@@ -51,5 +67,23 @@ for (const input of ['mouse', 'touch', 'keyboard'] as const) {
     await expect(field).toHaveValue('Garage')
     await page.keyboard.press('Enter')
     await expect(openProjectCard(page).getByRole('heading')).toHaveText('Garage')
+  })
+}
+
+for (const action of ['Duplicate', 'Delete'] as const) {
+  test(`${action} from the ··· menu puts focus on the title of the project it opens`, async ({ page }, testInfo) => {
+    await page.goto('/')
+    await addProject(page)
+    const menu = await openProjectMenu(page)
+    await menu.getByRole('menuitem', { name: action }).click()
+    const title = openProjectTitle(page)
+    await expect(title).toHaveText(action === 'Duplicate' ? 'Project 2 copy' : 'Home')
+    await expect(title).toBeFocused()
+    await afterNextFrames(page)
+    await expect(title).toBeFocused()
+    await expectSheet(page, testInfo, 'open')
+    // Focus is inside the sheet, so Escape reaches it.
+    await page.keyboard.press('Escape')
+    await expectSheet(page, testInfo, 'closed')
   })
 }

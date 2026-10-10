@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { Link } from '@tanstack/react-router'
 import { FileText, Pencil } from 'lucide-react'
 import { useCatalog } from '../hooks/useCatalog'
@@ -30,9 +30,8 @@ function heaviestLine(s: ProjectSummary, t: Dictionary): string {
 /** What only the open project's card can do: rename in place and the ··· menu. */
 interface CurrentActions {
   isRenaming: boolean
-  /** True right after Enter or Escape ends a rename: the title takes focus back so the keyboard is not stranded. */
-  shouldFocusTitle: boolean
-  onTitleFocused: () => void
+  /** The title button, so focus can be put on it (see useTitleFocus). */
+  titleRef: RefObject<HTMLButtonElement | null>
   canDelete: boolean
   onRename: () => void
   onRenameSave: (raw: string, byKey: boolean) => void
@@ -56,18 +55,7 @@ function CardTitle({ name, titleId, current, onOpen }: { name: string; titleId: 
   return (
     <h3 className="pcard__title" id={titleId}>
       {current ? (
-        <button
-          type="button"
-          className="pcard__pick"
-          aria-current="true"
-          onClick={current.onRename}
-          ref={(el) => {
-            if (el && current.shouldFocusTitle) {
-              el.focus()
-              current.onTitleFocused()
-            }
-          }}
-        >
+        <button ref={current.titleRef} type="button" className="pcard__pick" aria-current="true" onClick={current.onRename}>
           {name}<Pencil size={14} className="pcard__pencil" aria-hidden="true" />
         </button>
       ) : (
@@ -135,13 +123,31 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
   )
 }
 
+/**
+ * Puts focus on the open project's title after the next commit, so the keyboard is not stranded when the control that
+ * had focus goes away: the name field on Enter or Escape, the ··· menu's button after Duplicate or Delete.
+ */
+function useTitleFocus() {
+  const titleRef = useRef<HTMLButtonElement>(null)
+  const [isRequested, setRequested] = useState(false)
+  // In an effect, not while React commits: after a ··· menu action the page around the menu is still `inert` then, so
+  // focus() would do nothing. react-aria lifts `inert` in the menu's effect cleanup, and React runs every cleanup of a
+  // commit before any new effect.
+  useEffect(() => {
+    if (!isRequested) return
+    titleRef.current?.focus()
+    setRequested(false)
+  }, [isRequested])
+  return { titleRef, focusTitle: () => setRequested(true) }
+}
+
 /** Every saved project with its kit at a glance, the open one first; quick edit changes a project without opening it. */
 export function ProjectCards({ store, commit, onPicked }: Props) {
   const { t } = useLocale()
   const appliances = useCatalog()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [refocusId, setRefocusId] = useState<string | null>(null)
+  const { titleRef, focusTitle } = useTitleFocus()
   // A new project opens on top already renaming; the sheet stays open until the name is saved.
   const createProject = () => {
     const next = addProject(store)
@@ -150,21 +156,27 @@ export function ProjectCards({ store, commit, onPicked }: Props) {
   }
   const currentActions = (id: string): CurrentActions => ({
     isRenaming: renamingId === id,
-    shouldFocusTitle: refocusId === id,
-    onTitleFocused: () => setRefocusId(null),
+    titleRef,
     canDelete: store.projects.length > 1,
     onRename: () => setRenamingId(id),
     onRenameSave: (raw, byKey) => {
       setRenamingId(null)
-      if (byKey) setRefocusId(id)
+      if (byKey) focusTitle()
       commit(renameProject(store, id, raw, t.ui.untitled))
     },
     onRenameCancel: () => {
       setRenamingId(null)
-      setRefocusId(id)
+      focusTitle()
     },
-    onDuplicate: () => commit(duplicateProject(store)),
-    onDelete: () => commit(deleteProject(store)),
+    // The ··· button that had focus belongs to the card that was open; the project now open gets it instead.
+    onDuplicate: () => {
+      commit(duplicateProject(store))
+      focusTitle()
+    },
+    onDelete: () => {
+      commit(deleteProject(store))
+      focusTitle()
+    },
   })
   return (
     <div className="pcards">
