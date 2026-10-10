@@ -994,13 +994,15 @@ Every `{…}` is `{ "value", "source", "asWritten" }`. All keys are required; un
 
 The skill's first real run writes to the e2e Neon branch, never production.
 
-**Step 1:** start the built app on the e2e database with the token the skill reads. Sourcing `.env.test.local` exports its `DATABASE_URL`, and `node --env-file` never overrides a variable that is already set:
+**Step 1:** start the built app on the e2e database with the token the skill reads, through e2e's guard (the `built-on-e2e-db` config in `.claude/launch.json` runs the same script):
 
 ```bash
-set -a && . ./.env.test.local && set +a && npm run start
+npm run build && node scripts/start-on-test-db.ts
 ```
 
-Run it in the background. Check the endpoint the skill will report (step "Which database…"): it must be `ep-crimson-rain-au38702t`.
+Never source `.env.test.local` in a shell (`set -a && . ./.env.test.local`): the URL's `&` ends the assignment, `DATABASE_URL` stays unset and `npm run start` falls back to production through `.env.local`. That happened on the first trial; only GETs were sent.
+
+Run it in the background. Its first line names the database: it must be `starting on ep-crimson-rain-au38702t`.
 
 **Step 2:** run `/research-product EG4 6000XP --target local`. Check the dry-run table against the datasheet read on 2026-10-09: 6000 W; surges 12,000 W / 3.5 s and 11,000 W / 5 s; 48 V; split-phase; 125 A charger; 16 in parallel; CAN and RS485; 5-year warranty. Show the table to the user, and write only on their yes.
 

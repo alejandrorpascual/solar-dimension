@@ -16,7 +16,7 @@ Depends on slice 1 (`docs/superpowers/plans/2026-10-09-product-library-slice-1.m
 
 **Safety, read before any database or server step:**
 - `.env.local` points at the **production** database. Never run `npm run db:migrate`, `npm run dev` or `npm run start` by hand. Only Playwright starts servers (it loads the guarded test env).
-- To look at the app in a browser on the e2e database, start the built server with Node's own env loading: `node --env-file-if-exists=.env.local --env-file=.env.test.local .output/server/index.mjs` (the `built-on-e2e-db` config in `.claude/launch.json`). Never source `.env.test.local` in a shell: the URL's `&` ends the assignment, `DATABASE_URL` stays unset and the server falls back to production. Confirm with `GET /api/catalog/products` answering 200 before trusting it (production has no `products` table until slice 1 deploys).
+- To look at the app in a browser on the e2e database, start the built server through e2e's guard: `npm run build && node scripts/start-on-test-db.ts` (the `built-on-e2e-db` config in `.claude/launch.json`). Its first line names the database (`starting on ep-crimson-rain-au38702t`), and it throws for production. Never source `.env.test.local` in a shell: the URL's `&` ends the assignment, `DATABASE_URL` stays unset and the server falls back to production. `node --env-file=.env.test.local` is not safe either: a `DATABASE_URL` already exported in the shell wins over every env file.
 - Never print a database URL or a token.
 
 Each task runs test-first: write the test, run it red, implement, run it green, commit.
