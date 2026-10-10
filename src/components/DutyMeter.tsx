@@ -2,7 +2,7 @@ import { RefreshCw, Zap } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import { fmtW } from '../i18n/format'
-import { averageWatts, type DutyHint } from '../lib/load-kinds'
+import { averageWatts, dutyPct, type DutyHint } from '../lib/load-kinds'
 import type { SelectedItem } from '../lib/sizing'
 import { DutyControl } from './DutyControl'
 
@@ -28,7 +28,7 @@ export function DutyMeter({ hint, item, name, onDuty }: MeterProps) {
   const { t, locale } = useLocale()
   const average = tr(t, 'averageDraw', { w: fmtW(averageWatts(item), locale) })
   const isCycling = hint.kind === 'cycling'
-  const fillPct = isCycling ? hint.pct : Math.round(item.effectiveDuty * 100)
+  const fillPct = isCycling ? hint.pct : dutyPct(item.effectiveDuty)
   const typical = isCycling && hint.isOverridden ? ` · ${tr(t, 'dutyTypicalAt', { pct: hint.typicalPct })}` : ''
   return (
     <div className="duty">

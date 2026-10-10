@@ -22,7 +22,10 @@ export type DutyHint =
   | { kind: 'momentary'; minutesPerHour: number }
 
 const MINUTES_PER_HOUR = 60
-const pct = (duty: number): number => Math.round(duty * 100)
+const PERCENT = 100
+
+/** A duty (0 to 1) as the whole percent the app shows for it. */
+export const dutyPct = (duty: number): number => Math.round(duty * PERCENT)
 
 /**
  * What an appliance card says about how much of each hour it runs: nothing for an always-on load, the share in effect
@@ -33,5 +36,5 @@ export function dutyHint(item: CatalogItem, overrides: Record<string, number>): 
   if (kind === 'continuous') return null
   const { duty, overridden } = effectiveDuty(item, overrides)
   if (kind === 'momentary') return { kind, minutesPerHour: Math.max(1, Math.round(duty * MINUTES_PER_HOUR)) }
-  return { kind, pct: pct(duty), typicalPct: pct(item.duty), isOverridden: overridden }
+  return { kind, pct: dutyPct(duty), typicalPct: dutyPct(item.duty), isOverridden: overridden }
 }
