@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { LayoutGrid } from 'lucide-react'
 import { useState } from 'react'
 import { AccountMenu } from '../components/AccountMenu'
 import { ApplianceGrid } from '../components/ApplianceGrid'
@@ -7,9 +8,7 @@ import { CustomApplianceForm } from '../components/CustomApplianceForm'
 import { DownloadPanel } from '../components/DownloadPanel'
 import { HeaderBar } from '../components/HeaderBar'
 import { KitStep } from '../components/KitStep'
-import { ProjectBar } from '../components/ProjectBar'
 import { RailSheet, SideRail, type RailTab } from '../components/SideRail'
-import type { Step } from '../components/Stepper'
 import { SolarStep } from '../components/solar/SolarStep'
 import { WizardFooter } from '../components/WizardFooter'
 import { useCatalog } from '../hooks/useCatalog'
@@ -21,12 +20,9 @@ import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { computeProject } from '../lib/project-summary'
 import { patchCurrent } from '../lib/store'
 import type { SizingResult } from '../lib/sizing'
+import { parseStep, type Step } from '../lib/steps'
 
 interface Search { step: Step }
-
-function parseStep(v: unknown): Step {
-  return v === 2 || v === '2' ? 2 : v === 3 || v === '3' ? 3 : v === 4 || v === '4' ? 4 : 1
-}
 
 export const Route = createFileRoute('/')({
   validateSearch: (search: Record<string, unknown>): Search => ({ step: parseStep(search.step) }),
@@ -66,8 +62,11 @@ function KitBuilderPage() {
   return (
     <div className="workspace">
       <main className="page">
-        <HeaderBar step={step} account={<AccountMenu user={user} busy={syncing || saving} />} />
-        <ProjectBar store={store} commit={commit} onOpenProjects={() => openSheet('projects')} />
+        <HeaderBar step={step} onGo={go} hasAppliances={!result.empty} account={<AccountMenu user={user} busy={syncing || saving} />} />
+        {/* Renaming, duplicating and deleting live on the project's card; phones reach the cards through this sheet. */}
+        <button type="button" className="chip project-open" aria-haspopup="dialog" onClick={() => openSheet('projects')}>
+          <LayoutGrid size={16} aria-hidden="true" />{tr(t, 'projectsCount', { count: store.projects.length })}
+        </button>
         {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
         {syncing && <div className="muted">{t.ui.syncing}</div>}
         <section className="stage">

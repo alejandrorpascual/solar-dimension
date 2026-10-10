@@ -3,11 +3,19 @@ import { useLocale } from '../hooks/useLocale'
 import { applianceName, applianceNote, tr } from '../i18n'
 import { fmtInt, fmtW } from '../i18n/format'
 import { needsSplitPhase, type CatalogItem } from '../lib/catalog'
+import type { DutyHint } from '../lib/load-kinds'
+import type { SelectedItem } from '../lib/sizing'
 import { clampQty, parseQty } from '../lib/store'
+import { DutyHintLine, DutyMeter } from './DutyMeter'
 
 interface Props {
   item: CatalogItem; title?: string; qty: number
   onInc: () => void; onDec: () => void; onSet: (n: number) => void; onRemove?: () => void
+  /** How much of each hour it runs; null for an always-on load, which shows nothing extra. */
+  duty?: DutyHint | null
+  /** The appliance as sized for this project, once added; the duty bar needs it. */
+  selected?: SelectedItem
+  onDuty?: (duty: number | null) => void
 }
 
 /** The count between − and +, typeable for large numbers (a condo's 40 cameras). Commits on blur or Enter. */
@@ -40,7 +48,7 @@ export function QtyField({ qty, label, onSet }: { qty: number; label: string; on
   )
 }
 
-export function ApplianceCard({ item, title, qty, onInc, onDec, onSet, onRemove }: Props) {
+export function ApplianceCard({ item, title, qty, onInc, onDec, onSet, onRemove, duty = null, selected, onDuty }: Props) {
   const { t, locale } = useLocale()
   const on = qty > 0
   const name = applianceName(t, item)
@@ -51,6 +59,8 @@ export function ApplianceCard({ item, title, qty, onInc, onDec, onSet, onRemove 
         <div className="card__spec num">{tr(t, 'runningSurgeLine', { watts: fmtInt(item.watts, locale), surge: fmtW(item.surge, locale) })}</div>
         {needsSplitPhase(item) && <div className="card__spec card__spec--warn">{t.ui.splitPhase}</div>}
         {item.isCustom && <div className="card__spec">{applianceNote(t, item)}</div>}
+        {duty && !on && <DutyHintLine hint={duty} />}
+        {duty && on && selected && onDuty && <DutyMeter hint={duty} item={selected} name={name} onDuty={onDuty} />}
       </div>
       {onRemove && (
         <button type="button" className="x" aria-label={tr(t, 'remove', { name })} onClick={onRemove}>×</button>

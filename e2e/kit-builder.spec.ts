@@ -1,15 +1,45 @@
 import { expect, test, type Page } from '@playwright/test'
 import { switchLanguage } from './header'
-import { hideProjects, showProjects } from './projects'
+import { hideProjects, openProjectCard, renameOpenProject, showProjects } from './projects'
 
 test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
-  await expect(page.getByLabel('Project name')).toHaveValue('Home')
+  await showProjects(page)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Home')
+  await hideProjects(page)
   await page.getByRole('button', { name: 'Next: backup window' }).click()
   await expect(page).toHaveURL(/step=2/)
   await page.getByRole('button', { name: 'Back', exact: true }).click()
   await expect(page).toHaveURL(/step=1|\/$/)
+})
+
+test('the stepper jumps straight to any step', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+    await expect(page).toHaveURL(/step=4/, { timeout: 1000 })
+  }).toPass()
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await page.getByRole('button', { name: 'Step 3: Solar panels' }).click()
+  await expect(page).toHaveURL(/step=3/)
+  await page.getByRole('button', { name: 'Step 1: Appliances' }).click()
+  await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Step 1: Appliances' })).toHaveAttribute('aria-current', 'step')
+})
+
+test('a cycling appliance shows its share of each hour on its card and can change it', async ({ page }) => {
+  await page.goto('/')
+  const duty = page.getByLabel('Refrigerator: share of each hour it runs')
+  await expect(duty).toBeVisible()
+  await expect(page.getByText('Cycles · 40% of each hour')).toHaveCount(0)
+  await expect(async () => {
+    await duty.selectOption({ label: '75% of each hour' })
+    await expect(page.getByText(/typical 35%/)).toBeVisible({ timeout: 1000 })
+  }).toPass()
+  await duty.selectOption({ label: '35% · typical' })
+  await expect(page.getByText(/typical 35%/)).toHaveCount(0)
 })
 
 /** Web fonts swap in late on a cold CI browser and reflow the quick-edit rows; measure clicks after they settle. */
@@ -108,21 +138,28 @@ test('a new project can be created, renamed and deleted', async ({ page }) => {
   await page.goto('/')
   await showProjects(page)
   await page.getByRole('button', { name: '+ New project' }).click()
-  await hideProjects(page)
+  // The new project lands on top, already renaming with its name selected.
   const name = page.getByLabel('Project name')
+  await expect(name).toBeFocused()
+  await expect(name).toHaveValue('Project 2')
   await name.fill('Office')
-  await name.blur()
-  await showProjects(page)
+  await name.press('Enter')
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Office')
+  await openProjectCard(page).getByRole('button', { name: 'More actions for Office' }).click()
+  await page.getByRole('menuitem', { name: 'Duplicate' }).click()
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Office copy')
+  await openProjectCard(page).getByRole('button', { name: 'More actions for Office copy' }).click()
+  await page.getByRole('menuitem', { name: 'Delete' }).click()
+  await expect(page.getByRole('button', { name: 'Office copy', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Office', exact: true })).toBeVisible()
-  await hideProjects(page)
-  await page.getByRole('button', { name: 'Delete' }).click()
-  await showProjects(page)
-  await expect(page.getByRole('button', { name: 'Office', exact: true })).toHaveCount(0)
 })
 
 test('project names can be erased with backspace and replaced', async ({ page }) => {
   await page.goto('/')
+  await showProjects(page)
+  const title = openProjectCard(page).getByRole('heading')
   const name = page.getByLabel('Project name')
+  await title.getByRole('button').click()
   await name.fill('Casa')
   await name.press('End')
   for (let i = 0; i < 4; i++) await name.press('Backspace')
@@ -130,22 +167,80 @@ test('project names can be erased with backspace and replaced', async ({ page })
   await name.pressSequentially('Portón principal')
   await name.press('Enter')
   await page.reload()
-  await expect(name).toHaveValue('Portón principal')
-  await name.fill('   ')
-  await name.blur()
-  await expect(name).toHaveValue('Untitled')
+  await showProjects(page)
+  await expect(title).toHaveText('Portón principal')
+  await renameOpenProject(page, '   ')
+  await expect(title).toHaveText('Untitled')
   await page.reload()
-  await expect(name).toHaveValue('Untitled')
+  await showProjects(page)
+  await expect(title).toHaveText('Untitled')
+  // Escape drops the edit and, inside the phone sheet, leaves the sheet open.
+  await title.getByRole('button').click()
+  await name.fill('Never saved')
+  await name.press('Escape')
+  await expect(title).toHaveText('Untitled')
+})
+
+/** Adds a second project and keeps its default name, so Home is no longer the open one. */
+async function openSecondProject(page: Page): Promise<void> {
+  await page.goto('/')
+  await showProjects(page)
+  await page.getByRole('button', { name: '+ New project' }).click()
+  await page.getByLabel('Project name').press('Enter')
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
+}
+
+/** A real pointer click at a box's centre, wherever it lands, the way a person clicks blank space on a card. */
+async function clickAt(page: Page, box: { x: number; y: number; width: number; height: number } | null, dx = 0.5, dy = 0.5): Promise<void> {
+  if (!box) throw new Error('nothing to click: the element is not on screen')
+  await page.mouse.click(box.x + box.width * dx, box.y + box.height * dy)
+}
+
+test("clicking another project's card away from its name opens that project", async ({ page }, testInfo) => {
+  await openSecondProject(page)
+  const home = page.getByRole('article', { name: 'Home' })
+  await clickAt(page, await home.locator('dl').boundingBox())
+  if (testInfo.project.name === 'phone') {
+    await expect(page.getByRole('dialog')).toBeHidden()
+    await showProjects(page)
+  }
+  const top = openProjectCard(page)
+  await expect(top.getByRole('heading')).toHaveText('Home')
+  await expect(top).toContainText('Current')
+})
+
+test("quick edit on another project's card shows its steppers without opening it", async ({ page }, testInfo) => {
+  await openSecondProject(page)
+  const home = page.getByRole('article', { name: 'Home' })
+  await home.getByRole('button', { name: 'Quick edit' }).click()
+  await expect(home.getByRole('button', { name: 'Add TV, 55-inch LED' })).toBeVisible()
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
+  if (testInfo.project.name === 'phone') await expect(page.getByRole('dialog')).toBeVisible()
+})
+
+test('with quick edit open, a click between stepper rows opens nothing', async ({ page }, testInfo) => {
+  await openSecondProject(page)
+  const home = page.getByRole('article', { name: 'Home' })
+  await home.getByRole('button', { name: 'Quick edit' }).click()
+  const rows = home.getByRole('listitem')
+  await expect(rows.nth(1)).toBeVisible()
+  const first = await rows.nth(0).boundingBox()
+  const second = await rows.nth(1).boundingBox()
+  if (!first || !second) throw new Error('quick edit rows are not on screen')
+  // The seam between the first two rows, on the name side, away from any stepper button.
+  await page.mouse.click(first.x + 4, (first.y + first.height + second.y) / 2)
+  await expect(home.getByRole('button', { name: 'Done' })).toBeVisible()
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
+  if (testInfo.project.name === 'phone') await expect(page.getByRole('dialog')).toBeVisible()
 })
 
 test('project cards show each kit and quick edit a project without opening it', async ({ page }) => {
   await page.goto('/?step=4')
   await showProjects(page)
   await page.getByRole('button', { name: '+ New project' }).click()
-  await hideProjects(page)
   await expect(page.getByLabel('Project name')).toHaveValue('Project 2')
+  await page.getByLabel('Project name').press('Enter')
 
-  await showProjects(page)
   const home = page.getByRole('article', { name: 'Home' })
   await expect(home).toContainText('48 V · 10 h · 6 appliances')
   const runtime = home.locator('dd').first()
@@ -157,10 +252,10 @@ test('project cards show each kit and quick edit a project without opening it', 
   await expect(runtime).not.toHaveText(before ?? '')
   await expect(home).toContainText('3× TV, 55-inch LED')
   const open = page.getByRole('article', { name: 'Project 2' })
-  await expect(open.getByRole('button', { name: 'Project 2' })).toHaveAttribute('aria-current', 'true')
+  await expect(open.getByRole('button', { name: 'Project 2', exact: true })).toHaveAttribute('aria-current', 'true')
   await expect(open.getByRole('button', { name: 'Quick edit' })).toHaveCount(0)
 
-  await home.getByRole('button', { name: 'Home' }).click()
+  await home.getByRole('button', { name: 'Home', exact: true }).click()
   await hideProjects(page)
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
 })

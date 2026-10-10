@@ -67,6 +67,16 @@ export function deleteProject(store: Store): Store {
   return { ...store, projects: rest, currentId: rest[0]!.id }
 }
 
+/** The longest name a project stores, matching the schema. */
+export const PROJECT_NAME_MAX = 60
+
+/** Rename one project: trimmed, cut to PROJECT_NAME_MAX, the fallback when blank. No change returns the same store. */
+export function renameProject(store: Store, id: string, raw: string, fallback: string): Store {
+  const name = (raw.trim() || fallback).slice(0, PROJECT_NAME_MAX)
+  const p = store.projects.find((x) => x.id === id)
+  return !p || p.name === name ? store : patchProject(store, id, { name })
+}
+
 export function selectProject(store: Store, id: string): Store {
   return store.projects.some((p) => p.id === id) ? { ...store, currentId: id } : store
 }

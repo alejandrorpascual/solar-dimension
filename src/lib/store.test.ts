@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import {
   addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
   hasSameLoads, removeCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
-  setSolarIn, withSolarPanels, withSolarRoof, withSolarSun,
+  PROJECT_NAME_MAX, renameProject, setSolarIn, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
 import { SOLAR } from './solar'
 import { DEFAULT_ELECTRICAL } from './schema'
@@ -227,4 +227,27 @@ test('roof, sun and panels are clamped and snapped to their steps', () => {
 test('solar edits on a battery-only project do nothing', () => {
   const store = initialStore()
   expect(withSolarPanels(store, 'p1', 3)).toBe(store)
+})
+
+describe('renameProject', () => {
+  test('trims the name and renames only that project', () => {
+    const s = addProject(initialStore(), 'Second')
+    const renamed = renameProject(s, 'p1', '  Garita  ', 'Untitled')
+    expect(renamed.projects.find((p) => p.id === 'p1')?.name).toBe('Garita')
+    expect(renamed.projects.find((p) => p.id !== 'p1')?.name).toBe('Second')
+  })
+
+  test('a blank name becomes the fallback', () => {
+    expect(currentProject(renameProject(initialStore(), 'p1', '   ', 'Untitled')).name).toBe('Untitled')
+  })
+
+  test('cuts a long name to the stored limit', () => {
+    expect(currentProject(renameProject(initialStore(), 'p1', 'x'.repeat(90), 'Untitled')).name).toHaveLength(PROJECT_NAME_MAX)
+  })
+
+  test('an unchanged name or unknown id returns the same store', () => {
+    const s = initialStore()
+    expect(renameProject(s, 'p1', ' Home ', 'Untitled')).toBe(s)
+    expect(renameProject(s, 'nope', 'X', 'Untitled')).toBe(s)
+  })
 })

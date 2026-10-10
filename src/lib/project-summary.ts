@@ -42,3 +42,9 @@ export function summarizeProjects(projects: readonly Project[], appliances: read
     }
   })
 }
+
+/** The rail's order: the open project on top, the others as saved. A new array; the input is left as it was. */
+export function currentFirst(summaries: readonly ProjectSummary[], currentId: string): ProjectSummary[] {
+  const current = summaries.find((s) => s.project.id === currentId)
+  return current ? [current, ...summaries.filter((s) => s !== current)] : [...summaries]
+}

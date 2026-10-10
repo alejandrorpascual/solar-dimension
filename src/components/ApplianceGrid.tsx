@@ -5,8 +5,10 @@ import { applianceName, tr, type Dictionary } from '../i18n'
 import { gridSections, type GridEntry, type GridSection } from '../lib/appliance-groups'
 import { CATEGORIES, forPicker, type CatalogItem, type Category, type CompressorType } from '../lib/catalog'
 import type { Store } from '../lib/schema'
+import { dutyHint } from '../lib/load-kinds'
 import { catalog } from '../lib/sizing'
-import { currentProject, removeCustom, setQty } from '../lib/store'
+import { selectItems } from '../lib/sizing/loads'
+import { currentProject, removeCustom, setDutyIn, setQty } from '../lib/store'
 import { ApplianceCard } from './ApplianceCard'
 
 type Filter = 'All' | Category
@@ -52,6 +54,8 @@ export function ApplianceGrid({ store, commit }: { store: Store; commit: (s: Sto
   const matches = (a: CatalogItem) =>
     !needle || a.name.toLowerCase().includes(needle) || applianceName(t, a).toLowerCase().includes(needle) || a.id.toLowerCase().includes(needle)
   const items = catalog(forPicker(appliances), project.custom).filter((a) => (filter === 'All' || a.cat === filter) && matches(a))
+  // The added appliances as the engine sizes them, so each card's duty bar shows the duty and average in effect.
+  const selected = new Map(selectItems(items, project.qty, project.hours, project.dutyOverrides).map((i) => [i.id, i]))
   const filters: Filter[] = ['All', ...CATEGORIES]
   // A single-category filter already names the section, so its header would only repeat the chip.
   const hasSectionHeaders = filter === 'All'
@@ -71,6 +75,9 @@ export function ApplianceGrid({ store, commit }: { store: Store; commit: (s: Sto
         onDec={() => commit(setQty(store, item.id, qty - 1))}
         onSet={(n) => commit(setQty(store, item.id, n))}
         onRemove={item.isCustom ? () => commit(removeCustom(store, item.id)) : undefined}
+        duty={dutyHint(item, project.dutyOverrides)}
+        selected={selected.get(item.id)}
+        onDuty={(d) => commit(setDutyIn(store, project.id, item.id, d))}
       />
     )
   }

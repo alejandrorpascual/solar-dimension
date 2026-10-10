@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { computeProject, summarizeProjects } from './project-summary'
+import { computeProject, currentFirst, summarizeProjects } from './project-summary'
 import { DEFAULT_ELECTRICAL, type Project } from './schema'
 import { compute } from './sizing'
 
@@ -54,5 +54,21 @@ describe('summarizeProjects', () => {
     expect(list.map((s) => s.project.id)).toEqual(['x', 'y'])
     expect(list[0]!.heaviest).toHaveLength(1)
     expect(list[0]!.moreCount).toBe(1)
+  })
+})
+
+describe('currentFirst', () => {
+  const summaries = summarizeProjects([project('a', { tv: 1 }), project('b', { tv: 2 }), project('c', { tv: 3 })], CATALOG_SNAPSHOT)
+
+  test('puts the open project on top and keeps the rest in store order', () => {
+    expect(currentFirst(summaries, 'c').map((s) => s.project.id)).toEqual(['c', 'a', 'b'])
+    expect(currentFirst(summaries, 'b').map((s) => s.project.id)).toEqual(['b', 'a', 'c'])
+  })
+
+  test('leaves the order alone for an unknown id and does not touch the input', () => {
+    const before = summaries.map((s) => s.project.id)
+    expect(currentFirst(summaries, 'zz').map((s) => s.project.id)).toEqual(['a', 'b', 'c'])
+    currentFirst(summaries, 'c')
+    expect(summaries.map((s) => s.project.id)).toEqual(before)
   })
 })

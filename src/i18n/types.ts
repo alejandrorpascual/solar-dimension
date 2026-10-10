@@ -73,6 +73,7 @@ export type UiKey =
   | 'stringsOne' | 'stringsMany'
   | 'average' | 'averageWatts' | 'kind'
   | 'runsLabel' | 'dutyOf' | 'dutyOption' | 'dutyTypical' | 'dutyNonstop'
+  | 'rename' | 'projectActions' | 'stepLocked' | 'stepGo' | 'dutyCycles' | 'dutyBursts' | 'dutyTypicalAt'
   | 'startsLabel' | 'startsOne' | 'startsOneHelp' | 'startsTwo' | 'startsTwoHelp' | 'startsAll' | 'startsAllHelp'
   | 'cableRun' | 'cableSummary' | 'cableBundledShort' | 'runLength' | 'ambientLabel' | 'ambient30' | 'ambient40' | 'ambient50'
   | 'bundledLabel' | 'bundledHelp' | 'insulationLabel' | 'insulation75' | 'insulation90'

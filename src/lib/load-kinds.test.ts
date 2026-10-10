@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { averageWatts, groupByKind } from './load-kinds'
+import type { CatalogItem } from './catalog'
+import { averageWatts, dutyHint, groupByKind } from './load-kinds'
 import { compute } from './sizing'
 
 const kit = (qty: Record<string, number>) => compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
@@ -23,4 +24,30 @@ test('averageWatts scales the running watts by the duty in effect', () => {
   expect(averageWatts(fridge)).toBe(Math.round(300 * 0.35))
   const full = compute({ qty: { fridge: 2 }, hours: 10, volts: 48, chemistry: 'lifepo4', dutyOverrides: { fridge: 1 } }, CATALOG_SNAPSHOT).items[0]!
   expect(averageWatts(full)).toBe(300)
+})
+
+describe('dutyHint', () => {
+  const base: CatalogItem = { id: 'x', name: 'X', cat: 'Utility', watts: 100, surge: 100, duty: 1, note: '' }
+  const make = (over: Partial<CatalogItem>): CatalogItem => ({ ...base, ...over })
+
+  test('says nothing for an always-on load', () => {
+    expect(dutyHint(make({ duty: 1 }), {})).toBeNull()
+  })
+
+  test('gives a cycling load its share of each hour, the catalog share and whether it was changed', () => {
+    expect(dutyHint(make({ duty: 0.35 }), {})).toEqual({ kind: 'cycling', pct: 35, typicalPct: 35, isOverridden: false })
+    expect(dutyHint(make({ duty: 0.35 }), { x: 0.75 })).toEqual({ kind: 'cycling', pct: 75, typicalPct: 35, isOverridden: true })
+  })
+
+  test('gives a momentary load whole minutes per hour from its bursts, never below one', () => {
+    const gate = make({ duty: 0.033, kind: 'momentary', burstSeconds: 20, cyclesPerHour: 6 })
+    expect(dutyHint(gate, {})).toEqual({ kind: 'momentary', minutesPerHour: 2 })
+    const blip = make({ duty: 0.001, kind: 'momentary', burstSeconds: 2, cyclesPerHour: 1 })
+    expect(dutyHint(blip, {})).toEqual({ kind: 'momentary', minutesPerHour: 1 })
+  })
+
+  test('ignores an override on a momentary load', () => {
+    const gate = make({ duty: 0.033, kind: 'momentary', burstSeconds: 20, cyclesPerHour: 6 })
+    expect(dutyHint(gate, { x: 0.5 })).toEqual({ kind: 'momentary', minutesPerHour: 2 })
+  })
 })

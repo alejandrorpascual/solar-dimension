@@ -1,15 +1,17 @@
 import { useId, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { FileText } from 'lucide-react'
+import { FileText, Pencil } from 'lucide-react'
 import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectJobs } from '../hooks/useQuoteJobs'
 import { applianceName, batteryCount, tr, type Dictionary } from '../i18n'
 import { fmtHours, fmtKwh, fmtW } from '../i18n/format'
 import { projectLine } from '../lib/quote-text'
-import { summarizeProjects, type ProjectSummary } from '../lib/project-summary'
+import { currentFirst, summarizeProjects, type ProjectSummary } from '../lib/project-summary'
 import type { Store } from '../lib/schema'
-import { addProject, selectProject, setQtyIn } from '../lib/store'
+import { addProject, deleteProject, duplicateProject, renameProject, selectProject, setQtyIn } from '../lib/store'
+import { ProjectMenu } from './ProjectMenu'
+import { ProjectNameField } from './ProjectNameField'
 import { QtyStepper } from './QtyStepper'
 
 interface Props {
@@ -25,28 +27,73 @@ function heaviestLine(s: ProjectSummary, t: Dictionary): string {
   return s.moreCount > 0 ? tr(t, 'heaviestMore', { list, count: s.moreCount }) : list
 }
 
+/** What only the open project's card can do: rename in place and the ··· menu. */
+interface CurrentActions {
+  isRenaming: boolean
+  /** True right after Enter or Escape ends a rename: the title takes focus back so the keyboard is not stranded. */
+  shouldFocusTitle: boolean
+  onTitleFocused: () => void
+  canDelete: boolean
+  onRename: () => void
+  onRenameSave: (raw: string, byKey: boolean) => void
+  onRenameCancel: () => void
+  onDuplicate: () => void
+  onDelete: () => void
+}
+
 interface CardProps {
   summary: ProjectSummary
-  isCurrent: boolean
   isEditing: boolean
+  /** Present only on the open project's card. */
+  current?: CurrentActions
   onOpen: () => void
   onToggleEdit: () => void
   onQty: (itemId: string, n: number) => void
 }
 
-function ProjectCard({ summary: s, isCurrent, isEditing, onOpen, onToggleEdit, onQty }: CardProps) {
+function CardTitle({ name, titleId, current, onOpen }: { name: string; titleId: string; current?: CurrentActions; onOpen: () => void }) {
+  if (current?.isRenaming) return <ProjectNameField name={name} onSave={current.onRenameSave} onCancel={current.onRenameCancel} />
+  return (
+    <h3 className="pcard__title" id={titleId}>
+      {current ? (
+        <button
+          type="button"
+          className="pcard__pick"
+          aria-current="true"
+          onClick={current.onRename}
+          ref={(el) => {
+            if (el && current.shouldFocusTitle) {
+              el.focus()
+              current.onTitleFocused()
+            }
+          }}
+        >
+          {name}<Pencil size={14} className="pcard__pencil" aria-hidden="true" />
+        </button>
+      ) : (
+        <button type="button" className="pcard__pick" onClick={onOpen}>{name}</button>
+      )}
+    </h3>
+  )
+}
+
+function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQty }: CardProps) {
+  const isCurrent = current !== undefined
   const { t, locale } = useLocale()
   const titleId = useId()
   const editId = useId()
   const { project: p, result: r } = s
   const jobs = useProjectJobs(p.id)
   return (
-    <article className={`pcard${isCurrent ? ' pcard--on' : ''}`} aria-labelledby={titleId}>
+    // Another project's card opens it from anywhere: the name button's ::after stretches over the card (rail.css).
+    // Off while Quick edit is open, so clicks between its steppers do nothing.
+    <article className={`pcard${isCurrent ? ' pcard--on' : ''}${!isCurrent && !isEditing ? ' pcard--pickable' : ''}`} aria-labelledby={titleId}>
       <div className="pcard__head">
-        <h3 className="pcard__title" id={titleId}>
-          <button type="button" className="pcard__pick" aria-current={isCurrent ? 'true' : undefined} onClick={onOpen}>{p.name}</button>
-        </h3>
-        {isCurrent && <span className="pcard__badge">{t.ui.current}</span>}
+        <CardTitle name={p.name} titleId={titleId} current={current} onOpen={onOpen} />
+        {current && <span className="pcard__badge">{t.ui.current}</span>}
+        {current && !current.isRenaming && (
+          <ProjectMenu name={p.name} canDelete={current.canDelete} onRename={current.onRename} onDuplicate={current.onDuplicate} onDelete={current.onDelete} />
+        )}
       </div>
       <p className="pcard__meta num">{tr(t, 'projectMeta', { volts: p.volts, hours: p.hours, count: r.items.length })}</p>
       {r.empty || !r.battery ? (
@@ -88,22 +135,48 @@ function ProjectCard({ summary: s, isCurrent, isEditing, onOpen, onToggleEdit, o
   )
 }
 
-/** Every saved project with its kit at a glance; quick edit changes a project without opening it. */
+/** Every saved project with its kit at a glance, the open one first; quick edit changes a project without opening it. */
 export function ProjectCards({ store, commit, onPicked }: Props) {
   const { t } = useLocale()
   const appliances = useCatalog()
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [refocusId, setRefocusId] = useState<string | null>(null)
+  // A new project opens on top already renaming; the sheet stays open until the name is saved.
+  const createProject = () => {
+    const next = addProject(store)
+    commit(next)
+    setRenamingId(next.currentId)
+  }
+  const currentActions = (id: string): CurrentActions => ({
+    isRenaming: renamingId === id,
+    shouldFocusTitle: refocusId === id,
+    onTitleFocused: () => setRefocusId(null),
+    canDelete: store.projects.length > 1,
+    onRename: () => setRenamingId(id),
+    onRenameSave: (raw, byKey) => {
+      setRenamingId(null)
+      if (byKey) setRefocusId(id)
+      commit(renameProject(store, id, raw, t.ui.untitled))
+    },
+    onRenameCancel: () => {
+      setRenamingId(null)
+      setRefocusId(id)
+    },
+    onDuplicate: () => commit(duplicateProject(store)),
+    onDelete: () => commit(deleteProject(store)),
+  })
   return (
     <div className="pcards">
       <div className="pcards__head">
         <span className="lab">{t.ui.projects}</span>
-        <button type="button" className="pcards__new" onClick={() => { commit(addProject(store)); onPicked?.() }}>{t.ui.newProject}</button>
+        <button type="button" className="pcards__new" onClick={createProject}>{t.ui.newProject}</button>
       </div>
-      {summarizeProjects(store.projects, appliances).map((s) => (
+      {currentFirst(summarizeProjects(store.projects, appliances), store.currentId).map((s) => (
         <ProjectCard
           key={s.project.id}
           summary={s}
-          isCurrent={s.project.id === store.currentId}
+          current={s.project.id === store.currentId ? currentActions(s.project.id) : undefined}
           isEditing={editingId === s.project.id}
           onOpen={() => { commit(selectProject(store, s.project.id)); onPicked?.() }}
           onToggleEdit={() => setEditingId(editingId === s.project.id ? null : s.project.id)}
