@@ -62,7 +62,7 @@ function KitBuilderPage() {
   return (
     <div className="workspace">
       <main className="page">
-        <HeaderBar step={step} onGo={go} hasAppliances={!result.empty} account={<AccountMenu user={user} busy={syncing || saving} />} />
+        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} />} />
         {/* Renaming, duplicating and deleting live on the project's card; phones reach the cards through this sheet. */}
         <button type="button" className="chip project-open" aria-haspopup="dialog" onClick={() => openSheet('projects')}>
           <LayoutGrid size={16} aria-hidden="true" />{tr(t, 'projectsCount', { count: store.projects.length })}

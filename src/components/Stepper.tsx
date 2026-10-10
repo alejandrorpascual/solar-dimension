@@ -1,43 +1,56 @@
 import { Check } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
-import { isStepReachable, STEPS, type Step } from '../lib/steps'
+import { stepStates, type Step, type StepState } from '../lib/steps'
 
 export type { Step } from '../lib/steps'
 
-interface Props {
+/** Shows where you are and nothing else: no step can be clicked (the sign-in page). */
+interface DisplayOnlyProps {
   step: Step
-  /** Moves to a step; without it the stepper only shows where you are. */
-  onGo?: (step: Step) => void
-  /** Steps after the appliances need at least one; they stay disabled until then. */
-  hasAppliances?: boolean
+  onGo?: undefined
+  hasAppliances?: undefined
 }
 
-export function Stepper({ step, onGo, hasAppliances = true }: Props) {
+/** Moves between steps. */
+interface NavigableProps {
+  step: Step
+  onGo: (step: Step) => void
+  /** Steps after the appliances need at least one. Required with `onGo`, so forgetting it is a type error and not four open steps. */
+  hasAppliances: boolean
+}
+
+export type StepperProps = DisplayOnlyProps | NavigableProps
+
+const dotClass = ({ isCurrent, isDone, isLocked }: StepState): string =>
+  `dot${isCurrent ? ' dot--cur' : isDone ? ' dot--done' : ''}${isLocked ? ' dot--locked' : ''}`
+
+export function Stepper(props: StepperProps) {
   const { t } = useLocale()
   const labels: Record<Step, string> = { 1: t.ui.step1, 2: t.ui.step2, 3: t.ui.step3, 4: t.ui.step4 }
+  const { onGo } = props
+  // Display only: no step can be clicked, so none is drawn as locked.
+  const hasAppliances = props.onGo ? props.hasAppliances : true
+  const states = stepStates(props.step, hasAppliances)
   return (
     <nav aria-label="Steps" className="stepper">
-      {STEPS.map((s, i) => {
-        const isCurrent = s === step
-        const isDone = s < step
-        const isLocked = !isStepReachable(s, hasAppliances)
+      {states.map((state, i) => {
+        const { step, isCurrent, isDone, isLocked } = state
+        const isReached = isCurrent || isDone
         return (
-          <div key={s} className="stepper__item">
-            {i > 0 && <div className={`stepper__line${s <= step ? ' stepper__line--on' : ''}`} aria-hidden="true" />}
+          <div key={step} className="stepper__item">
+            {i > 0 && <div className={`stepper__line${isReached ? ' stepper__line--on' : ''}`} aria-hidden="true" />}
             <button
               type="button"
               className="stepper__btn"
               aria-current={isCurrent ? 'step' : undefined}
-              aria-label={tr(t, 'stepGo', { n: s, label: labels[s] })}
+              aria-label={tr(t, 'stepGo', { n: step, label: labels[step] })}
               title={isLocked ? t.ui.stepLocked : undefined}
               disabled={isLocked || !onGo}
-              onClick={() => { if (!isCurrent) onGo?.(s) }}
+              onClick={() => { if (!isCurrent) onGo?.(step) }}
             >
-              <span className={`dot${isCurrent ? ' dot--cur' : isDone ? ' dot--done' : ''}${isLocked ? ' dot--locked' : ''}`} aria-hidden="true">
-                {isDone ? <Check size={16} strokeWidth={3} /> : s}
-              </span>
-              <span className={`step-label${s <= step ? ' step-label--on' : ''}`} aria-hidden="true">{labels[s]}</span>
+              <span className={dotClass(state)} aria-hidden="true">{isDone ? <Check size={16} strokeWidth={3} /> : step}</span>
+              <span className={`step-label${isReached ? ' step-label--on' : ''}`} aria-hidden="true">{labels[step]}</span>
             </button>
           </div>
         )
