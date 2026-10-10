@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import type { RenameClose } from '../lib/project-rename'
-import { PROJECT_NAME_MAX } from '../lib/store'
+import { PROJECT_NAME_MAX } from '../lib/schema'
 
 interface Props {
   /** The id the card is labelled by (aria-labelledby): the field stands in for the title while it is open. */

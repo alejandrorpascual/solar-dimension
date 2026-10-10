@@ -2,10 +2,10 @@ import { describe, expect, test } from 'vitest'
 import {
   addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
   hasSameLoads, removeCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
-  PROJECT_NAME_MAX, renameProject, setSolarIn, withSolarPanels, withSolarRoof, withSolarSun,
+  renameProject, setSolarIn, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
 import { SOLAR } from './solar'
-import { DEFAULT_ELECTRICAL } from './schema'
+import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema } from './schema'
 
 describe('project store', () => {
   test('starts with one Home project of essentials at 48 V for 10 h', () => {
@@ -243,6 +243,20 @@ describe('renameProject', () => {
 
   test('cuts a long name to the stored limit', () => {
     expect(currentProject(renameProject(initialStore(), 'p1', 'x'.repeat(90), 'Untitled')).name).toHaveLength(PROJECT_NAME_MAX)
+  })
+
+  test('a name cut to the limit is the longest one the schema accepts', () => {
+    // Arrange
+    const cut = currentProject(renameProject(initialStore(), 'p1', 'x'.repeat(PROJECT_NAME_MAX * 2), 'Untitled'))
+    const oneTooLong = { ...cut, name: `${cut.name}x` }
+
+    // Act
+    const [accepted, rejected] = [ProjectSchema.safeParse(cut), ProjectSchema.safeParse(oneTooLong)]
+
+    // Assert
+    expect(cut.name).toHaveLength(PROJECT_NAME_MAX)
+    expect(accepted.success).toBe(true)
+    expect(rejected.success).toBe(false)
   })
 
   test('an unchanged name or unknown id returns the same store', () => {

@@ -1,5 +1,5 @@
 import { SIZING } from './catalog'
-import { DEFAULT_ELECTRICAL, HOURS_MAX, HOURS_MIN, type CustomLoad, type Electrical, type Project, type Solar, type Store } from './schema'
+import { DEFAULT_ELECTRICAL, HOURS_MAX, HOURS_MIN, PROJECT_NAME_MAX, type CustomLoad, type Electrical, type Project, type Solar, type Store } from './schema'
 import { SOLAR } from './solar'
 
 export const DEFAULT_QTY: Record<string, number> = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
@@ -66,9 +66,6 @@ export function deleteProject(store: Store): Store {
   const rest = store.projects.filter((p) => p.id !== id)
   return { ...store, projects: rest, currentId: rest[0]!.id }
 }
-
-/** The longest name a project stores, matching the schema. */
-export const PROJECT_NAME_MAX = 60
 
 /** Rename one project: trimmed, cut to PROJECT_NAME_MAX, the fallback when blank. No change returns the same store. */
 export function renameProject(store: Store, id: string, raw: string, fallback: string): Store {
