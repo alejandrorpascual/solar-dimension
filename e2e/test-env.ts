@@ -1,24 +1,17 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { parse } from 'dotenv'
+// With its `.ts`: CI and the scripts load this file with plain `node`, which resolves an import only as written.
+import { endpointOf, PRODUCTION_DB_ENDPOINT } from '../src/lib/db-endpoint.ts'
+
+// The server answers /api/catalog/database with the same two, so the guard here and that answer can't disagree.
+export { endpointOf, PRODUCTION_DB_ENDPOINT }
 
 /** The e2e database lives here (git-ignored): a Neon branch of its own, never the one dev or prod uses. */
 export const TEST_ENV_FILE = '.env.test.local'
 const DEV_ENV_FILE = '.env.local'
-/** Neon endpoint of the production database (an id, not a credential). No test run may ever use it. */
-export const PRODUCTION_DB_ENDPOINT = 'ep-round-sea-auutoq9o'
 
 function readEnvFile(path: string): Record<string, string> {
   return existsSync(path) ? parse(readFileSync(path)) : {}
-}
-
-/** Neon endpoint id ("ep-…"): the pooled and direct hosts of one database share it. */
-export function endpointOf(url: string | undefined): string | undefined {
-  if (!url) return undefined
-  try {
-    return new URL(url).hostname.split('.')[0].replace(/-pooler$/, '')
-  } catch {
-    return undefined
-  }
 }
 
 /** Throws unless `url` is a database tests may write to. CI also runs this before its migrations. */
