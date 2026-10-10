@@ -8,6 +8,9 @@ const SAME_SIZE_WITHIN_PX = 1
 
 const isPhone = (testInfo: TestInfo) => testInfo.project.name === 'phone'
 
+/** Web fonts swap in late on a cold browser and change every text height; measure after they settle. */
+const fontsReady = (page: Page) => page.evaluate(() => document.fonts.ready.then(() => undefined))
+
 /** The cards sit in a sheet only on the phone; the desktop rail never has a dialog to close. */
 async function expectSheet(page: Page, testInfo: TestInfo, state: 'open' | 'closed'): Promise<void> {
   const sheet = page.getByRole('dialog')
@@ -270,6 +273,35 @@ test('a card keeps its accessible name while its name is being edited', async ({
   await expect(page.getByRole('article', { name: 'Home', exact: true })).toBeVisible()
   await page.keyboard.type('Casa')
   await expect(page.getByRole('article', { name: 'Casa', exact: true })).toBeVisible()
+})
+
+/**
+ * Where the open card's name field ends and the line under it starts, read together: the phone's sheet may still be
+ * sliding in, and two separate reads would catch it at two heights.
+ */
+const renameEdges = (page: Page) =>
+  openProjectCard(page).evaluate((card) => {
+    const field = card.querySelector('input')
+    const meta = card.querySelector('.pcard__meta')
+    if (!field || !meta) throw new Error('the open card has no name field, or no line under it')
+    const style = getComputedStyle(field)
+    const fieldBottom = field.getBoundingClientRect().bottom
+    return {
+      fieldBottom,
+      // The focus ring is drawn outside the field's box, and the field has focus for as long as it is open.
+      ringBottom: fieldBottom + parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset),
+      metaTop: meta.getBoundingClientRect().top,
+    }
+  })
+
+test('while a project is renamed, the name field and its focus ring stay above the line under it', async ({ page }) => {
+  await page.goto('/')
+  const field = await startRename(page)
+  await expect(field).toBeFocused()
+  await fontsReady(page)
+  const { fieldBottom, ringBottom, metaTop } = await renameEdges(page)
+  expect(fieldBottom, 'the bottom of the name field against the top of the line under it').toBeLessThanOrEqual(metaTop)
+  expect(ringBottom, "the bottom of the field's focus ring against the top of the line under it").toBeLessThanOrEqual(metaTop)
 })
 
 test('with a single project the ··· menu offers Rename and Duplicate, and no Delete', async ({ page }) => {
