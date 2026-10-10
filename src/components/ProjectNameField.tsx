@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
-import type { RenameClose } from '../lib/project-rename'
+import { renameCloseKey, type RenameClose } from '../lib/project-rename'
 import { PROJECT_NAME_MAX } from '../lib/schema'
 
 interface Props {
@@ -43,17 +43,14 @@ export function ProjectNameField({ id, name, onType, onClose }: Props) {
       }}
       onBlur={() => onClose('blur')}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          // Focus moves to the card's title as the field closes; without this, Enter's keypress lands there and
-          // presses it, reopening the rename.
-          e.preventDefault()
-          onClose('enter')
-        }
-        if (e.key === 'Escape') {
-          // Inside the phone sheet, Escape would also close the sheet; here it only drops the edit.
-          e.stopPropagation()
-          onClose('escape')
-        }
+        const via = renameCloseKey(e.key, e.nativeEvent.isComposing, e.keyCode)
+        if (!via) return
+        // Enter: focus moves to the card's title as the field closes; without this, Enter's keypress lands there and
+        // presses it, reopening the rename. Escape: inside the phone sheet it would also close the sheet; here it only
+        // drops the edit.
+        if (via === 'enter') e.preventDefault()
+        else e.stopPropagation()
+        onClose(via)
       }}
     />
   )

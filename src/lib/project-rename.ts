@@ -27,3 +27,19 @@ export function renameOutcome(renaming: Renaming, via: RenameClose): RenameOutco
     shouldPick: via === 'enter' && renaming.isNew,
   }
 }
+
+/** The keyCode browsers report for a key press an input method is handling. */
+const IME_KEY_CODE = 229
+
+/**
+ * How a key pressed in the name field closes it, or null when it leaves the field open. A key an input method is using
+ * (Enter to pick a Japanese or Chinese candidate, Escape to dismiss one) is the input method's, not the rename's:
+ * acting on it would end the rename mid-word, and Escape would throw away everything typed before that candidate.
+ * Safari ends the composition before the keydown of the Enter that confirmed it, and marks that key only by keyCode.
+ */
+export function renameCloseKey(key: string, isComposing: boolean, keyCode?: number): Extract<RenameClose, 'enter' | 'escape'> | null {
+  if (isComposing || keyCode === IME_KEY_CODE) return null
+  if (key === 'Enter') return 'enter'
+  if (key === 'Escape') return 'escape'
+  return null
+}

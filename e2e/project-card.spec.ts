@@ -132,6 +132,27 @@ test('Escape puts back the name the rename started with, though every keystroke 
  * Presses a button the way a scripted click does: focus stays where it was. A name field that had focus is then
  * removed while it still has it, and React never tells the app it blurred.
  */
+/** A key press as the browser reports it while an input method is choosing a candidate: the key is the input method's. */
+const pressWhileComposing = (field: Locator, key: 'Enter' | 'Escape') =>
+  field.dispatchEvent('keydown', { key, isComposing: true, bubbles: true, cancelable: true })
+
+test('Enter and Escape that an input method is using leave the name field open with what was typed', async ({ page }, testInfo) => {
+  await page.goto('/')
+  const field = await startRename(page)
+  await page.keyboard.type('Casa')
+  await expect(field).toHaveValue('Casa')
+  // Dismissing a Japanese or Chinese candidate with Escape, or picking one with Enter, must not end the rename.
+  await pressWhileComposing(field, 'Escape')
+  await pressWhileComposing(field, 'Enter')
+  await expect(field).toBeVisible()
+  await expect(field).toHaveValue('Casa')
+  await expect(field).toBeFocused()
+  await expectSheet(page, testInfo, 'open')
+  // The same keys outside a composition still work.
+  await page.keyboard.press('Enter')
+  await expect(openProjectTitle(page)).toHaveText('Casa')
+})
+
 const pressWithoutFocus = (button: Locator) => button.evaluate((el: HTMLElement) => el.click())
 
 test('a rename ends when another project is opened, even if the name field never blurred', async ({ page }, testInfo) => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { renameOutcome, type Renaming } from './project-rename'
+import { renameCloseKey, renameOutcome, type Renaming } from './project-rename'
 
 const EXISTING: Renaming = { id: 'p1', original: 'Home', isNew: false }
 const CREATED: Renaming = { id: 'p2', original: 'Project 2', isNew: true }
@@ -40,5 +40,34 @@ describe('renameOutcome', () => {
     expect(renameOutcome(EXISTING, 'enter').shouldPick).toBe(false)
     expect(renameOutcome(EXISTING, 'escape').shouldPick).toBe(false)
     expect(renameOutcome(EXISTING, 'blur').shouldPick).toBe(false)
+  })
+})
+
+describe('renameCloseKey', () => {
+  const NOT_COMPOSING = false
+  const COMPOSING = true
+  /** What browsers report as keyCode for a key an input method is handling. */
+  const IME_KEY_CODE = 229
+  const ENTER_KEY_CODE = 13
+
+  test('Enter and Escape close the field, each its own way', () => {
+    expect(renameCloseKey('Enter', NOT_COMPOSING)).toBe('enter')
+    expect(renameCloseKey('Escape', NOT_COMPOSING)).toBe('escape')
+  })
+
+  test('any other key leaves the field open', () => {
+    expect(renameCloseKey('a', NOT_COMPOSING)).toBeNull()
+    expect(renameCloseKey('Tab', NOT_COMPOSING)).toBeNull()
+  })
+
+  test('Enter and Escape pressed while an input method is choosing a candidate belong to it, not to the rename', () => {
+    expect(renameCloseKey('Enter', COMPOSING)).toBeNull()
+    expect(renameCloseKey('Escape', COMPOSING)).toBeNull()
+  })
+
+  test('a key the browser marks as handled by an input method is left alone even when composing reads false', () => {
+    // Safari ends the composition before the keydown of the Enter that confirmed the candidate, and marks it only by keyCode.
+    expect(renameCloseKey('Enter', NOT_COMPOSING, IME_KEY_CODE)).toBeNull()
+    expect(renameCloseKey('Enter', NOT_COMPOSING, ENTER_KEY_CODE)).toBe('enter')
   })
 })
