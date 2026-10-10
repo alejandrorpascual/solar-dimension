@@ -5,7 +5,7 @@ import {
   renameProject, setSolarIn, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
 import { SOLAR } from './solar'
-import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema } from './schema'
+import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema, StoreSchema } from './schema'
 
 describe('project store', () => {
   test('starts with one Home project of essentials at 48 V for 10 h', () => {
@@ -190,6 +190,79 @@ describe('duty overrides and electrical settings', () => {
     const changed = setDutyIn(s, 'p1', 'fridge', 1)
     expect(hasSameLoads(snapshot, currentProject(changed))).toBe(false)
     expect(currentProject(restoreProject(changed, snapshot)).dutyOverrides).toEqual({})
+  })
+})
+
+describe("a duplicate's name", () => {
+  const COPY_SUFFIX = ' copy'
+  const named = (name: string) => patchCurrent(initialStore(), { name })
+
+  test('a short name is kept whole and gains the suffix', () => {
+    // Arrange
+    const store = named('Beach house')
+
+    // Act
+    const copy = currentProject(duplicateProject(store))
+
+    // Assert
+    expect(copy.name).toBe(`Beach house${COPY_SUFFIX}`)
+  })
+
+  test('a name at the stored limit is shortened so the copy still ends in the suffix and the store still loads', () => {
+    // Arrange
+    const longest = 'x'.repeat(PROJECT_NAME_MAX)
+    const store = named(longest)
+
+    // Act
+    const duplicated = duplicateProject(store)
+    const copy = currentProject(duplicated)
+
+    // Assert
+    expect(copy.name.length).toBeLessThanOrEqual(PROJECT_NAME_MAX)
+    expect(copy.name.endsWith(COPY_SUFFIX)).toBe(true)
+    expect(copy.name).toBe(`${longest.slice(0, PROJECT_NAME_MAX - COPY_SUFFIX.length)}${COPY_SUFFIX}`)
+    expect(StoreSchema.safeParse(duplicated).success).toBe(true)
+  })
+
+  test('every name from the longest that fits to the limit gives a copy the schema accepts', () => {
+    // Arrange
+    const longestThatFits = PROJECT_NAME_MAX - COPY_SUFFIX.length
+    const lengths = Array.from({ length: COPY_SUFFIX.length + 1 }, (_, i) => longestThatFits + i)
+
+    // Act
+    const copies = lengths.map((length) => duplicateProject(named('x'.repeat(length))))
+
+    // Assert
+    for (const duplicated of copies) {
+      expect(currentProject(duplicated).name).toHaveLength(PROJECT_NAME_MAX)
+      expect(currentProject(duplicated).name.endsWith(COPY_SUFFIX)).toBe(true)
+      expect(StoreSchema.safeParse(duplicated).success).toBe(true)
+    }
+  })
+
+  test('a name cut at a space does not leave two spaces before the suffix', () => {
+    // Arrange
+    const cutAt = PROJECT_NAME_MAX - COPY_SUFFIX.length
+    const store = named(`${'x'.repeat(cutAt - 1)} tail`)
+
+    // Act
+    const copy = currentProject(duplicateProject(store))
+
+    // Assert
+    expect(copy.name).toBe(`${'x'.repeat(cutAt - 1)}${COPY_SUFFIX}`)
+  })
+
+  test('duplicating a copy of a long name again still fits', () => {
+    // Arrange
+    const once = duplicateProject(named('x'.repeat(PROJECT_NAME_MAX)))
+
+    // Act
+    const twice = duplicateProject(once)
+
+    // Assert
+    expect(currentProject(twice).name.length).toBeLessThanOrEqual(PROJECT_NAME_MAX)
+    expect(currentProject(twice).name.endsWith(COPY_SUFFIX)).toBe(true)
+    expect(StoreSchema.safeParse(twice).success).toBe(true)
   })
 })
 
