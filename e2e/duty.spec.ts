@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { switchLanguage } from './header'
+import { switchLanguage, switchLanguageOnLoad } from './header'
 
 type Language = 'English' | 'Español'
 
@@ -53,22 +53,6 @@ async function pickerProblems(page: Page, picker: Locator, container: Locator, s
     pickerBox.width >= MIN_PICKER_WIDTH ? '' : `the picker is squeezed to ${pickerBox.width} px`,
     extra > 0 ? `the page scrolls sideways by ${extra} px` : '',
   ].filter(Boolean)
-}
-
-/**
- * Picks a language as the first thing after a page load, and leaves the page ready to measure. A click that lands
- * before hydration opens no menu, and `switchLanguage` would then wait on items that never come, so this opens the menu
- * until they show. Afterwards it waits for the menu to go: while it fades out it still has a box, and on a viewport
- * narrowed under it that box is what scrolls the page sideways.
- */
-async function switchLanguageOnLoad(page: Page, language: Language): Promise<void> {
-  const choice = page.getByRole('menuitemradio', { name: language })
-  await expect(async () => {
-    if (!(await choice.isVisible())) await page.getByRole('button', { name: /^(Language|Idioma): / }).click()
-    await expect(choice).toBeVisible({ timeout: 1000 })
-  }).toPass()
-  await choice.click()
-  await expect(page.getByRole('menu')).toHaveCount(0)
 }
 
 /** Opens the kit step's quick-edit panel; the toggle ignores a click that lands before hydration. */

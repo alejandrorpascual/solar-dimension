@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { switchLanguage } from './header'
+import { switchLanguage, switchLanguageOnLoad } from './header'
 import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showProjects, startNewProject, startRename } from './projects'
 
 test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
@@ -390,6 +390,26 @@ test("a cycling appliance's on-time can be changed on the kit, moves the runtime
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect(duty).toHaveValue('0.35')
   await expect(page.locator('.stat__delta')).toHaveCount(0)
+})
+
+/** The narrowest phone the kit step is laid out for. */
+const NARROWEST_PHONE = { width: 320, height: 900 } as const
+/** Boxes come back in fractions of a pixel; under half of one is rounding, not an overflow. */
+const SUBPIXEL = 0.5
+
+test('on the narrowest phone the quotes card wraps its long Spanish sign-in label instead of widening the page', async ({ page }) => {
+  await page.goto('/?step=4')
+  await switchLanguageOnLoad(page, 'Español')
+  await page.setViewportSize(NARROWEST_PHONE)
+  await fontsReady(page)
+  const card = page.getByRole('region', { name: '¿Te llegaron cotizaciones de instaladores?' })
+  const signIn = card.getByRole('link', { name: 'Inicia sesión para comparar cotizaciones' })
+  await expect(signIn).toBeVisible()
+  const [cardBox, signInBox] = [await card.boundingBox(), await signIn.boundingBox()]
+  if (!cardBox || !signInBox) throw new Error('the quotes card or its sign-in link is not rendered')
+  expect(signInBox.x + signInBox.width, "the right edge of the sign-in link against the card's").toBeLessThanOrEqual(cardBox.x + cardBox.width + SUBPIXEL)
+  // A phone widens its layout viewport to fit wider content, so compare against the width it was given.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(NARROWEST_PHONE.width)
 })
 
 test('motors starting together and a hot cable run change the inverter, the checks and the assumptions', async ({ page }) => {
