@@ -14,7 +14,7 @@ const PRICE = { amount: 1199, currency: 'USD', seller: 'Shop', url: 'https://sho
 describe('mergeProduct', () => {
   test('a new key is stored as sent', () => {
     const out = merge(null, inverter())
-    expect(out.change).toEqual({ key: 'inverter:eg4:6000xp', kind: 'inverter', brand: 'EG4 Electronics', model: '6000XP', status: 'new', fills: [], replaced: [], cleared: [], conflicts: [] })
+    expect(out.change).toEqual({ key: 'inverter:eg4:6000xp', kind: 'inverter', brand: 'EG4 Electronics', model: '6000XP', status: 'new', fills: [], replaced: [], cleared: [], conflicts: [], dropped: [] })
     expect(out.next).toEqual(inverter())
   })
 
@@ -186,6 +186,40 @@ describe('mergeProduct', () => {
     const seen = { field: 'specs.compatibleInverterBrands', found: ['Growatt'], source: null, seenAt: OLD }
     const out = merge(record(battery({ compatibleInverterBrands: ['Victron'] }), [seen]), battery({ compatibleInverterBrands: ['growatt'] }))
     expect(out.conflicts).toEqual([seen])
+  })
+})
+
+describe('mergeProduct extra lines past the cap', () => {
+  const lines = (names: string[]) => names.map((n) => extraLine(n, 'x'))
+  const full = (n: number) => lines(Array.from({ length: n }, (_, i) => `L${i}`))
+
+  test('new lines that do not fit are listed as dropped and leave the status unchanged', () => {
+    // Arrange
+    const stored = record({ ...inverter(), extraSpecs: full(8) })
+    // Act
+    const out = merge(stored, { ...inverter(), extraSpecs: lines(['Weight', 'IP rating']) })
+    // Assert
+    expect(out.change).toMatchObject({ status: 'unchanged', fills: [], dropped: ['extraSpecs.Weight', 'extraSpecs.IP rating'] })
+    expect(out.next.extraSpecs).toEqual(full(8))
+  })
+
+  test('a product with room for some of the new lines fills those and drops the rest', () => {
+    const stored = record({ ...inverter(), extraSpecs: full(7) })
+    const out = merge(stored, { ...inverter(), extraSpecs: lines(['Weight', 'IP rating', 'Size']) })
+    expect(out.change).toMatchObject({ status: 'updated', fills: ['extraSpecs.Weight'], dropped: ['extraSpecs.IP rating', 'extraSpecs.Size'] })
+    expect(out.next.extraSpecs).toHaveLength(8)
+  })
+
+  test('a name sent twice is dropped once', () => {
+    const stored = record({ ...inverter(), extraSpecs: full(8) })
+    const out = merge(stored, { ...inverter(), extraSpecs: lines(['Weight', 'weight']) })
+    expect(out.change.dropped).toEqual(['extraSpecs.Weight'])
+  })
+
+  test('lines that fit, and known names at the cap, drop nothing', () => {
+    const stored = record({ ...inverter(), extraSpecs: full(8) })
+    expect(merge(stored, { ...inverter(), extraSpecs: lines(['l0']) }).change.dropped).toEqual([])
+    expect(merge(record(inverter()), { ...inverter(), extraSpecs: lines(['Weight']) }).change.dropped).toEqual([])
   })
 })
 

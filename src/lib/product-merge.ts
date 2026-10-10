@@ -4,26 +4,27 @@ import { stable } from './stable-json'
 /** A field and the two values a write weighed: the stored one and the one found. Used for both `replaced` and `conflicts`. */
 export interface FieldChange { field: string; stored: unknown; found: unknown }
 export type ChangeStatus = 'new' | 'updated' | 'conflicts' | 'unchanged'
+/** `dropped` lists new extra lines not stored because the product already holds the maximum; it never changes the status. */
 export interface ProductChange {
   key: string; kind: ProductKind; brand: string; model: string; status: ChangeStatus
-  fills: string[]; replaced: FieldChange[]; cleared: string[]; conflicts: FieldChange[]
+  fills: string[]; replaced: FieldChange[]; cleared: string[]; conflicts: FieldChange[]; dropped: string[]
 }
 /** What a write does to one product: the change to report, the product to store and the row's conflicts list. */
 export interface MergeResult { change: ProductChange; next: ProductInput; conflicts: ProductConflict[] }
 
-/** What deciding some fields produced: which were filled, replaced or confirmed (same value, replace on), and the conflicts found. */
-interface Outcome { fills: string[]; replaced: FieldChange[]; confirmed: string[]; conflicts: FieldChange[]; found: ProductConflict[] }
+/** What deciding some fields produced: which were filled, replaced or confirmed (same value, replace on), the conflicts found and the new extra lines dropped. */
+interface Outcome { fills: string[]; replaced: FieldChange[]; confirmed: string[]; conflicts: FieldChange[]; found: ProductConflict[]; dropped: string[] }
 interface Decided<T> { value: T; outcome: Outcome }
 interface Ctx { replace: boolean; now: string }
 /** A field as stored or found: `shown` is the value as given, `comparable` the form it is compared in. */
 interface Field { comparable: unknown; shown: unknown; isStated: boolean; source: string | null }
 interface Level { w: number | null; seconds: number | null }
 
-const NOTHING: Outcome = { fills: [], replaced: [], confirmed: [], conflicts: [], found: [] }
+const NOTHING: Outcome = { fills: [], replaced: [], confirmed: [], conflicts: [], found: [], dropped: [] }
 const UNSTATED: Field = { comparable: null, shown: null, isStated: false, source: null }
 const combine = (a: Outcome, b: Outcome): Outcome => ({
   fills: [...a.fills, ...b.fills], replaced: [...a.replaced, ...b.replaced], confirmed: [...a.confirmed, ...b.confirmed],
-  conflicts: [...a.conflicts, ...b.conflicts], found: [...a.found, ...b.found],
+  conflicts: [...a.conflicts, ...b.conflicts], found: [...a.found, ...b.found], dropped: [...a.dropped, ...b.dropped],
 })
 const keep = <T>(value: T): Decided<T> => ({ value, outcome: NOTHING })
 const sortedLower = (xs: readonly string[]) => [...xs].map((x) => x.toLowerCase()).sort()
@@ -75,18 +76,20 @@ function mergeSpecs(stored: Record<string, unknown>, incoming: Record<string, un
 const extraField = (l: ExtraSpec | undefined): Field =>
   ({ comparable: l?.value.trim() ?? null, shown: l?.value ?? null, isStated: l !== undefined, source: l?.source ?? null })
 
-/** Extra lines by name (case-insensitive): known names decide like specs and keep their stored name, new names are fills once each, never more than 8. */
+/** Extra lines by name (case-insensitive): known names decide like specs and keep their stored name, new names are fills once each up to the cap of 8 and the rest are dropped. */
 function mergeExtras(stored: readonly ExtraSpec[], incoming: readonly ExtraSpec[], ctx: Ctx): Decided<ExtraSpec[]> {
   const known = stored.map((line) => {
     const other = incoming.find((l) => nameKey(l.name) === nameKey(line.name))
     const found = other === undefined ? line : { ...line, value: other.value, source: other.source }
     return decide(`extraSpecs.${line.name}`, line, found, extraField(line), extraField(other), ctx)
   })
-  const added = incoming
+  const fresh = incoming
     .filter((l) => !stored.some((s) => nameKey(s.name) === nameKey(l.name)))
-    .filter((l, i, fresh) => fresh.findIndex((o) => nameKey(o.name) === nameKey(l.name)) === i)
-    .slice(0, Math.max(0, MAX_EXTRA_SPECS - stored.length))
-  const addedOutcome: Outcome = { ...NOTHING, fills: added.map((l) => `extraSpecs.${l.name}`) }
+    .filter((l, i, all) => all.findIndex((o) => nameKey(o.name) === nameKey(l.name)) === i)
+  const room = Math.max(0, MAX_EXTRA_SPECS - stored.length)
+  const added = fresh.slice(0, room)
+  const fieldOf = (l: ExtraSpec) => `extraSpecs.${l.name}`
+  const addedOutcome: Outcome = { ...NOTHING, fills: added.map(fieldOf), dropped: fresh.slice(room).map(fieldOf) }
   return { value: [...known.map((d) => d.value), ...added], outcome: [...known.map((d) => d.outcome), addedOutcome].reduce(combine, NOTHING) }
 }
 
@@ -119,7 +122,7 @@ function decidePrice(stored: ProductInput['price'], incoming: ProductInput['pric
 export function mergeProduct(stored: ProductRecord | null, incoming: ProductInput, ctx: Ctx): MergeResult {
   const key = productKey(incoming)
   if (stored === null) {
-    const change: ProductChange = { key, kind: incoming.kind, brand: incoming.brand, model: incoming.model, status: 'new', fills: [], replaced: [], cleared: [], conflicts: [] }
+    const change: ProductChange = { key, kind: incoming.kind, brand: incoming.brand, model: incoming.model, status: 'new', fills: [], replaced: [], cleared: [], conflicts: [], dropped: [] }
     return { change, next: incoming, conflicts: [] }
   }
   const url = (u: string | null): Field => ({ comparable: u, shown: u, isStated: u !== null, source: u })
@@ -137,7 +140,7 @@ export function mergeProduct(stored: ProductRecord | null, incoming: ProductInpu
   const cleared = clearedFields(stored.conflicts, settled)
   const change: ProductChange = {
     key, kind: stored.kind, brand: stored.brand, model: stored.model, status: statusOf(outcome, cleared),
-    fills: outcome.fills, replaced: outcome.replaced, cleared, conflicts: outcome.conflicts,
+    fills: outcome.fills, replaced: outcome.replaced, cleared, conflicts: outcome.conflicts, dropped: outcome.dropped,
   }
   return { change, next, conflicts: nextConflicts(stored.conflicts, outcome, settled) }
 }
