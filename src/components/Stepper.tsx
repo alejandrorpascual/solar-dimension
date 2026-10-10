@@ -36,8 +36,7 @@ export function Stepper(props: StepperProps) {
   return (
     <nav aria-label="Steps" className="stepper">
       {states.map((state, i) => {
-        const { step, isCurrent, isDone, isLocked } = state
-        const isReached = isCurrent || isDone
+        const { step, isCurrent, isDone, isLocked, isReached } = state
         return (
           <Fragment key={step}>
             {i > 0 && <div className={`stepper__line${isReached ? ' stepper__line--on' : ''}`} aria-hidden="true" />}
@@ -51,7 +50,7 @@ export function Stepper(props: StepperProps) {
               onClick={() => { if (!isCurrent) onGo?.(step) }}
             >
               <span className={dotClass(state)} aria-hidden="true">{isDone ? <Check size={16} strokeWidth={3} /> : step}</span>
-              <span className={`step-label${isReached ? ' step-label--on' : ''}`} aria-hidden="true">{labels[step]}</span>
+              <span className={`step-label${isCurrent || isDone ? ' step-label--on' : ''}`} aria-hidden="true">{labels[step]}</span>
             </button>
           </Fragment>
         )

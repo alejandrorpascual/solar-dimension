@@ -47,6 +47,27 @@ describe('stepStates', () => {
     expect(lockedSteps(3, false)).toEqual([2, 4])
     expect(lockedSteps(4, false)).toEqual([2, 3])
   })
+
+  test('a locked step behind the current one is not done: only the appliances step is', () => {
+    expect(stepStates(3, false).map((s) => s.isDone)).toEqual([true, false, false, false])
+    expect(stepStates(4, false).map((s) => s.isDone)).toEqual([true, false, false, false])
+  })
+
+  test('no step is ever two of current, done and locked at once', () => {
+    for (const current of STEPS) {
+      for (const hasAppliances of [true, false]) {
+        const flagsSet = stepStates(current, hasAppliances).map((s) => [s.isCurrent, s.isDone, s.isLocked].filter(Boolean).length)
+        expect(Math.max(...flagsSet)).toBeLessThanOrEqual(1)
+      }
+    }
+  })
+
+  test('the path is lit up to the current step, whatever is locked on the way', () => {
+    for (const hasAppliances of [true, false]) {
+      expect(stepStates(1, hasAppliances).map((s) => s.isReached)).toEqual([true, false, false, false])
+      expect(stepStates(3, hasAppliances).map((s) => s.isReached)).toEqual([true, true, true, false])
+    }
+  })
 })
 
 // Checked by `tsc` (npm run typecheck), not at run time: an unused @ts-expect-error fails the typecheck.

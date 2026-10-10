@@ -158,7 +158,12 @@ test('the step an empty project is on is drawn as the current one, never as lock
     await expect(current).not.toHaveAttribute('title')
     await expect(current.locator('.dot')).toHaveClass(/dot--cur/)
     await expect(current.locator('.dot')).not.toHaveClass(/dot--locked/)
-    for (const other of steps.slice(1).filter((s) => s !== current)) await expect(other).toBeDisabled()
+    // The other later steps stay locked and look it, behind the current step as much as ahead of it: no "done" tick.
+    for (const other of steps.slice(1).filter((s) => s !== current)) {
+      await expect(other).toBeDisabled()
+      await expect(other.locator('.dot')).toHaveClass(/dot--locked/)
+      await expect(other.locator('.dot')).not.toHaveClass(/dot--done/)
+    }
     await expect(steps[0]).toBeEnabled()
   }
 })
