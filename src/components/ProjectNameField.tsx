@@ -1,22 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
+import type { RenameClose } from '../lib/project-rename'
 import { PROJECT_NAME_MAX } from '../lib/store'
 
 interface Props {
   name: string
-  /** Called once with the typed text when Enter or leaving the field saves it; `byKey` is true for Enter. */
-  onSave: (raw: string, byKey: boolean) => void
-  /** Called when Escape drops the edit. */
-  onCancel: () => void
+  /** Called with the field's text on every change: the name is saved as it is typed, like every other control. */
+  onType: (raw: string) => void
+  /**
+   * Called when the field is done with: Enter, Escape, or focus leaving it. Enter and Escape close the field while it
+   * has focus, and Chromium then fires a blur for the removed input, so a second call must be harmless.
+   */
+  onClose: (via: RenameClose) => void
 }
 
 /** The open project's name, edited in place on its card. Opens focused with the text selected, like a file rename. */
-export function ProjectNameField({ name, onSave, onCancel }: Props) {
+export function ProjectNameField({ name, onType, onClose }: Props) {
   const { t } = useLocale()
+  // The field's own text, so it can be emptied while the project keeps a name (the placeholder shows which).
   const [draft, setDraft] = useState(name)
-  // Enter and Escape end the edit by blurring; these say which, so Escape's blur does not save.
-  const isCancelling = useRef(false)
-  const isSavingByKey = useRef(false)
   const input = useRef<HTMLInputElement>(null)
   // Not `autoFocus`: React focuses that while it commits, and when Rename comes from the ··· menu the page around the
   // menu is still `inert` then, so the call does nothing. react-aria lifts `inert` in the menu's effect cleanup, and
@@ -32,21 +34,22 @@ export function ProjectNameField({ name, onSave, onCancel }: Props) {
       placeholder={t.ui.untitled}
       maxLength={PROJECT_NAME_MAX}
       onFocus={(e) => e.currentTarget.select()}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => (isCancelling.current ? onCancel() : onSave(draft, isSavingByKey.current))}
+      onChange={(e) => {
+        setDraft(e.target.value)
+        onType(e.target.value)
+      }}
+      onBlur={() => onClose('blur')}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
           // Focus moves to the card's title as the field closes; without this, Enter's keypress lands there and
           // presses it, reopening the rename.
           e.preventDefault()
-          isSavingByKey.current = true
-          e.currentTarget.blur()
+          onClose('enter')
         }
         if (e.key === 'Escape') {
           // Inside the phone sheet, Escape would also close the sheet; here it only drops the edit.
           e.stopPropagation()
-          isCancelling.current = true
-          e.currentTarget.blur()
+          onClose('escape')
         }
       }}
     />

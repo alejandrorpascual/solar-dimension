@@ -1,5 +1,7 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
-import { openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, showProjects, startNewProject } from './projects'
+import {
+  openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, showProjects, startNewProject, startRename,
+} from './projects'
 
 /** How long one try at opening the menu waits before trying again: a press that lands before hydration does nothing. */
 const RETRY_AFTER_MS = 1000
@@ -87,3 +89,38 @@ for (const action of ['Duplicate', 'Delete'] as const) {
     await expectSheet(page, testInfo, 'closed')
   })
 }
+
+test('a name is saved as it is typed: a reload with the field still open keeps it', async ({ page }) => {
+  await page.goto('/')
+  const field = await startRename(page)
+  await page.keyboard.type('Workshop')
+  await expect(field).toHaveValue('Workshop')
+  await page.reload()
+  await showProjects(page)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Workshop')
+})
+
+test('a name field left empty is stored as Untitled, even if the field never closes', async ({ page }) => {
+  await page.goto('/')
+  const field = await startRename(page)
+  await page.keyboard.press('Backspace')
+  await expect(field).toHaveValue('')
+  await page.reload()
+  await showProjects(page)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Untitled')
+})
+
+test('Escape puts back the name the rename started with, though every keystroke was saved', async ({ page }, testInfo) => {
+  await page.goto('/')
+  const field = await startRename(page)
+  await page.keyboard.type('Never kept')
+  await expect(field).toHaveValue('Never kept')
+  await page.keyboard.press('Escape')
+  const title = openProjectTitle(page)
+  await expect(title).toHaveText('Home')
+  await expect(title).toBeFocused()
+  await expectSheet(page, testInfo, 'open')
+  await page.reload()
+  await showProjects(page)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Home')
+})

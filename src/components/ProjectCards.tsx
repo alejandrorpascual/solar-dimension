@@ -7,9 +7,10 @@ import { useProjectJobs } from '../hooks/useQuoteJobs'
 import { applianceName, batteryCount, tr, type Dictionary } from '../i18n'
 import { fmtHours, fmtKwh, fmtW } from '../i18n/format'
 import { projectLine } from '../lib/quote-text'
+import { renameOutcome, type RenameClose, type Renaming } from '../lib/project-rename'
 import { currentFirst, summarizeProjects, type ProjectSummary } from '../lib/project-summary'
-import type { Store } from '../lib/schema'
-import { addProject, deleteProject, duplicateProject, renameProject, selectProject, setQtyIn } from '../lib/store'
+import type { Project, Store } from '../lib/schema'
+import { addProject, currentProject, deleteProject, duplicateProject, renameProject, selectProject, setQtyIn } from '../lib/store'
 import { ProjectMenu } from './ProjectMenu'
 import { ProjectNameField } from './ProjectNameField'
 import { QtyStepper } from './QtyStepper'
@@ -34,8 +35,8 @@ interface CurrentActions {
   titleRef: RefObject<HTMLButtonElement | null>
   canDelete: boolean
   onRename: () => void
-  onRenameSave: (raw: string, byKey: boolean) => void
-  onRenameCancel: () => void
+  onRenameType: (raw: string) => void
+  onRenameClose: (via: RenameClose) => void
   onDuplicate: () => void
   onDelete: () => void
 }
@@ -51,7 +52,7 @@ interface CardProps {
 }
 
 function CardTitle({ name, titleId, current, onOpen }: { name: string; titleId: string; current?: CurrentActions; onOpen: () => void }) {
-  if (current?.isRenaming) return <ProjectNameField name={name} onSave={current.onRenameSave} onCancel={current.onRenameCancel} />
+  if (current?.isRenaming) return <ProjectNameField name={name} onType={current.onRenameType} onClose={current.onRenameClose} />
   return (
     <h3 className="pcard__title" id={titleId}>
       {current ? (
@@ -146,28 +147,35 @@ export function ProjectCards({ store, commit, onPicked }: Props) {
   const { t } = useLocale()
   const appliances = useCatalog()
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renaming, setRenaming] = useState<Renaming | null>(null)
   const { titleRef, focusTitle } = useTitleFocus()
+  const startRename = (project: Project) => setRenaming({ id: project.id, original: project.name })
   // A new project opens on top already renaming; the sheet stays open until the name is saved.
   const createProject = () => {
     const next = addProject(store)
     commit(next)
-    setRenamingId(next.currentId)
+    startRename(currentProject(next))
   }
-  const currentActions = (id: string): CurrentActions => ({
-    isRenaming: renamingId === id,
+  // Called from handlers of the latest render only, never from a cleanup: `commit` replaces the whole store, so an
+  // older `store` here would undo whatever changed since. A blank name is stored as the fallback straight away.
+  const rename = (id: string, raw: string) => {
+    const next = renameProject(store, id, raw, t.ui.untitled)
+    if (next !== store) commit(next)
+  }
+  const closeRename = (via: RenameClose) => {
+    if (!renaming) return
+    const outcome = renameOutcome(via)
+    if (outcome.shouldRestore) rename(renaming.id, renaming.original)
+    setRenaming(null)
+    if (outcome.shouldFocusTitle) focusTitle()
+  }
+  const currentActions = (project: Project): CurrentActions => ({
+    isRenaming: renaming?.id === project.id,
     titleRef,
     canDelete: store.projects.length > 1,
-    onRename: () => setRenamingId(id),
-    onRenameSave: (raw, byKey) => {
-      setRenamingId(null)
-      if (byKey) focusTitle()
-      commit(renameProject(store, id, raw, t.ui.untitled))
-    },
-    onRenameCancel: () => {
-      setRenamingId(null)
-      focusTitle()
-    },
+    onRename: () => startRename(project),
+    onRenameType: (raw) => rename(project.id, raw),
+    onRenameClose: closeRename,
     // The ··· button that had focus belongs to the card that was open; the project now open gets it instead.
     onDuplicate: () => {
       commit(duplicateProject(store))
@@ -188,7 +196,7 @@ export function ProjectCards({ store, commit, onPicked }: Props) {
         <ProjectCard
           key={s.project.id}
           summary={s}
-          current={s.project.id === store.currentId ? currentActions(s.project.id) : undefined}
+          current={s.project.id === store.currentId ? currentActions(s.project) : undefined}
           isEditing={editingId === s.project.id}
           onOpen={() => { commit(selectProject(store, s.project.id)); onPicked?.() }}
           onToggleEdit={() => setEditingId(editingId === s.project.id ? null : s.project.id)}
