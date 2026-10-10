@@ -149,3 +149,43 @@ test('a write of one new and one unchanged product creates the first and moves l
     await deleteTestProduct(freshKey)
   }
 })
+
+test('a mistyped flag answers 400 naming it, and nothing is written', async ({ request }) => {
+  const model = `F${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  const mistyped = [['?dryRun=1', 'dryRun'], ['?dryrun=true', 'dryrun'], ['?dryRun=True', 'dryRun'], ['?replace=yes', 'replace'], ['?dryRun=true&dryRun=false', 'dryRun']]
+  try {
+    for (const [query, name] of mistyped) {
+      const res = await post(request, query, [inverter(model)])
+      expect(res.status(), `POST ${query}`).toBe(400)
+      expect(await res.json()).toEqual({ error: expect.stringContaining(`"${name}"`) })
+      expect(await stored(request, key), `POST ${query} wrote a row`).toBeUndefined()
+    }
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
+test('a dry run with replace shows what it would overwrite, and writes nothing', async ({ request }) => {
+  const model = `R${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  const seen = { amount: 1199, currency: 'USD', seller: 'Shop', url: 'https://shop.example.com/p', seenOn: '2026-10-09' }
+  const later = { ...seen, amount: 1099, seenOn: '2026-10-10' }
+  try {
+    await post(request, '', [{ ...inverter(model), price: seen }])
+
+    const dry = await post(request, '?dryRun=true&replace=true', [{ ...inverter(model, 5000), price: later }])
+
+    expect(dry.status()).toBe(200)
+    const [change] = (await dry.json()).changes
+    expect(change).toMatchObject({ key, status: 'updated', fills: [], conflicts: [], dropped: [] })
+    expect(change.replaced).toHaveLength(2)
+    expect(change.replaced).toEqual(expect.arrayContaining([
+      { field: 'specs.continuousW', stored: 6000, found: 5000 },
+      { field: 'price', stored: seen, found: later },
+    ]))
+    expect(await stored(request, key)).toMatchObject({ specs: { continuousW: { value: 6000 } }, price: seen })
+  } finally {
+    await deleteTestProduct(key)
+  }
+})

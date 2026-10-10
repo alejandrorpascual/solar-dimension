@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { parseWriteFlags } from '../../../lib/api-flags'
 import { parseProducts, productKey } from '../../../lib/product-schema'
 import { API_ACTOR, authorize, json } from '../../../server/catalog-api'
 import { listProducts, previewProducts, UnreadableProductsError, upsertProducts } from '../../../server/product-repo'
@@ -23,12 +24,14 @@ export const Route = createFileRoute('/api/catalog/products')({
       POST: async ({ request }) => {
         const denied = authorize(request)
         if (denied) return denied
+        // Before the body is read: a mistyped flag must never fall through to a real write.
+        const flags = parseWriteFlags(new URL(request.url).searchParams)
+        if (!flags.ok) return json({ error: flags.error }, 400)
+        const { dryRun, replace } = flags
         const parsed = parseProducts(await request.json().catch(() => undefined))
         if (!parsed.ok) return json({ errors: parsed.errors }, 422)
-        const params = new URL(request.url).searchParams
-        const replace = params.get('replace') === 'true'
         const keys = parsed.items.map(productKey)
-        if (params.get('dryRun') === 'true') {
+        if (dryRun) {
           try {
             return json({ changes: await previewProducts(parsed.items, replace) })
           } catch (error) {
