@@ -134,3 +134,16 @@ export function mergeProduct(stored: ProductRecord | null, incoming: ProductInpu
   }
   return { change, next, conflicts: nextConflicts(stored.conflicts, outcome) }
 }
+
+export interface UpsertSummary { created: string[]; updated: string[]; unchanged: string[]; conflicts: Array<{ key: string; fields: string[] }> }
+
+/** What a write answers. `conflicts` lists every product whose change has conflicts, whatever its status: a write that fills one field and finds another differing is in `updated` too. */
+export function summarize(changes: readonly ProductChange[]): UpsertSummary {
+  const keysWith = (status: ChangeStatus) => changes.filter((c) => c.status === status).map((c) => c.key)
+  return {
+    created: keysWith('new'),
+    updated: keysWith('updated'),
+    unchanged: keysWith('unchanged'),
+    conflicts: changes.filter((c) => c.conflicts.length > 0).map((c) => ({ key: c.key, fields: c.conflicts.map((f) => f.field) })),
+  }
+}

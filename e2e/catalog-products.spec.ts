@@ -11,13 +11,13 @@ const SHEET = 'https://example.com/e2e-datasheet.pdf'
 const NONE = { value: null, source: null, asWritten: null }
 const stated = (value: number, asWritten: string) => ({ value, source: SHEET, asWritten })
 
-function inverter(model: string, continuousW = 6000) {
+function inverter(model: string, continuousW = 6000, chargerA: ReturnType<typeof stated> | typeof NONE = NONE) {
   return {
     kind: 'inverter', brand: 'E2E Power', model, makerUrl: null, datasheetUrl: SHEET, extraSpecs: [], price: null,
     specs: {
       continuousW: stated(continuousW, `Rated power ${continuousW}W`),
       surges: [{ w: 12000, seconds: 3.5, asWritten: '12,000W for ≈3.5 seconds', source: SHEET }],
-      batteryVolts: stated(48, '48 VDC'), splitPhase: NONE, chargerA: NONE, pvInputW: NONE, pvVocMax: NONE,
+      batteryVolts: stated(48, '48 VDC'), splitPhase: NONE, chargerA, pvInputW: NONE, pvVocMax: NONE,
       maxParallelUnits: NONE, idleW: NONE, peakEfficiencyPct: NONE, warrantyYears: NONE, bmsComms: ['can'], compatibleBatteryBrands: [],
     },
   }
@@ -76,6 +76,27 @@ test('a stored product that no longer passes the schema is never overwritten', a
       expect(await rawTestProduct(key)).toEqual(untouched)
     }
     expect(await stored(request, key)).toBeUndefined()
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
+test('a write that fills one spec and finds another differing is in updated and in conflicts', async ({ request }) => {
+  const model = `M${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  try {
+    // Arrange: stored with chargerA unstated
+    expect(await (await post(request, '', [inverter(model)])).json()).toEqual({ created: [key], updated: [], unchanged: [], conflicts: [] })
+
+    // Act: fills chargerA and reads a different continuousW
+    const mixed = await post(request, '', [inverter(model, 5000, stated(125, 'Max. charge current 125A'))])
+
+    // Assert: the answer lists it twice, and the row holds both
+    expect(await mixed.json()).toEqual({ created: [], updated: [key], unchanged: [], conflicts: [{ key, fields: ['specs.continuousW'] }] })
+    expect(await stored(request, key)).toMatchObject({
+      specs: { continuousW: { value: 6000 }, chargerA: { value: 125 } },
+      conflicts: [{ field: 'specs.continuousW', found: 5000 }],
+    })
   } finally {
     await deleteTestProduct(key)
   }

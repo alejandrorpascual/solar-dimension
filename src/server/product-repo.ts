@@ -2,7 +2,7 @@ import { asc, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client'
 import { products } from '../db/schema'
-import { mergeProduct, type MergeResult, type ProductChange } from '../lib/product-merge'
+import { mergeProduct, summarize, type MergeResult, type ProductChange, type UpsertSummary } from '../lib/product-merge'
 import { ProductConflictSchema, ProductInputSchema, productKey, type ProductInput, type ProductOrigin, type ProductRecord } from '../lib/product-schema'
 
 type Row = typeof products.$inferSelect
@@ -52,8 +52,6 @@ export async function previewProducts(items: readonly ProductInput[], replace: b
   return (await plan(items, replace)).map((m) => m.change)
 }
 
-export interface UpsertSummary { created: string[]; updated: string[]; unchanged: string[]; conflicts: Array<{ key: string; fields: string[] }> }
-
 /** The only way products are written. Unchanged products are skipped; one statement, so it is all or nothing. */
 export async function upsertProducts(items: readonly ProductInput[], opts: { replace: boolean; actor: string }): Promise<UpsertSummary> {
   const merged = await plan(items, opts.replace)
@@ -74,11 +72,5 @@ export async function upsertProducts(items: readonly ProductInput[], opts: { rep
         },
       })
   }
-  const keysWith = (status: ProductChange['status']) => merged.filter((m) => m.change.status === status).map((m) => m.change.key)
-  return {
-    created: keysWith('new'),
-    updated: keysWith('updated'),
-    unchanged: keysWith('unchanged'),
-    conflicts: merged.filter((m) => m.change.status === 'conflicts').map((m) => ({ key: m.change.key, fields: m.change.conflicts.map((c) => c.field) })),
-  }
+  return summarize(merged.map((m) => m.change))
 }

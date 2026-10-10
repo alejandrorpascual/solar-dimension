@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { mergeProduct } from './product-merge'
+import { mergeProduct, summarize } from './product-merge'
 import { battery, inverter, NONE, SHEET, stated } from './product-fixtures'
 import { productKey, type ProductInput, type ProductRecord } from './product-schema'
 
@@ -162,5 +162,37 @@ describe('mergeProduct', () => {
     const seen = { field: 'specs.compatibleInverterBrands', found: ['Growatt'], source: null, seenAt: OLD }
     const out = merge(record(battery({ compatibleInverterBrands: ['Victron'] }), [seen]), battery({ compatibleInverterBrands: ['growatt'] }))
     expect(out.conflicts).toEqual([seen])
+  })
+})
+
+describe('summarize', () => {
+  const KEY = 'inverter:eg4:6000xp'
+
+  test('lists a product that fills one field and conflicts on another under updated and under conflicts', () => {
+    // Arrange
+    const stored = record(inverter({ chargerA: NONE }))
+    const incoming = inverter({ chargerA: stated(125, 'MAX. CHARGE CURRENT 125A'), continuousW: stated(5000, '5000W') })
+    // Act
+    const out = summarize([merge(stored, incoming).change])
+    // Assert
+    expect(out).toEqual({ created: [], updated: [KEY], unchanged: [], conflicts: [{ key: KEY, fields: ['specs.continuousW'] }] })
+  })
+
+  test('lists a product that only conflicts under conflicts alone', () => {
+    const out = summarize([merge(record(inverter()), inverter({ continuousW: stated(5000, '5000W') })).change])
+    expect(out).toEqual({ created: [], updated: [], unchanged: [], conflicts: [{ key: KEY, fields: ['specs.continuousW'] }] })
+  })
+
+  test('sorts new, filled and untouched products into created, updated and unchanged', () => {
+    const created = merge(null, battery()).change
+    const updated = merge(record(inverter({ chargerA: NONE })), inverter({ chargerA: stated(125, 'MAX. CHARGE CURRENT 125A') })).change
+    const unchanged = merge(record(battery({ kWh: stated(5.12, '5.12kWh') })), battery()).change
+    expect(summarize([created, updated, unchanged])).toEqual({
+      created: ['battery:pytes:v5'], updated: [KEY], unchanged: ['battery:pytes:v5'], conflicts: [],
+    })
+  })
+
+  test('gives an empty summary for no changes', () => {
+    expect(summarize([])).toEqual({ created: [], updated: [], unchanged: [], conflicts: [] })
   })
 })
