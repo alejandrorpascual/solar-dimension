@@ -125,6 +125,41 @@ test('Escape puts back the name the rename started with, though every keystroke 
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Home')
 })
 
+/**
+ * Presses a button the way a scripted click does: focus stays where it was. A name field that had focus is then
+ * removed while it still has it, and React never tells the app it blurred.
+ */
+const pressWithoutFocus = (button: Locator) => button.evaluate((el: HTMLElement) => el.click())
+
+test('a rename ends when another project is opened, even if the name field never blurred', async ({ page }, testInfo) => {
+  await page.goto('/')
+  await addProject(page)
+  const field = await startRename(page)
+  await expect(field).toHaveValue('Project 2')
+  await pressWithoutFocus(page.getByRole('button', { name: 'Home', exact: true }))
+  // Opening a card closes the phone's sheet; the desktop rail stays.
+  if (isPhone(testInfo)) await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  await showProjects(page)
+  await expect(openProjectTitle(page)).toHaveText('Home')
+  await page.getByRole('button', { name: 'Project 2', exact: true }).click()
+  if (isPhone(testInfo)) await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  await showProjects(page)
+  await expect(openProjectTitle(page)).toHaveText('Project 2')
+  await expect(projectNameField(page)).toBeHidden()
+})
+
+test('a new project started while a name field still has focus opens its own name field', async ({ page }) => {
+  await page.goto('/')
+  await startRename(page)
+  await pressWithoutFocus(page.getByRole('button', { name: '+ New project' }))
+  const field = projectNameField(page)
+  await expect(field).toHaveValue('Project 2')
+  await expect(field).toBeFocused()
+  await afterNextFrames(page)
+  await expect(field).toBeFocused()
+  await expect(page.getByRole('article', { name: 'Home', exact: true })).toBeVisible()
+})
+
 test("Enter in a new project's name field closes the phone's sheet", async ({ page }, testInfo) => {
   await page.goto('/')
   const field = await startNewProject(page)
@@ -132,6 +167,8 @@ test("Enter in a new project's name field closes the phone's sheet", async ({ pa
   await field.fill('Cabin')
   await field.press('Enter')
   await expectSheet(page, testInfo, 'closed')
+  // The sheet hands focus back to the button that opened it.
+  if (isPhone(testInfo)) await expect(page.getByRole('button', { name: /^Projects · \d+$/ })).toBeFocused()
   await showProjects(page)
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Cabin')
 })

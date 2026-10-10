@@ -43,12 +43,22 @@ function useTitleFocus() {
   return { titleRef, focusTitle: () => setRequested(true) }
 }
 
+/** The rename in progress, if any. It is always the open project's: once another project is open, the rename is over. */
+function useRenaming(openId: string) {
+  const [renaming, setRenaming] = useState<Renaming | null>(null)
+  // Reset here rather than on the field's blur: React does not call onBlur for a focused field it removes, so a field
+  // that goes away without first losing focus never reports closing, and the rename would resume when its project
+  // is opened again.
+  if (renaming && renaming.id !== openId) setRenaming(null)
+  return [renaming, setRenaming] as const
+}
+
 /** Renaming on the open project's card: which rename is in progress, where focus goes after it, and the card's actions. */
 export function useProjectRename({ store, commit, onPicked }: Args) {
   const { t } = useLocale()
-  const [renaming, setRenaming] = useState<Renaming | null>(null)
-  const { titleRef, focusTitle } = useTitleFocus()
   const open = currentProject(store)
+  const [renaming, setRenaming] = useRenaming(open.id)
+  const { titleRef, focusTitle } = useTitleFocus()
   // Called from handlers of the latest render only, never from a cleanup: `commit` replaces the whole store, so an
   // older `store` here would undo whatever changed since. A blank name is stored as the fallback straight away.
   const rename = (id: string, raw: string) => {

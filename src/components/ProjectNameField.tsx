@@ -10,8 +10,8 @@ interface Props {
   /** Called with the field's text on every change: the name is saved as it is typed, like every other control. */
   onType: (raw: string) => void
   /**
-   * Called when the field is done with: Enter, Escape, or focus leaving it. Enter and Escape close the field while it
-   * has focus, and Chromium then fires a blur for the removed input, so a second call must be harmless.
+   * Called once when the field is done with: Enter, Escape, or focus leaving it. Enter and Escape report it themselves:
+   * React does not call onBlur for a focused input it removes, so no blur follows them.
    */
   onClose: (via: RenameClose) => void
 }
