@@ -9,6 +9,7 @@ const record = (p: ProductInput, conflicts: ProductRecord['conflicts'] = []): Pr
 const merge = (stored: ProductRecord | null, incoming: ProductInput, replace = false) => mergeProduct(stored, incoming, { replace, now: NOW })
 const extraLine = (name: string, value: string) => ({ name, value, source: SHEET })
 const OLD = '2026-10-01T00:00:00.000Z'
+const PRICE = { amount: 1199, currency: 'USD', seller: 'Shop', url: 'https://shop.example.com/p', seenOn: '2026-10-09' }
 
 describe('mergeProduct', () => {
   test('a new key is stored as sent', () => {
@@ -40,7 +41,7 @@ describe('mergeProduct', () => {
   test('replace writes the incoming value and clears that field’s stored conflicts', () => {
     const old = { field: 'specs.continuousW', found: 5500, source: SHEET, seenAt: '2026-10-01T00:00:00.000Z' }
     const out = merge(record(inverter(), [old]), inverter({ continuousW: stated(5000, '5000W') }), true)
-    expect(out.change).toMatchObject({ status: 'updated', replaced: ['specs.continuousW'], conflicts: [] })
+    expect(out.change).toMatchObject({ status: 'updated', replaced: [{ field: 'specs.continuousW', stored: 6000, found: 5000 }], conflicts: [] })
     expect(out.next.kind === 'inverter' && out.next.specs.continuousW.value).toBe(5000)
     expect(out.conflicts).toEqual([])
   })
@@ -68,11 +69,34 @@ describe('mergeProduct', () => {
     expect(merge(full, { ...inverter(), extraSpecs: [line('L9', 'y')] }).next.extraSpecs).toHaveLength(8)
   })
 
-  test('a different price takes the old one’s place as a fill', () => {
-    const price = { amount: 1199, currency: 'USD', seller: 'Shop', url: 'https://shop.example.com/p', seenOn: '2026-10-09' }
-    const out = merge(record(inverter()), { ...inverter(), price })
-    expect(out.change).toMatchObject({ status: 'updated', fills: ['price'] })
-    expect(out.next.price).toEqual(price)
+  test('a price on a product without one is a fill', () => {
+    const out = merge(record(inverter()), { ...inverter(), price: PRICE })
+    expect(out.change).toMatchObject({ status: 'updated', fills: ['price'], replaced: [] })
+    expect(out.next.price).toEqual(PRICE)
+  })
+
+  test('a different price takes the old one’s place without replace and is reported as replaced', () => {
+    const cheaper = { ...PRICE, amount: 1099, seenOn: '2026-10-10' }
+    const out = merge(record({ ...inverter(), price: PRICE }), { ...inverter(), price: cheaper })
+    expect(out.change).toMatchObject({ status: 'updated', fills: [], replaced: [{ field: 'price', stored: PRICE, found: cheaper }], conflicts: [] })
+    expect(out.next.price).toEqual(cheaper)
+  })
+
+  test('the same price again is unchanged', () => {
+    const out = merge(record({ ...inverter(), price: PRICE }), { ...inverter(), price: { ...PRICE } })
+    expect(out.change).toMatchObject({ status: 'unchanged', fills: [], replaced: [] })
+  })
+
+  test('a write with no price keeps the stored price', () => {
+    const out = merge(record({ ...inverter(), price: PRICE }), inverter())
+    expect(out.change.status).toBe('unchanged')
+    expect(out.next.price).toEqual(PRICE)
+  })
+
+  test('replaced carries the stored and found levels of a surge list', () => {
+    const levels = [{ w: 9000, seconds: 5, asWritten: '9 kW 5 s', source: SHEET }]
+    const out = merge(record(inverter()), inverter({ surges: levels }), true)
+    expect(out.change.replaced).toEqual([{ field: 'specs.surges', stored: inverter().specs.surges, found: levels }])
   })
 
   test('a conflict seen again is not stored twice', () => {
@@ -105,7 +129,7 @@ describe('mergeProduct', () => {
   test('a replaced field with a stored conflict is also reported cleared', () => {
     const old = { field: 'specs.continuousW', found: 5500, source: SHEET, seenAt: OLD }
     const out = merge(record(inverter(), [old]), inverter({ continuousW: stated(5000, '5000W') }), true)
-    expect(out.change).toMatchObject({ replaced: ['specs.continuousW'], cleared: ['specs.continuousW'] })
+    expect(out.change).toMatchObject({ replaced: [{ field: 'specs.continuousW', stored: 6000, found: 5000 }], cleared: ['specs.continuousW'] })
   })
 
   test('a stored row missing a spec key takes the incoming value as a fill', () => {
@@ -124,7 +148,7 @@ describe('mergeProduct', () => {
   test('replace on an extra line keeps the stored name', () => {
     const stored = record({ ...inverter(), extraSpecs: [extraLine('IP rating', 'IP20')] })
     const out = merge(stored, { ...inverter(), extraSpecs: [extraLine('ip rating', 'IP65')] }, true)
-    expect(out.change).toMatchObject({ status: 'updated', replaced: ['extraSpecs.IP rating'] })
+    expect(out.change).toMatchObject({ status: 'updated', replaced: [{ field: 'extraSpecs.IP rating', stored: 'IP20', found: 'IP65' }] })
     expect(out.next.extraSpecs[0]).toEqual({ name: 'IP rating', value: 'IP65', source: SHEET })
   })
 
@@ -141,7 +165,7 @@ describe('mergeProduct', () => {
     expect(kept.change).toMatchObject({ status: 'conflicts', conflicts: [{ field: 'makerUrl', stored: 'https://eg4.example.com', found: 'https://eg4electronics.example.com' }] })
     expect(kept.next.makerUrl).toBe('https://eg4.example.com')
     const replaced = merge(stored, incoming, true)
-    expect(replaced.change).toMatchObject({ status: 'updated', replaced: ['makerUrl'] })
+    expect(replaced.change).toMatchObject({ status: 'updated', replaced: [{ field: 'makerUrl', stored: 'https://eg4.example.com', found: 'https://eg4electronics.example.com' }] })
     expect(replaced.next.makerUrl).toBe('https://eg4electronics.example.com')
   })
 

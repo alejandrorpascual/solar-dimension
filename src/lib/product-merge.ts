@@ -1,17 +1,18 @@
 import { MAX_EXTRA_SPECS, productKey, type ExtraSpec, type ProductConflict, type ProductInput, type ProductKind, type ProductRecord } from './product-schema'
 import { stable } from './stable-json'
 
-export interface FieldConflict { field: string; stored: unknown; found: unknown }
+/** A field and the two values a write weighed: the stored one and the one found. Used for both `replaced` and `conflicts`. */
+export interface FieldChange { field: string; stored: unknown; found: unknown }
 export type ChangeStatus = 'new' | 'updated' | 'conflicts' | 'unchanged'
 export interface ProductChange {
   key: string; kind: ProductKind; brand: string; model: string; status: ChangeStatus
-  fills: string[]; replaced: string[]; cleared: string[]; conflicts: FieldConflict[]
+  fills: string[]; replaced: FieldChange[]; cleared: string[]; conflicts: FieldChange[]
 }
 /** What a write does to one product: the change to report, the product to store and the row's conflicts list. */
 export interface MergeResult { change: ProductChange; next: ProductInput; conflicts: ProductConflict[] }
 
 /** What deciding some fields produced: which were filled, replaced or confirmed (same value, replace on), and the conflicts found. */
-interface Outcome { fills: string[]; replaced: string[]; confirmed: string[]; conflicts: FieldConflict[]; found: ProductConflict[] }
+interface Outcome { fills: string[]; replaced: FieldChange[]; confirmed: string[]; conflicts: FieldChange[]; found: ProductConflict[] }
 interface Decided<T> { value: T; outcome: Outcome }
 interface Ctx { replace: boolean; now: string }
 /** A field as stored or found: `shown` is the value as given, `comparable` the form it is compared in. */
@@ -54,7 +55,7 @@ function decide<T>(field: string, stored: T, incoming: T, a: Field, b: Field, ct
   if (stable(a.comparable) === stable(b.comparable)) {
     return ctx.replace ? { value: stored, outcome: { ...NOTHING, confirmed: [field] } } : keep(stored)
   }
-  if (ctx.replace) return { value: incoming, outcome: { ...NOTHING, replaced: [field] } }
+  if (ctx.replace) return { value: incoming, outcome: { ...NOTHING, replaced: [{ field, stored: a.shown, found: b.shown }] } }
   return {
     value: stored,
     outcome: {
@@ -89,15 +90,16 @@ function mergeExtras(stored: readonly ExtraSpec[], incoming: readonly ExtraSpec[
   return { value: [...known.map((d) => d.value), ...added], outcome: [...known.map((d) => d.outcome), addedOutcome].reduce(combine, NOTHING) }
 }
 
-const settledFields = (o: Outcome) => new Set([...o.fills, ...o.replaced, ...o.confirmed])
+/** The fields this write settled (filled, replaced or confirmed): their stored conflicts go. */
+const settledFields = (o: Outcome): ReadonlySet<string> => new Set([...o.fills, ...o.replaced.map((r) => r.field), ...o.confirmed])
 
 /** The fields whose stored conflicts this write removes, each once. */
-const clearedFields = (stored: readonly ProductConflict[], o: Outcome): string[] =>
-  [...new Set(stored.filter((c) => settledFields(o).has(c.field)).map((c) => c.field))]
+const clearedFields = (stored: readonly ProductConflict[], settled: ReadonlySet<string>): string[] =>
+  [...new Set(stored.filter((c) => settled.has(c.field)).map((c) => c.field))]
 
 /** The row's conflicts after this write: settled fields leave, new readings join once per field and value. */
-function nextConflicts(stored: readonly ProductConflict[], o: Outcome): ProductConflict[] {
-  const kept = stored.filter((c) => !settledFields(o).has(c.field))
+function nextConflicts(stored: readonly ProductConflict[], o: Outcome, settled: ReadonlySet<string>): ProductConflict[] {
+  const kept = stored.filter((c) => !settled.has(c.field))
   const isSame = (a: ProductConflict, b: ProductConflict) => a.field === b.field && stable(comparableOf(a.found)) === stable(comparableOf(b.found))
   return [...kept, ...o.found.filter((c) => !kept.some((k) => isSame(k, c)))]
 }
@@ -105,6 +107,13 @@ function nextConflicts(stored: readonly ProductConflict[], o: Outcome): ProductC
 function statusOf(o: Outcome, cleared: readonly string[]): ChangeStatus {
   if (o.fills.length > 0 || o.replaced.length > 0 || cleared.length > 0) return 'updated'
   return o.conflicts.length > 0 ? 'conflicts' : 'unchanged'
+}
+
+/** A price is dated and secondary, so a different one takes the old one's place even without replace; it is reported as replaced, not as a fill. */
+function decidePrice(stored: ProductInput['price'], incoming: ProductInput['price']): Decided<ProductInput['price']> {
+  if (incoming === null || stable(incoming) === stable(stored)) return keep(stored)
+  if (stored === null) return { value: incoming, outcome: { ...NOTHING, fills: ['price'] } }
+  return { value: incoming, outcome: { ...NOTHING, replaced: [{ field: 'price', stored, found: incoming }] } }
 }
 
 export function mergeProduct(stored: ProductRecord | null, incoming: ProductInput, ctx: Ctx): MergeResult {
@@ -118,21 +127,19 @@ export function mergeProduct(stored: ProductRecord | null, incoming: ProductInpu
   const makerUrl = decide('makerUrl', stored.makerUrl, incoming.makerUrl, url(stored.makerUrl), url(incoming.makerUrl), ctx)
   const datasheetUrl = decide('datasheetUrl', stored.datasheetUrl, incoming.datasheetUrl, url(stored.datasheetUrl), url(incoming.datasheetUrl), ctx)
   const extraSpecs = mergeExtras(stored.extraSpecs, incoming.extraSpecs, ctx)
-  // Price is dated and secondary: a different one simply takes the old one's place.
-  const price: Decided<ProductInput['price']> = incoming.price !== null && stable(incoming.price) !== stable(stored.price)
-    ? { value: incoming.price, outcome: { ...NOTHING, fills: ['price'] } }
-    : keep(stored.price)
+  const price = decidePrice(stored.price, incoming.price)
   const outcome = [specs, makerUrl, datasheetUrl, extraSpecs, price].map((d) => d.outcome).reduce(combine, NOTHING)
   const next = {
     kind: stored.kind, brand: stored.brand, model: stored.model, makerUrl: makerUrl.value, datasheetUrl: datasheetUrl.value,
     extraSpecs: extraSpecs.value, price: price.value, specs: specs.value,
   } as ProductInput
-  const cleared = clearedFields(stored.conflicts, outcome)
+  const settled = settledFields(outcome)
+  const cleared = clearedFields(stored.conflicts, settled)
   const change: ProductChange = {
     key, kind: stored.kind, brand: stored.brand, model: stored.model, status: statusOf(outcome, cleared),
     fills: outcome.fills, replaced: outcome.replaced, cleared, conflicts: outcome.conflicts,
   }
-  return { change, next, conflicts: nextConflicts(stored.conflicts, outcome) }
+  return { change, next, conflicts: nextConflicts(stored.conflicts, outcome, settled) }
 }
 
 export interface UpsertSummary { created: string[]; updated: string[]; unchanged: string[]; conflicts: Array<{ key: string; fields: string[] }> }
