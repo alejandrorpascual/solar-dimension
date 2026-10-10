@@ -135,6 +135,7 @@ function normalize(s: string): string {
 const GENERIC_BRAND_WORDS = [
   'electronics', 'electric', 'technologies', 'technology', 'batteries', 'battery', 'solutions', 'solution', 'systems', 'storage', 'lithium', 'energy', 'solar', 'power',
 ] as const
+/** Generic words stop coming off once fewer characters than this would be left ("LG Energy Solution" is LG, "Power" is Power). */
 const MIN_BRAND_KEY = 2
 
 /**
