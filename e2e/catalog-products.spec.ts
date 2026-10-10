@@ -32,6 +32,19 @@ test('the products API needs the token', async ({ request }) => {
   expect((await request.post('/api/catalog/products', { data: [inverter(`X${Date.now()}`)] })).status()).toBe(401)
 })
 
+test('refuses a product write meant for another database', async ({ request }) => {
+  const model = `X${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  try {
+    const elsewhere = await request.post('/api/catalog/products', { headers: { ...auth, 'X-Expect-Database': 'ep-not-this-one-12345678' }, data: [inverter(model)] })
+
+    expect(elsewhere.status()).toBe(412)
+    expect(await stored(request, key)).toBeUndefined()
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
 test('dry run, create, keep a conflicting reading aside, then replace it', async ({ request }) => {
   const model = `X${Date.now()}`
   // Known before anything is written, so `finally` always cleans up.
