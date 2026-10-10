@@ -21,8 +21,10 @@ export function dutyOptions(item: SelectedItem): number[] {
 }
 
 /**
- * How much of each hour a cycling appliance runs, as a native select: a short list with nothing to compare, inside a
- * panel that may itself sit in a sheet. Choosing the catalog value is the reset, so there is no extra button.
+ * How much of each hour a cycling appliance runs, as a native select: a short list with nothing to compare. It sits
+ * on an appliance card in step 1 and in the kit's quick-edit panel; both can be narrower than its longest option, so
+ * the `.qedit__duty` rules let the label wrap and cap the select. Choosing the catalog value is the reset, so there is
+ * no extra button.
  */
 export function DutyControl({ item, name, onDuty }: Props) {
   const { t } = useLocale()

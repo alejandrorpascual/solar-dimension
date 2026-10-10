@@ -35,8 +35,11 @@
 .qedit__watts { font-size: 12px; color: var(--muted); }
 .qedit__group { display: flex; flex-direction: column; gap: 6px; }
 .qedit__group-label { padding: 0 2px; }
-.qedit__duty { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
-.qedit__duty-select { font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); min-height: 34px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+/* A native select is as wide as its longest option, and that width counted into its row or card pushes the page
+   sideways on a phone. So the duty line takes the width it is given: its content sets none (contain), the label gives
+   up its line before the picker is squeezed (wrap), and the picker never grows past the line (max-width). */
+.qedit__duty { contain: inline-size; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.qedit__duty-select { min-width: 0; max-width: 100%; text-overflow: ellipsis; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); min-height: 34px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
 .qedit__duty--on .qedit__duty-select { border-color: var(--accent); color: var(--accent); }
 .qedit__add { position: relative; }
 .qedit__search { padding-left: 38px; }
