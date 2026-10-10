@@ -8,22 +8,30 @@ description: Research an appliance's running watts, start surge and duty cycle, 
 Arguments: `<description> [--target local|prod]` (default `local`).
 
 ## Setup
-- Read `CATALOG_API_TOKEN` from `.env.local`. Base URL: `http://localhost:3000` for local; for prod, `CATALOG_API_URL` from `.env.local`.
+- Never `cat`, `Read`, `rg` or otherwise print any `.env*` file: `.env.local` holds the token and the production database URL. Shell variables don't survive between commands, so start every command that calls the API with:
+  ```bash
+  TOKEN=$(sed -n 's/^CATALOG_API_TOKEN=//p' .env.local | tr -d '"') && BASE=http://localhost:3000
+  ```
+  For `--target prod`, use `BASE=$(sed -n 's/^CATALOG_API_URL=//p' .env.local | tr -d '"')` instead.
 - Never print, echo or log the token or any database URL. Pass the token only in the `Authorization: Bearer` header.
 
 ## Which database a target writes to
-`--target` picks the server, not the database. The local dev server writes to whatever database `DATABASE_URL` in `.env.local` points at, and `vercel env pull .env.local` fills it with the **production** database. So `--target local` is a production write unless local dev has been moved to its own Neon branch.
+`--target` picks the server, not the database: a server writes to the database it was started with. `.env.local` points at the **production** database, and `vercel env pull .env.local` keeps restoring that, so a local server started from it (`npm run dev`, `npm run start`) writes to production. Only a server started on another Neon branch does not.
 
-Before any write, find out which database the **running** local server uses, as a Neon endpoint id (the first label of the `DATABASE_URL` host, without `-pooler`). Print only that id, never the URL. The production database is `ep-round-sea-auutoq9o`.
-1. A `DATABASE_URL` exported in the shell that started the server wins over `.env.local` (dotenv never overrides it). This prints the endpoint from the server's startup environment, or nothing if it isn't there:
-   ```bash
-   pid=$(lsof -ti tcp:3000 -sTCP:LISTEN | head -1); ps eww -o command= -p "$pid" | tr ' ' '\n' | sed -n 's/^DATABASE_URL=.*@\(ep-[a-z0-9-]*\)\..*/\1/p' | sed 's/-pooler$//' | head -1
-   ```
-2. If it printed nothing, the server took `DATABASE_URL` from `.env.local`: read the endpoint id from there.
-- Production id, no server on :3000, or you can't tell: treat `--target local` as production. Say "this writes to PRODUCTION" in the step 5 table and in the question in step 6. If `.env.local` was edited after the server started, the server still uses the old value: ask the user to restart it, or treat the write as production.
-- Different id: local is a separate branch. Say which one, and remember that the item still has to go to prod separately (`--target prod`) to reach real users.
+Before any write, ask the server you are about to write to. It answers with the Neon endpoint id of its database (an id, not a credential) and whether that is the production one:
+```bash
+curl -s -m 10 -w '\n%{http_code}\n' -H "Authorization: Bearer ${TOKEN:?}" "${BASE:?}/api/catalog/database"
+```
+- `{"endpoint":"ep-…","production":true}` then `200`: say "this writes to PRODUCTION" in the step 5 table and in the question in step 6.
+- `"production":false` then `200`: say "this writes to `<endpoint>`, not production" in both places. The item still has to go to prod separately (`--target prod`) to reach real users.
+- `000`: no server answered on that target. Say so and stop.
+- Anything else (401, 404, 429, 500, or a 200 without both keys): you can't tell. Treat the write as production, and say that the server did not name its database. A 404 while step 3 works means the server runs a build from before this route.
 
-`--target prod` always writes to production.
+When the server named its database, add `-H "X-Expect-Database: <endpoint>"` to every POST (steps 4 and 6), with the id the user is asked about. A server that is no longer on that database (it was restarted, or another one took the port) then answers 412 and writes nothing: show the `database` in its answer and start this section again.
+
+That request is the only way to learn the database. Never read `DATABASE_URL` from an env file and never inspect the server's process (`ps`, `lsof`): the first prints production credentials, and neither shows what the running server uses.
+
+With `--target prod` the answer should be `"production":true`. If it is `false`, stop and tell the user: either `CATALOG_API_URL` is not the production site, or the production database moved and `PRODUCTION_DB_ENDPOINT` in `src/lib/db-endpoint.ts` is out of date.
 
 ## Steps
 1. **Research** typical values for the described appliance (one row per distinct size or type the user asked for):
@@ -40,5 +48,5 @@ Before any write, find out which database the **running** local server uses, as 
    - For category `Air conditioning`: `tons` (a positive number) and `acType` (`inverter` or `conventional`) are required, not null.
    - For every other category: `tons` and `acType` must both be `null`. The API rejects a request that sets either field outside Air conditioning, or that omits them for it.
 5. **Show the user a table:** id, new or changed (with old → new), EN name, ES name, watts, surge, duty, kind and surge class when set (with burst seconds × cycles per hour for momentary items), and the source for each number. Mention any item of 3 kW or more (the app flags it as needing a 240 V split-phase inverter).
-6. **Wait for an explicit yes.** Then `POST $BASE/api/catalog/appliances` with the same body and report `created` / `updated`.
-7. **On errors:** 422 → show the per-item issues, fix, and repeat from step 4. 401 → the token is wrong or missing in `.env.local`. 404 → the API is disabled on that target (`CATALOG_API_TOKEN` unset there). 429 → too many failed requests on this IP; wait and try again. 500 → database error; report and ask the user to retry.
+6. **Wait for an explicit yes** to a question that says where the write goes (see "Which database a target writes to"). Then `POST $BASE/api/catalog/appliances` with the same body and report `created` / `updated`.
+7. **On errors:** 422 → show the per-item issues, fix, and repeat from step 4. 412 → the server is not on the database named in `X-Expect-Database`; nothing was written, see "Which database a target writes to". 401 → the token is wrong or missing in `.env.local`. 404 → the API is disabled on that target (`CATALOG_API_TOKEN` unset there). 429 → too many failed requests on this IP; wait and try again. 500 → database error; report and ask the user to retry.
