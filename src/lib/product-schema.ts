@@ -38,6 +38,8 @@ function spec<O>(value: z.ZodType<O>) {
     })
 }
 const amount = (max: number) => spec(z.number().positive().max(max))
+/** A count of things: 2.5 units is a slipped value. */
+const count = (max: number) => spec(z.number().int().positive().max(max))
 
 /** One surge or overload level and how long it holds; w is null for a level the maker gives only in VA. */
 const SurgeLevelSchema = z
@@ -65,7 +67,7 @@ export const InverterSpecsSchema = z
     chargerA: amount(PRODUCT_LIMITS.AMPS),
     pvInputW: amount(PRODUCT_LIMITS.WATTS),
     pvVocMax: amount(PRODUCT_LIMITS.VOLTS),
-    maxParallelUnits: amount(PRODUCT_LIMITS.UNITS),
+    maxParallelUnits: count(PRODUCT_LIMITS.UNITS),
     idleW: amount(PRODUCT_LIMITS.WATTS),
     peakEfficiencyPct: amount(PRODUCT_LIMITS.PERCENT),
     warrantyYears: amount(PRODUCT_LIMITS.YEARS),
@@ -85,8 +87,8 @@ export const BatterySpecsSchema = z
     maxContinuousA: amount(PRODUCT_LIMITS.AMPS),
     peakA: amount(PRODUCT_LIMITS.AMPS),
     peakSeconds: amount(PRODUCT_LIMITS.SECONDS),
-    maxParallel: amount(PRODUCT_LIMITS.UNITS),
-    cycleLife: amount(PRODUCT_LIMITS.CYCLES),
+    maxParallel: count(PRODUCT_LIMITS.UNITS),
+    cycleLife: count(PRODUCT_LIMITS.CYCLES),
     warrantyYears: amount(PRODUCT_LIMITS.YEARS),
     bmsComms: comms,
     compatibleInverterBrands: brands,

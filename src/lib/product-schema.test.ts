@@ -28,6 +28,21 @@ describe('ProductInputSchema', () => {
     expect(ProductInputSchema.safeParse(inverter({ continuousW: stated(6_000_000, '6000kW') })).success).toBe(false)
   })
 
+  test.each([
+    ['maxParallelUnits', inverter({ maxParallelUnits: stated(2.5, 'Up to 2.5 units') })],
+    ['maxParallel', battery({ maxParallel: stated(2.5, 'Up to 2.5 in parallel') })],
+    ['cycleLife', battery({ cycleLife: stated(6000.5, '6000.5 cycles') })],
+  ])('%s is a whole number', (field, product) => {
+    const result = ProductInputSchema.safeParse(product)
+    expect(result.success).toBe(false)
+    expect(result.error?.issues.map((i) => i.path.join('.'))).toEqual([`specs.${field}.value`])
+  })
+
+  test('accepts a fractional kWh, Ah and warranty, which are measures and not counts', () => {
+    const p = battery({ kWh: stated(5.12, '5.12kWh'), ah: stated(99.5, '99.5Ah'), warrantyYears: stated(2.5, '2.5 year warranty') })
+    expect(ProductInputSchema.safeParse(p).success).toBe(true)
+  })
+
   test.each(['brand', 'model'] as const)('refuses a %s with no letters or digits', (field) => {
     const result = ProductInputSchema.safeParse({ ...inverter(), [field]: '—' })
     expect(result.success).toBe(false)
