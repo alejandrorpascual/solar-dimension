@@ -234,3 +234,10 @@ test('a card keeps its accessible name while its name is being edited', async ({
   await page.keyboard.type('Casa')
   await expect(page.getByRole('article', { name: 'Casa', exact: true })).toBeVisible()
 })
+
+test('with a single project the ··· menu offers Rename and Duplicate, and no Delete', async ({ page }) => {
+  await page.goto('/')
+  const menu = await openProjectMenu(page)
+  await expect(menu.getByRole('menuitem')).toHaveText(['Rename', 'Duplicate'])
+  await expect(menu.getByRole('menuitem', { name: 'Delete' })).toHaveCount(0)
+})

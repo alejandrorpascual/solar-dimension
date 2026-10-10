@@ -174,6 +174,9 @@ async function openSecondProject(page: Page): Promise<void> {
 
 interface Box { x: number; y: number; width: number; height: number }
 
+/** How far in from a quick-edit row's left edge to click: on the appliance's name, clear of the stepper buttons. */
+const NAME_SIDE_INSET_PX = 4
+
 /** Where an element is once it is scrolled into view and has stopped moving: the phone's sheet slides in. */
 async function settledBox(target: Locator): Promise<Box> {
   await target.scrollIntoViewIfNeeded()
@@ -220,13 +223,16 @@ test('with quick edit open, a click between stepper rows opens nothing', async (
   await openSecondProject(page)
   const home = page.getByRole('article', { name: 'Home' })
   await home.getByRole('button', { name: 'Quick edit' }).click()
-  const rows = home.getByRole('listitem')
+  const list = home.getByRole('list')
+  const rows = list.getByRole('listitem')
   await expect(rows.nth(1)).toBeVisible()
+  // The second row is scrolled in last, so both are measured where they stay; the first sits right above it.
+  await rows.nth(0).scrollIntoViewIfNeeded()
+  const second = await settledBox(rows.nth(1))
   const first = await rows.nth(0).boundingBox()
-  const second = await rows.nth(1).boundingBox()
-  if (!first || !second) throw new Error('quick edit rows are not on screen')
+  if (!first) throw new Error('the first quick edit row is not on screen')
   // The seam between the first two rows, on the name side, away from any stepper button.
-  await page.mouse.click(first.x + 4, (first.y + first.height + second.y) / 2)
+  await clickPointIn(page, list, { x: first.x + NAME_SIDE_INSET_PX, y: (first.y + first.height + second.y) / 2 })
   await expect(home.getByRole('button', { name: 'Done' })).toBeVisible()
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
   if (testInfo.project.name === 'phone') await expect(page.getByRole('dialog')).toBeVisible()
