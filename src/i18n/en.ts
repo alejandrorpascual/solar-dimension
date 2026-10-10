@@ -76,6 +76,7 @@ export const en: Dictionary = {
     stringsOne: '1 string of {n} in series', stringsMany: '{strings} strings of up to {n} in series',
     average: 'Average', averageWatts: 'Average (W)', kind: 'Kind',
     runsLabel: 'Runs', dutyOf: '{name}: share of each hour it runs', dutyOption: '{pct}% of each hour', dutyTypical: '{pct}% · typical', dutyNonstop: '100% · never stops',
+    rename: 'Rename', projectActions: 'More actions for {name}', stepLocked: 'Add at least one appliance first', stepGo: 'Step {n}: {label}', dutyRuns: 'Runs · {pct}% of each hour', dutyBursts: '~{min} min an hour', dutyTypicalAt: 'typical {pct}%', averageDrawFor: '~{w} average for {qty}',
     startsLabel: 'Motors starting at once',
     startsOne: 'One at a time', startsOneHelp: 'Typical: the biggest motor starts while the rest run.',
     startsTwo: 'Two together', startsTwoHelp: 'Fridge and AC can start in the same second.',

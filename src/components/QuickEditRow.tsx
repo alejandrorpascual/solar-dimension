@@ -22,8 +22,9 @@ export function QuickEditRow({ item, name, onQty, onDuty }: Props) {
       <div className="qedit__name">
         <span className="qedit__title">{name}</span>
         <span className="num qedit__watts">{fmtW(item.totalWatts, locale)}{average}</span>
-        {item.kind === 'cycling' && <DutyControl item={item} name={name} onDuty={onDuty} />}
       </div>
+      {/* A sibling of the name: on a phone the duty line then gets the row's width, not what the buttons leave of it. */}
+      {item.kind === 'cycling' && <DutyControl item={item} name={name} onDuty={onDuty} />}
       <QtyStepper name={name} qty={item.qty} onSet={onQty} />
     </li>
   )

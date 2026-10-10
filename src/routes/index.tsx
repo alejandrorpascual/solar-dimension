@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { LayoutGrid } from 'lucide-react'
 import { useState } from 'react'
 import { AccountMenu } from '../components/AccountMenu'
 import { ApplianceGrid } from '../components/ApplianceGrid'
@@ -7,9 +8,7 @@ import { CustomApplianceForm } from '../components/CustomApplianceForm'
 import { DownloadPanel } from '../components/DownloadPanel'
 import { HeaderBar } from '../components/HeaderBar'
 import { KitStep } from '../components/KitStep'
-import { ProjectBar } from '../components/ProjectBar'
 import { RailSheet, SideRail, type RailTab } from '../components/SideRail'
-import type { Step } from '../components/Stepper'
 import { SolarStep } from '../components/solar/SolarStep'
 import { WizardFooter } from '../components/WizardFooter'
 import { useCatalog } from '../hooks/useCatalog'
@@ -21,12 +20,9 @@ import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { computeProject } from '../lib/project-summary'
 import { patchCurrent } from '../lib/store'
 import type { SizingResult } from '../lib/sizing'
+import { parseStep, type Step } from '../lib/steps'
 
 interface Search { step: Step }
-
-function parseStep(v: unknown): Step {
-  return v === 2 || v === '2' ? 2 : v === 3 || v === '3' ? 3 : v === 4 || v === '4' ? 4 : 1
-}
 
 export const Route = createFileRoute('/')({
   validateSearch: (search: Record<string, unknown>): Search => ({ step: parseStep(search.step) }),
@@ -43,6 +39,23 @@ function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary,
   if (r.empty || !r.battery) return t.ui.footerEmpty
   const base = { batteries: batteryCount(t, r.battery.count), inverter: fmtW(r.inverter.w, locale), gauge: r.cable.gauge }
   return r.solar ? tr(t, 'footer4Solar', { ...base, panels: panelCount(t, r.solar.panels) }) : tr(t, 'footer3', base)
+}
+
+/**
+ * Shown only under 1280px, where the rail of project cards is hidden (rail.css). The button opens the cards in a
+ * sheet: renaming, duplicating and deleting live on the open project's card. The name beside it says which project
+ * is open, which steps 2 and 3 show nowhere else.
+ */
+function OpenProject({ name, count, onOpen }: { name: string; count: number; onOpen: () => void }) {
+  const { t } = useLocale()
+  return (
+    <div className="project-open">
+      <button type="button" className="chip project-open__chip" aria-haspopup="dialog" onClick={onOpen}>
+        <LayoutGrid size={16} aria-hidden="true" />{tr(t, 'projectsCount', { count })}
+      </button>
+      <span className="project-open__name">{name}</span>
+    </div>
+  )
 }
 
 function KitBuilderPage() {
@@ -66,8 +79,8 @@ function KitBuilderPage() {
   return (
     <div className="workspace">
       <main className="page">
-        <HeaderBar step={step} account={<AccountMenu user={user} busy={syncing || saving} />} />
-        <ProjectBar store={store} commit={commit} onOpenProjects={() => openSheet('projects')} />
+        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} />} />
+        <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
         {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
         {syncing && <div className="muted">{t.ui.syncing}</div>}
         <section className="stage">

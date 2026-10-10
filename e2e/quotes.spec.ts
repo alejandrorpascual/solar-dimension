@@ -8,7 +8,7 @@ import {
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage } from './header'
-import { hideProjects, showProjects } from './projects'
+import { hideProjects, openProjectAction, showProjects } from './projects'
 import {
   captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading,
 } from './quotes'
@@ -402,7 +402,7 @@ test('deleting a project removes its quotes and their files', async ({ page }) =
 
   await page.goto('/')
   const removed = page.waitForResponse((r) => r.request().method() === 'POST' && (r.request().postData() ?? '').includes('"ids"'))
-  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  await openProjectAction(page, 'Delete')
   expect((await removed).ok()).toBe(true)
   expect(await countQuoteRows(email, quote!.projectId)).toBe(0)
   expect(existsSync(file)).toBe(false)

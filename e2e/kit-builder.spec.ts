@@ -1,15 +1,32 @@
-import { expect, test, type Page } from '@playwright/test'
-import { switchLanguage } from './header'
-import { hideProjects, showProjects } from './projects'
+import { expect, test, type Locator, type Page } from '@playwright/test'
+import { switchLanguage, switchLanguageOnLoad } from './header'
+import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showProjects, startNewProject, startRename } from './projects'
 
 test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
-  await expect(page.getByLabel('Project name')).toHaveValue('Home')
+  await showProjects(page)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Home')
+  await hideProjects(page)
   await page.getByRole('button', { name: 'Next: backup window' }).click()
   await expect(page).toHaveURL(/step=2/)
   await page.getByRole('button', { name: 'Back', exact: true }).click()
   await expect(page).toHaveURL(/step=1|\/$/)
+})
+
+test('the stepper jumps straight to any step', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+    await expect(page).toHaveURL(/step=4/, { timeout: 1000 })
+  }).toPass()
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await page.getByRole('button', { name: 'Step 3: Solar panels' }).click()
+  await expect(page).toHaveURL(/step=3/)
+  await page.getByRole('button', { name: 'Step 1: Appliances' }).click()
+  await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Step 1: Appliances' })).toHaveAttribute('aria-current', 'step')
 })
 
 /** Web fonts swap in late on a cold CI browser and reflow the quick-edit rows; measure clicks after they settle. */
@@ -106,23 +123,26 @@ test('a condo can type 32 cameras, and the AC list is grouped by compressor type
 
 test('a new project can be created, renamed and deleted', async ({ page }) => {
   await page.goto('/')
-  await showProjects(page)
-  await page.getByRole('button', { name: '+ New project' }).click()
-  await hideProjects(page)
-  const name = page.getByLabel('Project name')
+  // The new project lands on top, already renaming with its name selected.
+  const name = await startNewProject(page)
+  await expect(name).toBeFocused()
+  await expect(name).toHaveValue('Project 2')
   await name.fill('Office')
-  await name.blur()
-  await showProjects(page)
+  await acceptNewProjectName(page)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Office')
+  await openProjectCard(page).getByRole('button', { name: 'More actions for Office' }).click()
+  await page.getByRole('menuitem', { name: 'Duplicate' }).click()
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Office copy')
+  await openProjectCard(page).getByRole('button', { name: 'More actions for Office copy' }).click()
+  await page.getByRole('menuitem', { name: 'Delete' }).click()
+  await expect(page.getByRole('button', { name: 'Office copy', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Office', exact: true })).toBeVisible()
-  await hideProjects(page)
-  await page.getByRole('button', { name: 'Delete' }).click()
-  await showProjects(page)
-  await expect(page.getByRole('button', { name: 'Office', exact: true })).toHaveCount(0)
 })
 
 test('project names can be erased with backspace and replaced', async ({ page }) => {
   await page.goto('/')
-  const name = page.getByLabel('Project name')
+  const title = openProjectCard(page).getByRole('heading')
+  const name = await startRename(page)
   await name.fill('Casa')
   await name.press('End')
   for (let i = 0; i < 4; i++) await name.press('Backspace')
@@ -130,22 +150,99 @@ test('project names can be erased with backspace and replaced', async ({ page })
   await name.pressSequentially('Portón principal')
   await name.press('Enter')
   await page.reload()
-  await expect(name).toHaveValue('Portón principal')
-  await name.fill('   ')
-  await name.blur()
-  await expect(name).toHaveValue('Untitled')
+  await showProjects(page)
+  await expect(title).toHaveText('Portón principal')
+  await renameOpenProject(page, '   ')
+  await expect(title).toHaveText('Untitled')
   await page.reload()
-  await expect(name).toHaveValue('Untitled')
+  await showProjects(page)
+  await expect(title).toHaveText('Untitled')
+  // Escape drops the edit and, inside the phone sheet, leaves the sheet open.
+  await title.getByRole('button').click()
+  await name.fill('Never saved')
+  await name.press('Escape')
+  await expect(title).toHaveText('Untitled')
+})
+
+/** Adds a second project and keeps its default name, so Home is no longer the open one. */
+async function openSecondProject(page: Page): Promise<void> {
+  await page.goto('/')
+  await startNewProject(page)
+  await acceptNewProjectName(page)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
+}
+
+interface Box { x: number; y: number; width: number; height: number }
+
+/** How far in from a quick-edit row's left edge to click: on the appliance's name, clear of the stepper buttons. */
+const NAME_SIDE_INSET_PX = 4
+
+/** Where an element is once it is scrolled into view and has stopped moving: the phone's sheet slides in. */
+async function settledBox(target: Locator): Promise<Box> {
+  await target.scrollIntoViewIfNeeded()
+  const box = await target.boundingBox()
+  if (!box) throw new Error('nothing to click: the element is not on screen')
+  return box
+}
+
+/**
+ * A real pointer click at a point, wherever it lands, the way a person clicks blank space on a card. locator.click
+ * cannot do it: it refuses when something else is under the pointer, and here the card's stretched name button is.
+ * The point has to be inside `within` first, or the click would prove nothing.
+ */
+async function clickPointIn(page: Page, within: Locator, point: { x: number; y: number }): Promise<void> {
+  const isInside = await within.evaluate((el, p) => el.contains(document.elementFromPoint(p.x, p.y)), point)
+  expect(isInside, 'the point to click is not on the element it was measured for').toBe(true)
+  await page.mouse.click(point.x, point.y)
+}
+
+test("clicking another project's card away from its name opens that project", async ({ page }, testInfo) => {
+  await openSecondProject(page)
+  const home = page.getByRole('article', { name: 'Home' })
+  const figures = await settledBox(home.locator('dl'))
+  await clickPointIn(page, home, { x: figures.x + figures.width / 2, y: figures.y + figures.height / 2 })
+  if (testInfo.project.name === 'phone') {
+    await expect(page.getByRole('dialog')).toBeHidden()
+    await showProjects(page)
+  }
+  const top = openProjectCard(page)
+  await expect(top.getByRole('heading')).toHaveText('Home')
+  await expect(top).toContainText('Current')
+})
+
+test("quick edit on another project's card shows its steppers without opening it", async ({ page }, testInfo) => {
+  await openSecondProject(page)
+  const home = page.getByRole('article', { name: 'Home' })
+  await home.getByRole('button', { name: 'Quick edit' }).click()
+  await expect(home.getByRole('button', { name: 'Add TV, 55-inch LED' })).toBeVisible()
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
+  if (testInfo.project.name === 'phone') await expect(page.getByRole('dialog')).toBeVisible()
+})
+
+test('with quick edit open, a click between stepper rows opens nothing', async ({ page }, testInfo) => {
+  await openSecondProject(page)
+  const home = page.getByRole('article', { name: 'Home' })
+  await home.getByRole('button', { name: 'Quick edit' }).click()
+  const list = home.getByRole('list')
+  const rows = list.getByRole('listitem')
+  await expect(rows.nth(1)).toBeVisible()
+  // The second row is scrolled in last, so both are measured where they stay; the first sits right above it.
+  await rows.nth(0).scrollIntoViewIfNeeded()
+  const second = await settledBox(rows.nth(1))
+  const first = await rows.nth(0).boundingBox()
+  if (!first) throw new Error('the first quick edit row is not on screen')
+  // The seam between the first two rows, on the name side, away from any stepper button.
+  await clickPointIn(page, list, { x: first.x + NAME_SIDE_INSET_PX, y: (first.y + first.height + second.y) / 2 })
+  await expect(home.getByRole('button', { name: 'Done' })).toBeVisible()
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
+  if (testInfo.project.name === 'phone') await expect(page.getByRole('dialog')).toBeVisible()
 })
 
 test('project cards show each kit and quick edit a project without opening it', async ({ page }) => {
   await page.goto('/?step=4')
-  await showProjects(page)
-  await page.getByRole('button', { name: '+ New project' }).click()
-  await hideProjects(page)
-  await expect(page.getByLabel('Project name')).toHaveValue('Project 2')
+  await expect(await startNewProject(page)).toHaveValue('Project 2')
+  await acceptNewProjectName(page)
 
-  await showProjects(page)
   const home = page.getByRole('article', { name: 'Home' })
   await expect(home).toContainText('48 V · 10 h · 6 appliances')
   const runtime = home.locator('dd').first()
@@ -157,10 +254,10 @@ test('project cards show each kit and quick edit a project without opening it', 
   await expect(runtime).not.toHaveText(before ?? '')
   await expect(home).toContainText('3× TV, 55-inch LED')
   const open = page.getByRole('article', { name: 'Project 2' })
-  await expect(open.getByRole('button', { name: 'Project 2' })).toHaveAttribute('aria-current', 'true')
+  await expect(open.getByRole('button', { name: 'Project 2', exact: true })).toHaveAttribute('aria-current', 'true')
   await expect(open.getByRole('button', { name: 'Quick edit' })).toHaveCount(0)
 
-  await home.getByRole('button', { name: 'Home' }).click()
+  await home.getByRole('button', { name: 'Home', exact: true }).click()
   await hideProjects(page)
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
 })
@@ -293,6 +390,26 @@ test("a cycling appliance's on-time can be changed on the kit, moves the runtime
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect(duty).toHaveValue('0.35')
   await expect(page.locator('.stat__delta')).toHaveCount(0)
+})
+
+/** The narrowest phone the kit step is laid out for. */
+const NARROWEST_PHONE = { width: 320, height: 900 } as const
+/** Boxes come back in fractions of a pixel; under half of one is rounding, not an overflow. */
+const SUBPIXEL = 0.5
+
+test('on the narrowest phone the quotes card wraps its long Spanish sign-in label instead of widening the page', async ({ page }) => {
+  await page.goto('/?step=4')
+  await switchLanguageOnLoad(page, 'Español')
+  await page.setViewportSize(NARROWEST_PHONE)
+  await fontsReady(page)
+  const card = page.getByRole('region', { name: '¿Te llegaron cotizaciones de instaladores?' })
+  const signIn = card.getByRole('link', { name: 'Inicia sesión para comparar cotizaciones' })
+  await expect(signIn).toBeVisible()
+  const [cardBox, signInBox] = [await card.boundingBox(), await signIn.boundingBox()]
+  if (!cardBox || !signInBox) throw new Error('the quotes card or its sign-in link is not rendered')
+  expect(signInBox.x + signInBox.width, "the right edge of the sign-in link against the card's").toBeLessThanOrEqual(cardBox.x + cardBox.width + SUBPIXEL)
+  // A phone widens its layout viewport to fit wider content, so compare against the width it was given.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(NARROWEST_PHONE.width)
 })
 
 test('motors starting together and a hot cable run change the inverter, the checks and the assumptions', async ({ page }) => {
