@@ -363,7 +363,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .btn--google svg { flex-shrink: 0; }
 .or { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: var(--muted); font-size: 13px; }
 .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
-/* Header menus (language, account): a compact chip that opens a small dropdown. */
+/* Dropdown menus. In the header (language, account) the trigger is a compact chip, .hmenu__trigger. A project card's
+   ··· menu (ProjectMenu) opens the same dropdown from its own icon button and adds a separator and a danger item. */
 .hmenu__trigger { gap: 6px; padding: 0 10px 0 12px; cursor: pointer; outline: none; transition: border-color 120ms, box-shadow 120ms, color 120ms; }
 .hmenu__trigger[data-focus-visible], .hmenu__trigger[data-pressed], .hmenu__trigger[aria-expanded='true'] { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
 .hmenu__trigger--avatar { padding: 0 8px 0 4px; }
