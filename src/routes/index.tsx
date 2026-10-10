@@ -41,6 +41,23 @@ function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary,
   return r.solar ? tr(t, 'footer4Solar', { ...base, panels: panelCount(t, r.solar.panels) }) : tr(t, 'footer3', base)
 }
 
+/**
+ * Shown only under 1280px, where the rail of project cards is hidden (rail.css). The button opens the cards in a
+ * sheet: renaming, duplicating and deleting live on the open project's card. The name beside it says which project
+ * is open, which steps 2 and 3 show nowhere else.
+ */
+function OpenProject({ name, count, onOpen }: { name: string; count: number; onOpen: () => void }) {
+  const { t } = useLocale()
+  return (
+    <div className="project-open">
+      <button type="button" className="chip project-open__chip" aria-haspopup="dialog" onClick={onOpen}>
+        <LayoutGrid size={16} aria-hidden="true" />{tr(t, 'projectsCount', { count })}
+      </button>
+      <span className="project-open__name">{name}</span>
+    </div>
+  )
+}
+
 function KitBuilderPage() {
   const { step } = Route.useSearch()
   const { t, locale } = useLocale()
@@ -63,10 +80,7 @@ function KitBuilderPage() {
     <div className="workspace">
       <main className="page">
         <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} />} />
-        {/* Renaming, duplicating and deleting live on the project's card; phones reach the cards through this sheet. */}
-        <button type="button" className="chip project-open" aria-haspopup="dialog" onClick={() => openSheet('projects')}>
-          <LayoutGrid size={16} aria-hidden="true" />{tr(t, 'projectsCount', { count: store.projects.length })}
-        </button>
+        <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
         {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
         {syncing && <div className="muted">{t.ui.syncing}</div>}
         <section className="stage">

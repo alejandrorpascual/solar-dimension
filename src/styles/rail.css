@@ -70,7 +70,10 @@
 
 /* Workspace: the page, plus the side rail once there is room for both. */
 .rail { display: none; }
-.project-open { align-self: flex-start; min-height: var(--tap); }
+.project-open { display: flex; align-items: center; gap: 12px; }
+.project-open__chip { min-height: var(--tap); }
+/* The open project's name on one line: a long one is cut with an ellipsis so it never pushes the page wider. */
+.project-open__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
 .footer__download { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 @media (min-width: 1280px) {
   /* The gradient paints the rail's column (and its left rule) the full height of the page, past the sticky rail. */
