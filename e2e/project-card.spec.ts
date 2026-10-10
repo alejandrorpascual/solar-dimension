@@ -226,3 +226,11 @@ test("another project's card still shows its focus ring around the whole card", 
   })
   expect(ring).toEqual({ outline: 'solid 2px', isAsWideAsCard: true, isAsTallAsCard: true })
 })
+
+test('a card keeps its accessible name while its name is being edited', async ({ page }) => {
+  await page.goto('/')
+  await startRename(page)
+  await expect(page.getByRole('article', { name: 'Home', exact: true })).toBeVisible()
+  await page.keyboard.type('Casa')
+  await expect(page.getByRole('article', { name: 'Casa', exact: true })).toBeVisible()
+})

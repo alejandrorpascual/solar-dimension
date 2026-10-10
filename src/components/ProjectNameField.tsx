@@ -4,6 +4,8 @@ import type { RenameClose } from '../lib/project-rename'
 import { PROJECT_NAME_MAX } from '../lib/store'
 
 interface Props {
+  /** The id the card is labelled by (aria-labelledby): the field stands in for the title while it is open. */
+  id: string
   name: string
   /** Called with the field's text on every change: the name is saved as it is typed, like every other control. */
   onType: (raw: string) => void
@@ -15,7 +17,7 @@ interface Props {
 }
 
 /** The open project's name, edited in place on its card. Opens focused with the text selected, like a file rename. */
-export function ProjectNameField({ name, onType, onClose }: Props) {
+export function ProjectNameField({ id, name, onType, onClose }: Props) {
   const { t } = useLocale()
   // The field's own text, so it can be emptied while the project keeps a name (the placeholder shows which).
   const [draft, setDraft] = useState(name)
@@ -27,6 +29,7 @@ export function ProjectNameField({ name, onType, onClose }: Props) {
   return (
     <input
       ref={input}
+      id={id}
       className="in pcard__name"
       type="text"
       aria-label={t.ui.projectName}

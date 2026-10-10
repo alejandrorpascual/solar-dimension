@@ -56,7 +56,7 @@ interface CardProps {
 }
 
 function CardTitle({ name, titleId, current, onOpen }: { name: string; titleId: string; current?: CurrentActions; onOpen: () => void }) {
-  if (current?.isRenaming) return <ProjectNameField name={name} onType={current.onRenameType} onClose={current.onRenameClose} />
+  if (current?.isRenaming) return <ProjectNameField id={titleId} name={name} onType={current.onRenameType} onClose={current.onRenameClose} />
   return (
     <h3 className="pcard__title" id={titleId}>
       {current ? (
