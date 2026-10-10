@@ -13,6 +13,10 @@ const CARD_WIDTHS = [320, 360, 390, 640, 768, 1024, 1280, 1920] as const
 /** The kit step from the narrowest phone up: its quick-edit rows are one column below 1024 and two from there. */
 const ROW_WIDTHS = [320, 360, 390, 640, 768, 1024, 1280] as const
 const VIEWPORT_HEIGHT = 900
+/** The desktop the rail first shows on: four columns of appliance cards beside it. */
+const DESKTOP_WIDTH = 1280
+/** Edges no further apart than this are level; boxes come back in fractions of a pixel. */
+const LEVEL_WITHIN_PX = 1
 /** Boxes come back in fractions of a pixel; under half of one is rounding, not an overflow. */
 const SUBPIXEL = 0.5
 /** Enough for the picker's percent beside its arrow. A picker squeezed to nothing would pass the other checks. */
@@ -108,6 +112,42 @@ test('on a touch screen the duty picker is at least 16 px, so iOS Safari does no
   await page.goto('/?step=4')
   const panel = await openQuickEdit(page)
   expect(await fontSize(panel.getByLabel(FRIDGE_DUTY.English))).toBeGreaterThanOrEqual(IOS_NO_ZOOM_PX)
+})
+
+interface CardControls { name: string; top: number; controlsBottom: number; hasMeter: boolean; isAdded: boolean }
+
+/** Every card in a section: where it starts, and where its Add button or its quantity buttons end. Read in one go. */
+const cardControls = (cards: Locator): Promise<CardControls[]> =>
+  cards.evaluateAll((all) => all.map((card) => {
+    const controls = card.querySelector('.stepper-qty, .add')
+    if (!controls) throw new Error('A card has neither an Add button nor quantity buttons.')
+    return {
+      name: card.querySelector('.card__name')?.textContent ?? '',
+      top: card.getBoundingClientRect().top,
+      controlsBottom: controls.getBoundingClientRect().bottom,
+      hasMeter: card.querySelector('.duty') !== null,
+      isAdded: card.querySelector('.stepper-qty') !== null,
+    }
+  }))
+
+test('along a desktop row of appliance cards, the Add buttons and the quantity buttons end level', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'only the desktop grid stacks a card, with its buttons at the bottom')
+  await page.setViewportSize({ width: DESKTOP_WIDTH, height: VIEWPORT_HEIGHT })
+  await page.goto('/')
+  await expect(cardOf(page, 'Refrigerator').locator('.duty')).toBeVisible()
+  await fontsReady(page)
+
+  const kitchen = await cardControls(page.getByRole('region', { name: 'Kitchen' }).locator('.card'))
+  const first = kitchen[0]
+  if (!first) throw new Error('The Kitchen section has no cards.')
+  const firstRow = kitchen.filter((card) => Math.abs(card.top - first.top) <= LEVEL_WITHIN_PX)
+
+  // The row has to mix both kinds of card, or level buttons would prove nothing: the added fridge, taller for its
+  // meter, beside cards that only have an Add button.
+  expect(firstRow.filter((card) => card.name === 'Refrigerator' && card.isAdded && card.hasMeter), JSON.stringify(firstRow)).toHaveLength(1)
+  expect(firstRow.some((card) => !card.isAdded), JSON.stringify(firstRow)).toBe(true)
+  const bottoms = firstRow.map((card) => card.controlsBottom)
+  expect(Math.max(...bottoms) - Math.min(...bottoms), JSON.stringify(firstRow)).toBeLessThanOrEqual(LEVEL_WITHIN_PX)
 })
 
 test('the average on a card says how many units it adds up once there are several', async ({ page }) => {
