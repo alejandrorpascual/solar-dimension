@@ -61,6 +61,28 @@ describe('ProductInputSchema', () => {
     expect(ProductInputSchema.safeParse(p).success).toBe(false)
   })
 
+  test.each([
+    ['in another case', 'Weight', 'weight'],
+    ['with spaces around it', 'Weight', '  Weight '],
+  ])('refuses two extra lines with one name written %s, at extraSpecs', (_, first, second) => {
+    // Arrange: a new product never goes through the merge, so only the schema can stop a repeated name.
+    const line = (name: string, value: string) => ({ name, value, source: 'https://example.com/sheet.pdf' })
+    const p = { ...inverter(), extraSpecs: [line(first, '52 kg'), line(second, '115 lb')] }
+
+    // Act
+    const result = ProductInputSchema.safeParse(p)
+
+    // Assert
+    expect(result.success).toBe(false)
+    expect(result.error?.issues.map((i) => i.path.join('.'))).toEqual(['extraSpecs'])
+  })
+
+  test('accepts extra lines with different names', () => {
+    const line = (name: string, value: string) => ({ name, value, source: 'https://example.com/sheet.pdf' })
+    const p = { ...inverter(), extraSpecs: [line('Weight', '52 kg'), line('Net weight', '50 kg')] }
+    expect(ProductInputSchema.safeParse(p).success).toBe(true)
+  })
+
   test('refuses a value past the sanity cap (a slipped unit or digit)', () => {
     expect(ProductInputSchema.safeParse(inverter({ continuousW: stated(6_000_000, '6000kW') })).success).toBe(false)
   })

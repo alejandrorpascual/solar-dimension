@@ -93,7 +93,7 @@ The **fingerprint** is the kit's needs rounded up to steps, so that nearby kits 
 | `brand`, `model` | text | |
 | `maker_url`, `datasheet_url` | text | datasheet required |
 | `specs` | jsonb | per kind, Zod-checked on read; each spec `{ value, source, asWritten }`, surge as levels |
-| `extra_specs` | jsonb | up to 8 `{ name, value, source }` lines as written (transfer time, IP rating, temperature…) |
+| `extra_specs` | jsonb | up to 8 `{ name, value, source }` lines as written (transfer time, IP rating, temperature…); names are distinct whatever their case, and a repeated one is refused |
 | `price` | jsonb null | `{ amount, currency, seller, url, seenOn }` |
 | `origin` | text | `search` or `admin` |
 | `conflicts` | jsonb | values a later search read differently, for admin review |

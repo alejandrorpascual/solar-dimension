@@ -31,7 +31,7 @@ Research with Claude Code's own web search and fetch. Never run `scripts/product
    - `surges`: every surge or overload level, shortest first, each `{ w, seconds, asWritten, source }`. "12,000W for ≈3.5 s | 11,000W for ≈5 s" is two levels. "2× Pn, 5 s" gets `w` = 2 × the stated rated power. A level in VA only gets `w: null`; a level with no duration gets `seconds: null` (never 0). No level stated: `surges: []`.
    - Battery `nominalV` as written (51.2), not the system class (48).
    - `bmsComms`: the protocols the datasheet names (`can`, `rs485`). Compatible brands (at most 30): only those the maker lists.
-   - `extraSpecs`: up to 8 more lines an installer would check, as written (`name` ≤ 60, `value` ≤ 200 characters): transfer time, IP rating, operating temperature, dimensions, weight, the maker's depth of discharge.
+   - `extraSpecs`: up to 8 more lines an installer would check, as written (`name` ≤ 60, `value` ≤ 200 characters), each name once whatever its case ("Weight" and "weight" are one line; two are refused): transfer time, IP rating, operating temperature, dimensions, weight, the maker's depth of discharge.
    - `price`: `null`, unless you saw it on a seller's page; then `{ "amount": 1199, "currency": "USD", "seller": "…", "url": "https://…", "seenOn": "YYYY-MM-DD" }` with today's date. Never search for prices.
    - `brand` ≤ 60 and `model` ≤ 80 characters.
 4. **Check for duplicates:** `curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/catalog/products" | jq '.items[] | {key, brand, model, retired}'`. If the product is there under another spelling, use the stored `brand` and `model` exactly. A `retired` product stays retired after a write; say so.

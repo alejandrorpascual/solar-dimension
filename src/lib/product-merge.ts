@@ -1,4 +1,4 @@
-import { MAX_EXTRA_SPECS, productKey, type ExtraSpec, type ProductConflict, type ProductInput, type ProductKind, type ProductRecord } from './product-schema'
+import { extraNameKey, MAX_EXTRA_SPECS, productKey, type ExtraSpec, type ProductConflict, type ProductInput, type ProductKind, type ProductRecord } from './product-schema'
 import { stable } from './stable-json'
 
 /** A field and the two values a write weighed: the stored one and the one found. Used for both `replaced` and `conflicts`. */
@@ -28,7 +28,6 @@ const combine = (a: Outcome, b: Outcome): Outcome => ({
 })
 const keep = <T>(value: T): Decided<T> => ({ value, outcome: NOTHING })
 const sortedLower = (xs: readonly string[]) => [...xs].map((x) => x.toLowerCase()).sort()
-const nameKey = (s: string) => s.trim().toLowerCase()
 
 const rank = (n: number | null) => n ?? -Infinity
 const byLevel = (a: Level, b: Level) => (rank(a.w) - rank(b.w)) || (rank(a.seconds) - rank(b.seconds))
@@ -79,13 +78,13 @@ const extraField = (l: ExtraSpec | undefined): Field =>
 /** Extra lines by name (case-insensitive): known names decide like specs and keep their stored name, new names are fills once each up to the cap of 8 and the rest are dropped. */
 function mergeExtras(stored: readonly ExtraSpec[], incoming: readonly ExtraSpec[], ctx: Ctx): Decided<ExtraSpec[]> {
   const known = stored.map((line) => {
-    const other = incoming.find((l) => nameKey(l.name) === nameKey(line.name))
+    const other = incoming.find((l) => extraNameKey(l.name) === extraNameKey(line.name))
     const found = other === undefined ? line : { ...line, value: other.value, source: other.source }
     return decide(`extraSpecs.${line.name}`, line, found, extraField(line), extraField(other), ctx)
   })
   const fresh = incoming
-    .filter((l) => !stored.some((s) => nameKey(s.name) === nameKey(l.name)))
-    .filter((l, i, all) => all.findIndex((o) => nameKey(o.name) === nameKey(l.name)) === i)
+    .filter((l) => !stored.some((s) => extraNameKey(s.name) === extraNameKey(l.name)))
+    .filter((l, i, all) => all.findIndex((o) => extraNameKey(o.name) === extraNameKey(l.name)) === i)
   const room = Math.max(0, MAX_EXTRA_SPECS - stored.length)
   const added = fresh.slice(0, room)
   const fieldOf = (l: ExtraSpec) => `extraSpecs.${l.name}`

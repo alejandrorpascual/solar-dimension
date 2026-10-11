@@ -51,6 +51,14 @@ const SurgeLevelSchema = z
   })
   .strict()
 const ExtraSpecSchema = z.object({ name: text(MAX_SPEC_NAME_LENGTH), value: text(), source: httpsUrl }).strict()
+/** How extra lines are told apart: by name, whatever its case ("Weight" and "weight" are one line). */
+export const extraNameKey = (name: string): string => name.trim().toLowerCase()
+const hasDistinctNames = (lines: readonly { name: string }[]) => new Set(lines.map((l) => extraNameKey(l.name))).size === lines.length
+/** A product's extra lines. A repeated name is refused here because a new product never goes through the merge's name checks. */
+const ExtraSpecsSchema = z
+  .array(ExtraSpecSchema)
+  .max(MAX_EXTRA_SPECS)
+  .refine(hasDistinctNames, { message: 'two extra lines share a name (case is ignored)' })
 const PriceSchema = z
   .object({ amount: z.number().positive(), currency: z.string().regex(/^[A-Z]{3}$/), seller: text(MAX_SELLER_LENGTH), url: httpsUrl, seenOn: z.iso.date() })
   .strict()
@@ -101,7 +109,7 @@ const common = {
   makerUrl: httpsUrl.nullable(),
   /** Required: the library is a reference users can check, so every product links its datasheet. */
   datasheetUrl: httpsUrl,
-  extraSpecs: z.array(ExtraSpecSchema).max(MAX_EXTRA_SPECS),
+  extraSpecs: ExtraSpecsSchema,
   price: PriceSchema.nullable(),
 }
 
