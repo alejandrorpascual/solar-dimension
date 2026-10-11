@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test'
 import { endpointOf } from '../src/lib/db-endpoint'
-import { catalogAuthHeader as auth } from './catalog-token'
+import { ANOTHER_DATABASE, catalogAuthHeader as auth, expectingDatabase, wrongTokenHeader } from './catalog-token'
 import { deleteTestAppliance } from './db'
 
 test.beforeEach(({}, info) => {
   test.skip(info.project.name !== 'desktop', 'API checks run once')
 })
+
+/** The run's database as the server names it. loadTestEnv() already refused to start without a readable DATABASE_URL. */
+const testDatabase = () => endpointOf(process.env.DATABASE_URL)!
 
 const cooktop = (id: string) => ({
   id, category: 'Kitchen', watts: 3500, surge: 3500, duty: 0.15, tons: null, acType: null,
@@ -14,21 +17,17 @@ const cooktop = (id: string) => ({
 
 test('the catalog API needs the token', async ({ request }) => {
   expect((await request.get('/api/catalog/appliances')).status()).toBe(401)
-  expect((await request.get('/api/catalog/appliances', { headers: { Authorization: 'Bearer wrong-wrong-wrong-wrong-wrong-wrong' } })).status()).toBe(401)
+  expect((await request.get('/api/catalog/appliances', { headers: wrongTokenHeader })).status()).toBe(401)
 })
 
 test('names the database it writes to, and only to a request with the token', async ({ request }) => {
-  const endpoint = endpointOf(process.env.DATABASE_URL)
-  expect(endpoint).toBeTruthy()
+  const endpoint = testDatabase()
 
-  const refused = [
-    await request.get('/api/catalog/database'),
-    await request.get('/api/catalog/database', { headers: { Authorization: 'Bearer wrong-wrong-wrong-wrong-wrong-wrong' } }),
-  ]
+  const refused = [await request.get('/api/catalog/database'), await request.get('/api/catalog/database', { headers: wrongTokenHeader })]
   for (const response of refused) {
     expect(response.status()).toBe(401)
-    expect(await response.text()).not.toContain(endpoint!)
-    expect(JSON.stringify(response.headers())).not.toContain(endpoint!)
+    expect(await response.text()).not.toContain(endpoint)
+    expect(JSON.stringify(response.headers())).not.toContain(endpoint)
   }
 
   const named = await request.get('/api/catalog/database', { headers: auth })
@@ -38,17 +37,16 @@ test('names the database it writes to, and only to a request with the token', as
 })
 
 test('refuses a write meant for another database, and takes one meant for this one', async ({ request }) => {
-  const endpoint = endpointOf(process.env.DATABASE_URL)!
+  const endpoint = testDatabase()
   const id = `e2e-pinned-${Date.now()}`
-  const expecting = (database: string) => ({ ...auth, 'X-Expect-Database': database })
   try {
-    const elsewhere = await request.post('/api/catalog/appliances', { headers: expecting('ep-not-this-one-12345678'), data: [cooktop(id)] })
+    const elsewhere = await request.post('/api/catalog/appliances', { headers: expectingDatabase(ANOTHER_DATABASE), data: [cooktop(id)] })
     expect(elsewhere.status()).toBe(412)
     expect(await elsewhere.json()).toEqual({ error: expect.any(String), database: { endpoint, production: false } })
-    const afterRefusal = await request.post('/api/catalog/appliances?dryRun=true', { headers: expecting(endpoint), data: [cooktop(id)] })
+    const afterRefusal = await request.post('/api/catalog/appliances?dryRun=true', { headers: expectingDatabase(endpoint), data: [cooktop(id)] })
     expect(await afterRefusal.json()).toEqual({ changes: [{ id, kind: 'new' }] })
 
-    const here = await request.post('/api/catalog/appliances', { headers: expecting(endpoint), data: [cooktop(id)] })
+    const here = await request.post('/api/catalog/appliances', { headers: expectingDatabase(endpoint), data: [cooktop(id)] })
     expect(await here.json()).toEqual({ created: [id], updated: [] })
   } finally {
     await deleteTestAppliance(id)

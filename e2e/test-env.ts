@@ -3,8 +3,8 @@ import { parse } from 'dotenv'
 // With its `.ts`: CI and the scripts load this file with plain `node`, which resolves an import only as written.
 import { endpointOf, PRODUCTION_DB_ENDPOINT } from '../src/lib/db-endpoint.ts'
 
-// The server answers /api/catalog/database with the same two, so the guard here and that answer can't disagree.
-export { endpointOf, PRODUCTION_DB_ENDPOINT }
+// Still exported from here: scripts and one-off checks that load this guard name the database with it.
+export { endpointOf }
 
 /** The e2e database lives here (git-ignored): a Neon branch of its own, never the one dev or prod uses. */
 export const TEST_ENV_FILE = '.env.test.local'

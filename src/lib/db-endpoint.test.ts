@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { databaseTarget, endpointOf, PRODUCTION_DB_ENDPOINT } from './db-endpoint'
 
-const PASSWORD = 'npg_s3cretPassw0rd'
+const PASSWORD = 'not-a-real-password'
 const neonUrl = (host: string) => `postgresql://neondb_owner:${PASSWORD}@${host}/neondb?sslmode=require&channel_binding=require`
 const TEST_ENDPOINT = 'ep-crimson-rain-au38702t'
 

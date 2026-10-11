@@ -4,6 +4,7 @@ import type { DatabaseTarget } from '../lib/db-endpoint'
 const TOKEN = 't'.repeat(32)
 const HERE: DatabaseTarget = { endpoint: 'ep-test-here-12345678', production: false }
 const ELSEWHERE = 'ep-test-other-87654321'
+// Typed out, not imported: the research skills send this name, so renaming the header must fail a test.
 const EXPECT_DATABASE = 'x-expect-database'
 
 /** The module on a server whose database is `dbTarget`. Loaded fresh, so each test also gets its own throttle. */
@@ -82,6 +83,7 @@ test('refuses a request that expects another database, and says which one this i
 
   expect(response?.status).toBe(412)
   expect(await response?.json()).toEqual({ error: expect.any(String), database: HERE })
+  expect(console.warn).toHaveBeenCalledWith(expect.any(String), { expected: ELSEWHERE, actual: HERE.endpoint, path: '/api/catalog/database' })
 })
 
 test('refuses an expected database that is empty or only close to this one', async () => {
