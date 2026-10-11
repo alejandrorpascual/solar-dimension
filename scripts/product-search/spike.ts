@@ -115,15 +115,26 @@ function parseSavedAnswer(output: Response['output']): ProductSearch | null {
   return ProductSearchSchema.parse({ ...raw, inverters: withExtras(raw.inverters).map(upgradeInverter), batteries: withExtras(raw.batteries) })
 }
 
-async function replay(path: string): Promise<Run> {
+/** A saved run and the needs it was searched for; `needs` is null for a file saved before they were kept. */
+async function replay(path: string): Promise<{ run: Run; needs: ProductNeeds | null }> {
   const saved = JSON.parse(await readFile(path, 'utf8')) as {
-    opts: { model: string }; seconds?: number; status?: string; usage: Response['usage']; output: Response['output']
+    opts: { model: string }; needs?: ProductNeeds; seconds?: number; status?: string; usage: Response['usage']; output: Response['output']
   }
   console.log(`Re-grading ${path} (no API call).\n`)
-  return {
+  const run: Run = {
     model: saved.opts.model, seconds: saved.seconds ?? 0, status: saved.status, incompleteReason: null,
     output: saved.output, usage: saved.usage ?? null, found: parseSavedAnswer(saved.output),
   }
+  return { run, needs: saved.needs ?? null }
+}
+
+/** Grades a saved run against the needs saved with it, so a later change to the sample kit cannot change an old run's verdict unnoticed. */
+async function regrade(path: string, todaysNeeds: ProductNeeds) {
+  const { run, needs: saved } = await replay(path)
+  if (!saved) console.log("This file has no saved needs (an older run): grading against today's sample kit.\n")
+  const needs = saved ?? todaysNeeds
+  printNeeds(needs)
+  await report(run, needs)
 }
 
 async function report(run: Run, needs: ProductNeeds) {
@@ -142,19 +153,20 @@ async function report(run: Run, needs: ProductNeeds) {
 async function main() {
   const opts = readOptions()
   const { needs } = spikeNeeds()
+  if (opts.from && !opts.isDry) return regrade(opts.from, needs)
   const input = searchRequestText(needs, opts.country)
   printNeeds(needs)
   if (opts.isDry) {
     console.log(`INSTRUCTIONS\n${INSTRUCTIONS}\n\nINPUT\n${input}`)
     return
   }
-  const run = opts.from ? await replay(opts.from) : await search(opts, input)
-  if (opts.out && !opts.from) {
+  const run = await search(opts, input)
+  if (opts.out) {
     const { model, seconds, status, usage, output } = run
     await writeFile(opts.out, JSON.stringify({ opts: { ...opts, model }, needs, seconds, status, usage, output }, null, 2))
   }
   await report(run, needs)
-  if (opts.out && !opts.from) console.log(`\nRaw response written to ${opts.out}`)
+  if (opts.out) console.log(`\nRaw response written to ${opts.out}`)
 }
 
 /** The error and its causes, e.g. "APIConnectionError: Connection error. ← TypeError: terminated ← SocketError: other side closed". */
