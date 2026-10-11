@@ -1,0 +1,22 @@
+CREATE TABLE "products" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"kind" text NOT NULL,
+	"key" text NOT NULL,
+	"brand" text NOT NULL,
+	"model" text NOT NULL,
+	"maker_url" text,
+	"datasheet_url" text NOT NULL,
+	"specs" jsonb NOT NULL,
+	"extra_specs" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"price" jsonb,
+	"origin" text NOT NULL,
+	"conflicts" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"last_seen_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"retired_at" timestamp with time zone,
+	"updated_by" text NOT NULL,
+	CONSTRAINT "products_key_unique" UNIQUE("key"),
+	CONSTRAINT "products_kind_check" CHECK ("products"."kind" in ('inverter', 'battery')),
+	CONSTRAINT "products_origin_check" CHECK ("products"."origin" in ('admin', 'search'))
+);
