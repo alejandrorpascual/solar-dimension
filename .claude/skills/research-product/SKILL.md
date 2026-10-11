@@ -15,16 +15,12 @@ Arguments: `<what> [--target local|prod] [--replace]` (default target `local`).
 Research with Claude Code's own web search and fetch. Never run `scripts/product-search/spike.ts` or any other paid AI API.
 
 ## Setup
-- Never `cat`, `Read`, `rg` or otherwise print `.env.local`: it holds the token and the production database URL. Shell variables don't survive between commands, so start every command that calls the API with:
+- Never `cat`, `Read`, `rg` or otherwise print any `.env*` file: `.env.local` holds the token and the production database URL. Shell variables don't survive between commands, so start every command that calls the API with:
   ```bash
   TOKEN=$(sed -n 's/^CATALOG_API_TOKEN=//p' .env.local | tr -d '"') && BASE=http://localhost:3000
   ```
   For `--target prod`, use `BASE=$(sed -n 's/^CATALOG_API_URL=//p' .env.local | tr -d '"')` instead. Pass the token only in the `Authorization: Bearer` header, never in a URL or output.
-- Before any write, follow "Which database a target writes to" in `.claude/skills/research-appliance/SKILL.md` (its steps 3 to 6 are this skill's steps 4 to 7): ask the target itself, which names its database as a Neon endpoint id and says whether it is production:
-  ```bash
-  curl -s -m 10 -w '\n%{http_code}\n' -H "Authorization: Bearer ${TOKEN:?}" "${BASE:?}/api/catalog/database"
-  ```
-  Never look for the database in an env file or in the server's process. `--target local` is a production write unless the server answers `"production":false`. No server answering on the target (`000`): say so and stop.
+- Before the dry run, follow "Which database a target writes to" in `.claude/skills/research-appliance/SKILL.md`. It applies to this skill as written: you ask the target itself which database it writes to, and it tells you what to say to the user and when to stop. Never look for the database in an env file or in the server's process.
 
 ## Steps
 1. **List the products** to research (see `<what>`). At most 50 per request, each product once.
@@ -39,19 +35,19 @@ Research with Claude Code's own web search and fetch. Never run `scripts/product
    - `price`: `null`, unless you saw it on a seller's page; then `{ "amount": 1199, "currency": "USD", "seller": "…", "url": "https://…", "seenOn": "YYYY-MM-DD" }` with today's date. Never search for prices.
    - `brand` ≤ 60 and `model` ≤ 80 characters.
 4. **Check for duplicates:** `curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/catalog/products" | jq '.items[] | {key, brand, model, retired}'`. If the product is there under another spelling, use the stored `brand` and `model` exactly. A `retired` product stays retired after a write; say so.
-5. **Dry run:** write the JSON array of items to a file in the session scratchpad, then `curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "X-Expect-Database: <endpoint>" -H 'Content-Type: application/json' --data @<file> "$BASE/api/catalog/products?dryRun=true"` (add `&replace=true` with `--replace`). `<endpoint>` is the id the server named in Setup; leave that header out only when it named none. The only query parameters are `dryRun` and `replace`, each exactly `true` or `false` (absent is `false`). Each change has `key`, `status` (`new`, `updated`, `conflicts`, `unchanged`) and:
+5. **Dry run:** write the JSON array of items to a file in the session scratchpad, then `curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "X-Expect-Database: <endpoint>" -H 'Content-Type: application/json' --data @<file> "$BASE/api/catalog/products?dryRun=true"` (add `&replace=true` with `--replace`). `<endpoint>` is the id the server named when you asked it which database it writes to; leave that header out only when it named none. The only query parameters are `dryRun` and `replace`, each exactly `true` or `false` (absent is `false`). Each change has `key`, `status` (`new`, `updated`, `conflicts`, `unchanged`) and:
    - `fills`: fields that were null and get a value;
    - `replaced`: `{ field, stored, found }` for each value overwritten. With `--replace` it is any stated value; without it, only `price`: a different price always replaces the stored one (a first price is a `fills` entry);
    - `cleared`: fields whose stored conflicts this write settles;
    - `conflicts`: `{ field, stored, found }` for each differing value kept aside;
    - `dropped`: `extraSpecs.<name>` for each new extra line not stored because the product already holds 8. The status does not change.
-6. **Show the user** one table per product: its status and key; every stated spec with value, `asWritten` and the source's host; then fills, cleared, conflicts (stored → found), every `replaced` entry as stored → found (a changed price shows here even without `--replace`) and every `dropped` line (not stored: the product already has 8 extra lines). Flag: a VA-only or duration-less surge, no parallel limit, any stated value missing `asWritten`. Say where the write goes in the table and in the question: "this writes to PRODUCTION" when the server said `"production":true` or did not name its database, otherwise "this writes to `<endpoint>`, not production".
+6. **Show the user** one table per product: its status and key; every stated spec with value, `asWritten` and the source's host; then fills, cleared, conflicts (stored → found), every `replaced` entry as stored → found (a changed price shows here even without `--replace`) and every `dropped` line (not stored: the product already has 8 extra lines). Flag: a VA-only or duration-less surge, no parallel limit, any stated value missing `asWritten`. Say where the write goes, in the table and in the question, in the words "Which database a target writes to" gives for the server's answer.
 7. **Wait for an explicit yes.** Then send the same file with the same headers to `"$BASE/api/catalog/products"` (or `?replace=true` with `--replace`) and report `created`, `updated`, `unchanged` and `conflicts`. A product can be in `updated` and in `conflicts`: it was filled or changed and also read a differing value. Conflicts are kept on the product for review. `--replace` overwrites them; re-sending the stored value with `--replace` keeps it and clears that field's conflicts (`cleared`). Every product sent again, changed or not, has its `last_seen_at` moved.
 8. **On errors:**
    - 400: a query parameter other than `dryRun` or `replace`, one not exactly `true` or `false`, or one given twice (`error` names it). Nothing was written; fix the URL and repeat from step 5.
    - 422: show the per-item issues (index and dotted path). Re-read the datasheet and fix the item; never change a value or its words just to pass a limit. Repeat from step 5. Two items with one key are refused as "the same product twice".
    - 409: a stored product with that key no longer passes the schema (`keys` lists them). Nothing was written; report it, the stored row needs fixing first.
-   - 412: the server is not on the database named in `X-Expect-Database` (it was restarted, or another server took the port). Nothing was written; show the `database` in the answer and go back to Setup's database question before anything else.
+   - 412: the server is not on the database named in `X-Expect-Database` (it was restarted, or another server took the port). It did nothing; show the `database` in its answer and ask it again which database it writes to before anything else.
    - 401: the token is wrong or missing in `.env.local`. 404: the API is disabled on that target (`CATALOG_API_TOKEN` unset there). 429: too many failed requests from this IP; wait. 500: database error; report it and ask the user to retry. Connection refused: no server on that target; stop.
 
 ## Item shape

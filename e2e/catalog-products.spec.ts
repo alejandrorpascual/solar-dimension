@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
 import { productKey } from '../src/lib/product-schema'
-import { catalogAuthHeader as auth } from './catalog-token'
+import { ANOTHER_DATABASE, catalogAuthHeader as auth, expectingDatabase } from './catalog-token'
 import { deleteTestProduct, insertUnreadableTestProduct, rawTestProduct, testProductDates } from './db'
 
 test.beforeEach(({}, info) => {
@@ -36,7 +36,7 @@ test('refuses a product write meant for another database', async ({ request }) =
   const model = `X${Date.now()}`
   const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
   try {
-    const elsewhere = await request.post('/api/catalog/products', { headers: { ...auth, 'X-Expect-Database': 'ep-not-this-one-12345678' }, data: [inverter(model)] })
+    const elsewhere = await request.post('/api/catalog/products', { headers: expectingDatabase(ANOTHER_DATABASE), data: [inverter(model)] })
 
     expect(elsewhere.status()).toBe(412)
     expect(await stored(request, key)).toBeUndefined()
