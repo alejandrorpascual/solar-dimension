@@ -15,12 +15,16 @@ Arguments: `<what> [--target local|prod] [--replace]` (default target `local`).
 Research with Claude Code's own web search and fetch. Never run `scripts/product-search/spike.ts` or any other paid AI API.
 
 ## Setup
-- Never `cat`, `Read`, `rg` or otherwise print any `.env*` file: `.env.local` holds the token and the production database URL. Shell variables don't survive between commands, so start every command that calls the API with:
+- Never `cat`, `Read`, `rg` or otherwise print any `.env*` file: `.env.local` holds the token and the production database URL. Shell variables and functions don't survive between commands, so start every command that calls the API with this line. It reads the token, stops if the token or the address is missing, and defines `api`: a `curl` that sends the token and always ends with the HTTP status on a line of its own.
   ```bash
-  TOKEN=$(sed -n 's/^CATALOG_API_TOKEN=//p' .env.local | tr -d '"') && BASE=http://localhost:3000
+  TOKEN=$(sed -n 's/^CATALOG_API_TOKEN=//p' .env.local | tr -d '"') && BASE=http://localhost:3000 && : "${TOKEN:?CATALOG_API_TOKEN is not in .env.local}" "${BASE:?CATALOG_API_URL is not in .env.local}" && api() { curl -sS -m 30 -w '\n%{http_code}\n' -H "Authorization: Bearer $TOKEN" "$@"; }
   ```
-  For `--target prod`, use `BASE=$(sed -n 's/^CATALOG_API_URL=//p' .env.local | tr -d '"')` instead. Pass the token only in the `Authorization: Bearer` header, never in a URL or output.
-- Before the dry run, follow "Which database a target writes to" in `.claude/skills/research-appliance/SKILL.md`. It applies to this skill as written: you ask the target itself which database it writes to, and it tells you what to say to the user and when to stop. Never look for the database in an env file or in the server's process.
+  For `--target prod`, put `BASE=$(sed -n 's/^CATALOG_API_URL=//p' .env.local | tr -d '"')` in place of `BASE=http://localhost:3000`.
+- Read the status before the body, every time:
+  - `000`: no server answered on that target. Say so and stop. After the write in step 7 it means you don't know whether the write landed: say that, and run the dry run again to see.
+  - No status at all, and the shell names a key that is not in `.env.local`: tell the user which key and stop. Do not open the file to look.
+- Never print, echo or log the token or any database URL. Pass the token only through `api`.
+- Before the first API call, follow "Which database a target writes to" in `.claude/skills/research-appliance/SKILL.md`. It applies to this skill as written: you ask the target itself which database it writes to, and it tells you what to say to the user, what every POST must carry and when to stop. Never look for the database in an env file or in the server's process.
 
 ## Steps
 1. **List the products** to research (see `<what>`). At most 50 per request, each product once.
@@ -34,8 +38,8 @@ Research with Claude Code's own web search and fetch. Never run `scripts/product
    - `extraSpecs`: up to 8 more lines an installer would check, as written (`name` ≤ 60, `value` ≤ 200 characters), each name once whatever its case ("Weight" and "weight" are one line; two are refused): transfer time, IP rating, operating temperature, dimensions, weight, the maker's depth of discharge.
    - `price`: `null`, unless you saw it on a seller's page; then `{ "amount": 1199, "currency": "USD", "seller": "…", "url": "https://…", "seenOn": "YYYY-MM-DD" }` with today's date. Never search for prices.
    - `brand` ≤ 60 and `model` ≤ 80 characters.
-4. **Check for duplicates:** `curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/catalog/products" | jq '.items[] | {key, brand, model, retired}'`. If the product is there under another spelling, use the stored `brand` and `model` exactly. A `retired` product stays retired after a write; say so.
-5. **Dry run:** write the JSON array of items to a file in the session scratchpad, then `curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "X-Expect-Database: <endpoint>" -H 'Content-Type: application/json' --data @<file> "$BASE/api/catalog/products?dryRun=true"` (add `&replace=true` with `--replace`). `<endpoint>` is the id the server named when you asked it which database it writes to; leave that header out only when it named none. The only query parameters are `dryRun` and `replace`, each exactly `true` or `false` (absent is `false`). Each change has `key`, `status` (`new`, `updated`, `conflicts`, `unchanged`) and:
+4. **Check for duplicates:** `api -o <file> "$BASE/api/catalog/products"` saves the answer to a file in the session scratchpad and prints only the status; on `200`, list them with `jq '.items[] | {key, brand, model, retired}' <file>`. If the product is there under another spelling, use the stored `brand` and `model` exactly. A `retired` product stays retired after a write; say so.
+5. **Dry run:** write the JSON array of items to a file in the session scratchpad, then `api -X POST -H "X-Expect-Database: <endpoint>" -H 'Content-Type: application/json' --data @<file> "$BASE/api/catalog/products?dryRun=true"` (add `&replace=true` with `--replace`). `<endpoint>` is the id the server named when you asked it which database it writes to, typed into the command itself; leave that header out only when it named none. The only query parameters are `dryRun` and `replace`, each exactly `true` or `false` (absent is `false`). Each change has `key`, `status` (`new`, `updated`, `conflicts`, `unchanged`) and:
    - `fills`: fields that were null and get a value;
    - `replaced`: `{ field, stored, found }` for each value overwritten. With `--replace` it is any stated value; without it, only `price`: a different price always replaces the stored one (a first price is a `fills` entry);
    - `cleared`: fields whose stored conflicts this write settles;
@@ -47,8 +51,9 @@ Research with Claude Code's own web search and fetch. Never run `scripts/product
    - 400: a query parameter other than `dryRun` or `replace`, one not exactly `true` or `false`, or one given twice (`error` names it). Nothing was written; fix the URL and repeat from step 5.
    - 422: show the per-item issues (index and dotted path). Re-read the datasheet and fix the item; never change a value or its words just to pass a limit. Repeat from step 5. Two items with one key are refused as "the same product twice".
    - 409: a stored product with that key no longer passes the schema (`keys` lists them). Nothing was written; report it, the stored row needs fixing first.
-   - 412: the server is not on the database named in `X-Expect-Database` (it was restarted, or another server took the port). It did nothing; show the `database` in its answer and ask it again which database it writes to before anything else.
-   - 401: the token is wrong or missing in `.env.local`. 404: the API is disabled on that target (`CATALOG_API_TOKEN` unset there). 429: too many failed requests from this IP; wait. 500: database error; report it and ask the user to retry. Connection refused: no server on that target; stop.
+   - 412: the server is not on the database you named (it was restarted, or another server took the port). It did nothing, and the dry run and the yes are void: show the `database` in its answer, ask it again which database it writes to, then repeat steps 4 to 7.
+   - 428: the POST named no database. Send it again with the header, using the id in the answer you showed the user.
+   - 401: the token is not the one that server was started with (this skill reads `CATALOG_API_TOKEN` from `.env.local`). 404 on any route but `/api/catalog/database`: the API is disabled on that target (`CATALOG_API_TOKEN` unset there). 429: too many failed requests from this IP; wait. 500: database error; report it and ask the user to retry.
 
 ## Item shape
 
