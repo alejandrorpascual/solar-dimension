@@ -32,10 +32,11 @@ export function assertTestDatabase(url: string | undefined): string {
  * Throws, so no test runs, when the database is production, is not declared for tests, or is the one `.env.local`
  * points at: e2e runs create users, projects and catalog rows, and they once filled the production catalog that way.
  *
- * A database that passes is vouched for in TEST_DB_ENDPOINT, which a server started with this environment reads: it is
- * the only way a server answers /api/catalog/database with "test".
+ * A database that passes is vouched for in TEST_DB_ENDPOINT and returned. A server started with this environment reads
+ * the variable and answers /api/catalog/database with "test" for that endpoint. Nothing else in the repo sets it, and
+ * it is never set by hand.
  */
-export function loadTestEnv(): void {
+export function loadTestEnv(): string {
   const testEnv = readEnvFile(TEST_ENV_FILE)
   const devEnv = readEnvFile(DEV_ENV_FILE)
   for (const [key, value] of Object.entries(testEnv)) process.env[key] = value
@@ -43,8 +44,7 @@ export function loadTestEnv(): void {
   // A vouch left in the shell or in a file says nothing about this run, and a run that is refused must leave none.
   delete process.env[TEST_DB_ENDPOINT_ENV]
 
-  const url = process.env.DATABASE_URL
-  const endpoint = assertTestDatabase(url)
+  const endpoint = assertTestDatabase(process.env.DATABASE_URL)
   if (!process.env.CI && !testEnv.DATABASE_URL) {
     throw new Error(`e2e refuses to run without ${TEST_ENV_FILE}: put the test branch's DATABASE_URL there, so tests never use ${DEV_ENV_FILE}'s database.`)
   }
@@ -52,4 +52,5 @@ export function loadTestEnv(): void {
     throw new Error(`e2e refuses to run: DATABASE_URL points at the same database as ${DEV_ENV_FILE} (${endpoint}). Use a separate Neon branch.`)
   }
   process.env[TEST_DB_ENDPOINT_ENV] = endpoint
+  return endpoint
 }

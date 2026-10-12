@@ -1,8 +1,9 @@
 /** Neon endpoint of the production database (an id, not a credential). No test run may use it, and a server on it says so. */
 export const PRODUCTION_DB_ENDPOINT = 'ep-round-sea-auutoq9o'
 /**
- * The variable that vouches for a test database. The e2e guard sets it to the endpoint it has checked (not production,
- * declared for tests, not the dev file's), and a server calls its database a test one only when it is on that endpoint.
+ * The variable that vouches for a test database. The e2e guard sets it to the endpoint it has checked: not production,
+ * and outside CI also declared in .env.test.local and not .env.local's. Nothing else in the repo sets it and it is
+ * never set by hand. A server calls its database a test one only when it is on that endpoint.
  */
 export const TEST_DB_ENDPOINT_ENV = 'TEST_DB_ENDPOINT'
 
@@ -23,8 +24,9 @@ export type DatabaseTarget = { endpoint: string; environment: DatabaseEnvironmen
 
 /**
  * `production` for the known production endpoint, `test` only for the endpoint that was vouched for, `unknown` for any
- * other: a database nobody checked is never called safe, so a stale PRODUCTION_DB_ENDPOINT cannot pass production off
- * as a test database. Undefined when the URL is missing or can't be read: the caller must not guess a database.
+ * other: a database nobody checked is never called safe. If PRODUCTION_DB_ENDPOINT goes stale, a server on production
+ * that nobody vouched for reads `unknown`, not `test`. Undefined when the URL is missing or can't be read: the caller
+ * must not guess a database.
  */
 export function databaseTarget(url: string | undefined, vouchedTestEndpoint: string | undefined): DatabaseTarget | undefined {
   const endpoint = endpointOf(url)

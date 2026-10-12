@@ -18,24 +18,35 @@ const clientIp = (request: Request) =>
 
 const isRead = (request: Request): boolean => request.method === 'GET' || request.method === 'HEAD'
 
+/** The answer when DATABASE_URL has no host to read: the server says so rather than guess a database. */
+function cannotTellDatabase(): Response {
+  console.error('[catalog-api] DATABASE_URL has no readable host, so the database cannot be named')
+  return json({ error: 'Could not tell which database this server uses' }, 500)
+}
+
 /**
- * Null when the request is meant for this server's database. The server on a port can change between the question
- * "which database?" and the write the user agreed to, so every POST, dry runs included, must name the database it was
- * agreed for (428 without a name), and any request that names another database is refused (412). A header left out
- * by mistake therefore stops the write instead of dropping the check.
+ * Null when the request may go on to this server's database. The server on a port can change between the question
+ * "which database?" and the write the user agreed to, so every POST must name the database it was agreed for (428
+ * without a name), and any request that names another one is refused (412). Dry runs too: the table the user approves
+ * is built from one. A read may leave the name out, since the first read is how the name is learned. A header left
+ * out by mistake therefore stops the write instead of dropping the check.
  */
 function refuseUnlessMeantForThisDatabase(request: Request): Response | null {
   const expected = request.headers.get(EXPECT_DATABASE_HEADER)
+  if (expected === null && isRead(request)) return null
+  // Neither "add the name" (428) nor "ask again" (412) helps a caller when the server cannot name its own database.
+  if (!dbTarget) return cannotTellDatabase()
   const where = { method: request.method, path: new URL(request.url).pathname }
   if (expected === null) {
-    if (isRead(request)) return null
     console.warn('[catalog-api] refused a POST that names no database', where)
     // Without the server's own endpoint: the name has to come from the answer the user was shown, not from this refusal.
     return json({ error: `Name the database this request is meant for in the ${EXPECT_DATABASE_HEADER} header: the endpoint GET /api/catalog/database answered` }, 428)
   }
-  if (expected === dbTarget?.endpoint) return null
-  console.warn('[catalog-api] refused a request meant for another database', { expected, actual: dbTarget?.endpoint, ...where })
-  return json({ error: 'This server is not on the database the request names; the request was refused', expected, database: dbTarget ?? null }, 412)
+  // An exact match on purpose: the caller repeats the endpoint as the server spelled it.
+  if (expected === dbTarget.endpoint) return null
+  console.warn('[catalog-api] refused a request meant for another database', { expected, actual: dbTarget.endpoint, ...where })
+  // With this server's database, unlike the 428: it shows the user where the server is now. It is never a name to resend.
+  return json({ error: 'This server is not on the database the request names; the request was refused', expected, database: dbTarget }, 412)
 }
 
 /**
@@ -59,11 +70,7 @@ export function authorize(request: Request): Response | null {
 export function databaseHandler({ request }: { request: Request }): Response {
   const denied = authorize(request)
   if (denied) return denied
-  if (!dbTarget) {
-    console.error('[catalog-api] DATABASE_URL has no readable host, so the database cannot be named')
-    return json({ error: 'Could not tell which database this server uses' }, 500)
-  }
-  return json(dbTarget)
+  return dbTarget ? json(dbTarget) : cannotTellDatabase()
 }
 
 export function retiredHandler(retired: boolean) {
@@ -71,8 +78,8 @@ export function retiredHandler(retired: boolean) {
     const denied = authorize(request)
     if (denied) return denied
     // Retire and restore have no dry run: a flag here would be ignored, and the caller would not know it wrote.
-    const flags = parseWriteFlags(new URL(request.url).searchParams, [])
-    if (!flags.ok) return json({ error: flags.error }, 400)
+    const query = parseWriteFlags(new URL(request.url).searchParams, [])
+    if (!query.ok) return json({ error: query.error }, 400)
     const { id } = params
     try {
       return (await setRetired(id, retired, API_ACTOR)) ? json({ id, retired }) : json({ error: 'Not found' }, 404)

@@ -17,15 +17,17 @@ test('the catalog API needs the token', async ({ request }) => {
 })
 
 test('says which database it is on, as a test one, and only to a request with the token', async ({ request }) => {
-  // One refused request, not two: the server locks an address out after ten, and every e2e request shares one address.
+  // Only one refused request: refusals count toward the lockout, and every e2e request shares one address.
   const stranger = await request.get('/api/catalog/database')
   expect(stranger.status()).toBe(401)
   expect(await stranger.json()).toEqual({ error: expect.any(String) })
+  expect(await stranger.text()).not.toContain(testEndpoint())
   expect(JSON.stringify(stranger.headers())).not.toContain(testEndpoint())
 
   const named = await request.get('/api/catalog/database', { headers: auth })
   expect(named.status()).toBe(200)
-  // "test" because loadTestEnv() vouched for this database when the run started; any other server says "unknown".
+  // "test" because loadTestEnv() vouched for this database when the run started. A server started any other way
+  // says "unknown", or "production" on production.
   expect(await named.json()).toEqual({ endpoint: testEndpoint(), environment: 'test' })
 })
 
@@ -35,6 +37,8 @@ test('writes only when the POST names this database, and writes to the database 
     const unnamed = await request.post('/api/catalog/appliances', { headers: auth, data: [cooktop(id)] })
     expect(unnamed.status()).toBe(428)
     expect(await unnamed.json()).toEqual({ error: expect.any(String) })
+    // The name has to come from the answer the user was shown, so the refusal does not hand it over.
+    expect(await unnamed.text()).not.toContain(testEndpoint())
 
     const elsewhere = await request.post('/api/catalog/appliances', { headers: meantFor(ANOTHER_ENDPOINT), data: [cooktop(id)] })
     expect(elsewhere.status()).toBe(412)

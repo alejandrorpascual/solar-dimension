@@ -29,13 +29,13 @@ export const Route = createFileRoute('/api/catalog/appliances')({
         const denied = authorize(request)
         if (denied) return denied
         // Before the body is read: a mistyped flag must never fall through to a real write.
-        const flags = parseWriteFlags(new URL(request.url).searchParams, ['dryRun'])
-        if (!flags.ok) return json({ error: flags.error }, 400)
+        const query = parseWriteFlags(new URL(request.url).searchParams, ['dryRun'])
+        if (!query.ok) return json({ error: query.error }, 400)
         const body = await request.json().catch(() => undefined)
         const parsed = parseItems(body)
         if (!parsed.ok) return json({ errors: parsed.errors }, 422)
         const ids = parsed.items.map((i) => i.id)
-        if (flags.dryRun) {
+        if (query.flags.dryRun) {
           const records = await readCatalog({ ids })
           return records instanceof Response ? records : json({ changes: diffAppliances(records, parsed.items) })
         }

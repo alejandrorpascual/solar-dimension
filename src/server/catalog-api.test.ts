@@ -22,7 +22,15 @@ const request = ({ method = 'GET', path = '/api/catalog/database', headers = {} 
   new Request(`http://localhost${path}`, { method, headers })
 const withToken = (call: Call = {}) => request({ ...call, headers: { authorization: `Bearer ${TOKEN}`, ...call.headers } })
 const naming = (endpoint: string) => ({ [EXPECT_DATABASE]: endpoint })
-const errorOnly = { error: expect.any(String) }
+const retireCall = (headers: Record<string, string>, query = '') =>
+  ({ request: withToken({ method: 'POST', path: `/api/catalog/appliances/kettle/retire${query}`, headers }), params: { id: 'kettle' } })
+
+/** The answer is an error and nothing else: no key beside `error`, and the server's endpoint nowhere in its text. */
+async function expectNothingNamed(response: Response | null | undefined): Promise<void> {
+  const body: unknown = await response?.json()
+  expect(body).toEqual({ error: expect.any(String) })
+  expect(JSON.stringify(body)).not.toContain(HERE.endpoint)
+}
 
 beforeEach(() => {
   vi.stubEnv('CATALOG_API_TOKEN', TOKEN)
@@ -51,7 +59,7 @@ test('names nothing without the token or with a wrong one', async () => {
 
   for (const response of refused) {
     expect(response.status).toBe(401)
-    expect(await response.json()).toEqual(errorOnly)
+    await expectNothingNamed(response)
   }
 })
 
@@ -62,7 +70,7 @@ test('names nothing when the API is off, even to a request that names another da
   const response = databaseHandler({ request: withToken({ headers: naming(ANOTHER_ENDPOINT) }) })
 
   expect(response.status).toBe(404)
-  expect(await response.json()).toEqual(errorOnly)
+  await expectNothingNamed(response)
 })
 
 test('answers 500, not a guess, when the server cannot read its own database', async () => {
@@ -71,7 +79,7 @@ test('answers 500, not a guess, when the server cannot read its own database', a
   const response = databaseHandler({ request: withToken() })
 
   expect(response.status).toBe(500)
-  expect(await response.json()).toEqual(errorOnly)
+  await expectNothingNamed(response)
   expect(console.error).toHaveBeenCalledOnce()
 })
 
@@ -96,7 +104,7 @@ test('refuses a POST that names no database, dry run or not, without naming its 
 
   for (const response of refused) {
     expect(response?.status).toBe(428)
-    expect(await response?.json()).toEqual(errorOnly)
+    await expectNothingNamed(response)
   }
   expect(console.warn).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ method: 'POST', path: '/api/catalog/appliances' }))
 })
@@ -128,14 +136,27 @@ test('refuses a named database that is empty or only close to this one', async (
   expect(authorize(withToken({ headers: naming(HERE.endpoint.toUpperCase()) }))?.status).toBe(412)
 })
 
-test('refuses every POST when the server cannot read its own database', async () => {
+test('a server that cannot read its own database answers 500 to every POST and to any request that names one', async () => {
   const { authorize } = await load(undefined)
 
-  const named = authorize(withToken({ method: 'POST', headers: naming(ANOTHER_ENDPOINT) }))
+  const refused = [
+    authorize(withToken({ method: 'POST', headers: naming(ANOTHER_ENDPOINT) })),
+    authorize(withToken({ method: 'POST' })),
+    authorize(withToken({ headers: naming(ANOTHER_ENDPOINT) })),
+  ]
 
-  expect(named?.status).toBe(412)
-  expect(await named?.json()).toEqual({ error: expect.any(String), expected: ANOTHER_ENDPOINT, database: null })
-  expect(authorize(withToken({ method: 'POST' }))?.status).toBe(428)
+  // Not 412 or 428: those tell the caller to ask again or to add the name, and neither can help here.
+  for (const response of refused) {
+    expect(response?.status).toBe(500)
+    await expectNothingNamed(response)
+  }
+  expect(console.error).toHaveBeenCalledTimes(refused.length)
+})
+
+test('a server that cannot read its own database still lets a read through that names none', async () => {
+  const { authorize } = await load(undefined)
+
+  expect(authorize(withToken())).toBeNull()
 })
 
 test('checks the token before the database, so a refusal names nothing to a stranger', async () => {
@@ -145,7 +166,7 @@ test('checks the token before the database, so a refusal names nothing to a stra
 
   for (const response of refused) {
     expect(response?.status).toBe(401)
-    expect(await response?.json()).toEqual(errorOnly)
+    await expectNothingNamed(response)
   }
 })
 
@@ -174,11 +195,9 @@ test('a refusal over the database is not a failed sign-in: it never locks the ad
 
 test('retire changes nothing for a request that names another database or none', async () => {
   const { retiredHandler, setRetired } = await load(HERE)
-  const retire = (headers: Record<string, string>) =>
-    retiredHandler(true)({ request: withToken({ method: 'POST', path: '/api/catalog/appliances/kettle/retire', headers }), params: { id: 'kettle' } })
 
-  const elsewhere = await retire(naming(ANOTHER_ENDPOINT))
-  const unnamed = await retire({})
+  const elsewhere = await retiredHandler(true)(retireCall(naming(ANOTHER_ENDPOINT)))
+  const unnamed = await retiredHandler(true)(retireCall({}))
 
   expect(elsewhere.status).toBe(412)
   expect(unnamed.status).toBe(428)
@@ -188,22 +207,27 @@ test('retire changes nothing for a request that names another database or none',
 test('retire goes through for a request that names this database', async () => {
   const { retiredHandler, setRetired } = await load(HERE)
 
-  const response = await retiredHandler(true)({
-    request: withToken({ method: 'POST', path: '/api/catalog/appliances/kettle/retire', headers: naming(HERE.endpoint) }),
-    params: { id: 'kettle' },
-  })
+  const response = await retiredHandler(true)(retireCall(naming(HERE.endpoint)))
 
   expect(response.status).toBe(200)
+  expect(await response.json()).toEqual({ id: 'kettle', retired: true })
   expect(setRetired).toHaveBeenCalledWith('kettle', true, 'api-token')
+})
+
+test('restore un-retires: the handler passes on which of the two it is', async () => {
+  const { retiredHandler, setRetired } = await load(HERE)
+
+  const response = await retiredHandler(false)(retireCall(naming(HERE.endpoint)))
+
+  expect(response.status).toBe(200)
+  expect(await response.json()).toEqual({ id: 'kettle', retired: false })
+  expect(setRetired).toHaveBeenCalledWith('kettle', false, 'api-token')
 })
 
 test('retire refuses a query parameter instead of ignoring it: there is no dry run of a retire', async () => {
   const { retiredHandler, setRetired } = await load(HERE)
 
-  const response = await retiredHandler(true)({
-    request: withToken({ method: 'POST', path: '/api/catalog/appliances/kettle/retire?dryRun=true', headers: naming(HERE.endpoint) }),
-    params: { id: 'kettle' },
-  })
+  const response = await retiredHandler(true)(retireCall(naming(HERE.endpoint), '?dryRun=true'))
 
   expect(response.status).toBe(400)
   expect(await response.json()).toEqual({ error: expect.stringContaining('"dryRun"') })

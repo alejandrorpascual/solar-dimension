@@ -18,20 +18,13 @@ async function loadGuard(files: Record<string, string> = {}) {
   return import('../../e2e/test-env.ts')
 }
 
-let saved: Record<string, string | undefined>
-
 beforeEach(() => {
   // The guard writes to process.env, so each test starts without the variables it reads and gets them back afterwards.
-  saved = Object.fromEntries(TOUCHED.map((key) => [key, process.env[key]]))
-  for (const key of TOUCHED) delete process.env[key]
+  for (const key of TOUCHED) vi.stubEnv(key, undefined)
 })
 
 afterEach(() => {
-  for (const key of TOUCHED) {
-    if (saved[key] === undefined) delete process.env[key]
-    else process.env[key] = saved[key]
-  }
-  vi.restoreAllMocks()
+  vi.unstubAllEnvs()
 })
 
 test('refuses the production database through either host and in any letter case, and says which it is', async () => {
@@ -64,8 +57,9 @@ test('the test file wins over the shell, the dev file fills the rest, and the da
     [DEV_FILE]: `DATABASE_URL=${pooledUrl(DEV)}\nBETTER_AUTH_SECRET=from-the-dev-file`,
   })
 
-  loadTestEnv()
+  const vouched = loadTestEnv()
 
+  expect(vouched).toBe(TEST)
   expect(process.env.DATABASE_URL).toBe(pooledUrl(TEST))
   expect(process.env.BETTER_AUTH_SECRET).toBe('from-the-dev-file')
   expect(process.env[TEST_DB_ENDPOINT_ENV]).toBe(TEST)
@@ -80,6 +74,14 @@ test('refuses a test file that points at production, and vouches for nothing', a
 })
 
 test('outside CI, refuses to run without a test file, so the dev file never supplies the database', async () => {
+  const { loadTestEnv } = await loadGuard({ [DEV_FILE]: `DATABASE_URL=${pooledUrl(DEV)}` })
+
+  expect(() => loadTestEnv()).toThrow(`refuses to run without ${TEST_FILE}`)
+  expect(process.env[TEST_DB_ENDPOINT_ENV]).toBeUndefined()
+})
+
+test('outside CI, a DATABASE_URL exported in the shell does not stand in for the test file', async () => {
+  process.env.DATABASE_URL = pooledUrl(TEST)
   const { loadTestEnv } = await loadGuard({ [DEV_FILE]: `DATABASE_URL=${pooledUrl(DEV)}` })
 
   expect(() => loadTestEnv()).toThrow(`refuses to run without ${TEST_FILE}`)
