@@ -39,6 +39,12 @@ describe('buildCsv', () => {
     expect(buildCsv(input({ appliances: true, parts: true }))).not.toContain('Needs attention')
   })
 
+  test('a closing line goes under everything, as a block of its own', () => {
+    const lines = buildCsv({ ...input({ appliances: false, parts: true }), footer: 'An estimate, not a design.' }).slice(1).split('\r\n')
+    expect(lines.slice(-2)).toEqual(['', '"An estimate, not a design."'])
+    expect(buildCsv({ ...input({ appliances: false, parts: false }), footer: 'Estimate' }).slice(1)).toBe('Estimate')
+  })
+
   test('writes the appliance block, a blank line, then the parts block, with a BOM for Excel', () => {
     const csv = buildCsv(input({ appliances: true, parts: true }))
     expect(csv.startsWith('﻿')).toBe(true)

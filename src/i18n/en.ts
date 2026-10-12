@@ -43,6 +43,8 @@ export const en: Dictionary = {
     batterySize: 'Battery size', batterySizeHelp: 'Pick the battery you plan to buy. Auto uses the fewest batteries.', batteryAuto: 'Auto',
     batteryRecommended: 'Fewest batteries', batteryGroup: '{v} V batteries', batteryInSeries: '{n} in series', manyStrings: 'Many parallel strings',
     batteryCountOne: '{count} battery', batteryCountMany: '{count} batteries', panelCountOne: '{count} panel', panelCountMany: '{count} panels',
+    legal: 'Legal',
+    estimateNotice: 'An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.',
     fine: 'Assumes 90% inverter efficiency, 25% inverter headroom, {dod}% depth of discharge, 1,100 W per ton of cooling, {starts}, copper cable with {insulation} °C insulation at {ambient} °C{bundled}. NEC ampacity tables; verify against local code.',
     fineStartsOne: 'one motor starting at a time', fineStartsTwo: 'two motors starting together', fineStartsAll: 'every motor starting at once', fineBundled: ', bundled',
     footer1: '{name} · {count} appliances · {running} running · {peak} peak', footer2: '{hours} h at {volts} V · {load} of load', footer3: '{batteries} · {inverter} inverter · {gauge}', footerEmpty: 'Nothing selected yet',

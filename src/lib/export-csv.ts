@@ -15,6 +15,8 @@ export interface CsvInput {
   /** Column titles in the user's language. */
   headers: { appliances: string[]; parts: string[]; attention: string[] }
   include: { appliances: boolean; parts: boolean }
+  /** One closing line under everything, such as what kind of document this is. */
+  footer?: string
 }
 
 /** Text starting like this runs as a formula in Excel, Sheets and LibreOffice (CSV injection). */
@@ -47,6 +49,7 @@ export function buildCsv(input: CsvInput): string {
   if (input.attention.length > 0) {
     blocks.push([line(input.headers.attention), ...input.attention.map((a) => line([a.name, a.text]))])
   }
+  if (input.footer) blocks.push([line([input.footer])])
   return BOM + blocks.map((b) => b.join(EOL)).join(EOL + EOL)
 }
 

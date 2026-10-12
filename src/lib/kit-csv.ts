@@ -8,14 +8,16 @@ import type { SizingResult } from './sizing'
 export interface CsvInclude { appliances: boolean; parts: boolean }
 
 /**
- * The kit as a spreadsheet: the load schedule by kind, then the parts list, in the user's language. Failing checks and
- * notes come last and are always there, since a supplier may get this file and nothing else.
+ * The kit as a spreadsheet: the load schedule by kind, then the parts list, in the user's language. Failing checks,
+ * notes and the line that says this is an estimate come last and are always there, since a supplier may get this
+ * file and nothing else.
  */
 export function csvFor(result: SizingResult, parts: readonly Part[], include: CsvInclude, t: Dictionary): string {
   const failing = kitChecks(t, result, t.locale).filter(isFailing).flatMap((c) => c.lines.map((text) => ({ name: c.name, text })))
   const notes = kitNotes(t, result).map((text) => ({ name: t.ui.note, text }))
   return buildCsv({
     attention: [...failing, ...notes],
+    footer: t.ui.estimateNotice,
     headers: {
       attention: [t.ui.checkWarn, t.ui.note],
       appliances: [t.ui.appliance, t.ui.kind, t.ui.quantity, t.ui.eachW, t.ui.runningWatts, t.ui.averageWatts, tr(t, 'whOver', { hours: result.hours })],

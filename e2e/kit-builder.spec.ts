@@ -304,6 +304,21 @@ test('hours, voltage and chemistry change the sizing summary', async ({ page }) 
   await expect(page.getByLabel('Hours without the grid')).toHaveValue('24')
 })
 
+test('the kit says it is an estimate, beside the parts list', async ({ page }) => {
+  await page.goto('/?step=4')
+  const notice = page.getByRole('note').filter({ hasText: 'An estimate for requesting quotes, not an installation design.' })
+  await expect(notice).toHaveText('An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.')
+})
+
+test('the terms and the privacy policy are linked from the first step, without an account or a kit', async ({ page }) => {
+  await page.goto('/')
+  const legal = page.getByRole('navigation', { name: 'Legal' })
+  await expect(legal.getByRole('link', { name: 'Privacy', exact: true })).toHaveAttribute('href', '/privacy')
+  await legal.getByRole('link', { name: 'Terms of use' }).click()
+  await expect(page).toHaveURL(/\/terms$/)
+  await expect(page.getByRole('heading', { name: 'Estimates, not an installation plan' })).toBeVisible()
+})
+
 test('full flow: appliances → window → kit, and the project survives a reload', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Air conditioning' }).click()

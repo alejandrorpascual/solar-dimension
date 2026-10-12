@@ -36,7 +36,8 @@ interface Props {
  *
  * Two things are on the sheet whatever is ticked, because the person pricing the kit may see nothing else: the notes
  * no check owns, and every check that fails. They print last, so page one keeps its layout, and the header says in
- * one line, beside the subtitle, when either exists.
+ * one line, beside the subtitle, when either exists. The sentence that says this is an estimate is fixed too: it
+ * sits under the parts it qualifies, above the assumptions, and no Include box removes it.
  */
 export function KitSheet({ projectName, result: r, parts, requester, include, date, t, locale, ref }: Props) {
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
@@ -112,7 +113,10 @@ export function KitSheet({ projectName, result: r, parts, requester, include, da
         </section>
       )}
 
-      {include.notes && <p className="ksheet__fine" data-pdf-block="">{finePrint(t, r, dod, locale)}</p>}
+      <div className="ksheet__foot" data-pdf-block="">
+        <p className="ksheet__estimate">{t.ui.estimateNotice}</p>
+        {include.notes && <p className="ksheet__fine">{finePrint(t, r, dod, locale)}</p>}
+      </div>
 
       {/* The load schedule supports the parts list: with one on the sheet it starts a page of its own. */}
       {showAppliances && <SheetSchedule result={r} t={t} locale={locale} breakBefore={showParts} />}

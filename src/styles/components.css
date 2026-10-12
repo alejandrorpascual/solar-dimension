@@ -324,6 +324,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .cmark { flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; border-radius: 999px; display: grid; place-items: center; }
 .cmark--pass { background: #E3F4EA; color: #1F7A45; }
 .cmark--warn { background: var(--warn-bg); color: var(--warn-ink); }
+/* What the kit is, right under the parts it qualifies: ink, not the fine print's grey, so it is read. */
+.estimate { padding: 12px 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; line-height: 1.45; font-weight: 500; }
 .fine { font-size: 11px; line-height: 1.5; }
 @media (min-width: 1024px) {
   .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -344,8 +346,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 }
 
 .stage--narrow { max-width: 440px; }
-.login__legal { display: flex; gap: 8px; align-self: center; }
-.login__legal a { color: inherit; }
+.legal { display: flex; gap: 8px; align-self: center; }
+.legal a { color: inherit; }
 /* Long-form text pages (privacy): readable measure, calm hierarchy. */
 .prose { max-width: 640px; }
 .prose h1 { font-size: 32px; }

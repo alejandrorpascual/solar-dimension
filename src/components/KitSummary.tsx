@@ -107,6 +107,7 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
       <div className="parts">
         {parts.length > 0 ? <PartsTable parts={parts} t={t} /> : <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}
       </div>
+      {parts.length > 0 && <p className="estimate" role="note">{t.ui.estimateNotice}</p>}
       <ChecksList checks={checks} t={t} />
       {notes.length > 0 && (
         <div className="warn" role="status">

@@ -50,6 +50,13 @@ describe('csvFor', () => {
     expect(bare).toContain('Nota,Calentador de agua eléctrico normalmente funciona a 240 V.')
   })
 
+  test('the file ends by saying it is an estimate, in the file\'s language, whatever is ticked', () => {
+    const english = csvFor(result, buildParts(result, en, 'en'), { appliances: true, parts: true }, en).split('\r\n')
+    expect(english.slice(-2)).toEqual(['', '"An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything."'])
+    const bare = csvFor(result, [], { appliances: false, parts: false }, es)
+    expect(bare.slice(1)).toBe('"Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada."')
+  })
+
   test('a sound kit adds no block', () => {
     expect(csvFor(result, buildParts(result, en, 'en'), { appliances: true, parts: true }, en)).not.toContain('Needs attention')
   })

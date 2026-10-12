@@ -91,3 +91,25 @@ describe('the spec sheet carries what a supplier must read', () => {
     expect(text).toContain('Read before quoting · Notes: 1')
   })
 })
+
+describe('the spec sheet says what it is', () => {
+  const EN = 'An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.'
+  const ES = 'Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada.'
+
+  test('the estimate sentence prints in English and Spanish', () => {
+    expect(sheetText(SOUND, 'en').split('\n')).toContain(EN)
+    expect(sheetText(SOUND, 'es').split('\n')).toContain(ES)
+  })
+
+  test('no Include box takes it off, and it comes before the assumptions it outranks', () => {
+    expect(sheetText(SOUND, 'en', NOTHING).split('\n')).toContain(EN)
+    expect(sheetText(SOUND, 'es', NOTHING).split('\n')).toContain(ES)
+    const text = sheetText(SOUND, 'en')
+    expect(text.indexOf(EN)).toBeGreaterThan(text.indexOf('Parts list'))
+    expect(text.indexOf(EN)).toBeLessThan(text.indexOf('Assumes 90% inverter efficiency'))
+  })
+
+  test('an empty project still says it', () => {
+    expect(sheetText({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4' }, 'en', NOTHING)).toContain(EN)
+  })
+})
