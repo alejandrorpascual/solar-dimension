@@ -47,7 +47,8 @@ describe('compute', () => {
     expect(r.cable.gauge).toBe('1 AWG')
     expect(r.cable.fuseA).toBe(125)
     // Two strings: each gets its own short lead and fuse, and the sheet gets the parallel-bank notes.
-    expect(r.cable.string).toMatchObject({ count: 2, gauge: '6 AWG', lengthM: 0.3, fuse: { a: 60, count: 2 } })
+    expect(r.cable.string).toMatchObject({ leads: 4, gauge: '6 AWG', lengthM: 0.3, fuse: { a: 60, count: 2 } })
+    expect(r.cable.links).toBeNull()
     expect(r.parallelNotes).toEqual(['sameModelAge', 'equalLeadsOrBusbar', 'stringFuses'])
   })
 
@@ -158,13 +159,15 @@ describe('battery unit choice', () => {
     expect(auto?.hoursActual).toBeCloseTo(r.battery!.hoursActual)
   })
 
-  test('a chosen unit drives the bank, interconnects, runtime and warnings', () => {
+  test('a chosen unit drives the bank, its wiring, runtime and warnings', () => {
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4', batteryUnit: '12-100' }, CATALOG_SNAPSHOT)
     expect(r.batteryUnit).toBe('12-100')
     expect(r.battery?.unitLabel).toBe('12 V 100 Ah LiFePO₄')
     expect(r.battery?.config).toBe('1S5P')
     expect(r.battery?.count).toBe(5)
-    expect(r.cable.parallelLinks).toBe(8)
+    // Five strings to the bus bars: a lead pair each and nothing in series to link.
+    expect(r.cable.string).toMatchObject({ leads: 10, fuse: { count: 5 } })
+    expect(r.cable.links).toBeNull()
     expect(r.battery?.hoursActual).toBeGreaterThan(10)
     expect(r.warnings.map((w) => w.code)).toContain('parallelStrings')
   })
@@ -200,6 +203,65 @@ describe('battery unit choice', () => {
     const r = compute({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
     expect(r.solar?.panels).toBe(0)
     expect(r.warnings).toEqual([])
+  })
+})
+
+describe('bank wiring', () => {
+  const load = (watts: number) => ({ custom: [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }], qty: { x: 1 } })
+
+  test('a one-string bank links its batteries with the main cable\'s copper', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '12-200' }, CATALOG_SNAPSHOT)
+    expect(r.battery?.config).toBe('4S1P')
+    expect(r.cable.links).toEqual({ positions: 3, perPosition: 1, count: 3, gauge: r.cable.gauge, mm2: r.cable.mm2, designA: 87, ampacity: 115, lengthM: 0.3 })
+    expect(r.cable.string).toBeNull()
+    expect(r.cable.totalLengthM).toBe(3.9)
+  })
+
+  test('when the main cable splits in two runs, each series link is two jumpers, so 185 A never rides on one 130 A cable', () => {
+    const r = compute({ ...load(3000), hours: 1, volts: 24, chemistry: 'lifepo4', batteryUnit: '12-200' }, CATALOG_SNAPSHOT)
+    expect(r.battery?.config).toBe('2S1P')
+    expect(r.inverter.continuousA).toBeCloseTo(185.2, 1)
+    expect(r.cable).toMatchObject({ runs: 2, gauge: '1 AWG', ampacity: 130 })
+    expect(r.cable.links).toMatchObject({ positions: 1, perPosition: 2, count: 2, gauge: '1 AWG', designA: 116, ampacity: 130 })
+    expect(r.cable.designPerRunA).toBe(116)
+    expect(r.cable.totalLengthM).toBe(6.6)
+    expect(r.warnings.map((w) => w.code)).not.toContain('cableUndersized')
+  })
+
+  test('a run of the main cable and the jumper that copies it state one design current, rounded once', () => {
+    // 4,801 W at 36 V: 308.6 A over two runs is 154.3 A each. Rounding the total first and then the half would print 155.
+    const r = compute({ ...load(4801), hours: 2, volts: 36, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect([r.battery?.config, r.cable.runs]).toEqual(['3S1P', 2])
+    expect(r.cable.designA).toBe(309)
+    expect(r.cable.designPerRunA).toBe(154)
+    expect(r.cable.links?.designA).toBe(154)
+  })
+
+  test('with strings in parallel a link carries one string, so it takes the string lead\'s gauge, not the main cable\'s', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '12-100' }, CATALOG_SNAPSHOT)
+    expect(r.battery?.config).toBe('4S2P')
+    expect(r.cable.gauge).toBe('2 AWG')
+    expect(r.cable.string).toMatchObject({ gauge: '6 AWG', designA: 43, ampacity: 65, leads: 4, fuse: { a: 60, count: 2 } })
+    expect(r.cable.links).toMatchObject({ positions: 6, perPosition: 1, count: 6, gauge: '6 AWG', designA: 43, ampacity: 65 })
+    // Two 1.5 m main leads, six links and four string leads of 30 cm.
+    expect(r.cable.totalLengthM).toBe(6)
+  })
+
+  test('a string lead no single cable can carry is a cable warning that names the row', () => {
+    const r = compute({ ...load(2400), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 75 } }, CATALOG_SNAPSHOT)
+    expect(r.battery?.config).toBe('1S2P')
+    expect(r.warnings.filter((w) => w.code === 'cableUndersized')).toEqual([
+      { code: 'cableUndersized', params: { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7, canCool: true, canRaiseInsulation: true, nextVolts: 24 } },
+    ])
+  })
+
+  test('a main cable that six runs of the largest gauge cannot carry is a cable warning too', () => {
+    // 6.4 kW is past every 12 V inverter: the 8 kW fallback draws 741 A, and six bundled runs of 4/0 at 40 °C carry 118 A each.
+    const r = compute({ ...load(6400), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 40, bundled: true } }, CATALOG_SNAPSHOT)
+    expect([r.inverter.w, r.inverter.voltsOk, r.cable.runs, r.cable.gauge]).toEqual([8000, false, 6, '4/0 AWG'])
+    expect(r.warnings.filter((w) => w.code === 'cableUndersized' && w.params.conductor === 'mainCable')).toEqual([
+      { code: 'cableUndersized', params: { conductor: 'mainCable', gauge: '4/0 AWG', maxA: 118.3, needA: 154.4, canCool: false, canRaiseInsulation: false, nextVolts: 24 } },
+    ])
   })
 })
 

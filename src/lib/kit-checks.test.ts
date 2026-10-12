@@ -56,6 +56,38 @@ describe('kitChecks', () => {
     expect(cable.lines[0]).toContain('145 A design current per run')
   })
 
+  test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {
+    // 3 kW at 12 V on two strings in 50 °C air on 75 °C cable: 139 A a string needs 174 A, and 4/0 carries 172.5 A there.
+    const custom = [{ id: 'custom1', name: 'Workshop', watts: 2400, surge: 2400, note: '' }]
+    const r = kit({ custom1: 1 }, { custom, hours: 1, volts: 12, cable: { ambientC: 50, insulationC: 75 } })
+    const cable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
+    expect(cable.status).toBe('warn')
+    expect(cable.lines).toEqual(['4/0 AWG for the string leads carries only 172.5 A after derating, under the 173.7 A design current of each cable. Move the bank somewhere cooler, use 90 °C cable, raise the voltage to 24 V or trim the load.'])
+    expect(kitChecks(es, r, 'es').find((c) => c.id === 'cable')!.lines).toEqual(['El 4/0 AWG para los cables de rama solo soporta 172.5 A tras la corrección, menos que la corriente de diseño de 173.7 A de cada cable. Lleva el banco a un lugar más fresco, usa cable de 90 °C, sube el voltaje a 24 V o reduce la carga.'])
+  })
+
+  test('the short-cable line offers only what would work: no higher voltage at 48 V, no cooler spot in a cool room', () => {
+    // 8.1 kW at 48 V on two strings in 50 °C air on 75 °C cable: there is no bank voltage above 48 V to go to.
+    const big = [{ id: 'custom1', name: 'Workshop', watts: 8100, surge: 8100, note: '' }]
+    const hot = kit({ custom1: 1 }, { custom: big, hours: 1, volts: 48, cable: { ambientC: 50, insulationC: 75 } })
+    expect(hot.battery!.config).toBe('1S2P')
+    expect(kitChecks(en, hot, 'en').find((c) => c.id === 'cable')!.lines).toEqual(['4/0 AWG for the string leads carries only 172.5 A after derating, under the 173.7 A design current of each cable. Move the bank somewhere cooler, use 90 °C cable or trim the load.'])
+    // A heater and a microwave at 12 V in a cool room: 4/0 is at its terminations, so only a higher voltage or less load helps.
+    const cool = kit({ heater: 1, micro: 1 }, { hours: 4, volts: 12 })
+    const line = '4/0 AWG for the string leads carries only 230 A after derating, under the 231.5 A design current of each cable. Raise the voltage to 24 V or trim the load.'
+    expect(kitChecks(en, cool, 'en').find((c) => c.id === 'cable')!.lines).toContain(line)
+    expect(kitChecks(es, cool, 'es').find((c) => c.id === 'cable')!.lines).toContain('El 4/0 AWG para los cables de rama solo soporta 230 A tras la corrección, menos que la corriente de diseño de 231.5 A de cada cable. Sube el voltaje a 24 V o reduce la carga.')
+  })
+
+  test('with several runs the passing cable line states one run\'s design current, rounded once', () => {
+    // 4,801 W at 36 V: 154.3 A a run. Halving the rounded total (309 A) would print 155.
+    const custom = [{ id: 'custom1', name: 'Workshop', watts: 4801, surge: 4801, note: '' }]
+    const cable = kitChecks(en, kit({ custom1: 1 }, { custom, hours: 2, volts: 36 }), 'en').find((c) => c.id === 'cable')!
+    expect(cable.status).toBe('pass')
+    expect(cable.lines[0]).toContain('2 × 2/0 AWG carries 175 A')
+    expect(cable.lines[0]).toContain('for a 154 A design current per run')
+  })
+
   test('nothing to check for an empty kit', () => {
     expect(kitChecks(en, kit({}), 'en')).toEqual([])
   })
@@ -80,5 +112,6 @@ describe('uncheckedWarnings and keys', () => {
   test('warningKey tells apart two warnings with the same code', () => {
     expect(warningKey({ code: 'splitPhase', params: { itemId: 'a' } })).not.toBe(warningKey({ code: 'splitPhase', params: { itemId: 'b' } }))
     expect(warningKey({ code: 'highCurrent', params: { amps: 1 } })).toBe(warningKey({ code: 'highCurrent', params: { amps: 2 } }))
+    expect(warningKey({ code: 'cableUndersized', params: { conductor: 'stringLeads' } })).not.toBe(warningKey({ code: 'cableUndersized', params: { conductor: 'interconnects' } }))
   })
 })

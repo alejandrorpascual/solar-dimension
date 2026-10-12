@@ -13,7 +13,7 @@ export const CHECK_WARNINGS: Record<CheckId, readonly WarningCode[]> = {
   batteryPeak: ['bankPeak'],
   parallel: ['parallelStrings'],
   fuse: ['fuseAboveBank', 'fuseAboveCable', 'fuseSurge', 'fuseInterrupt'],
-  cable: ['highCurrent', 'startupDrop', 'cableAmbient'],
+  cable: ['highCurrent', 'startupDrop', 'cableAmbient', 'cableUndersized'],
 }
 const CHECKED_CODES = new Set<WarningCode>(Object.values(CHECK_WARNINGS).flat())
 
@@ -30,8 +30,9 @@ export function warningText(t: Dictionary, w: Warning, items: readonly SelectedI
   return t.warnings[w.code]({ ...w.params, itemName })
 }
 
-/** A key that tells two warnings of the same code apart (two split-phase appliances, say). */
-export const warningKey = (w: Warning): string => `${w.code}:${w.params.itemId ?? ''}:${w.params.strings ?? ''}:${w.params.fuseA ?? ''}`
+/** A key that tells two warnings of the same code apart (two split-phase appliances, or two cable rows, say). */
+export const warningKey = (w: Warning): string =>
+  `${w.code}:${w.params.itemId ?? ''}:${w.params.strings ?? ''}:${w.params.fuseA ?? ''}:${w.params.conductor ?? ''}`
 
 /** Warnings no check owns: voltage fit, a dominant load, split phase, appliances the catalog could not load. */
 export function uncheckedWarnings(r: SizingResult): Warning[] {
@@ -62,7 +63,7 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
-        designA: a(c.designA / c.runs), perRun: c.runs > 1 ? t.ui.perRun : '', drop: c.startupDropPct,
+        designA: a(c.designPerRunA), perRun: c.runs > 1 ? t.ui.perRun : '', drop: c.startupDropPct,
       })
   }
 }

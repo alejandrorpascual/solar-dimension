@@ -34,10 +34,16 @@ export interface KitNeeds {
   cableMm2: number; cableGauge: string; fuseA: number
 }
 
+/** The heaviest battery-side cable the parts list prints: a string lead can be thicker than one run of a split main cable. */
+function thickestCable(c: SizingResult['cable']): { mm2: number; gauge: string } {
+  return [c.string, c.links].reduce<{ mm2: number; gauge: string }>((top, row) => (row && row.mm2 > top.mm2 ? row : top), c)
+}
+
 export function kitNeeds(r: SizingResult): KitNeeds {
+  const cable = thickestCable(r.cable)
   return {
     runningW: r.runningW, surgeW: r.surgeW, usableWh: r.loadWh / SIZING.INVERTER_EFF, chemistry: r.chemistry,
-    cableMm2: r.cable.mm2, cableGauge: r.cable.gauge, fuseA: r.cable.fuseA,
+    cableMm2: cable.mm2, cableGauge: cable.gauge, fuseA: r.cable.fuseA,
   }
 }
 
