@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "built-on-e2e-db",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/start-on-test-db.ts"],
+      "port": 3000
     }
   ]
 }

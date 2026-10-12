@@ -1,0 +1,32 @@
+[{ "kind": "inverter", "brand": "EG4 Electronics", "model": "6000XP",
+  "makerUrl": "https://eg4electronics.com/categories/inverters/eg4-6000xp-all-in-one-off-grid-inverter",
+  "datasheetUrl": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf",
+  "price": null,
+  "extraSpecs": [
+    { "name": "Switching time", "value": "<15ms @ Single / <30ms @ Parallel", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" },
+    { "name": "Operating temperature", "value": "32 – 113°F (0 – 45°C)", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" },
+    { "name": "Ingress protection", "value": "IP20", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" },
+    { "name": "Weight", "value": "52.9 lbs. (24kg)", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" },
+    { "name": "Dimensions", "value": "18×25.5×5.25 in (457×648×132mm)", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" },
+    { "name": "Max. discharge current", "value": "140A", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" },
+    { "name": "Locked rotor amps (LRA)", "value": "95A", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" },
+    { "name": "THD (V)", "value": "<3%", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" }
+  ],
+  "specs": {
+    "continuousW": { "value": 6000, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "NOMINAL POWER OUTPUT 6000W" },
+    "surges": [
+      { "w": 12000, "seconds": 3.5, "asWritten": "SURGE CAPACITY 12,000W for ≈3.5 seconds", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" },
+      { "w": 11000, "seconds": 5, "asWritten": "SURGE CAPACITY 11,000W for ≈5 seconds", "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf" }
+    ],
+    "batteryVolts": { "value": 48, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "NOMINAL VOLTAGE 48 VDC" },
+    "splitPhase": { "value": true, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "OUTPUT VOLTAGE 120/240VAC" },
+    "chargerA": { "value": 125, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "MAX. CHARGE CURRENT 125A** (**115A @ 48 VDC (AC), 125A @48 VDC (PV))" },
+    "pvInputW": { "value": 8000, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "MAXIMUM UTILIZED SOLAR POWER 8000W (4000W per MPPT)" },
+    "pvVocMax": { "value": 480, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "DC INPUT VOLTAGE RANGE 100 – 480 VDC" },
+    "maxParallelUnits": { "value": 16, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "MAX. UNITS IN PARALLEL 16" },
+    "idleW": { "value": 50, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "IDLE CONSUMPTION (STANDBY) w/ Battery (~50W)" },
+    "peakEfficiencyPct": { "value": 93, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "BATTERY DISCHARGING 93%" },
+    "warrantyYears": { "value": 5, "source": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf", "asWritten": "STANDARD WARRANTY 5-year standard warranty" },
+    "bmsComms": ["can", "rs485"],
+    "compatibleBatteryBrands": ["EG4"]
+  } }]

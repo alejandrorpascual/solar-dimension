@@ -7,6 +7,7 @@ import type { Musts, Overrides } from '../lib/quote-items'
 import type { Requester } from '../lib/requester'
 import type { Electrical, Solar } from '../lib/schema'
 import { QUOTE_STATUSES, type StoredExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
+import { PRODUCT_KINDS, PRODUCT_ORIGINS, type BatterySpecs, type ExtraSpec, type InverterSpecs, type ProductConflict, type ProductInput } from '../lib/product-schema'
 
 import { user } from './auth-schema'
 
@@ -73,6 +74,38 @@ export const appliances = pgTable(
     check('appliances_kind_check', sql`${t.kind} is null or ${t.kind} in (${kindList})`),
     check('appliances_surge_class_check', sql`${t.surgeClass} is null or ${t.surgeClass} in (${surgeClassList})`),
     check('appliances_momentary_check', sql`(${t.kind} is not distinct from 'momentary') = (${t.burstSeconds} is not null and ${t.cyclesPerHour} is not null)`),
+  ],
+)
+
+const productKindList = sql.raw(PRODUCT_KINDS.map((k) => `'${k}'`).join(', '))
+const productOriginList = sql.raw(PRODUCT_ORIGINS.map((o) => `'${o}'`).join(', '))
+
+/** The product library: inverters and batteries as their datasheets state them. Zod-checked on read (product-repo). */
+export const products = pgTable(
+  'products',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    kind: text('kind').notNull(),
+    /** productKey(): kind, the maker (the brand's whole name, minus trailing generic words) and the model, normalised. */
+    key: text('key').notNull().unique(),
+    brand: text('brand').notNull(),
+    model: text('model').notNull(),
+    makerUrl: text('maker_url'),
+    datasheetUrl: text('datasheet_url').notNull(),
+    specs: jsonb('specs').$type<InverterSpecs | BatterySpecs>().notNull(),
+    extraSpecs: jsonb('extra_specs').$type<ExtraSpec[]>().notNull().default([]),
+    price: jsonb('price').$type<ProductInput['price']>(),
+    origin: text('origin').notNull(),
+    conflicts: jsonb('conflicts').$type<ProductConflict[]>().notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    retiredAt: timestamp('retired_at', { withTimezone: true }),
+    updatedBy: text('updated_by').notNull(),
+  },
+  (t) => [
+    check('products_kind_check', sql`${t.kind} in (${productKindList})`),
+    check('products_origin_check', sql`${t.origin} in (${productOriginList})`),
   ],
 )
 

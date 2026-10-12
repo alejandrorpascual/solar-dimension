@@ -1,0 +1,127 @@
+{
+  "note": "Leads from three gpt-6-luna web searches on 2026-10-09 (US, 48 V kit). Brand, model and links only: research every spec again from the datasheet with /research-product --from this file.",
+  "inverters": [
+    {
+      "brand": "EG4 Electronics",
+      "model": "6000XP",
+      "productUrl": "https://eg4electronics.com/categories/inverters/eg4-6000xp-all-in-one-off-grid-inverter",
+      "datasheetUrl": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-6000XP-Inverter-Spec-Sheet.pdf"
+    },
+    {
+      "brand": "EG4 Electronics",
+      "model": "18kPV-12LV",
+      "productUrl": "https://eg4electronics.com/categories/inverters/eg4-18kpv-12lv-all-in-one-hybrid-inverter",
+      "datasheetUrl": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-18KPV-12LV-Spec-Sheet.pdf"
+    },
+    {
+      "brand": "Sol-Ark",
+      "model": "15K-2P",
+      "productUrl": "https://sol-ark.com/residential-energy-solutions/whole-home-15k-2p-hybrid-inverter/",
+      "datasheetUrl": "https://sol-ark.com/wp-content/uploads/2024/06/SK150-0001_Rev3_15K-Datasheet_EN.pdf"
+    },
+    {
+      "brand": "SRNE",
+      "model": "HESP48120U200-H",
+      "productUrl": "https://www.srnesolar.com/productdetail/Hybrid-Inverter-HESP-8-12kW-US.html",
+      "datasheetUrl": null
+    },
+    {
+      "brand": "LuxpowerTek",
+      "model": "SNA-US 12000",
+      "productUrl": "https://luxpowertek.com/product/sna-us-12k/",
+      "datasheetUrl": "https://luxpowertek.com/wp-content/uploads/2024/12/SNA-US-12K-Datasheet.pdf"
+    },
+    {
+      "brand": "Schneider Electric",
+      "model": "Conext XW Pro 6848 NA (120/240V)",
+      "productUrl": "https://www.se.com/us/en/product/865-6848-21/xw-pro-6-8-kw-solar-hybrid-inverter-120-240v/",
+      "datasheetUrl": "https://solar.se.com/us/wp-content/uploads/sites/7/2021/10/XW-Pro-UL-Datasheet.pdf"
+    },
+    {
+      "brand": "EG4",
+      "model": "12000XP (IV-12000-XP-IN-1)",
+      "productUrl": "https://eg4electronics.com/categories/inverters/eg4-12000xp/",
+      "datasheetUrl": "https://eg4electronics.com/wp-content/uploads/2024/10/EG4-12000XP-Spec-Sheet.pdf"
+    },
+    {
+      "brand": "LuxpowerTek",
+      "model": "SNA-US 12K",
+      "productUrl": "https://www.off-the-grid-solar.com/products/luxpower-sna-us-12k-12kw-off-grid-inverter",
+      "datasheetUrl": "https://luxpowertek.com/wp-content/uploads/2024/10/SNA-US-12K-User-Manual-2024.10.11.pdf"
+    },
+    {
+      "brand": "Phocos",
+      "model": "Any-Grid PSW-H-5KW-120/48V",
+      "productUrl": "https://www.offgridlivingsolutions.com/products/phocos-hybrid-inverter-charger-psw-h-5kw-48-120v",
+      "datasheetUrl": "https://www.phocos.com/wp-content/uploads/2019/10/PSW-H-Series_english-datasheet_2022-02-18.pdf"
+    }
+  ],
+  "batteries": [
+    {
+      "brand": "EG4 Electronics",
+      "model": "LifePower4 48V v2 100Ah (SR-48-100-LP4-IN-02)",
+      "productUrl": "https://eg4electronics.com/categories/batteries/lifepower4-48v-v2/",
+      "datasheetUrl": "https://eg4electronics.com/wp-content/uploads/2024/06/EG4-LifePower4-Spec-Sheet.pdf"
+    },
+    {
+      "brand": "Pytes",
+      "model": "V5°α Plus",
+      "productUrl": "https://www.pytesusa.com/V-Series/v5_plus.html",
+      "datasheetUrl": "https://www.pytesusa.com/public/upload/20240829/108e9c075ddd8de9e37b49d0f3c8883f.pdf"
+    },
+    {
+      "brand": "Rolls Battery",
+      "model": "S48-100LFP ESS",
+      "productUrl": "https://rollsbattery.com/battery/s48-100lfp-ess/",
+      "datasheetUrl": "https://rollsbattery.com/battery/s48-100lfp-ess/?pdf=21103"
+    },
+    {
+      "brand": "Discover Energy Systems",
+      "model": "AES RACKMOUNT 48-48-5120",
+      "productUrl": "https://discoverenergysys.com/products/search/48-48-5120",
+      "datasheetUrl": "https://discoverenergysys.com/s4x_files/resources/des-aes-rackmount-user-manual.pdf"
+    },
+    {
+      "brand": "EG4 Electronics",
+      "model": "PowerPro WallMount All Weather 14.3kWh",
+      "productUrl": "https://eg4electronics.com/categories/batteries/eg4-14-3kwh-powerpro-wallmount-all-weather-battery/",
+      "datasheetUrl": "https://eg4electronics.com/wp-content/uploads/2024/04/EG4-14.3kWh-PowerPro-WallMount-AW-Spec-Sheet.pdf"
+    },
+    {
+      "brand": "Pytes",
+      "model": "V5° 51.2V 100Ah",
+      "productUrl": "https://www.pytesusa.com/V-Series/v5.html",
+      "datasheetUrl": "https://www.pytesusa.com/public/upload/20260527/12f047afbebb22c3c3b303e387333b41.pdf"
+    },
+    {
+      "brand": "Fortress Power",
+      "model": "eFlex MAX 5.4",
+      "productUrl": "https://www.fortresspower.com/products/eflex-max-5-4kwh/",
+      "datasheetUrl": "https://www.fortresspower.com/wp-content/uploads/2025/07/FP_datasheet_eFlexMAX_2025.pdf"
+    },
+    {
+      "brand": "RUiXU",
+      "model": "RX-LFP48100",
+      "productUrl": "https://www.ruixubattery.com/product-page/rx-lfp48v100-19-rack-mounted-3u-module-ul1973-certified",
+      "datasheetUrl": "https://5a86532e-b162-4979-ab7f-d52a14e08072.usrfiles.com/ugd/5a8653_7483a6ec226f4eb99c84f582a8d42cd5.pdf"
+    },
+    {
+      "brand": "Pytes",
+      "model": "V5",
+      "productUrl": "https://www.pytesusa.com/V-Series/v5.html",
+      "datasheetUrl": "https://www.pytesusa.com/public/upload/20221209/d397016dc21c0a2af9802400c14e98e3.pdf"
+    },
+    {
+      "brand": "SOK",
+      "model": "SK48V100N",
+      "productUrl": "https://us.sokbattery.com/product-page/sk48v100n-48v100ah-server-rack-lifepo4-battery",
+      "datasheetUrl": "https://0fa80982-c142-44c6-a762-5e4fe5133859.usrfiles.com/ugd/0fa809_ae420bcfd7ec41e8a3c91a2ff68075bb.pdf"
+    },
+    {
+      "brand": "RUiXU",
+      "model": "Lithi2-16",
+      "productUrl": "https://www.ruixubattery.com/product-page/lithi2-16-battery-bank",
+      "datasheetUrl": "https://5a86532e-b162-4979-ab7f-d52a14e08072.usrfiles.com/ugd/5a8653_f4104a8f5d114dc593fb92a9ebb54ff5.pdf"
+    }
+  ]
+}
