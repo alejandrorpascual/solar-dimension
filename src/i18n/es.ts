@@ -18,7 +18,8 @@ export const es: Dictionary = {
     running: 'en marcha', surge: 'arranque', runningSurgeLine: '{watts} W en marcha · {surge} de arranque', splitPhase: 'Requiere un inversor de 240 V / fase partida',
     customTitle: '¿No está en la lista?', customHelp: 'Escribe los vatios de la etiqueta, o los voltios y amperios y nosotros los multiplicamos.',
     watts: 'Vatios', voltsAmps: 'Voltios × amperios', name: 'Nombre', runningW: 'W en marcha', volts: 'Voltios', amps: 'Amperios', surgeOptional: 'W de arranque (opcional)', sameAsRunning: 'igual que en marcha', addAppliance: 'Agregar aparato',
-    errName: 'Ponle un nombre al aparato.', errVa: 'Ingresa voltios y amperios mayores que cero.', errWatts: 'Ingresa vatios en marcha mayores que cero.', errSurge: 'El arranque no puede ser menor que los vatios en marcha.',
+    errName: 'Ponle un nombre al aparato.', errNameLong: 'El nombre puede tener hasta {max} caracteres.', errVa: 'Ingresa voltios y amperios que den al menos 1 vatio.', errWatts: 'Ingresa al menos 1 vatio en marcha.', errSurge: 'El arranque no puede ser menor que los vatios en marcha.',
+    errThousands: 'Escribe los vatios como número entero sin separador: 1500, no 1.500 ni 1,500.',
     q2: '¿Cuánto debe durar el respaldo?', q2Help: 'El banco se dimensiona para estas horas de tu carga, al voltaje que elijas.',
     hoursLabel: 'Horas sin red eléctrica', step2Empty: 'Vuelve y agrega al menos un aparato.',
     step2Summary: 'Tus {count} aparatos consumen {running} y usan unos {load} en {hours} horas. Dimensionamos el banco a {need} tras pérdidas del inversor y profundidad de descarga.',
@@ -136,8 +137,8 @@ export const es: Dictionary = {
     cableAmbient: (p) => `Ningún cable de la tabla está certificado para aire a ${p.ambientC} °C. Lleva el tramo a un lugar más fresco.`,
     cableUndersized: (p) => `El ${p.gauge} para ${CONDUCTORS[p.conductor ?? 'mainCable']} solo soporta ${p.maxA?.toLocaleString('es-419')} A tras la corrección, menos que su corriente de diseño de ${p.needA?.toLocaleString('es-419')} A. Sube el voltaje, reduce la carga o lleva el banco a un lugar más fresco.`,
     missingAppliances: (p) => p.count === 1
-      ? 'No se pudo cargar 1 aparato de este proyecto, así que este kit lo deja fuera. Recarga en un minuto para incluirlo.'
-      : `No se pudieron cargar ${p.count} aparatos de este proyecto, así que este kit los deja fuera. Recarga en un minuto para incluirlos.`,
+      ? 'No se pudo cargar 1 aparato de este proyecto, así que este kit lo deja fuera. Recarga en un minuto; si sigue faltando, agrégalo de nuevo.'
+      : `No se pudieron cargar ${p.count} aparatos de este proyecto, así que este kit los deja fuera. Recarga en un minuto; si siguen faltando, agrégalos de nuevo.`,
     roofLimited: (p) => `En tu techo caben ${p.fit} paneles; con ${p.need} el banco se recargaría en un día despejado. Igual se recarga en más días de sol.`,
   },
   parts: { inverter: 'Inversor', batteries: 'Baterías', mainCable: 'Cable principal', interconnects: 'Interconexiones', stringLeads: 'Cables de rama', fuse: 'Fusible', stringFuses: 'Fusibles por rama', solarPanels: 'Paneles solares', chargeController: 'Controlador de carga', pvCable: 'Cable fotovoltaico', pvDisconnect: 'Seccionador FV', mounting: 'Estructura'  },

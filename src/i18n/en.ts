@@ -18,7 +18,8 @@ export const en: Dictionary = {
     running: 'running', surge: 'surge', runningSurgeLine: '{watts} W running · {surge} surge', splitPhase: 'Needs a 240 V / split-phase inverter',
     customTitle: 'Something not on the list?', customHelp: 'Type the watts from the label, or the volts and amps and we multiply them.',
     watts: 'Watts', voltsAmps: 'Volts × amps', name: 'Name', runningW: 'Running W', volts: 'Volts', amps: 'Amps', surgeOptional: 'Surge W (optional)', sameAsRunning: 'same as running', addAppliance: 'Add appliance',
-    errName: 'Give the appliance a name.', errVa: 'Enter volts and amps above zero.', errWatts: 'Enter running watts above zero.', errSurge: 'Surge cannot be below running watts.',
+    errName: 'Give the appliance a name.', errNameLong: 'Keep the name to {max} characters or fewer.', errVa: 'Enter volts and amps that make at least 1 watt.', errWatts: 'Enter at least 1 running watt.', errSurge: 'Surge cannot be below running watts.',
+    errThousands: 'Write watts as a whole number with no separator: 1500, not 1.500 or 1,500.',
     q2: 'How long should the backup last?', q2Help: 'The bank is sized for this many hours of your selected load, at the voltage you pick.',
     hoursLabel: 'Hours without the grid', step2Empty: 'Go back and add at least one appliance.',
     step2Summary: 'Your {count} appliances draw {running} and use about {load} over {hours} hours. We size the bank to {need} after inverter losses and depth of discharge.',
@@ -136,8 +137,8 @@ export const en: Dictionary = {
     cableAmbient: (p) => `No cable in the table is rated for ${p.ambientC} °C air. Move the run somewhere cooler.`,
     cableUndersized: (p) => `${p.gauge} for the ${CONDUCTORS[p.conductor ?? 'mainCable']} carries only ${p.maxA?.toLocaleString('en-US')} A after derating, under its ${p.needA?.toLocaleString('en-US')} A design current. Raise the voltage, trim the load or move the bank somewhere cooler.`,
     missingAppliances: (p) => p.count === 1
-      ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute to include it.'
-      : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute to include them.`,
+      ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute; if it is still missing, add it again.'
+      : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute; if they are still missing, add them again.`,
     roofLimited: (p) => `Your roof holds ${p.fit} panels; ${p.need} would refill the bank in one clear day. It still refills over more days of sun.`,
   },
   parts: { inverter: 'Inverter', batteries: 'Batteries', mainCable: 'Main cable', interconnects: 'Interconnects', stringLeads: 'String leads', fuse: 'Fuse', stringFuses: 'String fuses', solarPanels: 'Solar panels', chargeController: 'Charge controller', pvCable: 'PV cable', pvDisconnect: 'PV disconnect', mounting: 'Mounting'  },

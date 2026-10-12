@@ -295,6 +295,23 @@ test('the custom form explains what is missing', async ({ page }) => {
   }).toPass()
 })
 
+test('the custom form questions watts typed with a thousands separator, and keeps a name to what a saved project holds', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByLabel('Name', { exact: true })).toHaveAttribute('maxlength', '80')
+  await page.getByLabel('Name', { exact: true }).fill('Water pump')
+  await page.getByLabel('Running W').fill('1.500')
+  // A click that lands before the page hydrates does nothing; the error only shows once it registers.
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Add appliance' }).click()
+    await expect(page.getByRole('alert')).toHaveText('Write watts as a whole number with no separator: 1500, not 1.500 or 1,500.', { timeout: 1000 })
+  }).toPass()
+  await page.getByLabel('Running W').fill('1500')
+  await page.getByRole('button', { name: 'Add appliance' }).click()
+  await expect(page.getByText('Custom · 1500 W')).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('Custom · 1500 W')).toBeVisible()
+})
+
 test('hours, voltage and chemistry change the sizing summary', async ({ page }) => {
   await page.goto('/?step=2')
   await page.getByRole('button', { name: '24 h' }).click()

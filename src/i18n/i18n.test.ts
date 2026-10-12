@@ -157,6 +157,11 @@ test('applianceNote reads the item labels and keeps custom notes', () => {
 
 test('the missing-appliances warning agrees in number in both languages', () => {
   expect(en.warnings.missingAppliances({ count: 1 })).toContain('1 appliance in this project')
+  // A custom appliance dropped from a saved project never comes back on reload, so the notice also says what to do then.
+  expect(en.warnings.missingAppliances({ count: 1 })).toContain('if it is still missing, add it again')
+  expect(en.warnings.missingAppliances({ count: 3 })).toContain('if they are still missing, add them again')
+  expect(es.warnings.missingAppliances({ count: 1 })).toContain('si sigue faltando, agrégalo de nuevo')
+  expect(es.warnings.missingAppliances({ count: 3 })).toContain('si siguen faltando, agrégalos de nuevo')
   expect(en.warnings.missingAppliances({ count: 3 })).toContain('3 appliances')
   expect(es.warnings.missingAppliances({ count: 1 })).toContain('No se pudo cargar 1 aparato')
   expect(es.warnings.missingAppliances({ count: 3 })).toContain('No se pudieron cargar 3 aparatos')

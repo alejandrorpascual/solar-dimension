@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
-import { EMPTY_FORM, parseCustom, type CustomError, type CustomForm } from '../lib/custom'
+import { tr } from '../i18n'
+import { CUSTOM_NAME_MAX, EMPTY_FORM, parseCustom, type CustomError, type CustomForm } from '../lib/custom'
 import type { Store } from '../lib/schema'
 import { addCustom, currentProject } from '../lib/store'
 
@@ -31,7 +32,7 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
         </div>
       </div>
       <div className="custom__row">
-        <label className="field field--grow"><span className="lab">{t.ui.name}</span><input className="in" type="text" value={form.name} onChange={(e) => set({ name: e.target.value })} /></label>
+        <label className="field field--grow"><span className="lab">{t.ui.name}</span><input className="in" type="text" maxLength={CUSTOM_NAME_MAX} value={form.name} onChange={(e) => set({ name: e.target.value })} /></label>
         {isVa ? (
           <>
             <label className="field"><span className="lab">{t.ui.volts}</span><input className="in" type="number" min="0" placeholder="230" value={form.volts} onChange={(e) => set({ volts: e.target.value })} /></label>
@@ -43,7 +44,7 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
         <label className="field"><span className="lab">{t.ui.surgeOptional}</span><input className="in" type="number" min="0" placeholder={t.ui.sameAsRunning} value={form.surge} onChange={(e) => set({ surge: e.target.value })} /></label>
         <button type="button" className="btn btn--primary custom__submit" onClick={submit}>{t.ui.addAppliance}</button>
       </div>
-      {error && <div className="error" role="alert">{t.ui[error]}</div>}
+      {error && <div className="error" role="alert">{tr(t, error, { max: CUSTOM_NAME_MAX })}</div>}
     </div>
   )
 }
