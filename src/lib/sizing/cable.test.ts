@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { FUSES, GAUGES } from '../catalog'
-import { conductorsFor, correctedAmpacity, sizeBankWiring, sizeMainCable, undersized } from './cable'
+import { conductorsFor, correctedAmpacity, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './cable'
 import type { CableConditions } from './types'
 
 const room: CableConditions = { runLengthM: 1.5, ambientC: 30, bundled: false, insulationC: 90 }
@@ -45,7 +45,7 @@ describe('sizeMainCable', () => {
     const bundled = sizeMainCable(463, 926, 12, { ...room, bundled: true }, GAUGES, FUSES, noBank)
     expect(bundled.runs).toBeGreaterThanOrEqual(3)
     expect(bundled.conductors).toBe(2 * bundled.runs)
-    const fixed = sizeMainCable(463, 926, 12, room, GAUGES, FUSES, noBank, 1)
+    const fixed = sizeMainCable(463, 926, 12, room, GAUGES, FUSES, noBank, { fixedRuns: 1 })
     expect(fixed.runs).toBe(1)
   })
 
@@ -59,6 +59,52 @@ describe('sizeMainCable', () => {
     const huge = sizeMainCable(1500, 3000, 12, hot, GAUGES, FUSES, noBank)
     expect(huge.runs).toBe(6)
     expect(huge.warnings.map((w) => w.code)).toContain('fuseAboveCable')
+  })
+
+  test('inverters in parallel are each fed by their own runs and fuse, sized as if each stood alone', () => {
+    // Two inverters drawing 75 A each. As one circuit, 150 A would ride on a single 3/0 run with a 200 A fuse.
+    const alone = sizeMainCable(75, 150, 48, room, GAUGES, FUSES, noBank)
+    const asOneCircuit = sizeMainCable(150, 300, 48, room, GAUGES, FUSES, noBank)
+    const pair = sizeMainCable(150, 300, 48, room, GAUGES, FUSES, noBank, { feeds: 2 })
+    expect([alone.runs, asOneCircuit.runs, asOneCircuit.gauge.awg, asOneCircuit.fuse.a]).toEqual([1, 1, '3/0 AWG', 200])
+    expect(pair).toMatchObject({ runs: 2, conductors: 2, gauge: alone.gauge, ampacity: alone.ampacity, fuse: { a: alone.fuse.a, count: 2 }, warnings: [] })
+    expect([pair.gauge.awg, pair.fuse.a]).toEqual(['2 AWG', 100])
+    expect(pair.perRun).toBeCloseTo(alone.amps)
+    expect(pair.dropPct).toBeCloseTo(alone.dropPct)
+  })
+
+  test('a set number of runs and a share for each inverter cannot be asked for together', () => {
+    // @ts-expect-error fixedRuns is for one string's lead and feeds for inverters in parallel: a layout names one or neither.
+    const both: Parameters<typeof sizeMainCable>[7] = { fixedRuns: 1, feeds: 2 }
+    expect(both).toBeDefined()
+  })
+
+  test('a count of inverters that is zero, a fraction or no number is read as a whole number of at least one', () => {
+    const alone = sizeMainCable(150, 300, 48, room, GAUGES, FUSES, noBank)
+    for (const feeds of [0, -1, Number.NaN]) expect(sizeMainCable(150, 300, 48, room, GAUGES, FUSES, noBank, { feeds })).toEqual(alone)
+    expect(sizeMainCable(150, 300, 48, room, GAUGES, FUSES, noBank, { feeds: 2.5 }).runs).toBe(2)
+  })
+
+  test('runs come in multiples of the inverters fed, up to six for each', () => {
+    // An 8 kW inverter at 48 V needs two runs on its own, so two of them need four and three need six: never five.
+    expect(sizeMainCable(185.2, 370.4, 48, room, GAUGES, FUSES, noBank).runs).toBe(2)
+    expect(sizeMainCable(2 * 185.2, 2 * 370.4, 48, room, GAUGES, FUSES, noBank, { feeds: 2 }).runs).toBe(4)
+    expect(sizeMainCable(3 * 185.2, 3 * 370.4, 48, room, GAUGES, FUSES, noBank, { feeds: 3 }).runs).toBe(6)
+    const hot = { ...room, ambientC: 50, insulationC: 75 as const }
+    const huge = sizeMainCable(2 * 1500, 2 * 3000, 12, hot, GAUGES, FUSES, noBank, { feeds: 2 })
+    expect(huge.runs).toBe(12)
+    expect(huge.warnings.map((w) => w.code)).toContain('fuseAboveCable')
+  })
+
+  test('bundled, the conductors of every inverter count together; and all the fuses share the bank', () => {
+    const bundled = sizeMainCable(150, 300, 48, { ...room, bundled: true }, GAUGES, FUSES, noBank, { feeds: 2 })
+    expect([bundled.runs, bundled.conductors]).toEqual([2, 4])
+    // A 100 A fuse on each inverter. Half of a 130 A bank gets a 100 A fuse too; half of a 120 A bank gets an 80 A one.
+    // Read as one 150 A circuit, the 130 A bank would be flagged against a single 200 A fuse.
+    const bank = (bankContinuousA: number) => sizeMainCable(150, 300, 48, room, GAUGES, FUSES, { ...noBank, bankContinuousA }, { feeds: 2 })
+    expect(bank(130).fuse.a).toBe(100)
+    expect(bank(130).warnings.map((w) => w.code)).not.toContain('fuseAboveBank')
+    expect(bank(120).warnings.map((w) => w.code)).toContain('fuseAboveBank')
   })
 
   test('warns on a start-up drop the inverter would not ride through, and on air too hot for any cable', () => {
@@ -86,6 +132,24 @@ describe('undersized', () => {
   test('judges a row cut from the same gauge by the ampacity it has where it is installed', () => {
     const huge = sizeMainCable(1500, 3000, 12, hot, GAUGES, FUSES, noBank)
     expect(undersized('interconnects', huge, 320)).toEqual([])
+  })
+})
+
+describe('maxStringAmps', () => {
+  test('is the largest fuse that fits under the largest gauge, less the continuous margin', () => {
+    // 4/0 carries 230 A at its lugs; the largest class T under it is 225 A, which protects 180 A continuous.
+    expect(maxStringAmps(48, room, GAUGES, FUSES)).toBe(180)
+    // A lead is short and in open air: bundling the main run does not derate it.
+    expect(maxStringAmps(48, { ...room, bundled: true }, GAUGES, FUSES)).toBe(180)
+    // 50 °C on 75 °C cable: 4/0 carries 172.5 A, a 150 A fuse fits, 120 A continuous.
+    expect(maxStringAmps(48, { ...room, ambientC: 50, insulationC: 75 }, GAUGES, FUSES)).toBe(120)
+    expect(maxStringAmps(48, { ...room, ambientC: 90 }, GAUGES, FUSES)).toBe(0)
+  })
+
+  test('a string at the limit sizes without a warning, and one amp past it does not', () => {
+    const lead = (amps: number) => sizeMainCable(amps, amps, 48, { ...room, runLengthM: 0.3 }, GAUGES, FUSES, noBank, { fixedRuns: 1 })
+    expect(lead(180).warnings).toEqual([])
+    expect(lead(181).warnings.map((w) => w.code)).toContain('fuseAboveCable')
   })
 })
 

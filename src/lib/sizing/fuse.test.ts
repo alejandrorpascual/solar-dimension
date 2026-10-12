@@ -26,7 +26,9 @@ describe('pickFuse', () => {
   test('one fuse per run; the bank is the weak link when it would only justify a smaller fuse', () => {
     const r = pickFuse(ctx({ runs: 3, bankContinuousA: 150 }))
     expect(r.fuse.count).toBe(3)
-    expect(r.warnings).toEqual([{ code: 'fuseAboveBank', params: { fuseA: 100, maxA: 150 } }])
+    // The three fuses are counted, so the note can say they pass 300 A between them where the bank gives 150 A.
+    expect(r.warnings).toEqual([{ code: 'fuseAboveBank', params: { fuseA: 100, maxA: 150, count: 3 } }])
+    expect(pickFuse(ctx({ runs: 1, bankContinuousA: 50 })).warnings).toEqual([{ code: 'fuseAboveBank', params: { fuseA: 100, maxA: 50 } }])
     // 250 A over three runs justifies a 125 A fuse per run, so a 100 A fuse is not above it.
     expect(pickFuse(ctx({ runs: 3, bankContinuousA: 250 })).warnings).toEqual([])
     expect(pickFuse(ctx({ runs: 3, bankContinuousA: null })).warnings).toEqual([])

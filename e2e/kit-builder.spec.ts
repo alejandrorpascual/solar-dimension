@@ -1,6 +1,7 @@
+import { readFile } from 'node:fs/promises'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage, switchLanguageOnLoad } from './header'
-import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showProjects, startNewProject, startRename } from './projects'
+import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showDownload, showProjects, startNewProject, startRename } from './projects'
 
 test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
   await page.goto('/')
@@ -463,4 +464,35 @@ test('motors starting together and a hot cable run change the inverter, the chec
   await expect(page.getByText(/every motor starting at once/)).toBeVisible()
   await page.reload()
   await expect(page.getByText('5,000 W pure sine, 48 V DC input')).toBeVisible()
+})
+
+test('a load past the largest inverter gets inverters in parallel, each with its own cable runs and fuses', async ({ page }) => {
+  await page.goto('/')
+  // Three electric water heaters put 13.5 kW on top of the starting kit: more than one 12 kW inverter carries with headroom.
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Add Electric water heater' }).click()
+  await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  const row = (name: string) => page.getByRole('row').filter({ has: page.getByRole('rowheader', { name, exact: true }) })
+  await expect(row('Inverter')).toContainText('10.0 kW pure sine, 48 V DC input')
+  await expect(row('Inverter')).toContainText('2 in parallel work as one 20.0 kW inverter')
+  await expect(row('Inverter').getByRole('cell').last()).toHaveText(/^×\s*2$/)
+  await expect(row('Fuse')).toContainText('2 runs to each inverter')
+  const checks = page.getByRole('region', { name: 'Checks' })
+  await expect(checks.getByText(/on 2 × 10\.0 kW inverters \(20\.0 kW together\)/)).toBeVisible()
+  await expect(checks.getByText(/the 2 inverters draw up to 463 A together/)).toBeVisible()
+  await expect(page.getByText(/· 2 × 10\.0 kW inverters ·/)).toBeVisible()
+  // The project's card names the set too, in its short form.
+  await showProjects(page)
+  await expect(openProjectCard(page).getByText('2 × 10.0 kW', { exact: true })).toBeVisible()
+  await hideProjects(page)
+  await page.reload()
+  await expect(row('Inverter')).toContainText('2 in parallel work as one 20.0 kW inverter')
+  // The parts list a supplier gets counts both inverters too.
+  await showDownload(page)
+  await page.getByRole('radio', { name: /^Parts list \(CSV\)/ }).check()
+  const [csv] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download CSV' }).click()])
+  const inverterLine = (await readFile((await csv.path())!, 'utf8')).split('\n').find((line) => line.startsWith('Inverter,'))
+  expect(inverterLine).toContain('"10.0 kW pure sine, 48 V DC input"')
+  expect(inverterLine?.trim()).toMatch(/,2$/)
 })

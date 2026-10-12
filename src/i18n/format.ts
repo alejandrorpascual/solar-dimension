@@ -13,6 +13,11 @@ export function fmtKw(w: number, locale: Locale): string {
 export function fmtW(w: number, locale: Locale): string {
   return w >= KW_THRESHOLD ? `${(w / 1000).toLocaleString(TAGS[locale], { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kW` : `${fmtInt(w, locale)} W`
 }
+/** The kit's inverter by size: "8,000 W" for one unit, "2 × 12.0 kW" for units working in parallel. */
+export function fmtInverter(inverter: { count: number; unitW: number }, locale: Locale): string {
+  const unit = fmtW(inverter.unitW, locale)
+  return inverter.count > 1 ? `${inverter.count} × ${unit}` : unit
+}
 export function fmtKwh(wh: number, locale: Locale): string {
   return `${(wh / 1000).toLocaleString(TAGS[locale], { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh`
 }

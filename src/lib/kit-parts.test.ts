@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { getDictionary } from '../i18n'
+import { DEFAULT_HARDWARE } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { buildParts } from './kit-parts'
 import { compute } from './sizing'
@@ -72,9 +73,11 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
   })
 
   test('the inverter row says "covers" only when the rating has its headroom over the running load', () => {
+    // A list whose units work alone, so the largest one is all there is past 9,600 W.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: DEFAULT_HARDWARE.inverters.map(({ maxParallel: _maxParallel, ...unit }) => unit) }
     const row = (watts: number, surge = watts) => {
       const custom = [{ id: 'x', name: 'Load', watts, surge, note: '' }]
-      return buildParts(compute({ qty: { x: 1 }, custom, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT), t, locale).find(p => p.id === 'inverter')!
+      return buildParts(compute({ qty: { x: 1 }, custom, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware), t, locale).find(p => p.id === 'inverter')!
     }
     const es = locale === 'es'
     expect(row(9600).note).toBe(es ? '24.0 kW de arranque · cubre 9,600 W en marcha, 9,600 W pico' : '24.0 kW surge · covers 9,600 W running, 9,600 W peak')
@@ -84,8 +87,47 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     // One watt over the rating: exact watts, so the row does not read "12.0 kW under 12.0 kW".
     expect(row(12001).note).toBe(es ? '24.0 kW de arranque · menor que la carga en marcha de 12,001 W' : '24.0 kW surge · smaller than the 12,001 W running load')
     expect(row(15000).note).toBe(es ? '24.0 kW de arranque · menor que la carga en marcha de 15,000 W' : '24.0 kW surge · smaller than the 15,000 W running load')
-    // 2 kW running with a 30 kW start: no stock inverter holds that peak, and the row must not say it does.
+    // 2 kW running with a 30 kW start: no single inverter holds that peak, and the row must not say it does.
     expect(row(2000, 30000).note).toBe(es ? '24.0 kW de arranque · cubre 2,000 W en marcha, no el pico de 30.0 kW' : '24.0 kW surge · covers 2,000 W running, not the 30.0 kW peak')
+  })
+
+  test('inverters in parallel: the row counts them and says what they give together; the cable and fuse rows are per inverter', () => {
+    // One model, so the pick does not depend on how sets are ranked: 7 kW needs 8.75 kW, two 5 kW units.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 5000, surge: 10000, volts: [48] as const, surgeSeconds: 5, maxParallel: 4 }] }
+    const kit = (watts: number) => {
+      const custom = [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }]
+      return buildParts(compute({ qty: { x: 1 }, custom, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware), t, locale)
+    }
+    const row = (parts: ReturnType<typeof kit>, id: string) => parts.find(p => p.id === id)!
+    const es = locale === 'es'
+    const [one, two] = [kit(3000), kit(7000)]
+    expect(row(one, 'inverter')).toMatchObject({ qty: '1', note: es ? '10.0 kW de arranque · cubre 3,000 W en marcha, 3,000 W pico' : '10.0 kW surge · covers 3,000 W running, 3,000 W peak' })
+    expect(row(two, 'inverter')).toMatchObject({
+      qty: '2', spec: es ? '5,000 W onda pura, entrada 48 V CC' : '5,000 W pure sine, 48 V DC input',
+      note: es
+        ? '2 en paralelo trabajan como un inversor de 10.0 kW y toman hasta 231 A de las barras colectoras · 20.0 kW de arranque en total · cubre 7,000 W en marcha, 7,000 W pico · Mismo modelo, hechos y enlazados para trabajar en paralelo · Cada uno con sus propios cables con fusible, de igual largo, desde las barras colectoras'
+        : '2 in parallel work as one 10.0 kW inverter, drawing up to 231 A from the bus bars · 20.0 kW surge together · covers 7,000 W running, 7,000 W peak · Same model, built and linked to run in parallel · Each on its own fused cables, of equal length, from the bus bars',
+    })
+    // Each inverter is wired as the single one is: same gauge and fuse, twice the cables and fuses.
+    expect(row(two, 'mainCable')).toMatchObject({ spec: row(one, 'mainCable').spec, qty: '4' })
+    expect(row(one, 'mainCable').qty).toBe('2')
+    expect(row(two, 'mainCable').note).toContain(es ? '145 A de corriente de diseño por inversor' : '145 A design current per inverter')
+    expect(row(one, 'mainCable').note).not.toContain(es ? 'por inversor' : 'per inverter')
+    expect(row(two, 'fuse')).toMatchObject({ spec: es ? '150 A clase T por inversor' : '150 A class T per inverter', qty: '2' })
+    expect(row(one, 'fuse')).toMatchObject({ spec: es ? '150 A clase T' : '150 A class T', qty: '1' })
+    // A set that falls short says so in the row, with the set's figures: stock list, 48 V.
+    const stock = (watts: number, surge = watts) =>
+      buildParts(compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Load', watts, surge, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT), t, locale).find(p => p.id === 'inverter')!
+    const three = es ? '3 en paralelo trabajan como un inversor de 36.0 kW y toman hasta 833 A de las barras colectoras · 72.0 kW de arranque en total' : '3 in parallel work as one 36.0 kW inverter, drawing up to 833 A from the bus bars · 72.0 kW surge together'
+    expect(stock(28801)).toMatchObject({ qty: '3', spec: es ? '12.0 kW onda pura, entrada 48 V CC' : '12.0 kW pure sine, 48 V DC input' })
+    expect(stock(28801).note).toContain(`${three} · ${es ? '28.8 kW en marcha dejan 24% de margen, 28.8 kW pico' : '28.8 kW running leaves 24% headroom, 28.8 kW peak'} · `)
+    expect(stock(40000).note).toContain(`${three} · ${es ? 'menor que la carga en marcha de 40,000 W' : 'smaller than the 40,000 W running load'} · `)
+    expect(stock(5000, 80000).note).toContain(`${three} · ${es ? 'cubre 5,000 W en marcha, no el pico de 80.0 kW' : 'covers 5,000 W running, not the 80.0 kW peak'} · `)
+    // The same pair on a 24 V bank draws twice the current, so each inverter needs two runs.
+    const heavy = buildParts(compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Load', watts: 7000, surge: 7000, note: '' }], hours: 2, volts: 24, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ ...hardware.inverters[0]!, volts: [24] as const }] }), t, locale)
+    expect(row(heavy, 'mainCable')).toMatchObject({ qty: '8' })
+    expect(row(heavy, 'mainCable').note).toContain(es ? '145 A de corriente de diseño por tramo, 2 tramos a cada inversor' : '145 A design current per run, 2 runs to each inverter')
+    expect(row(heavy, 'fuse')).toMatchObject({ spec: es ? '150 A clase T por tramo, 2 tramos a cada inversor' : '150 A class T per run, 2 runs to each inverter', qty: '4' })
   })
 
   test('the batteries note states the bank currents, and the parallel notes only with parallel strings', () => {

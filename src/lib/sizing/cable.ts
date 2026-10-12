@@ -1,6 +1,7 @@
 import { SIZING, type Fuse, type Gauge, type Voltage } from '../catalog'
 import { ambientFactor, ampsAt, bundleFactor } from '../nec'
-import { pickFuse } from './fuse'
+import { fusePool, pickFuse } from './fuse'
+import { wholeUnits } from './inverter'
 import type { BatteryPick, CableConditions, ConductorKind, FusePick, LinkCable, StringCable, Warning } from './types'
 
 /** One DC run is a positive and a negative lead: two current-carrying conductors. */
@@ -45,14 +46,26 @@ export interface ProtectionContext {
 }
 
 /**
+ * How the run may split: a set number of runs, or a share for each inverter fed, never both. Neither means one run,
+ * split only if it must. With `feeds`, inverters in parallel each get their own runs and fuse: the runs start at one
+ * per inverter and grow one per inverter at a time, up to MAX_RUNS for each. In open air that is what each inverter
+ * would get alone; bundled, every inverter's conductors are derated together, so the gauge may be heavier.
+ */
+export type RunLayout =
+  | { fixedRuns: number; feeds?: never }
+  | { feeds?: number; fixedRuns?: never }
+
+/**
  * The battery-to-inverter run, NEC style: the design current is the continuous draw plus 25%; runs split until one
  * fits the largest gauge; the gauge is the smallest whose corrected ampacity covers the design current and whose
  * drop stays under the limit; then the fuse is picked and the gauge steps up once more if the fuse needs it.
+ * `amps` and `surgeAmps` are the whole circuit's, whatever number of runs or inverters share them.
  */
 export function sizeMainCable(
   amps: number, surgeAmps: number, volts: Voltage, cond: CableConditions, gauges: readonly Gauge[], fuses: readonly Fuse[],
-  protection: ProtectionContext, fixedRuns?: number,
+  protection: ProtectionContext, layout: RunLayout = {},
 ): MainCableSizing {
+  const feeds = wholeUnits(layout.feeds ?? 1)
   const designA = amps * SIZING.NEC_CONTINUOUS
   const last = gauges.length - 1
   const top = gauges[last]!
@@ -71,11 +84,11 @@ export function sizeMainCable(
     return { runs, conductors, perRun, ampacityAt, sized }
   }
   // More runs until the design current fits the largest gauge and the fuse that protects it fits under that gauge too.
-  let attempt = sizeWithRuns(fixedRuns ?? 1)
-  if (fixedRuns === undefined) {
-    while (attempt.runs < SIZING.MAX_RUNS && (
+  let attempt = sizeWithRuns(layout.fixedRuns ?? feeds)
+  if (layout.fixedRuns === undefined) {
+    while (attempt.runs < SIZING.MAX_RUNS * feeds && (
       designA / attempt.runs > correctedAmpacity(top, cond, conductorsFor(cond, attempt.runs)) || attempt.sized.fuse.a > attempt.ampacityAt(attempt.sized.gaugeIndex)
-    )) attempt = sizeWithRuns(attempt.runs + 1)
+    )) attempt = sizeWithRuns(attempt.runs + feeds)
   }
   const { runs, conductors, perRun, ampacityAt, sized } = attempt
   const g = gauges[sized.gaugeIndex]!
@@ -131,11 +144,21 @@ export function undersized(conductor: ConductorKind, sized: MainCableSizing, amp
   return [{ code: 'cableUndersized', params: { conductor, gauge: sized.gauge.awg, maxA, needA } }]
 }
 
+/**
+ * The most continuous current one string's lead can carry here: what the largest fuse that fits under the largest gauge
+ * protects, less the continuous margin. A string asked for more would need a fuse its own lead cannot back.
+ */
+export function maxStringAmps(volts: Voltage, cond: CableConditions, gauges: readonly Gauge[], fuses: readonly Fuse[]): number {
+  const ampacity = correctedAmpacity(gauges[gauges.length - 1]!, jumperConditions(cond), CONDUCTORS_PER_RUN)
+  const fuseA = Math.max(0, ...fusePool(fuses, volts).filter((f) => f.a <= ampacity).map((f) => f.a))
+  return fuseA / SIZING.NEC_CONTINUOUS
+}
+
 /** One string's lead: its share of the current on a single short conductor, with a fuse checked against one unit's limits. */
 const sizeStringRun = (ctx: BankWiringContext, battery: BankLayout): MainCableSizing =>
   sizeMainCable(
     ctx.bankAmps / battery.parallel, ctx.bankSurgeAmps / battery.parallel, ctx.volts, jumperConditions(ctx.cond), ctx.gauges, ctx.fuses,
-    { surgeSeconds: ctx.surgeSeconds, bankContinuousA: battery.unit.maxContinuousA, bankShortCircuitA: battery.unit.shortCircuitA }, 1,
+    { surgeSeconds: ctx.surgeSeconds, bankContinuousA: battery.unit.maxContinuousA, bankShortCircuitA: battery.unit.shortCircuitA }, { fixedRuns: 1 },
   )
 
 const toStringCable = (sized: MainCableSizing, parallel: number): StringCable => ({

@@ -21,6 +21,15 @@ export interface FuseContext {
 
 export interface FuseSizing { fuse: FusePick; gaugeIndex: number; warnings: Warning[] }
 
+/** The fuses listed for this bank voltage; every fuse when none is, so a kit still gets one and its checks say why. */
+export function fusePool(fuses: readonly Fuse[], volts: Voltage): readonly Fuse[] {
+  const usable = fuses.filter((f) => f.maxVdc >= volts * SIZING.FUSE_VOLTAGE_MARGIN)
+  return usable.length > 0 ? usable : fuses
+}
+
+/** The most fault current any fuse listed for this bank voltage can interrupt. */
+export const maxInterruptAmps = (fuses: readonly Fuse[], volts: Voltage): number => Math.max(0, ...fusePool(fuses, volts).map((f) => f.aicA))
+
 /**
  * The fuse that protects the cable: a standard rating at least the NEC continuous factor over the running current,
  * never above the cable's corrected ampacity (the gauge steps up until it fits). Then three checks against what the
@@ -28,8 +37,7 @@ export interface FuseSizing { fuse: FusePick; gaugeIndex: number; warnings: Warn
  */
 export function pickFuse(ctx: FuseContext): FuseSizing {
   const minA = ctx.perRunA * SIZING.NEC_CONTINUOUS
-  const usable = ctx.fuses.filter((f) => f.maxVdc >= ctx.volts * SIZING.FUSE_VOLTAGE_MARGIN)
-  const pool = usable.length > 0 ? usable : ctx.fuses
+  const pool = fusePool(ctx.fuses, ctx.volts)
   const fuse = pool.find((f) => f.a >= minA) ?? pool[pool.length - 1]!
   let gi = ctx.gaugeIndex
   while (gi < ctx.lastGaugeIndex && fuse.a > ctx.ampacityAt(gi)) gi++
@@ -39,7 +47,7 @@ export function pickFuse(ctx: FuseContext): FuseSizing {
   if (ctx.bankContinuousA !== null) {
     const bankMinA = (ctx.bankContinuousA / ctx.runs) * SIZING.NEC_CONTINUOUS
     const bankFuseA = pool.find((f) => f.a >= bankMinA)?.a ?? pool[pool.length - 1]!.a
-    if (fuse.a > bankFuseA) warnings.push({ code: 'fuseAboveBank', params: { fuseA: fuse.a, maxA: ctx.bankContinuousA } })
+    if (fuse.a > bankFuseA) warnings.push({ code: 'fuseAboveBank', params: { fuseA: fuse.a, maxA: ctx.bankContinuousA, ...(ctx.runs > 1 ? { count: ctx.runs } : {}) } })
   }
   const hold = SIZING.FUSE_SURGE_HOLD[fuse.class]
   const ratio = ctx.surgePerRunA / fuse.a
