@@ -482,6 +482,10 @@ test('a load past the largest inverter gets inverters in parallel, each with its
   await expect(checks.getByText(/on 2 × 10\.0 kW inverters \(20\.0 kW together\)/)).toBeVisible()
   await expect(checks.getByText(/the 2 inverters draw up to 463 A together/)).toBeVisible()
   await expect(page.getByText(/· 2 × 10\.0 kW inverters ·/)).toBeVisible()
+  // The project's card names the set too, in its short form.
+  await showProjects(page)
+  await expect(openProjectCard(page).getByText('2 × 10.0 kW', { exact: true })).toBeVisible()
+  await hideProjects(page)
   await page.reload()
   await expect(row('Inverter')).toContainText('2 in parallel work as one 20.0 kW inverter')
   // The parts list a supplier gets counts both inverters too.

@@ -84,6 +84,8 @@ describe('kitChecks', () => {
     expect(lines('es').surge).toBe('7,000 W en marcha con 2 inversores de 5,000 W (10.0 kW en total) · 7,000 W durante 0 s, dentro de sus 20.0 kW de arranque')
     expect(lines('en').batteryContinuous).toMatch(/^Bank gives \d+ A continuous; the 2 inverters draw up to 231 A together$/)
     expect(lines('es').batteryContinuous).toMatch(/^El banco entrega \d+ A continuos; los 2 inversores toman hasta 231 A en total$/)
+    // The 162 A start-up is split between the two fuses.
+    expect(lines('en').fuse).toBe("150 A class T: under the cable's 150 A, 20 kA interrupting, start-up 81 A within what it holds")
     expect(lines('en').cable).toContain('2 × 1/0 AWG carries 150 A after derating')
     expect(lines('en').cable).toContain('for a 145 A design current per inverter')
     expect(lines('es').cable).toContain('145 A de diseño por inversor')
@@ -116,6 +118,11 @@ describe('kitChecks', () => {
     const starved = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 20000, surge: 20000, note: '' }], hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-50' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 8000, surge: 16000, volts: [48] as const, surgeSeconds: 5, maxParallel: 4 }] })
     const discharge = starved.warnings.find((w) => w.code === 'bankDischarge')!
     expect(discharge.params).toMatchObject({ inverters: 4, needA: 741, maxA: 550, strings: 11 })
+    // Its eight fuses are judged against the bank's share for each, and the note counts them.
+    const above = starved.warnings.find((w) => w.code === 'fuseAboveBank')!
+    expect(above.params).toEqual({ fuseA: 125, maxA: 550, count: 8 })
+    expect(warningText(en, above, [])).toBe('The 8 × 125 A fuses are sized for more than the 550 A the bank can deliver, so the BMS, not a fuse, would trip on an overload. Pick a bank that delivers more.')
+    expect(warningText(es, above, [])).toBe('Los 8 fusibles de 125 A están dimensionados para más de los 550 A que el banco puede entregar, así que cortaría el BMS y no un fusible en una sobrecarga. Elige un banco que entregue más.')
     expect(warningText(en, discharge, starved.items)).toMatch(/^The 4 inverters draw up to 741 A together at full load; \d+ × 48 V 50 Ah LiFePO₄ allows [\d,]+ A continuous and its BMS would cut out\. /)
     expect(warningText(es, discharge, starved.items)).toMatch(/^Los 4 inversores toman hasta 741 A en total a plena carga; \d+ × 48 V 50 Ah LiFePO₄ permite [\d,]+ A continuos y su BMS cortaría\. /)
     // 2 kW running fits the pair; a 30 kW start does not fit its 20 kW surge.
@@ -127,13 +134,14 @@ describe('kitChecks', () => {
   })
 
   test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {
-    // 3 kW at 12 V on two strings in 50 °C air on 75 °C cable: 139 A a string needs 174 A, and 4/0 carries 172.5 A there.
-    const custom = [{ id: 'custom1', name: 'Workshop', watts: 2400, surge: 2400, note: '' }]
+    // 6 kW at 12 V in 50 °C air on 75 °C cable: the maker's four strings are not enough, so three carry 185 A each
+    // and need 231.5 A of cable, where 4/0 carries 172.5 A.
+    const custom = [{ id: 'custom1', name: 'Workshop', watts: 4800, surge: 4800, note: '' }]
     const r = kit({ custom1: 1 }, { custom, hours: 1, volts: 12, cable: { ambientC: 50, insulationC: 75 } })
     const cable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
     expect(cable.status).toBe('warn')
-    expect(cable.lines).toEqual(['4/0 AWG for the string leads carries only 172.5 A after derating, under its 173.7 A design current. Raise the voltage, trim the load or move the bank somewhere cooler.'])
-    expect(kitChecks(es, r, 'es').find((c) => c.id === 'cable')!.lines).toEqual(['El 4/0 AWG para los cables de rama solo soporta 172.5 A tras la corrección, menos que su corriente de diseño de 173.7 A. Sube el voltaje, reduce la carga o lleva el banco a un lugar más fresco.'])
+    expect(cable.lines).toContain('4/0 AWG for the string leads carries only 172.5 A after derating, under its 231.5 A design current. Raise the voltage, trim the load or move the bank somewhere cooler.')
+    expect(kitChecks(es, r, 'es').find((c) => c.id === 'cable')!.lines).toContain('El 4/0 AWG para los cables de rama solo soporta 172.5 A tras la corrección, menos que su corriente de diseño de 231.5 A. Sube el voltaje, reduce la carga o lleva el banco a un lugar más fresco.')
   })
 
   test('nothing to check for an empty kit', () => {

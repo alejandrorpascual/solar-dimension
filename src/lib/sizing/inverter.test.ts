@@ -44,10 +44,22 @@ describe('pickInverter with units that run in parallel', () => {
     expect(pickInverter(13000, profile(13000, 1), 48, table)).toEqual({ unit: table[1], count: 3 })
   })
 
-  test('the set must hold the start-up too', () => {
+  test('the set must hold the start-up too, for as long as it lasts', () => {
     const table = [unit(8000, 4)]
-    // 5 kW running fits one unit, but a 30 kW start needs the 32 kW surge of two.
+    // 5 kW running fits one unit, but a 30 kW start needs the 32 kW surge of two, and a 40 kW start the 48 kW of three.
     expect(pickInverter(5000, profile(30000, 1), 48, table)).toEqual({ unit: table[0], count: 2 })
+    expect(pickInverter(5000, profile(40000, 1), 48, table)).toEqual({ unit: table[0], count: 3 })
+    // A start that outlasts the 5 s surge is held at the longer, lower rating: 12 kW a unit, so 30 kW takes three.
+    const slow = [{ ...unit(8000, 4), surgeLong: { w: 12000, seconds: 30 } }]
+    expect(pickInverter(5000, profile(30000, 5), 48, slow)).toEqual({ unit: slow[0], count: 2 })
+    expect(pickInverter(5000, profile(30000, 20), 48, slow)).toEqual({ unit: slow[0], count: 3 })
+    // Past the long window only the continuous rating holds it: four units.
+    expect(pickInverter(5000, profile(30000, 60), 48, slow)).toEqual({ unit: slow[0], count: 4 })
+  })
+
+  test('a parallel limit far past any real one costs nothing to consider', () => {
+    const table = [{ ...unit(8000), maxParallel: 1e9 }]
+    expect(pickInverter(12000, profile(12000, 1), 48, table)).toEqual({ unit: table[0], count: 2 })
   })
 
   test('one unit that fits is never passed over for a set, even when it is sold for another voltage', () => {

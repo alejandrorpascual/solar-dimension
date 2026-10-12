@@ -1,8 +1,16 @@
 import type { BatteryUnit, Chemistry, Voltage } from '../catalog'
 import type { BatteryLimits, BatteryPick, RuntimeScenarios } from './types'
 
-/** What the inverter asks of the bank. */
-export interface BankDemand { continuousA: number; surgeA: number; surgeSeconds: number }
+/** What the inverter asks of the bank, and the most one string's lead can carry to it when the wiring is being sized. */
+export interface BankDemand { continuousA: number; surgeA: number; surgeSeconds: number; maxStringA?: number }
+
+const ONE_STRING = 1
+
+/** Strings needed so that no string's share of the continuous current is more than its lead carries. */
+function stringsForLead(demand: BankDemand): number {
+  if (!demand.maxStringA || demand.maxStringA <= 0) return ONE_STRING
+  return Math.max(ONE_STRING, Math.ceil(demand.continuousA / demand.maxStringA))
+}
 
 /** A bank a unit can build, before its runtime is known. */
 export type BankCandidate = Omit<BatteryPick, 'hoursActual' | 'runtime'> & { id: string }
@@ -19,7 +27,8 @@ function unitLimits(u: BatteryUnit, chem: Chemistry): BatteryLimits {
 /**
  * Every bank this chemistry can build at this voltage, ordered bank-voltage units first, then by capacity. Each bank
  * has enough strings for the energy, the inverter's continuous draw and its surge, unless that would exceed what the
- * unit's maker allows in parallel; then it keeps the energy count and is flagged.
+ * unit's maker allows in parallel; then it keeps the energy count and is flagged. Strings in parallel are also kept
+ * within what one lead carries, as far as the maker's limit allows.
  */
 export function batteryCandidates(chem: Chemistry, volts: Voltage, requiredAh: number, demand: BankDemand): BankCandidate[] {
   return chem.units
@@ -31,8 +40,12 @@ export function batteryCandidates(chem: Chemistry, volts: Voltage, requiredAh: n
         energy: Math.max(1, Math.ceil(requiredAh / u.ah)),
         continuous: Math.max(1, Math.ceil(demand.continuousA / unit.maxContinuousA)),
         peak: Math.max(1, Math.ceil(demand.surgeA / unit.peakA)),
+        lead: stringsForLead(demand),
       }
-      const needed = Math.max(parallelFor.energy, parallelFor.continuous, parallelFor.peak)
+      const wanted = Math.max(parallelFor.energy, parallelFor.continuous, parallelFor.peak)
+      // One string has no lead of its own: it feeds the main cable, which splits into runs as it must.
+      const wired = wanted > ONE_STRING ? Math.max(wanted, parallelFor.lead) : wanted
+      const needed = wired <= unit.maxParallel ? wired : wanted
       const parallel = needed <= unit.maxParallel ? needed : parallelFor.energy
       const count = series * parallel
       const bankWh = u.v * u.ah * count

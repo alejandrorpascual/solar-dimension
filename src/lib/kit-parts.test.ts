@@ -115,6 +115,14 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(row(one, 'mainCable').note).not.toContain(es ? 'por inversor' : 'per inverter')
     expect(row(two, 'fuse')).toMatchObject({ spec: es ? '150 A clase T por inversor' : '150 A class T per inverter', qty: '2' })
     expect(row(one, 'fuse')).toMatchObject({ spec: es ? '150 A clase T' : '150 A class T', qty: '1' })
+    // A set that falls short says so in the row, with the set's figures: stock list, 48 V.
+    const stock = (watts: number, surge = watts) =>
+      buildParts(compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Load', watts, surge, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT), t, locale).find(p => p.id === 'inverter')!
+    const three = es ? '3 en paralelo trabajan como un inversor de 36.0 kW y toman hasta 833 A de las barras colectoras · 72.0 kW de arranque en total' : '3 in parallel work as one 36.0 kW inverter, drawing up to 833 A from the bus bars · 72.0 kW surge together'
+    expect(stock(28801)).toMatchObject({ qty: '3', spec: es ? '12.0 kW onda pura, entrada 48 V CC' : '12.0 kW pure sine, 48 V DC input' })
+    expect(stock(28801).note).toContain(`${three} · ${es ? '28.8 kW en marcha dejan 24% de margen, 28.8 kW pico' : '28.8 kW running leaves 24% headroom, 28.8 kW peak'} · `)
+    expect(stock(40000).note).toContain(`${three} · ${es ? 'menor que la carga en marcha de 40,000 W' : 'smaller than the 40,000 W running load'} · `)
+    expect(stock(5000, 80000).note).toContain(`${three} · ${es ? 'cubre 5,000 W en marcha, no el pico de 80.0 kW' : 'covers 5,000 W running, not the 80.0 kW peak'} · `)
     // The same pair on a 24 V bank draws twice the current, so each inverter needs two runs.
     const heavy = buildParts(compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Load', watts: 7000, surge: 7000, note: '' }], hours: 2, volts: 24, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ ...hardware.inverters[0]!, volts: [24] as const }] }), t, locale)
     expect(row(heavy, 'mainCable')).toMatchObject({ qty: '8' })

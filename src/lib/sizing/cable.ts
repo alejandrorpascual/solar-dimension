@@ -1,6 +1,6 @@
 import { SIZING, type Fuse, type Gauge, type Voltage } from '../catalog'
 import { ambientFactor, ampsAt, bundleFactor } from '../nec'
-import { pickFuse } from './fuse'
+import { fusePool, pickFuse } from './fuse'
 import { wholeUnits } from './inverter'
 import type { BatteryPick, CableConditions, ConductorKind, FusePick, LinkCable, StringCable, Warning } from './types'
 
@@ -142,6 +142,16 @@ export function undersized(conductor: ConductorKind, sized: MainCableSizing, amp
   const maxA = Math.floor(ampacity * TENTHS) / TENTHS
   const needA = Math.ceil(designA * TENTHS) / TENTHS
   return [{ code: 'cableUndersized', params: { conductor, gauge: sized.gauge.awg, maxA, needA } }]
+}
+
+/**
+ * The most continuous current one string's lead can carry here: what the largest fuse that fits under the largest gauge
+ * protects, less the continuous margin. A string asked for more would need a fuse its own lead cannot back.
+ */
+export function maxStringAmps(volts: Voltage, cond: CableConditions, gauges: readonly Gauge[], fuses: readonly Fuse[]): number {
+  const ampacity = correctedAmpacity(gauges[gauges.length - 1]!, jumperConditions(cond), CONDUCTORS_PER_RUN)
+  const fuseA = Math.max(0, ...fusePool(fuses, volts).filter((f) => f.a <= ampacity).map((f) => f.a))
+  return fuseA / SIZING.NEC_CONTINUOUS
 }
 
 /** One string's lead: its share of the current on a single short conductor, with a fuse checked against one unit's limits. */

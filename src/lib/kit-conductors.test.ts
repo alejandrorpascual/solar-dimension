@@ -51,10 +51,11 @@ const COOL_OPEN_AIR: Partial<CableConditions> = {}
 const INSTALLATIONS: readonly Partial<CableConditions>[] = [COOL_OPEN_AIR, { ambientC: 50, insulationC: 75 }, { ambientC: 40, bundled: true }]
 const CHEMISTRY_IDS: readonly ChemistryId[] = ['lifepo4', 'agm']
 const WINDOWS_H = [1, 2, 4, 8, 12, 24]
-/** Past one inverter: the largest load each stock set is picked for (2 × 8, 2 × 10, 2 × 12, 3 × 10 and 3 × 12 kW). */
-const SET_LOADS_W = [12800, 16000, 19200, 24000, 28800]
-/** What one 4/0 conductor carries continuously: its 230 A at the lugs, less the 125% margin. */
-const MAX_ON_ONE_LEAD_A = 230 / SIZING.NEC_CONTINUOUS
+/**
+ * Past one inverter: the largest load each stock set is picked for (2 × 8, 2 × 10, 2 × 12, 3 × 10 and 3 × 12 kW), and
+ * two lighter ones (10 and 16.5 kW) whose banks need the fewest strings for their energy.
+ */
+const SET_LOADS_W = [10000, 12800, 16000, 16500, 19200, 24000, 28800]
 
 interface Kit { label: string; cable: Partial<CableConditions>; r: SizingResult; printed: PrintedConductor[] }
 
@@ -111,28 +112,26 @@ describe('printed conductors', () => {
     expect(unflagged).toEqual([])
   })
 
-  test('in a cool room with open-air cable, no kit with one inverter built for its bank voltage prints a short conductor at all', () => {
-    const sound = kits.filter((k) => k.cable === COOL_OPEN_AIR && k.r.inverter.voltsOk && k.r.inverter.count === 1)
-    expect(sound.length).toBeGreaterThan(1000)
+  test('in a cool room with open-air cable, no kit whose inverter is built for its bank voltage prints a short conductor at all, unless its strings would pass the limit of the battery\'s maker', () => {
+    // A bank takes the strings its leads need. Past the maker's parallel limit it cannot, and the cable check names the lead (the test above).
+    const hasItsStrings = (k: Kit) => k.r.battery!.parallel === 1 || k.r.battery!.parallelFor.lead <= k.r.battery!.unit.maxParallel
+    const sound = kits.filter((k) => k.cable === COOL_OPEN_AIR && k.r.inverter.voltsOk && hasItsStrings(k))
+    expect(sound.length).toBeGreaterThan(1500)
+    expect(sound.filter((k) => k.r.inverter.count > 1).length).toBeGreaterThan(500)
     expect(sound.flatMap((k) => k.printed.filter(isShort).map((x) => `${k.label} | ${show(x)}`))).toEqual([])
   })
 
-  test('inverters in parallel, cool room: the main cable is never short; a string is only when it carries more than one 4/0 holds, and the check says so', () => {
-    const sets = kits.filter((k) => k.cable === COOL_OPEN_AIR && k.r.inverter.voltsOk && k.r.inverter.count > 1)
-    expect(sets.length).toBeGreaterThan(500)
-    const short = sets.flatMap((k) => k.printed.filter(isShort).map((x) => ({ k, x })))
-    // 4/0 at its 230 A lugs backs 184 A continuous. Two 8 kW units on two strings ask each for 185 A, as the 12 V heater kit below does.
-    expect(new Set(short.map(({ x }) => x.row))).toEqual(new Set(['stringLeads', 'interconnects']))
-    for (const { k, x } of short) {
-      expect([x.gauge, x.sideBySide], k.label).toEqual(['4/0 AWG', 1])
-      expect(x.carriesA, k.label).toBeGreaterThan(MAX_ON_ONE_LEAD_A)
-      expect(kitChecks(en, k.r, 'en').find((c) => c.id === 'cable')!.status, k.label).toBe('warn')
-    }
-    expect(Math.min(...short.map(({ x }) => x.carriesA))).toBeCloseTo(185.2, 1)
-    // It takes a bank of very few strings: on the automatic bank, only the one-hour window gets there.
-    const automatic = short.filter(({ k }) => k.r.batteryUnit === null)
-    expect(new Set(automatic.map(({ k }) => `${k.r.inverter.count} × ${k.r.inverter.unitW} for ${k.r.hours} h on ${k.r.battery!.config}`)))
-      .toEqual(new Set(['2 × 8000 for 1 h on 1S2P', '2 × 12000 for 1 h on 1S3P']))
+  test('every inverter of a kit gets the same whole number of runs, with a fuse on each run and a cable pair for it', () => {
+    const wrong = kits.flatMap((k) => {
+      const { runs } = k.r.cable
+      const parts = buildParts(k.r, en, 'en')
+      const qty = (id: string) => Number(parts.find((p) => p.id === id)!.qty)
+      const inStep = Number.isInteger(runs / k.r.inverter.count) && runs >= k.r.inverter.count
+      return inStep && qty('inverter') === k.r.inverter.count && qty('fuse') === runs && qty('mainCable') === 2 * runs ? [] : [k.label]
+    })
+    expect(wrong).toEqual([])
+    // Two and three inverters, at their own voltage and at another's, are all in the sweep.
+    expect(new Set(kits.map((k) => `${k.r.inverter.count}${k.r.inverter.voltsOk ? '' : ' off-voltage'}`))).toEqual(new Set(['1', '1 off-voltage', '2', '2 off-voltage', '3', '3 off-voltage']))
   })
 
   test('a bank gets a link row only with batteries in series and a lead row only with strings in parallel, in whole pieces', () => {
@@ -163,13 +162,14 @@ describe('printed conductors', () => {
   })
 
   test('a string lead too hot for any single cable turns the cable check to a warning that names the row', () => {
-    // 3 kW at 12 V on two strings: 139 A each needs 174 A of cable; 4/0 carries 172.5 A in 50 °C air on 75 °C insulation.
-    const r = compute({ ...load(2400), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 75 } }, CATALOG_SNAPSHOT)
-    expect(r.battery!.parallel).toBe(2)
+    // 6 kW at 12 V draws 556 A and the maker allows four strings: three carry 185 A each and need 231.5 A of cable;
+    // 4/0 carries 172.5 A in 50 °C air on 75 °C insulation.
+    const r = compute({ ...load(4800), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 75 } }, CATALOG_SNAPSHOT)
+    expect([r.battery!.parallel, r.battery!.unit.maxParallel]).toEqual([3, 4])
     expect(printedConductors(r).filter(isShort).map((x) => x.row)).toEqual(['stringLeads'])
     const cable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
     expect(cable.status).toBe('warn')
-    expect(cable.lines.join(' ')).toContain('4/0 AWG for the string leads carries only 172.5 A after derating, under its 173.7 A design current')
+    expect(cable.lines.join(' ')).toContain('4/0 AWG for the string leads carries only 172.5 A after derating, under its 231.5 A design current')
   })
 })
 
@@ -195,15 +195,17 @@ describe('kits the audit found with a link under its current', () => {
     expect(printedConductors(r).filter(isShort)).toEqual([])
   })
 
-  test('12 V heater and microwave: the 4/0 string lead the engine sized is now a row of its own, and the check says it falls short', () => {
-    // 2.7 kW is past every 12 V inverter, so the engine falls back to a 4 kW one: 370 A on two strings, 185 A each.
+  test('12 V heater and microwave: the string lead the engine sized is a row of its own, and a third string keeps it within one cable', () => {
+    // 2.7 kW is past every 12 V inverter, so the engine falls back to a 4 kW one: 370 A. Two strings would carry 185 A
+    // each, more than a 4/0 lead and its fuse back, so the bank takes three at 123 A.
     const r = kit({ qty: { heater: 1, micro: 1 }, hours: 4, volts: 12 })
-    expect([r.inverter.w, r.inverter.voltsOk, r.battery!.config, r.cable.gauge, r.cable.string!.gauge]).toEqual([4000, false, '1S2P', '2/0 AWG', '4/0 AWG'])
+    expect([r.inverter.w, r.inverter.voltsOk, r.battery!.config, r.cable.gauge, r.cable.string!.gauge]).toEqual([4000, false, '1S3P', '2/0 AWG', '2/0 AWG'])
     const leads = buildParts(r, en, 'en').find((p) => p.id === 'stringLeads')!
-    expect(leads.spec).toBe('4/0 AWG (107.2 mm²) copper, 30 cm each')
-    expect(leads.qty).toBe('4')
-    expect(printedConductors(r).filter(isShort).map((x) => x.row)).toEqual(['stringLeads'])
+    expect(leads.spec).toBe('2/0 AWG (67.4 mm²) copper, 30 cm each')
+    expect(leads.qty).toBe('6')
+    expect(printedConductors(r).filter(isShort)).toEqual([])
+    // The check still fails, for the 370 A a 12 V bank is asked for, not for a conductor.
     expect(cableCheck(r).status).toBe('warn')
-    expect(cableCheck(r).lines).toContain('4/0 AWG for the string leads carries only 230 A after derating, under its 231.5 A design current. Raise the voltage, trim the load or move the bank somewhere cooler.')
+    expect(cableCheck(r).lines).toEqual(['370 A on the DC side at 12 V is hard to wire safely. Consider 24 V.'])
   })
 })

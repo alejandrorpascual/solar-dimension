@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { FUSES, GAUGES } from '../catalog'
-import { conductorsFor, correctedAmpacity, sizeBankWiring, sizeMainCable, undersized } from './cable'
+import { conductorsFor, correctedAmpacity, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './cable'
 import type { CableConditions } from './types'
 
 const room: CableConditions = { runLengthM: 1.5, ambientC: 30, bundled: false, insulationC: 90 }
@@ -132,6 +132,24 @@ describe('undersized', () => {
   test('judges a row cut from the same gauge by the ampacity it has where it is installed', () => {
     const huge = sizeMainCable(1500, 3000, 12, hot, GAUGES, FUSES, noBank)
     expect(undersized('interconnects', huge, 320)).toEqual([])
+  })
+})
+
+describe('maxStringAmps', () => {
+  test('is the largest fuse that fits under the largest gauge, less the continuous margin', () => {
+    // 4/0 carries 230 A at its lugs; the largest class T under it is 225 A, which protects 180 A continuous.
+    expect(maxStringAmps(48, room, GAUGES, FUSES)).toBe(180)
+    // A lead is short and in open air: bundling the main run does not derate it.
+    expect(maxStringAmps(48, { ...room, bundled: true }, GAUGES, FUSES)).toBe(180)
+    // 50 °C on 75 °C cable: 4/0 carries 172.5 A, a 150 A fuse fits, 120 A continuous.
+    expect(maxStringAmps(48, { ...room, ambientC: 50, insulationC: 75 }, GAUGES, FUSES)).toBe(120)
+    expect(maxStringAmps(48, { ...room, ambientC: 90 }, GAUGES, FUSES)).toBe(0)
+  })
+
+  test('a string at the limit sizes without a warning, and one amp past it does not', () => {
+    const lead = (amps: number) => sizeMainCable(amps, amps, 48, { ...room, runLengthM: 0.3 }, GAUGES, FUSES, noBank, { fixedRuns: 1 })
+    expect(lead(180).warnings).toEqual([])
+    expect(lead(181).warnings.map((w) => w.code)).toContain('fuseAboveCable')
   })
 })
 

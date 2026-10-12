@@ -112,8 +112,11 @@ export interface BatteryPick {
   bankContinuousA: number
   bankPeakA: number
   bankShortCircuitA: number
-  /** Strings each requirement alone would need; parallel is the largest unless that exceeds the unit's limit. */
-  parallelFor: { energy: number; continuous: number; peak: number }
+  /**
+   * Strings each requirement alone would need: the energy, the BMS continuous and peak limits, and what one string's
+   * lead carries. Parallel is the largest unless that exceeds the unit's limit; one string has no lead to limit it.
+   */
+  parallelFor: { energy: number; continuous: number; peak: number; lead: number }
   dischargeOk: boolean
   peakOk: boolean
   overMaxParallel: boolean

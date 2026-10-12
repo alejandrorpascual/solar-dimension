@@ -25,9 +25,15 @@ export const wholeUnits = (n: number): number => (Number.isFinite(n) ? Math.max(
 /** How many of this unit may work as one; a unit with no limit stated works alone. */
 const maxUnits = (unit: Inverter): number => wholeUnits(unit.maxParallel ?? SOLO)
 
-/** Every size of set this unit's maker allows, from two units up. */
-function parallelSets(unit: Inverter): InverterSet[] {
-  return Array.from({ length: maxUnits(unit) - SOLO }, (_, i) => ({ unit, count: SOLO + 1 + i }))
+const PAIR = 2
+
+/**
+ * The fewest of this unit that carry the load and hold the start-up together, or null when its maker allows fewer.
+ * Ratings add up across a set, so the count follows from each requirement over what one unit gives.
+ */
+function smallestSet(unit: Inverter, needW: number, profile: SurgeProfile): InverterSet | null {
+  const count = Math.max(PAIR, Math.ceil(needW / unit.w), Math.ceil(profile.surgeW / surgeRatedFor(unit, profile.seconds)))
+  return count <= maxUnits(unit) ? { unit, count } : null
 }
 
 /**
@@ -61,7 +67,7 @@ export function pickInverter(runningW: number, profile: SurgeProfile, volts: Vol
   const single = inverters.find((inv) => inv.volts.includes(volts) && fits(inv)) ?? inverters.find(fits)
   if (single) return { unit: single, count: SOLO }
   // More units of a model that already carries the load are never better, so each model offers its smallest set.
-  const sets = inverters.flatMap((unit) => parallelSets(unit).find((s) => fits(asOne(s))) ?? [])
+  const sets = inverters.flatMap((unit) => smallestSet(unit, needW, profile) ?? [])
   return [...sets].sort(bySetPreference(volts))[0] ?? largestSet(inverters)
 }
 

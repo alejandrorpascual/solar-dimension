@@ -211,7 +211,10 @@ describe('inverterSize', () => {
     expect(inverterSize(es, { count: 2, unitW: 10000 }, 'es')).toBe('2 inversores de 10.0 kW')
     // The same line as the project card's short form draws: more than one is a set, anything else one inverter.
     expect(inverterSize(en, { count: 0, unitW: 3000 }, 'en')).toBe('3,000 W inverter')
-    expect(tr(en, 'footer3', { batteries: '4 batteries', inverter: inverterSize(en, { count: 2, unitW: 10000 }, 'en'), gauge: '1/0 AWG' })).toBe('4 batteries · 2 × 10.0 kW inverters · 1/0 AWG')
+    const pair = { count: 2, unitW: 10000 }
+    expect(tr(en, 'footer3', { batteries: '4 batteries', inverter: inverterSize(en, pair, 'en'), gauge: '1/0 AWG' })).toBe('4 batteries · 2 × 10.0 kW inverters · 1/0 AWG')
+    expect(tr(es, 'footer3', { batteries: '4 baterías', inverter: inverterSize(es, pair, 'es'), gauge: '1/0 AWG' })).toBe('4 baterías · 2 inversores de 10.0 kW · 1/0 AWG')
+    expect(tr(en, 'footer4Solar', { batteries: '4 batteries', inverter: inverterSize(en, pair, 'en'), gauge: '1/0 AWG', panels: '5 panels' })).toBe('4 batteries · 2 × 10.0 kW inverters · 1/0 AWG · 5 panels')
     expect(tr(es, 'footer4Solar', { batteries: '4 baterías', inverter: inverterSize(es, { count: 1, unitW: 5000 }, 'es'), gauge: '2 AWG', panels: '5 paneles' })).toBe('4 baterías · inversor de 5,000 W · 2 AWG · 5 paneles')
   })
 })

@@ -1,7 +1,7 @@
 import { DEFAULT_HARDWARE, SIZING, VOLTAGES, type CatalogItem, type HardwareCatalog, type Voltage } from './catalog'
 import { ambientFactor, ampsAt, bundleFactor } from './nec'
 import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate } from './sizing/battery'
-import { sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
+import { maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
 import { dcAmps, pickInverter, toInverterPick } from './sizing/inverter'
 import { selectItems, surgeProfile } from './sizing/loads'
 import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
@@ -92,7 +92,10 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const inverter = toInverterPick(pickInverter(runningW, profile, volts, hardware.inverters), profile, volts, runningW)
   // What flows at start-up is the load's surge, not the inverter's rating: the bank, fuse and cable see that current.
   const startupA = dcAmps(profile.surgeW, volts)
-  const demand = { continuousA: inverter.continuousA, surgeA: startupA, surgeSeconds: profile.seconds }
+  const demand = {
+    continuousA: inverter.continuousA, surgeA: startupA, surgeSeconds: profile.seconds,
+    maxStringA: maxStringAmps(volts, cond, hardware.gauges, hardware.fuses),
+  }
   const candidates = batteryCandidates(chem, volts, requiredAh, demand)
   const auto = autoPick(candidates)
   const chosen = candidates.find((c) => c.id === input.batteryUnit) ?? null
