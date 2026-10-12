@@ -426,7 +426,7 @@ test('motors starting together and a hot cable run change the inverter, the chec
   // Fridge and AC starting together: 8,115 W peak, past a 4 kW inverter's 8,000 W surge.
   await expect(page.getByText('5,000 W pure sine, 48 V DC input')).toBeVisible()
   const checks = page.getByRole('region', { name: 'Checks' })
-  await expect(checks.getByText(/^Inverter$/)).toBeVisible()
+  await expect(checks.getByText(/^Inverter size$/)).toBeVisible()
   await expect(checks.getByText(/\(50 °C\)/)).toBeVisible()
   await expect(page.getByText(/every motor starting at once/)).toBeVisible()
   await page.reload()

@@ -63,7 +63,7 @@ export interface InverterPick {
   /** The surge rating that applies to the load's surge duration, and whether it covers the peak. */
   surgeRatedW: number
   surgeOk: boolean
-  /** Whether the continuous rating covers the running load at all, and with the engine's headroom on top. */
+  /** Whether the continuous rating covers the running load at all, and with the engine's headroom on top; the second implies the first. */
   runningOk: boolean
   headroomOk: boolean
   /** DC-side current at full continuous output and at the surge rating. */
@@ -222,7 +222,10 @@ export type WarningCode =
 export interface WarningParams {
   inverterW?: number
   runningW?: number
-  /** Whole percent of headroom the inverter has over the running load, and the percent the engine plans for. */
+  /**
+   * Whole percent of headroom the inverter has over the running load, and the percent the engine plans for. The first
+   * is 0 at the rating and past it alike; `inverterW` against `runningW` tells the two apart.
+   */
   headroomPct?: number
   needPct?: number
   volts?: number

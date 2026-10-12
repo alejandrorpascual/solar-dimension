@@ -92,11 +92,17 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(row(9601).note).toBe(es ? '24.0 kW de arranque · 9,601 W en marcha dejan 24% de margen, 9,601 W pico' : '24.0 kW surge · 9,601 W running leaves 24% headroom, 9,601 W peak')
     // An exact fifth of headroom reads as 20%, not 19%.
     expect(row(10000).note).toContain(es ? '10.0 kW en marcha dejan 20% de margen' : '10.0 kW running leaves 20% headroom')
-    // One watt over the rating: exact watts, so the row does not read "12.0 kW under 12.0 kW".
+    // A load equal to the rating is carried, with nothing to spare.
+    expect(row(12000).note).toBe(es ? '24.0 kW de arranque · 12.0 kW en marcha dejan 0% de margen, 12.0 kW pico' : '24.0 kW surge · 12.0 kW running leaves 0% headroom, 12.0 kW peak')
+    // One watt over the rating: exact watts, so a 12.0 kW inverter is not called smaller than a "12.0 kW" load.
     expect(row(12001).note).toBe(es ? '24.0 kW de arranque · menor que la carga en marcha de 12,001 W' : '24.0 kW surge · smaller than the 12,001 W running load')
     expect(row(15000).note).toBe(es ? '24.0 kW de arranque · menor que la carga en marcha de 15,000 W' : '24.0 kW surge · smaller than the 15,000 W running load')
     // 2 kW running with a 30 kW start: no stock inverter holds that peak, and the row must not say it does.
     expect(row(2000, 30000).note).toBe(es ? '24.0 kW de arranque · cubre 2,000 W en marcha, no el pico de 30.0 kW' : '24.0 kW surge · covers 2,000 W running, not the 30.0 kW peak')
+    // Short of the headroom and of the peak at once: the row says both and "covers" of neither.
+    expect(row(10000, 30000).note).toBe(es ? '24.0 kW de arranque · 10.0 kW en marcha dejan 20% de margen, pico de 30.0 kW no cubierto' : '24.0 kW surge · 10.0 kW running leaves 20% headroom, 30.0 kW peak not covered')
+    // Under the running load that is all the row says, whether or not the peak would be held.
+    expect(row(15000, 30000).note).toBe(es ? '24.0 kW de arranque · menor que la carga en marcha de 15,000 W' : '24.0 kW surge · smaller than the 15,000 W running load')
   })
 
   test('the batteries note states the bank currents, and the parallel notes only with parallel strings', () => {

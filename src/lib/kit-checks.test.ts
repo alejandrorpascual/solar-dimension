@@ -18,6 +18,7 @@ describe('kitChecks', () => {
     const by = Object.fromEntries(checks.map((c) => [c.id, c]))
     expect(by.surge!.lines[0]).toBe('465 W running on a 3,000 W inverter · 1,515 W for 3 s, within its 6,000 W surge rating')
     expect(by.surge!.lines[1]).toBe('465 W running + 1,050 W (Refrigerator) starting')
+    expect(kitChecks(es, kit(ESSENTIALS), 'es')[0]!.lines[0]).toBe('465 W en marcha con un inversor de 3,000 W · 1,515 W durante 3 s, dentro de sus 6,000 W de arranque')
     expect(by.batteryContinuous!.lines).toEqual(['Bank gives 200 A continuous; the inverter draws up to 69 A'])
     expect(by.batteryPeak!.lines).toEqual(['Bank peak 400 A covers the 35 A start-up for 3 s'])
     expect(by.parallel!.lines).toEqual(['One string, nothing to balance'])
@@ -26,8 +27,8 @@ describe('kitChecks', () => {
   })
 
   test('names come from the dictionary in both languages', () => {
-    expect(kitChecks(en, kit(ESSENTIALS), 'en').map((c) => c.name)).toEqual(['Inverter', 'Battery continuous current', 'Battery peak current', 'Parallel strings', 'Fuse', 'Cable'])
-    expect(kitChecks(es, kit(ESSENTIALS), 'es').map((c) => c.name)).toEqual(['Inversor', 'Corriente continua de la batería', 'Corriente pico de la batería', 'Ramas en paralelo', 'Fusible', 'Cable'])
+    expect(kitChecks(en, kit(ESSENTIALS), 'en').map((c) => c.name)).toEqual(['Inverter size', 'Battery continuous current', 'Battery peak current', 'Parallel strings', 'Fuse', 'Cable'])
+    expect(kitChecks(es, kit(ESSENTIALS), 'es').map((c) => c.name)).toEqual(['Tamaño del inversor', 'Corriente continua de la batería', 'Corriente pico de la batería', 'Ramas en paralelo', 'Fusible', 'Cable'])
   })
 
   test('a failing check shows its warnings instead of the pass line, and lists every starter', () => {
@@ -56,9 +57,11 @@ describe('kitChecks', () => {
     expect(cable.lines[0]).toContain('145 A design current per run')
   })
 
-  test('an inverter under the running load, or short of its headroom, fails the inverter check with its own wording in both languages', () => {
-    const load = (watts: number) => kit({ custom1: 1 }, { custom: [{ id: 'custom1', name: 'Workshop', watts, surge: watts, note: '' }] })
-    const inverter = (r: ReturnType<typeof kit>, locale: 'en' | 'es') => kitChecks(locale === 'en' ? en : es, r, locale).find((c) => c.id === 'surge')!
+  const load = (watts: number, extra: Partial<SizingInput> = {}, surge = watts) => kit({ custom1: 1 }, { custom: [{ id: 'custom1', name: 'Workshop', watts, surge, note: '' }], ...extra })
+  // The check with id `surge` is the one shown as "Inverter size".
+  const inverter = (r: ReturnType<typeof kit>, locale: 'en' | 'es') => kitChecks(locale === 'en' ? en : es, r, locale).find((c) => c.id === 'surge')!
+
+  test('an inverter under the running load, or short of its headroom, fails the inverter size check with its own wording in both languages', () => {
     expect(inverter(load(9600), 'en').status).toBe('pass')
     const tight = load(9601)
     expect(inverter(tight, 'en').status).toBe('warn')
@@ -68,6 +71,27 @@ describe('kitChecks', () => {
     expect(inverter(over, 'en').lines).toEqual(['The 12,000 W inverter is smaller than the 15,000 W running load and cannot carry it. Trim the load, or ask an installer about a larger inverter or units built to run in parallel.'])
     expect(inverter(over, 'es').lines).toEqual(['El inversor de 12,000 W es menor que la carga en marcha de 15,000 W y no puede sostenerla. Reduce la carga o pregunta a un instalador por un inversor mayor o por equipos hechos para trabajar en paralelo.'])
     expect(uncheckedWarnings(over).map((w) => w.code)).not.toContain('inverterUndersized')
+    // A load equal to the rating is carried with nothing to spare: the headroom wording, not "smaller than".
+    const level = load(12000)
+    expect(inverter(level, 'en').lines[0]).toMatch(/^The 12,000 W inverter leaves 0% headroom over the 12,000 W running load; this kit plans for 25%\./)
+    expect(inverter(level, 'es').lines[0]).toMatch(/^El inversor de 12,000 W deja 0% de margen sobre la carga en marcha de 12,000 W; este kit prevé 25%\./)
+  })
+
+  test('an inverter short of the load and of the start-up at once lists both, the running load first', () => {
+    const check = inverter(load(15000, {}, 30000), 'en')
+    expect(check.status).toBe('warn')
+    expect(check.lines).toHaveLength(3)
+    expect(check.lines[0]).toContain('is smaller than the 15,000 W running load and cannot carry it')
+    expect(check.lines[1]).toContain('A 30,000 W start-up')
+    expect(check.lines[2]).toBe('15.0 kW running + 15.0 kW (Workshop) starting')
+  })
+
+  test('an inverter sold for another voltage is a note beside the checks, and the inverter size check still passes', () => {
+    // 4,001 W at 24 V is past the largest 24 V inverter, so the engine lists a 6 kW one sold for 48 V.
+    const r = load(4001, { volts: 24 })
+    expect(r.inverter).toMatchObject({ w: 6000, voltsOk: false, headroomOk: true })
+    expect(inverter(r, 'en').status).toBe('pass')
+    expect(uncheckedWarnings(r).map((w) => w.code)).toContain('inverterVoltage')
   })
 
   test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {

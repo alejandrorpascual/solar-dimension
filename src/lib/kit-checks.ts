@@ -6,7 +6,11 @@ import type { SelectedItem, SizingResult, Warning, WarningCode } from './sizing'
 export type CheckId = 'surge' | 'batteryContinuous' | 'batteryPeak' | 'parallel' | 'fuse' | 'cable'
 export const CHECK_IDS: readonly CheckId[] = ['surge', 'batteryContinuous', 'batteryPeak', 'parallel', 'fuse', 'cable']
 
-/** Which warnings fail each check; a warning not listed here is a general note, shown apart from the checks. */
+/**
+ * Which warnings fail each check; a warning not listed here is a general note, shown apart from the checks. `surge` is
+ * the check shown as "Inverter size": it owns the running-load warning as well as the start-up one. Whether the
+ * inverter is sold for the bank voltage, or has to be split-phase, stays a note.
+ */
 export const CHECK_WARNINGS: Record<CheckId, readonly WarningCode[]> = {
   surge: ['inverterUndersized', 'surgeDuration'],
   batteryContinuous: ['bankDischarge'],
@@ -68,7 +72,7 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
   }
 }
 
-/** Which units were assumed to start together, as one line under the surge check. */
+/** Which units were assumed to start together, as one line under the inverter size check (id `surge`). */
 function contributorsLine(t: Dictionary, r: SizingResult, locale: Locale): string | null {
   const starters = r.surgeProfile.starters
   if (starters.length === 0) return null

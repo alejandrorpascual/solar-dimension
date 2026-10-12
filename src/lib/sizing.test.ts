@@ -227,7 +227,7 @@ describe('inverter against the running load', () => {
     expect(undersized(kit(12000))).toEqual([{ code: 'inverterUndersized', params: { inverterW: 12000, runningW: 12000, headroomPct: 0, needPct: 25 } }])
   })
 
-  test('past the rating the inverter cannot carry the load, which is a different warning text', () => {
+  test('past the rating the inverter cannot carry the load: runningOk is false and the headroom reads 0', () => {
     for (const watts of [12001, 15000]) {
       const r = kit(watts)
       expect(r.inverter).toMatchObject({ w: 12000, runningOk: false, headroomOk: false, surgeOk: true })
@@ -255,7 +255,9 @@ describe('inverter against the running load', () => {
   })
 
   test('an empty project warns about nothing', () => {
-    expect(compute({ qty: {}, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT).inverter).toMatchObject({ runningOk: true, headroomOk: true })
+    const r = compute({ qty: {}, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.inverter).toMatchObject({ runningOk: true, headroomOk: true })
+    expect(r.warnings).toEqual([])
   })
 })
 

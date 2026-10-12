@@ -1,6 +1,6 @@
-import { panelCount, tr, type Dictionary, type Locale } from '../i18n'
+import { panelCount, tr, type Dictionary, type Locale, type UiKey } from '../i18n'
 import { fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
-import { hasPanels, type CablePick, type ConductorKind, type SizingResult } from './sizing'
+import { hasPanels, type CablePick, type ConductorKind, type InverterPick, type SizingResult } from './sizing'
 import { headroomPct } from './sizing/inverter'
 import { SOLAR } from './solar'
 
@@ -25,14 +25,23 @@ function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
   ]
 }
 
-/** What the inverter does for this load: "covers" only what its rating and surge window really cover. */
+/**
+ * Which wording the inverter row takes. It says "covers" of the running load only when the rating has its headroom on
+ * top, and of the peak only when the surge rating for a start-up of that length holds it. Under the running load that
+ * is all the row says: an inverter that cannot run the load is not asked about its start-up.
+ */
+function inverterNoteKey(inv: InverterPick): UiKey {
+  if (!inv.runningOk) return 'inverterNoteUnder'
+  if (!inv.headroomOk) return inv.surgeOk ? 'inverterNoteTight' : 'inverterNoteTightPeak'
+  return inv.surgeOk ? 'inverterNote' : 'inverterNotePeak'
+}
+
 function inverterNote(r: SizingResult, t: Dictionary, locale: Locale): string {
   const inv = r.inverter
-  const key = !inv.runningOk ? 'inverterNoteUnder' : !inv.headroomOk ? 'inverterNoteTight' : !inv.surgeOk ? 'inverterNotePeak' : 'inverterNote'
   const w = (n: number) => fmtW(n, locale)
-  // Under the load the gap can be a few watts, which kilowatts to one decimal would print as "12.0 kW under 12.0 kW".
+  // Just past the rating, kilowatts to one decimal would call a 12.0 kW inverter smaller than a "12.0 kW" load; whole watts show the gap.
   const running = inv.runningOk ? w(r.runningW) : `${fmtInt(r.runningW, locale)} W`
-  return tr(t, key, { surge: w(inv.surge), running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) })
+  return tr(t, inverterNoteKey(inv), { surge: w(inv.surge), running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) })
 }
 
 /**
