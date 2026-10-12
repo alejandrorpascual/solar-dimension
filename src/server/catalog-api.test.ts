@@ -196,3 +196,16 @@ test('retire goes through for a request that names this database', async () => {
   expect(response.status).toBe(200)
   expect(setRetired).toHaveBeenCalledWith('kettle', true, 'api-token')
 })
+
+test('retire refuses a query parameter instead of ignoring it: there is no dry run of a retire', async () => {
+  const { retiredHandler, setRetired } = await load(HERE)
+
+  const response = await retiredHandler(true)({
+    request: withToken({ method: 'POST', path: '/api/catalog/appliances/kettle/retire?dryRun=true', headers: naming(HERE.endpoint) }),
+    params: { id: 'kettle' },
+  })
+
+  expect(response.status).toBe(400)
+  expect(await response.json()).toEqual({ error: expect.stringContaining('"dryRun"') })
+  expect(setRetired).not.toHaveBeenCalled()
+})

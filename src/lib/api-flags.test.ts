@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { parseWriteFlags } from './api-flags'
 
-const parse = (query: string) => parseWriteFlags(new URLSearchParams(query))
+const parse = (query: string) => parseWriteFlags(new URLSearchParams(query), ['dryRun', 'replace'])
 const refusal = (name: string) => ({ ok: false, error: expect.stringContaining(`"${name}"`) })
 
-describe('parseWriteFlags', () => {
+describe('parseWriteFlags for a route that takes dryRun and replace', () => {
   test('no parameters means a real write that does not replace', () => {
     expect(parse('')).toEqual({ ok: true, dryRun: false, replace: false })
   })
@@ -38,5 +38,45 @@ describe('parseWriteFlags', () => {
   test('refuses a flag given twice, even with the same value', () => {
     expect(parse('dryRun=true&dryRun=false')).toEqual(refusal('dryRun'))
     expect(parse('replace=true&replace=true')).toEqual(refusal('replace'))
+  })
+})
+
+describe('parseWriteFlags for a route that takes only dryRun', () => {
+  const parseDryRun = (query: string) => parseWriteFlags(new URLSearchParams(query), ['dryRun'])
+
+  test('no parameters means a real write', () => {
+    expect(parseDryRun('')).toEqual({ ok: true, dryRun: false })
+  })
+
+  test('reads dryRun as true or false', () => {
+    expect(parseDryRun('dryRun=true')).toEqual({ ok: true, dryRun: true })
+    expect(parseDryRun('dryRun=false')).toEqual({ ok: true, dryRun: false })
+  })
+
+  test.each(['1', 'True', 'yes', ''])('refuses dryRun=%j instead of writing', (value) => {
+    expect(parseDryRun(`dryRun=${value}`)).toEqual(refusal('dryRun'))
+  })
+
+  test('refuses a flag another route takes, a mistyped name and a flag given twice', () => {
+    expect(parseDryRun('replace=true')).toEqual(refusal('replace'))
+    expect(parseDryRun('dry_run=true')).toEqual(refusal('dry_run'))
+    expect(parseDryRun('dryRun=true&dryRun=true')).toEqual(refusal('dryRun'))
+  })
+
+  test('a refusal says which flag the route does take', () => {
+    expect(parseDryRun('dryrun=true')).toEqual({ ok: false, error: expect.stringContaining('use dryRun') })
+  })
+})
+
+describe('parseWriteFlags for a route that takes no flag', () => {
+  const parseNone = (query: string) => parseWriteFlags(new URLSearchParams(query), [])
+
+  test('no parameters is fine', () => {
+    expect(parseNone('')).toEqual({ ok: true })
+  })
+
+  test('refuses any parameter, so a dry run that does not exist is never a real write', () => {
+    expect(parseNone('dryRun=true')).toEqual(refusal('dryRun'))
+    expect(parseNone('dryRun=true')).toEqual({ ok: false, error: expect.stringContaining('takes no query parameters') })
   })
 })

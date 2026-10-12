@@ -52,6 +52,21 @@ test('writes only when the POST names this database, and writes to the database 
   }
 })
 
+test('a mistyped flag answers 400 naming it, and nothing is written', async ({ request }) => {
+  const id = `e2e-flag-${Date.now()}`
+  const mistyped = [['?dryRun=1', 'dryRun'], ['?dryrun=true', 'dryrun'], ['?dryRun=True', 'dryRun'], ['?replace=true', 'replace'], ['?dryRun=true&dryRun=false', 'dryRun']]
+  try {
+    for (const [query, name] of mistyped) {
+      const res = await request.post(`/api/catalog/appliances${query}`, { headers: writeHeaders(), data: [cooktop(id)] })
+      expect(res.status(), `POST ${query}`).toBe(400)
+      expect(await res.json()).toEqual({ error: expect.stringContaining(`"${name}"`) })
+      expect(await testApplianceExists(id), `POST ${query} wrote a row`).toBe(false)
+    }
+  } finally {
+    await deleteTestAppliance(id)
+  }
+})
+
 test('dry run, create, show in the picker in both languages, then retire', async ({ request, page }) => {
   const id = `e2e-${Date.now()}`
   const item = cooktop(id)
@@ -73,6 +88,10 @@ test('dry run, create, show in the picker in both languages, then retire', async
     await page.reload()
     await expect(page.getByText(`Anafe E2E ${id}`)).toBeVisible()
 
+    // Retire has no dry run: asking for one is refused, not carried out, and the item is still there after a reload.
+    expect((await request.post(`/api/catalog/appliances/${id}/retire?dryRun=true`, { headers: writeHeaders() })).status()).toBe(400)
+    await page.reload()
+    await expect(page.getByText(`Anafe E2E ${id}`)).toBeVisible()
     expect((await request.post(`/api/catalog/appliances/${id}/retire`, { headers: writeHeaders() })).status()).toBe(200)
     await page.reload()
     await expect(page.getByText(`Anafe E2E ${id}`)).toHaveCount(0)

@@ -1,4 +1,5 @@
 import { dbTarget } from '../db/client'
+import { parseWriteFlags } from '../lib/api-flags'
 import { bearerToken, failureThrottle, isApiEnabled, tokenMatches } from '../lib/api-token'
 import { setRetired } from './catalog-repo'
 
@@ -69,6 +70,9 @@ export function retiredHandler(retired: boolean) {
   return async ({ request, params }: { request: Request; params: { id: string } }): Promise<Response> => {
     const denied = authorize(request)
     if (denied) return denied
+    // Retire and restore have no dry run: a flag here would be ignored, and the caller would not know it wrote.
+    const flags = parseWriteFlags(new URL(request.url).searchParams, [])
+    if (!flags.ok) return json({ error: flags.error }, 400)
     const { id } = params
     try {
       return (await setRetired(id, retired, API_ACTOR)) ? json({ id, retired }) : json({ error: 'Not found' }, 404)
