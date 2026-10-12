@@ -3,7 +3,7 @@ import { CATEGORIES } from '../lib/catalog'
 import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
 import { en } from './en'
 import { es } from './es'
-import { applianceName, applianceNote, batteryCount, getDictionary, isLocale, resolveLocale, tr, trq } from './index'
+import { applianceName, applianceNote, batteryCount, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
 
 describe('dictionaries', () => {
   test('es has every ui key that en has, and nothing extra', () => {
@@ -200,5 +200,16 @@ describe('quote dictionaries', () => {
   })
   test('no quote string promises an email', () => {
     for (const d of [en, es]) expect(Object.values(d.quotes).join(' ')).not.toMatch(/e-?mail|correo/i)
+  })
+})
+
+describe('inverterSize', () => {
+  test('one inverter is named by its size, a set by how many work in parallel, in both languages', () => {
+    expect(inverterSize(en, { count: 1, unitW: 3000 }, 'en')).toBe('3,000 W inverter')
+    expect(inverterSize(es, { count: 1, unitW: 3000 }, 'es')).toBe('inversor de 3,000 W')
+    expect(inverterSize(en, { count: 2, unitW: 10000 }, 'en')).toBe('2 × 10.0 kW inverters')
+    expect(inverterSize(es, { count: 2, unitW: 10000 }, 'es')).toBe('2 inversores de 10.0 kW')
+    expect(tr(en, 'footer3', { batteries: '4 batteries', inverter: inverterSize(en, { count: 2, unitW: 10000 }, 'en'), gauge: '1/0 AWG' })).toBe('4 batteries · 2 × 10.0 kW inverters · 1/0 AWG')
+    expect(tr(es, 'footer4Solar', { batteries: '4 baterías', inverter: inverterSize(es, { count: 1, unitW: 5000 }, 'es'), gauge: '2 AWG', panels: '5 paneles' })).toBe('4 baterías · inversor de 5,000 W · 2 AWG · 5 paneles')
   })
 })

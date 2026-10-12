@@ -8,7 +8,7 @@ import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
 import type {
   BatteryOption, BatteryPick, CableConditions, CustomLoadLike, SelectedItem, SimultaneousStarts, SizingInput, SizingResult, Warning,
 } from './sizing/types'
-import { buildWarnings, parallelNotes } from './sizing/warnings'
+import { buildWarnings, inverterNotes, parallelNotes } from './sizing/warnings'
 import { panelsToRefill, sizeSolar, type SolarPick } from './solar'
 
 export type * from './sizing/types'
@@ -107,9 +107,10 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     ? [{ code: 'roofLimited', params: { fit: solar.fit, need: panelsToRefill(bankWh, solar.sunHours) } }]
     : []
 
+  // Inverters in parallel share the current but not the cable: each has its own runs and fuse.
   const main = sizeMainCable(inverter.continuousA, startupA, volts, cond, hardware.gauges, hardware.fuses, {
     surgeSeconds: profile.seconds, bankContinuousA: battery?.bankContinuousA ?? null, bankShortCircuitA: battery?.bankShortCircuitA ?? null,
-  })
+  }, { feeds: inverter.count })
   const wiring = sizeBankWiring({
     battery, main, bankAmps: inverter.continuousA, bankSurgeAmps: startupA, volts, cond,
     gauges: hardware.gauges, fuses: hardware.fuses, surgeSeconds: profile.seconds,
@@ -141,9 +142,10 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     },
     fuse: main.fuse,
     parallelNotes: parallelNotes(battery),
+    inverterNotes: inverterNotes(inverter),
     warnings: [
       ...buildWarnings({
-        items, inverter, runningW, surgeProfile: profile, amps: dcAmps(inverter.w, volts), volts, battery, loadWh,
+        items, inverter, runningW, surgeProfile: profile, amps: dcAmps(inverter.unitW, volts), volts, battery, loadWh,
         protection: [...main.warnings, ...undersized('mainCable', main), ...wiring.warnings], missing, startupA,
       }),
       ...roofWarning,

@@ -6,7 +6,7 @@ import { useLocale } from '../hooks/useLocale'
 import { useProjectRename, type CurrentActions } from '../hooks/useProjectRename'
 import { useProjectJobs } from '../hooks/useQuoteJobs'
 import { applianceName, batteryCount, tr, type Dictionary } from '../i18n'
-import { fmtHours, fmtKwh, fmtW } from '../i18n/format'
+import { fmtHours, fmtInverter, fmtKwh, fmtW } from '../i18n/format'
 import { projectLine } from '../lib/quote-text'
 import { currentFirst, summarizeProjects, type ProjectSummary } from '../lib/project-summary'
 import type { Store } from '../lib/schema'
@@ -71,7 +71,7 @@ function CardKit({ summary: s }: { summary: ProjectSummary }) {
       <dl className="pcard__figs">
         <div><dt className="lab">{t.ui.runtime}</dt><dd className="num">~{fmtHours(r.battery.hoursActual, locale)}</dd></div>
         <div><dt className="lab">{t.ui.bank}</dt><dd className="num">{fmtKwh(r.battery.bankWh, locale)}</dd></div>
-        <div><dt className="lab">{t.ui.inverter}</dt><dd className="num">{fmtW(r.inverter.w, locale)}</dd></div>
+        <div><dt className="lab">{t.ui.inverter}</dt><dd className="num">{fmtInverter(r.inverter, locale)}</dd></div>
       </dl>
       <div className="pcard__bar" aria-hidden="true"><span style={{ width: `${Math.max(LOAD_BAR_MIN_PERCENT, Math.round(s.loadShare * 100))}%` }} /></div>
       <p className="pcard__load num">{`${fmtW(r.runningW, locale)} ${t.ui.running} · ${batteryCount(t, r.battery.count)} · ${r.cable.gauge}`}</p>

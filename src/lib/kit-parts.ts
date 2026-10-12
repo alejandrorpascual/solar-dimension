@@ -25,14 +25,30 @@ function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
   ]
 }
 
-/** What the inverter does for this load: "covers" only what its rating and surge window really cover. */
+/**
+ * What the inverter does for this load: "covers" only what its rating and surge window really cover. Units in parallel
+ * first say what they give together and draw from the bus bars, and end with what the install needs of them.
+ */
 function inverterNote(r: SizingResult, t: Dictionary, locale: Locale): string {
   const inv = r.inverter
   const key = !inv.runningOk ? 'inverterNoteUnder' : !inv.headroomOk ? 'inverterNoteTight' : !inv.surgeOk ? 'inverterNotePeak' : 'inverterNote'
   const w = (n: number) => fmtW(n, locale)
   // Under the load the gap can be a few watts, which kilowatts to one decimal would print as "12.0 kW under 12.0 kW".
   const running = inv.runningOk ? w(r.runningW) : `${fmtInt(r.runningW, locale)} W`
-  return tr(t, key, { surge: w(inv.surge), running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) })
+  return joinNotes([
+    inv.count > 1 ? tr(t, 'inverterParallelNote', { count: inv.count, total: w(inv.w), amps: fmtInt(inv.continuousA, locale) }) : '',
+    tr(t, key, { surge: w(inv.surge), running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) }),
+    ...r.inverterNotes.map((n) => t.inverterNotes[n]),
+  ])
+}
+
+/** What one main cable and its fuse serve when the current is split: a whole inverter, or a run, with how many runs each inverter gets. */
+export function shareLabel(r: SizingResult, t: Dictionary): string {
+  const { runs } = r.cable
+  const { count } = r.inverter
+  if (runs === 1) return ''
+  if (runs === count) return t.ui.perInverter
+  return count > 1 ? tr(t, 'perRunOfInverter', { n: runs / count }) : t.ui.perRun
 }
 
 /**
@@ -65,7 +81,7 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
   const b = r.battery
   if (r.empty || !b) return []
   const c = r.cable
-  const perRun = c.runs > 1 ? t.ui.perRun : ''
+  const perRun = shareLabel(r, t)
   const batteriesNote = joinNotes([
     tr(t, 'batteriesNote', { series: b.series, parallel: b.parallel, config: b.config, bank: fmtKwh(b.bankWh, locale), usable: fmtKwh(b.usableWh, locale) }),
     tr(t, 'batteriesCurrentNote', { cont: fmtInt(b.bankContinuousA, locale), peak: fmtInt(b.bankPeakA, locale) }),
@@ -73,11 +89,11 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
   ])
   const w = (n: number) => fmtW(n, locale)
   const base: Part[] = [
-    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: inverterNote(r, t, locale), qty: '1' },
+    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.unitW), volts: r.volts }), note: inverterNote(r, t, locale), qty: String(r.inverter.count) },
     { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: batteriesNote, qty: String(b.count) },
     {
       id: 'mainCable', name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }),
-      note: tr(t, 'mainCableNote', { amps: fmtInt(Math.round(c.designA / c.runs), locale), perRun: c.runs > 1 ? t.ui.perRun : '', ampacity: fmtInt(c.ampacity, locale), drop: c.startupDropPct }), qty: String(c.mainCount),
+      note: tr(t, 'mainCableNote', { amps: fmtInt(Math.round(c.designA / c.runs), locale), perRun, ampacity: fmtInt(c.ampacity, locale), drop: c.startupDropPct }), qty: String(c.mainCount),
     },
     ...bankWiringParts(c, t, locale),
     {

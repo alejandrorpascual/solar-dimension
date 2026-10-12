@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { INVERTERS, type Inverter } from '../catalog'
-import { dcAmps, headroomPct, pickInverter, surgeRatedFor, toInverterPick } from './inverter'
+import { asOne, dcAmps, headroomPct, pickInverter, surgeRatedFor, toInverterPick } from './inverter'
 
 const three = INVERTERS.find((i) => i.w === 3000)!
 const one = INVERTERS.find((i) => i.w === 1000)!
+const single = (unit: Inverter) => ({ unit, count: 1 })
 
 describe('surgeRatedFor', () => {
   test('gives the full surge within its window, the long surge after, then only the rating', () => {
@@ -19,34 +20,137 @@ describe('pickInverter', () => {
   const profile = (surgeW: number, seconds: number) => ({ surgeW, seconds, starters: [] })
 
   test('needs headroom over the running load and a surge rating that lasts long enough', () => {
-    expect(pickInverter(2000, profile(5000, 3), 48, INVERTERS).w).toBe(3000)
-    expect(pickInverter(2000, profile(5000, 20), 48, INVERTERS).w).toBe(4000)
-    expect(pickInverter(2000, profile(5000, 40), 48, INVERTERS).w).toBe(5000)
+    expect(pickInverter(2000, profile(5000, 3), 48, INVERTERS)).toMatchObject({ unit: { w: 3000 }, count: 1 })
+    expect(pickInverter(2000, profile(5000, 20), 48, INVERTERS)).toMatchObject({ unit: { w: 4000 }, count: 1 })
+    expect(pickInverter(2000, profile(5000, 40), 48, INVERTERS)).toMatchObject({ unit: { w: 5000 }, count: 1 })
   })
 
-  test('prefers an inverter sold for the voltage, then any that fits, then the biggest', () => {
-    expect(pickInverter(1000, profile(2000, 1), 12, INVERTERS).w).toBe(1500)
-    expect(pickInverter(5000, profile(6000, 1), 12, INVERTERS)).toMatchObject({ w: 8000, volts: [48] })
-    expect(pickInverter(50000, profile(90000, 1), 48, INVERTERS).w).toBe(12000)
+  test('prefers an inverter sold for the voltage, then any single one that fits', () => {
+    expect(pickInverter(1000, profile(2000, 1), 12, INVERTERS)).toMatchObject({ unit: { w: 1500 }, count: 1 })
+    expect(pickInverter(5000, profile(6000, 1), 12, INVERTERS)).toMatchObject({ unit: { w: 8000, volts: [48] }, count: 1 })
+  })
+})
+
+describe('pickInverter with units that run in parallel', () => {
+  const profile = (surgeW: number, seconds: number) => ({ surgeW, seconds, starters: [] })
+  const unit = (w: number, maxParallel?: number, volts: Inverter['volts'] = [48]): Inverter =>
+    ({ w, surge: w * 2, volts, surgeSeconds: 5, ...(maxParallel ? { maxParallel } : {}) })
+
+  test('when no single unit fits, the fewest identical units that carry the load with its headroom', () => {
+    const table = [unit(3000), unit(8000, 4)]
+    // 12 kW running needs 15 kW: two 8 kW units give 16 kW.
+    expect(pickInverter(12000, profile(12000, 1), 48, table)).toEqual({ unit: table[1], count: 2 })
+    // 13 kW needs 16.25 kW, one watt-step past two units.
+    expect(pickInverter(13000, profile(13000, 1), 48, table)).toEqual({ unit: table[1], count: 3 })
+  })
+
+  test('the set must hold the start-up too', () => {
+    const table = [unit(8000, 4)]
+    // 5 kW running fits one unit, but a 30 kW start needs the 32 kW surge of two.
+    expect(pickInverter(5000, profile(30000, 1), 48, table)).toEqual({ unit: table[0], count: 2 })
+  })
+
+  test('one unit that fits is never passed over for a set, even when it is sold for another voltage', () => {
+    const table = [unit(3000, 6, [24]), unit(8000, 4)]
+    expect(pickInverter(5000, profile(5000, 1), 24, table)).toEqual({ unit: table[1], count: 1 })
+  })
+
+  test('fewer units win even when they are sold for another voltage; between sets of the same size, the bank voltage comes first', () => {
+    // 15 kW needed on a 24 V bank: three 5 kW units at 24 V would put about 700 A on the bus bars, so two 10 kW units are listed.
+    const mixed = [unit(5000, 6, [24]), unit(10000, 2)]
+    expect(pickInverter(12000, profile(12000, 1), 24, mixed)).toEqual({ unit: mixed[1], count: 2 })
+    const pairs = [unit(8000, 2, [24]), unit(10000, 2)]
+    expect(pickInverter(12000, profile(12000, 1), 24, pairs)).toEqual({ unit: pairs[0], count: 2 })
+    expect(pickInverter(12000, profile(12000, 1), 48, pairs)).toEqual({ unit: pairs[1], count: 2 })
+  })
+
+  test('a unit its maker does not allow in parallel is never doubled', () => {
+    const table = [unit(8000)]
+    expect(pickInverter(12000, profile(12000, 1), 48, table)).toEqual({ unit: table[0], count: 1 })
+  })
+
+  test('never more units than the maker allows: past that, the largest set the list can build is the fallback', () => {
+    const table = [unit(3000), unit(8000, 2), unit(12000)]
+    // 20 kW needs 25 kW; two 8 kW units are 16 kW, more than the single 12 kW.
+    expect(pickInverter(20000, profile(20000, 1), 48, table)).toEqual({ unit: table[1], count: 2 })
+    expect(pickInverter(50000, profile(90000, 1), 48, [unit(3000), unit(12000)])).toMatchObject({ unit: { w: 12000 }, count: 1 })
+    // Two sets that reach the same 12 kW: the one made of fewer units.
+    expect(pickInverter(50000, profile(90000, 1), 48, [unit(6000, 2), unit(12000)])).toMatchObject({ unit: { w: 12000 }, count: 1 })
+    expect(pickInverter(50000, profile(90000, 1), 48, [unit(12000), unit(6000, 2)])).toMatchObject({ unit: { w: 12000 }, count: 1 })
+  })
+
+  test('the stock list: units of 3 kW and up run three in parallel at most, smaller ones alone', () => {
+    expect(INVERTERS.map((i) => [i.w, i.maxParallel ?? 1])).toEqual([
+      [1000, 1], [1500, 1], [2000, 1], [3000, 3], [4000, 3], [5000, 3], [6000, 3], [8000, 3], [10000, 3], [12000, 3],
+    ])
+    // 9,601 W needs a watt more than the 12 kW unit has: two 8 kW units, not three 5 kW ones.
+    expect(pickInverter(9601, profile(9601, 1), 48, INVERTERS)).toMatchObject({ unit: { w: 8000 }, count: 2 })
+    expect(pickInverter(15000, profile(15000, 1), 48, INVERTERS)).toMatchObject({ unit: { w: 10000 }, count: 2 })
+    expect(pickInverter(19201, profile(19201, 1), 48, INVERTERS)).toMatchObject({ unit: { w: 10000 }, count: 3 })
+    expect(pickInverter(28800, profile(28800, 1), 48, INVERTERS)).toMatchObject({ unit: { w: 12000 }, count: 3 })
+    // Past 36 kW the list has nothing more: the largest set is the fallback.
+    expect(pickInverter(50000, profile(90000, 1), 48, INVERTERS)).toMatchObject({ unit: { w: 12000 }, count: 3 })
+    // A 24 V bank is pointed at 48 V units, as it is for one inverter: two of them, not three 5 kW units at 24 V.
+    expect(pickInverter(11000, profile(11000, 1), 24, INVERTERS)).toMatchObject({ unit: { w: 8000, volts: [48] }, count: 2 })
+  })
+
+  test('a parallel limit of one, zero, a fraction or less than nothing is read as a whole number of at least one unit', () => {
+    const load = [20000, profile(20000, 1), 48] as const
+    for (const limit of [1, 0, -1]) expect(pickInverter(...load, [{ ...unit(8000), maxParallel: limit }])).toEqual({ unit: { ...unit(8000), maxParallel: limit }, count: 1 })
+    expect(pickInverter(...load, [{ ...unit(8000), maxParallel: 2.5 }])).toMatchObject({ count: 2 })
+    // A bad limit on the largest unit does not hide it behind a smaller one.
+    expect(pickInverter(...load, [unit(5000), { ...unit(12000), maxParallel: 0 }])).toMatchObject({ unit: { w: 12000 }, count: 1 })
+  })
+
+  test('among sets of the same size the smallest unit wins, whatever order the list is in', () => {
+    const table = [unit(10000, 3), unit(8000, 3), unit(12000, 3)]
+    expect(pickInverter(12000, profile(12000, 1), 48, table)).toEqual({ unit: table[1], count: 2 })
+  })
+
+  test('among sets that fit, the fewest units win, then the smallest total', () => {
+    const table = [unit(5000, 6), unit(6000, 6), unit(8000, 6), unit(10000, 6)]
+    // 15 kW needed: 3 × 5 kW is the tightest fit, but 2 × 8 kW is fewer boxes, cables and fuses.
+    expect(pickInverter(12000, profile(12000, 1), 48, table)).toEqual({ unit: table[2], count: 2 })
+    // 20 kW needed: 2 × 10 kW, not 4 × 5 kW.
+    expect(pickInverter(16000, profile(16000, 1), 48, table)).toEqual({ unit: table[3], count: 2 })
+  })
+})
+
+describe('asOne', () => {
+  test('ratings add up across identical units; the surge windows stay one unit\'s', () => {
+    expect(asOne({ unit: three, count: 2 })).toMatchObject({ w: 6000, surge: 12000, surgeSeconds: 5, surgeLong: { w: 9000, seconds: 30 }, volts: [12, 24, 48] })
+    expect(asOne(single(three))).toEqual(three)
+    expect(asOne({ unit: one, count: 3 })).not.toHaveProperty('surgeLong')
   })
 })
 
 describe('toInverterPick', () => {
   test('reports the applicable surge rating, whether it covers the peak, and the DC currents', () => {
-    const pick = toInverterPick(three, { surgeW: 5000, seconds: 20, starters: [] }, 48, 2000)
-    expect(pick).toMatchObject({ w: 3000, voltsOk: true, surgeRatedW: 4500, surgeOk: false, surgeSeconds: 5, surgeLong: { w: 4500, seconds: 30 } })
+    const pick = toInverterPick(single(three), { surgeW: 5000, seconds: 20, starters: [] }, 48, 2000)
+    expect(pick).toMatchObject({ count: 1, unitW: 3000, w: 3000, voltsOk: true, surgeRatedW: 4500, surgeOk: false, surgeSeconds: 5, surgeLong: { w: 4500, seconds: 30 } })
     expect(pick.continuousA).toBeCloseTo(3000 / 48 / 0.9)
     expect(pick.surgeA).toBeCloseTo(6000 / 48 / 0.9)
     const noLong: Inverter = { w: 1000, surge: 2000, volts: [12], surgeSeconds: 3 }
-    expect(toInverterPick(noLong, { surgeW: 1500, seconds: 1, starters: [] }, 24, 500)).toMatchObject({ voltsOk: false, surgeLong: null, surgeOk: true })
+    expect(toInverterPick(single(noLong), { surgeW: 1500, seconds: 1, starters: [] }, 24, 500)).toMatchObject({ voltsOk: false, surgeLong: null, surgeOk: true })
   })
 
   test('says whether the rating covers the running load, and whether the headroom is on top', () => {
     const quiet = { surgeW: 0, seconds: 0, starters: [] }
-    expect(toInverterPick(three, quiet, 48, 2400)).toMatchObject({ runningOk: true, headroomOk: true })
-    expect(toInverterPick(three, quiet, 48, 2401)).toMatchObject({ runningOk: true, headroomOk: false })
-    expect(toInverterPick(three, quiet, 48, 3000)).toMatchObject({ runningOk: true, headroomOk: false })
-    expect(toInverterPick(three, quiet, 48, 3001)).toMatchObject({ runningOk: false, headroomOk: false })
+    expect(toInverterPick(single(three), quiet, 48, 2400)).toMatchObject({ runningOk: true, headroomOk: true })
+    expect(toInverterPick(single(three), quiet, 48, 2401)).toMatchObject({ runningOk: true, headroomOk: false })
+    expect(toInverterPick(single(three), quiet, 48, 3000)).toMatchObject({ runningOk: true, headroomOk: false })
+    expect(toInverterPick(single(three), quiet, 48, 3001)).toMatchObject({ runningOk: false, headroomOk: false })
+  })
+
+  test('a parallel set is reported as a whole: totals for the ratings and currents, with the unit and the count beside them', () => {
+    const pick = toInverterPick({ unit: three, count: 2 }, { surgeW: 8000, seconds: 20, starters: [] }, 48, 4800)
+    expect(pick).toMatchObject({
+      count: 2, unitW: 3000, w: 6000, surge: 12000, surgeSeconds: 5, surgeLong: { w: 9000, seconds: 30 },
+      surgeRatedW: 9000, surgeOk: true, runningOk: true, headroomOk: true, voltsOk: true,
+    })
+    expect(pick.continuousA).toBeCloseTo(6000 / 48 / 0.9)
+    expect(pick.surgeA).toBeCloseTo(12000 / 48 / 0.9)
+    expect(toInverterPick({ unit: three, count: 2 }, { surgeW: 0, seconds: 0, starters: [] }, 48, 4801)).toMatchObject({ runningOk: true, headroomOk: false })
   })
 
   test('headroom is a whole percent rounded down, exact at whole fractions and never negative', () => {

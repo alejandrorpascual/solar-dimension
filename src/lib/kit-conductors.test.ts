@@ -51,6 +51,10 @@ const COOL_OPEN_AIR: Partial<CableConditions> = {}
 const INSTALLATIONS: readonly Partial<CableConditions>[] = [COOL_OPEN_AIR, { ambientC: 50, insulationC: 75 }, { ambientC: 40, bundled: true }]
 const CHEMISTRY_IDS: readonly ChemistryId[] = ['lifepo4', 'agm']
 const WINDOWS_H = [1, 2, 4, 8, 12, 24]
+/** Past one inverter: the largest load each stock set is picked for (2 × 8, 2 × 10, 2 × 12, 3 × 10 and 3 × 12 kW). */
+const SET_LOADS_W = [12800, 16000, 19200, 24000, 28800]
+/** What one 4/0 conductor carries continuously: its 230 A at the lugs, less the 125% margin. */
+const MAX_ON_ONE_LEAD_A = 230 / SIZING.NEC_CONTINUOUS
 
 interface Kit { label: string; cable: Partial<CableConditions>; r: SizingResult; printed: PrintedConductor[] }
 
@@ -60,9 +64,10 @@ interface Kit { label: string; cable: Partial<CableConditions>; r: SizingResult;
  * built for it and the currents are far past what one cable carries.
  */
 function stockKits(): Kit[] {
-  const bases = VOLTAGES.flatMap((volts) => INVERTERS.flatMap((inv) =>
+  const loads = [...INVERTERS.map((inv) => Math.floor(inv.w / SIZING.HEADROOM)), ...SET_LOADS_W]
+  const bases = VOLTAGES.flatMap((volts) => loads.flatMap((watts) =>
     CHEMISTRY_IDS.flatMap((chemistry) => WINDOWS_H.flatMap((hours) => INSTALLATIONS.map((cable): SizingInput =>
-      ({ ...load(Math.floor(inv.w / SIZING.HEADROOM)), hours, volts, chemistry, cable })))),
+      ({ ...load(watts), hours, volts, chemistry, cable })))),
   ))
   return bases.flatMap((input) => {
     const units = [null, ...compute(input, CATALOG_SNAPSHOT).batteryOptions.map((o) => o.id)]
@@ -85,7 +90,12 @@ describe('printed conductors', () => {
       const smallest = Math.min(...INVERTERS.filter((i) => i.volts.includes(v)).map((i) => i.w))
       return INVERTERS.filter((i) => i.w >= smallest).map((i) => `${v}:${i.w}`)
     })
-    expect(new Set(kits.map((k) => `${k.r.volts}:${k.r.inverter.w}`))).toEqual(new Set(pairs))
+    const alone = kits.filter((k) => k.r.inverter.count === 1)
+    expect(new Set(alone.map((k) => `${k.r.volts}:${k.r.inverter.w}`))).toEqual(new Set(pairs))
+    // Past one inverter the same sets are listed at every bank voltage, each built from 48 V units.
+    const sets = kits.filter((k) => k.r.inverter.count > 1)
+    expect(sets.length).toBeGreaterThan(4000)
+    expect(new Set(sets.map((k) => `${k.r.inverter.count} × ${k.r.inverter.unitW}`))).toEqual(new Set(['2 × 8000', '2 × 10000', '2 × 12000', '3 × 10000', '3 × 12000']))
     expect(kits.some((k) => !k.r.inverter.voltsOk)).toBe(true)
     const layouts = new Set(kits.map((k) => `${k.r.battery!.series > 1 ? 'S' : ''}${k.r.battery!.parallel > 1 ? 'P' : ''}`))
     expect([...layouts].sort()).toEqual(['', 'P', 'S', 'SP'])
@@ -101,10 +111,28 @@ describe('printed conductors', () => {
     expect(unflagged).toEqual([])
   })
 
-  test('in a cool room with open-air cable, no kit whose inverter is built for its bank voltage prints a short conductor at all', () => {
-    const sound = kits.filter((k) => k.cable === COOL_OPEN_AIR && k.r.inverter.voltsOk)
+  test('in a cool room with open-air cable, no kit with one inverter built for its bank voltage prints a short conductor at all', () => {
+    const sound = kits.filter((k) => k.cable === COOL_OPEN_AIR && k.r.inverter.voltsOk && k.r.inverter.count === 1)
     expect(sound.length).toBeGreaterThan(1000)
     expect(sound.flatMap((k) => k.printed.filter(isShort).map((x) => `${k.label} | ${show(x)}`))).toEqual([])
+  })
+
+  test('inverters in parallel, cool room: the main cable is never short; a string is only when it carries more than one 4/0 holds, and the check says so', () => {
+    const sets = kits.filter((k) => k.cable === COOL_OPEN_AIR && k.r.inverter.voltsOk && k.r.inverter.count > 1)
+    expect(sets.length).toBeGreaterThan(500)
+    const short = sets.flatMap((k) => k.printed.filter(isShort).map((x) => ({ k, x })))
+    // 4/0 at its 230 A lugs backs 184 A continuous. Two 8 kW units on two strings ask each for 185 A, as the 12 V heater kit below does.
+    expect(new Set(short.map(({ x }) => x.row))).toEqual(new Set(['stringLeads', 'interconnects']))
+    for (const { k, x } of short) {
+      expect([x.gauge, x.sideBySide], k.label).toEqual(['4/0 AWG', 1])
+      expect(x.carriesA, k.label).toBeGreaterThan(MAX_ON_ONE_LEAD_A)
+      expect(kitChecks(en, k.r, 'en').find((c) => c.id === 'cable')!.status, k.label).toBe('warn')
+    }
+    expect(Math.min(...short.map(({ x }) => x.carriesA))).toBeCloseTo(185.2, 1)
+    // It takes a bank of very few strings: on the automatic bank, only the one-hour window gets there.
+    const automatic = short.filter(({ k }) => k.r.batteryUnit === null)
+    expect(new Set(automatic.map(({ k }) => `${k.r.inverter.count} × ${k.r.inverter.unitW} for ${k.r.hours} h on ${k.r.battery!.config}`)))
+      .toEqual(new Set(['2 × 8000 for 1 h on 1S2P', '2 × 12000 for 1 h on 1S3P']))
   })
 
   test('a bank gets a link row only with batteries in series and a lead row only with strings in parallel, in whole pieces', () => {
@@ -179,4 +207,3 @@ describe('kits the audit found with a link under its current', () => {
     expect(cableCheck(r).lines).toContain('4/0 AWG for the string leads carries only 230 A after derating, under its 231.5 A design current. Raise the voltage, trim the load or move the bank somewhere cooler.')
   })
 })
-

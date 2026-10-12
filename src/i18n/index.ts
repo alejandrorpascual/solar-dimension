@@ -1,5 +1,6 @@
 import { en } from './en'
 import { es } from './es'
+import { fmtW } from './format'
 import type { Dictionary, Locale, QuoteKey, UiKey } from './types'
 import type { ApplianceLabels } from '../lib/catalog'
 
@@ -63,6 +64,11 @@ export function trq(t: Dictionary, key: QuoteKey, params: Record<string, string 
 /** "1 battery" / "5 batteries" in the active language. */
 export function batteryCount(t: Dictionary, count: number): string {
   return tr(t, count === 1 ? 'batteryCountOne' : 'batteryCountMany', { count })
+}
+
+/** "8,000 W inverter" / "2 × 8,000 W inverters" in the active language: one unit's size, and how many work in parallel. */
+export function inverterSize(t: Dictionary, inverter: { count: number; unitW: number }, locale: Locale): string {
+  return tr(t, inverter.count === 1 ? 'inverterSizeOne' : 'inverterSizeMany', { count: inverter.count, w: fmtW(inverter.unitW, locale) })
 }
 
 /** "1 panel" / "5 panels" in the active language. */

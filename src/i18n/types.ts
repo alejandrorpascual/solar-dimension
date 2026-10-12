@@ -1,6 +1,6 @@
 import type { Category, ChemistryId, LoadKind, Voltage } from '../lib/catalog'
 import type { ItemId } from '../lib/quote-items'
-import type { ParallelNote, WarningCode, WarningParams } from '../lib/sizing'
+import type { InverterNote, ParallelNote, WarningCode, WarningParams } from '../lib/sizing'
 import type { quotesEn } from './quotes-en'
 import type { requesterEn } from './requester-en'
 
@@ -18,6 +18,7 @@ export interface Dictionary {
   kinds: Record<LoadKind, string>
   /** Installation notes a bank with parallel strings carries. */
   parallelNotes: Record<ParallelNote, string>
+  inverterNotes: Record<InverterNote, string>
   privacy: LegalPage
   terms: LegalPage
   quotes: Record<QuoteKey, string>
@@ -45,10 +46,10 @@ export type UiKey =
   | 'kitFor' | 'kitEmpty' | 'kitSummary' | 'editAppliances' | 'editWindow'
   | 'runningLoad' | 'averageDraw' | 'startupPeak' | 'batteryNeeded' | 'runtime'
   | 'part' | 'specification' | 'quantity' | 'nothingSelected'
-  | 'inverterSpec' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteUnder' | 'inverterNotePeak' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun'
+  | 'inverterSpec' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteUnder' | 'inverterNotePeak' | 'inverterParallelNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun' | 'perInverter' | 'perRunOfInverter'
   | 'legal' | 'estimateNotice' | 'fine'
   | 'batterySize' | 'batterySizeHelp' | 'batteryAuto' | 'batteryRecommended' | 'batteryGroup' | 'batteryInSeries' | 'manyStrings'
-  | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany'
+  | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany' | 'inverterSizeOne' | 'inverterSizeMany'
   | 'footer1' | 'footer2' | 'footer3' | 'footerEmpty'
   | 'back' | 'next' | 'buildKit' | 'startOver'
   | 'continueGoogle' | 'orDivider' | 'googleExists' | 'googleFailed' | 'connectGoogle'
@@ -80,7 +81,7 @@ export type UiKey =
   | 'bundledLabel' | 'bundledHelp' | 'insulationLabel' | 'insulation75' | 'insulation90'
   | 'runtimeRange'
   | 'checks' | 'incChecks' | 'checkPass' | 'checkWarn'
-  | 'checkSurge' | 'checkSurgeOk' | 'checkSurgeContributors' | 'checkBatteryContinuous' | 'checkBatteryContinuousOk'
+  | 'checkSurge' | 'checkSurgeOk' | 'checkSurgeOkMany' | 'checkSurgeContributors' | 'checkBatteryContinuous' | 'checkBatteryContinuousOk' | 'checkBatteryContinuousOkMany'
   | 'checkBatteryPeak' | 'checkBatteryPeakOk' | 'checkParallel' | 'checkParallelOk' | 'checkParallelSingle'
   | 'checkFuse' | 'checkFuseOk' | 'checkCable' | 'checkCableOk'
   | 'fuseAicNote' | 'stringFuseSpec' | 'stringFuseNote' | 'batteriesCurrentNote'

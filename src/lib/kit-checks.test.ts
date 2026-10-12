@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { getDictionary } from '../i18n'
+import { DEFAULT_HARDWARE } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { CHECK_IDS, CHECK_WARNINGS, kitChecks, uncheckedWarnings, warningKey, warningText } from './kit-checks'
 import { compute, type SizingInput } from './sizing'
@@ -57,7 +58,10 @@ describe('kitChecks', () => {
   })
 
   test('an inverter under the running load, or short of its headroom, fails the inverter check with its own wording in both languages', () => {
-    const load = (watts: number) => kit({ custom1: 1 }, { custom: [{ id: 'custom1', name: 'Workshop', watts, surge: watts, note: '' }] })
+    // A list whose units work alone: past its largest one there is nothing to add, so the single inverter is flagged.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: DEFAULT_HARDWARE.inverters.map(({ maxParallel: _maxParallel, ...unit }) => unit) }
+    const load = (watts: number) =>
+      compute({ qty: { custom1: 1 }, custom: [{ id: 'custom1', name: 'Workshop', watts, surge: watts, note: '' }], hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
     const inverter = (r: ReturnType<typeof kit>, locale: 'en' | 'es') => kitChecks(locale === 'en' ? en : es, r, locale).find((c) => c.id === 'surge')!
     expect(inverter(load(9600), 'en').status).toBe('pass')
     const tight = load(9601)
@@ -68,6 +72,52 @@ describe('kitChecks', () => {
     expect(inverter(over, 'en').lines).toEqual(['The 12,000 W inverter is smaller than the 15,000 W running load and cannot carry it. Trim the load, or ask an installer about a larger inverter or units built to run in parallel.'])
     expect(inverter(over, 'es').lines).toEqual(['El inversor de 12,000 W es menor que la carga en marcha de 15,000 W y no puede sostenerla. Reduce la carga o pregunta a un instalador por un inversor mayor o por equipos hechos para trabajar en paralelo.'])
     expect(uncheckedWarnings(over).map((w) => w.code)).not.toContain('inverterUndersized')
+  })
+
+  test('inverters in parallel pass as a set: the lines name how many, what they give together and what each one draws', () => {
+    // One model, so the pick does not depend on how sets are ranked: 7 kW needs 8.75 kW, two 5 kW units.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 5000, surge: 10000, volts: [48] as const, surgeSeconds: 5, maxParallel: 4 }] }
+    const r = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 7000, surge: 7000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    const lines = (locale: 'en' | 'es') => Object.fromEntries(kitChecks(locale === 'en' ? en : es, r, locale).map((c) => [c.id, c.lines[0]]))
+    expect(kitChecks(en, r, 'en').map((c) => c.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass'])
+    expect(lines('en').surge).toBe('7,000 W running on 2 × 5,000 W inverters (10.0 kW together) · 7,000 W for 0 s, within their 20.0 kW surge rating')
+    expect(lines('es').surge).toBe('7,000 W en marcha con 2 inversores de 5,000 W (10.0 kW en total) · 7,000 W durante 0 s, dentro de sus 20.0 kW de arranque')
+    expect(lines('en').batteryContinuous).toMatch(/^Bank gives \d+ A continuous; the 2 inverters draw up to 231 A together$/)
+    expect(lines('es').batteryContinuous).toMatch(/^El banco entrega \d+ A continuos; los 2 inversores toman hasta 231 A en total$/)
+    expect(lines('en').cable).toContain('2 × 1/0 AWG carries 150 A after derating')
+    expect(lines('en').cable).toContain('for a 145 A design current per inverter')
+    expect(lines('es').cable).toContain('145 A de diseño por inversor')
+  })
+
+  test('a set that still falls short fails the inverter check and is named as a set, in both languages', () => {
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 5000, surge: 10000, volts: [48] as const, surgeSeconds: 5, maxParallel: 2 }] }
+    const load = (watts: number, surge = watts) =>
+      compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts, surge, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    const inverter = (r: ReturnType<typeof load>, locale: 'en' | 'es') => kitChecks(locale === 'en' ? en : es, r, locale).find((c) => c.id === 'surge')!.lines
+    expect(inverter(load(9000), 'en')).toEqual(['The 2 × 5,000 W inverters in parallel (10,000 W) leave 11% headroom over the 9,000 W running load; this kit plans for 25%. Trim the load, or ask an installer about a system built for it.'])
+    expect(inverter(load(9000), 'es')).toEqual(['Los 2 inversores de 5,000 W en paralelo (10,000 W) dejan 11% de margen sobre la carga en marcha de 9,000 W; este kit prevé 25%. Reduce la carga o pregunta a un instalador por un sistema hecho para ella.'])
+    expect(inverter(load(12000), 'en')).toEqual(['The 2 × 5,000 W inverters in parallel (10,000 W) are smaller than the 12,000 W running load and cannot carry it. Trim the load, or ask an installer about a system built for it.'])
+    expect(inverter(load(12000), 'es')).toEqual(['Los 2 inversores de 5,000 W en paralelo (10,000 W) son menores que la carga en marcha de 12,000 W y no pueden sostenerla. Reduce la carga o pregunta a un instalador por un sistema hecho para ella.'])
+    // Two 8 kW units on a 24 V bank draw 370 A each: the note names one inverter's share, not the 741 A at the bus bars.
+    const low = (watts: number) =>
+      compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts, surge: watts, note: '' }], hours: 2, volts: 24, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 8000, surge: 16000, volts: [24] as const, surgeSeconds: 5, maxParallel: 2 }] })
+    const high = low(9000).warnings.find((w) => w.code === 'highCurrent')!
+    expect(high.params).toMatchObject({ amps: 370, inverters: 2 })
+    expect(warningText(en, high, [])).toBe('370 A to each inverter at 24 V is hard to wire safely. Consider 36 V.')
+    expect(warningText(es, high, [])).toBe('370 A hacia cada inversor a 24 V es difícil de cablear con seguridad. Considera 36 V.')
+    expect(warningText(en, low(5000).warnings.find((w) => w.code === 'highCurrent')!, [])).toBe('370 A on the DC side at 24 V is hard to wire safely. Consider 36 V.')
+    // Four 8 kW units draw 741 A; an hour of it takes eleven 50 A units, 550 A, so the bank is named as short for the set.
+    const starved = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 20000, surge: 20000, note: '' }], hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-50' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 8000, surge: 16000, volts: [48] as const, surgeSeconds: 5, maxParallel: 4 }] })
+    const discharge = starved.warnings.find((w) => w.code === 'bankDischarge')!
+    expect(discharge.params).toMatchObject({ inverters: 4, needA: 741, maxA: 550, strings: 11 })
+    expect(warningText(en, discharge, starved.items)).toMatch(/^The 4 inverters draw up to 741 A together at full load; \d+ × 48 V 50 Ah LiFePO₄ allows [\d,]+ A continuous and its BMS would cut out\. /)
+    expect(warningText(es, discharge, starved.items)).toMatch(/^Los 4 inversores toman hasta 741 A en total a plena carga; \d+ × 48 V 50 Ah LiFePO₄ permite [\d,]+ A continuos y su BMS cortaría\. /)
+    // 2 kW running fits the pair; a 30 kW start does not fit its 20 kW surge.
+    const start = load(2000, 30000)
+    expect(start.inverter).toMatchObject({ count: 2, headroomOk: true, surgeOk: false })
+    const surge = start.warnings.find((w) => w.code === 'surgeDuration')!
+    expect(warningText(en, surge, start.items)).toBe(`A 30,000 W start-up lasting ${start.surgeSeconds} s is longer than the surge window of the 2 × 5,000 W inverters; together they only hold 20,000 W that long. Let fewer motors start at once.`)
+    expect(warningText(es, surge, start.items)).toBe(`Un arranque de 30,000 W durante ${start.surgeSeconds} s supera la ventana de arranque de los 2 inversores de 5,000 W; juntos solo sostienen 20,000 W ese tiempo. Deja que arranquen menos motores a la vez.`)
   })
 
   test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {
