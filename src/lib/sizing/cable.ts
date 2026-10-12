@@ -1,11 +1,14 @@
 import { SIZING, type Fuse, type Gauge, type Voltage } from '../catalog'
 import { ambientFactor, ampsAt, bundleFactor } from '../nec'
 import { pickFuse } from './fuse'
-import type { CableConditions, FusePick, StringCable, Warning } from './types'
+import type { BatteryPick, CableConditions, ConductorKind, FusePick, LinkCable, StringCable, Warning } from './types'
 
 /** One DC run is a positive and a negative lead: two current-carrying conductors. */
 const CONDUCTORS_PER_RUN = 2
+/** A string reaches the bus bars on a positive lead, through its fuse, and a negative one. */
+const LEADS_PER_STRING = 2
 const PERCENT = 100
+const TENTHS = 10
 
 /** Ampacity of one run of this gauge here: the table column, corrected for air and bundling, capped at the lugs' rating. */
 export function correctedAmpacity(g: Gauge, cond: CableConditions, conductors: number): number {
@@ -93,29 +96,77 @@ export function sizeMainCable(
   }
 }
 
-export interface StringContext {
+/** The bank's layout and one unit's limits: all the wiring needs to know about the batteries. */
+export type BankLayout = Pick<BatteryPick, 'series' | 'parallel' | 'unit'>
+
+export interface BankWiringContext {
+  /** Null when no bank could be picked. */
+  battery: BankLayout | null
+  main: MainCableSizing
   bankAmps: number
   bankSurgeAmps: number
-  parallel: number
   volts: Voltage
   cond: CableConditions
   gauges: readonly Gauge[]
   fuses: readonly Fuse[]
   surgeSeconds: number
-  unitContinuousA: number
-  unitShortCircuitA: number
 }
 
-/** The lead from each parallel string to the bus: its share of the current over a short run, with its own fuse. */
-export function sizeStringCable(ctx: StringContext): StringCable {
-  const amps = ctx.bankAmps / ctx.parallel
-  const sized = sizeMainCable(
-    amps, ctx.bankSurgeAmps / ctx.parallel, ctx.volts, { ...ctx.cond, runLengthM: SIZING.LINK_LENGTH_M, bundled: false }, ctx.gauges, ctx.fuses,
-    { surgeSeconds: ctx.surgeSeconds, bankContinuousA: ctx.unitContinuousA, bankShortCircuitA: ctx.unitShortCircuitA }, 1,
+export interface BankWiring { links: LinkCable | null; string: StringCable | null; warnings: Warning[] }
+
+/** Links and string leads are short and in open air: the ambient correction applies, bundling and the main run's length do not. */
+const jumperConditions = (cond: CableConditions): CableConditions => ({ ...cond, runLengthM: SIZING.LINK_LENGTH_M, bundled: false })
+
+/**
+ * The cable check's warning for a printed row whose conductors carry less, after derating, than the current each is
+ * sized for. `ampacity` defaults to the sizing's own; a row cut from the same gauge under other conditions passes its own.
+ * Both currents go out to a tenth of an amp, what it carries rounded down and what it needs rounded up, so a gap
+ * under one amp still reads as a gap.
+ */
+export function undersized(conductor: ConductorKind, sized: MainCableSizing, ampacity = sized.ampacity): Warning[] {
+  const designA = sized.designA / sized.runs
+  if (ampacity >= designA) return []
+  const maxA = Math.floor(ampacity * TENTHS) / TENTHS
+  const needA = Math.ceil(designA * TENTHS) / TENTHS
+  return [{ code: 'cableUndersized', params: { conductor, gauge: sized.gauge.awg, maxA, needA } }]
+}
+
+/** One string's lead: its share of the current on a single short conductor, with a fuse checked against one unit's limits. */
+const sizeStringRun = (ctx: BankWiringContext, battery: BankLayout): MainCableSizing =>
+  sizeMainCable(
+    ctx.bankAmps / battery.parallel, ctx.bankSurgeAmps / battery.parallel, ctx.volts, jumperConditions(ctx.cond), ctx.gauges, ctx.fuses,
+    { surgeSeconds: ctx.surgeSeconds, bankContinuousA: battery.unit.maxContinuousA, bankShortCircuitA: battery.unit.shortCircuitA }, 1,
   )
+
+const toStringCable = (sized: MainCableSizing, parallel: number): StringCable => ({
+  amps: Math.round(sized.amps), designA: Math.round(sized.designA), gauge: sized.gauge.awg, mm2: sized.gauge.mm2,
+  ampacity: Math.round(sized.ampacity), lengthM: SIZING.LINK_LENGTH_M, dropPct: Math.round(sized.dropPct * 10) / 10,
+  fuse: { ...sized.fuse, count: parallel }, count: parallel, leads: LEADS_PER_STRING * parallel,
+  warnings: [...sized.warnings, ...undersized('stringLeads', sized)],
+})
+
+/**
+ * A series link carries its whole string's current, so it copies the conductor that string feeds: the string lead when
+ * strings are in parallel, otherwise the main cable, with one link for each of its runs.
+ */
+function sizeLinks(feeds: MainCableSizing, battery: BankLayout, cond: CableConditions): { links: LinkCable; warnings: Warning[] } {
+  const ampacity = correctedAmpacity(feeds.gauge, jumperConditions(cond), CONDUCTORS_PER_RUN)
+  const positions = (battery.series - 1) * battery.parallel
   return {
-    amps: Math.round(amps), designA: Math.round(sized.designA), gauge: sized.gauge.awg, mm2: sized.gauge.mm2,
-    ampacity: Math.round(sized.ampacity), lengthM: SIZING.LINK_LENGTH_M, dropPct: Math.round(sized.dropPct * 10) / 10,
-    fuse: { ...sized.fuse, count: ctx.parallel }, count: ctx.parallel, warnings: sized.warnings,
+    links: {
+      positions, perPosition: feeds.runs, count: positions * feeds.runs, gauge: feeds.gauge.awg, mm2: feeds.gauge.mm2,
+      designA: Math.round(feeds.designA / feeds.runs), ampacity: Math.round(ampacity), lengthM: SIZING.LINK_LENGTH_M,
+    },
+    warnings: undersized('interconnects', feeds, ampacity),
   }
+}
+
+/** Everything between the battery terminals and the main run: series links, and a fused lead pair to the bus bars for each parallel string. */
+export function sizeBankWiring(ctx: BankWiringContext): BankWiring {
+  const { battery, main } = ctx
+  if (!battery) return { links: null, string: null, warnings: [] }
+  const stringRun = battery.parallel > 1 ? sizeStringRun(ctx, battery) : null
+  const string = stringRun ? toStringCable(stringRun, battery.parallel) : null
+  const linked = battery.series > 1 ? sizeLinks(stringRun ?? main, battery, ctx.cond) : null
+  return { links: linked?.links ?? null, string, warnings: [...(string?.warnings ?? []), ...(linked?.warnings ?? [])] }
 }

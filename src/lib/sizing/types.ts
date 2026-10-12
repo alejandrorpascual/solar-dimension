@@ -133,7 +133,26 @@ export interface BatteryOption {
 
 export interface FusePick { a: number; class: FuseClass; aicA: number; maxVdc: number; count: number }
 
-/** The lead from one parallel string to the bus, and the fuse on it. */
+/** A cable row the parts list prints, named by its part id so a warning can point at the row. */
+export type ConductorKind = 'mainCable' | 'interconnects' | 'stringLeads'
+
+/** The jumpers between neighbouring batteries in a string. Each place carries the whole string's current. */
+export interface LinkCable {
+  /** Places a link goes: one between each pair of neighbours, in every string. */
+  positions: number
+  /** Jumpers side by side at each place: the main cable's runs in a one-string bank, otherwise one. */
+  perPosition: number
+  /** Jumpers to buy: positions × perPosition. */
+  count: number
+  gauge: string
+  mm2: number
+  /** What one jumper is sized for, and what it carries after the ambient correction. */
+  designA: number
+  ampacity: number
+  lengthM: number
+}
+
+/** The leads from one parallel string to the bus bars, and the fuse on the positive one. */
 export interface StringCable {
   amps: number
   designA: number
@@ -143,9 +162,11 @@ export interface StringCable {
   lengthM: number
   dropPct: number
   fuse: FusePick
-  /** One lead per string. */
+  /** Strings in parallel, so fuses to buy. */
   count: number
-  /** The string fuse's own checks against one unit's limits. */
+  /** Leads to buy: a positive and a negative for every string. */
+  leads: number
+  /** The string fuse's own checks against one unit's limits, and the lead's against its design current. */
   warnings: Warning[]
 }
 
@@ -168,9 +189,8 @@ export interface CablePick {
   bundleFactor: number
   mainCount: number
   mainLengthM: number
-  seriesLinks: number
-  parallelLinks: number
-  linkLengthM: number
+  /** Series links inside each string; null when no two batteries are in series. */
+  links: LinkCable | null
   totalLengthM: number
   /** The main fuse rating; the same value as `fuse.a` on the result. */
   fuseA: number
@@ -183,6 +203,7 @@ export interface CablePick {
 export type WarningCode =
   | 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase'
   | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'startupDrop' | 'cableAmbient'
+  | 'cableUndersized'
   | 'missingAppliances'
   | 'roofLimited'
 
@@ -210,6 +231,8 @@ export interface WarningParams {
   aicA?: number
   dropPct?: number
   ambientC?: number
+  conductor?: ConductorKind
+  gauge?: string
   fit?: number
   need?: number
 }

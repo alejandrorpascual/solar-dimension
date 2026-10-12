@@ -73,8 +73,17 @@ describe('dictionaries', () => {
     expect(en.warnings.roofLimited({ fit: 6, need: 10 })).toContain('10')
     expect(es.warnings.roofLimited({ fit: 6, need: 10 })).toContain('caben 6')
   })
+  test('the undersized-cable warning names each cable row, its gauge and both currents in both languages', () => {
+    const p = { gauge: '4/0 AWG', maxA: 172, needA: 174 }
+    expect(en.warnings.cableUndersized({ ...p, conductor: 'mainCable' })).toContain('4/0 AWG for the main cable carries only 172 A')
+    expect(en.warnings.cableUndersized({ ...p, conductor: 'interconnects' })).toContain('for the interconnects')
+    expect(en.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('under its 174 A design current')
+    expect(es.warnings.cableUndersized({ ...p, conductor: 'mainCable' })).toContain('El 4/0 AWG para el cable principal solo soporta 172 A')
+    expect(es.warnings.cableUndersized({ ...p, conductor: 'interconnects' })).toContain('para las interconexiones')
+    expect(es.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('para los cables de rama')
+  })
   test('every part the kit can list has a name in both languages', () => {
-    const keys = ['inverter', 'batteries', 'mainCable', 'interconnects', 'fuse', 'solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'] as const
+    const keys = ['inverter', 'batteries', 'mainCable', 'interconnects', 'stringLeads', 'fuse', 'stringFuses', 'solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'] as const
     for (const d of [en, es]) for (const k of keys) expect(d.parts[k]).toBeTruthy()
   })
   test('the four steps are named in both languages', () => {

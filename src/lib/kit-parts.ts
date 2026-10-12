@@ -1,11 +1,12 @@
 import { panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
-import { hasPanels, type SizingResult } from './sizing'
+import { hasPanels, type CablePick, type SizingResult } from './sizing'
 import { SOLAR } from './solar'
 
 export interface Part { id: string; name: string; spec: string; note: string; qty: string; group?: 'solar' }
 
 const KA = 1000
+const CM_PER_M = 100
 const joinNotes = (notes: readonly string[]) => notes.filter(Boolean).join(' · ')
 
 /** Panels, controller, PV cable, disconnect and mounting, tagged so the table can mark them; nothing for a battery-only kit. */
@@ -23,17 +24,37 @@ function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
   ]
 }
 
-/** The parts list the screen, the sheet, the image and the CSV all share. Rows with nothing to buy are dropped; solar rows come last. */
+/**
+ * Series links and, for parallel strings, the lead pair from each string to the bus bars. Each row states its own
+ * gauge, sized from the current it carries; neither borrows the main cable's.
+ */
+function bankWiringParts(c: CablePick, t: Dictionary, locale: Locale): Part[] {
+  const a = (n: number) => fmtInt(n, locale)
+  const cm = (m: number) => Math.round(m * CM_PER_M)
+  const { links, string } = c
+  return [
+    ...(links
+      ? [{
+        id: 'interconnects', name: t.parts.interconnects, spec: tr(t, 'interconnectsSpec', { gauge: links.gauge, cm: cm(links.lengthM) }),
+        note: tr(t, links.perPosition > 1 ? 'seriesLinksSharedNote' : 'seriesLinksNote', { each: links.perPosition, amps: a(links.designA), ampacity: a(links.ampacity) }),
+        qty: String(links.count),
+      }]
+      : []),
+    ...(string
+      ? [{
+        id: 'stringLeads', name: t.parts.stringLeads, spec: tr(t, 'stringLeadsSpec', { gauge: string.gauge, mm2: string.mm2, cm: cm(string.lengthM) }),
+        note: tr(t, 'stringLeadsNote', { amps: a(string.designA), ampacity: a(string.ampacity) }), qty: String(string.leads),
+      }]
+      : []),
+  ]
+}
+
+/** The parts list the screen, the sheet, the image and the CSV all share. Rows with nothing to buy are left out; solar rows come last. */
 export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
   const b = r.battery
   if (r.empty || !b) return []
   const c = r.cable
-  const cm = Math.round(c.linkLengthM * 100)
   const perRun = c.runs > 1 ? t.ui.perRun : ''
-  const interconnectsNote = joinNotes([
-    c.seriesLinks > 0 ? tr(t, 'seriesLinksNote', { count: c.seriesLinks }) : '',
-    c.parallelLinks > 0 ? tr(t, 'parallelLinksNote', { count: c.parallelLinks }) : '',
-  ])
   const batteriesNote = joinNotes([
     tr(t, 'batteriesNote', { series: b.series, parallel: b.parallel, config: b.config, bank: fmtKwh(b.bankWh, locale), usable: fmtKwh(b.usableWh, locale) }),
     tr(t, 'batteriesCurrentNote', { cont: fmtInt(b.bankContinuousA, locale), peak: fmtInt(b.bankPeakA, locale) }),
@@ -47,7 +68,7 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
       id: 'mainCable', name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }),
       note: tr(t, 'mainCableNote', { amps: fmtInt(Math.round(c.designA / c.runs), locale), perRun: c.runs > 1 ? t.ui.perRun : '', ampacity: fmtInt(c.ampacity, locale), drop: c.startupDropPct }), qty: String(c.mainCount),
     },
-    { id: 'interconnects', name: t.parts.interconnects, spec: tr(t, 'interconnectsSpec', { gauge: c.gauge, cm }), note: interconnectsNote, qty: String(c.seriesLinks + c.parallelLinks) },
+    ...bankWiringParts(c, t, locale),
     {
       id: 'fuse', name: t.parts.fuse, spec: tr(t, 'fuseSpec', { amps: r.fuse.a, class: r.fuse.class, perRun }),
       note: joinNotes([t.ui.fuseNote, tr(t, 'fuseAicNote', { aic: r.fuse.aicA / KA })]), qty: String(r.fuse.count),
@@ -59,5 +80,5 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
       }]
       : []),
   ]
-  return [...base.filter((part) => Number(part.qty) > 0), ...solarParts(r, t, locale)]
+  return [...base, ...solarParts(r, t, locale)]
 }

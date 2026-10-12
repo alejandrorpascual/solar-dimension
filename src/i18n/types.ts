@@ -13,7 +13,7 @@ export interface Dictionary {
   chemistries: Record<ChemistryId, string>
   voltageHints: Record<Voltage, string>
   warnings: Record<WarningCode, (p: WarningParams) => string>
-  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
+  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'stringLeads' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
   /** Load kinds as the schedule groups them. */
   kinds: Record<LoadKind, string>
   /** Installation notes a bank with parallel strings carries. */
@@ -45,7 +45,7 @@ export type UiKey =
   | 'kitFor' | 'kitEmpty' | 'kitSummary' | 'editAppliances' | 'editWindow'
   | 'runningLoad' | 'averageDraw' | 'startupPeak' | 'batteryNeeded' | 'runtime'
   | 'part' | 'specification' | 'quantity' | 'nothingSelected'
-  | 'inverterSpec' | 'inverterNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'parallelLinksNote' | 'fuseSpec' | 'fuseNote' | 'perRun'
+  | 'inverterSpec' | 'inverterNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun'
   | 'fine'
   | 'batterySize' | 'batterySizeHelp' | 'batteryAuto' | 'batteryRecommended' | 'batteryGroup' | 'batteryInSeries' | 'manyStrings'
   | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany'

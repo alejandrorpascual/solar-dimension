@@ -13,7 +13,7 @@ export const CHECK_WARNINGS: Record<CheckId, readonly WarningCode[]> = {
   batteryPeak: ['bankPeak'],
   parallel: ['parallelStrings'],
   fuse: ['fuseAboveBank', 'fuseAboveCable', 'fuseSurge', 'fuseInterrupt'],
-  cable: ['highCurrent', 'startupDrop', 'cableAmbient'],
+  cable: ['highCurrent', 'startupDrop', 'cableAmbient', 'cableUndersized'],
 }
 const CHECKED_CODES = new Set<WarningCode>(Object.values(CHECK_WARNINGS).flat())
 

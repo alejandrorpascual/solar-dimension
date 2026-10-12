@@ -56,6 +56,16 @@ describe('kitChecks', () => {
     expect(cable.lines[0]).toContain('145 A design current per run')
   })
 
+  test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {
+    // 3 kW at 12 V on two strings in 50 °C air on 75 °C cable: 139 A a string needs 174 A, and 4/0 carries 172.5 A there.
+    const custom = [{ id: 'custom1', name: 'Workshop', watts: 2400, surge: 2400, note: '' }]
+    const r = kit({ custom1: 1 }, { custom, hours: 1, volts: 12, cable: { ambientC: 50, insulationC: 75 } })
+    const cable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
+    expect(cable.status).toBe('warn')
+    expect(cable.lines).toEqual(['4/0 AWG for the string leads carries only 172.5 A after derating, under its 173.7 A design current. Raise the voltage, trim the load or move the bank somewhere cooler.'])
+    expect(kitChecks(es, r, 'es').find((c) => c.id === 'cable')!.lines).toEqual(['El 4/0 AWG para los cables de rama solo soporta 172.5 A tras la corrección, menos que su corriente de diseño de 173.7 A. Sube el voltaje, reduce la carga o lleva el banco a un lugar más fresco.'])
+  })
+
   test('nothing to check for an empty kit', () => {
     expect(kitChecks(en, kit({}), 'en')).toEqual([])
   })

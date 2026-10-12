@@ -1,7 +1,7 @@
 import { DEFAULT_HARDWARE, SIZING, VOLTAGES, type CatalogItem, type HardwareCatalog, type Voltage } from './catalog'
 import { ambientFactor, ampsAt, bundleFactor } from './nec'
 import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate } from './sizing/battery'
-import { sizeMainCable, sizeStringCable } from './sizing/cable'
+import { sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
 import { dcAmps, pickInverter, toInverterPick } from './sizing/inverter'
 import { selectItems, surgeProfile } from './sizing/loads'
 import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
@@ -110,16 +110,11 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const main = sizeMainCable(inverter.continuousA, startupA, volts, cond, hardware.gauges, hardware.fuses, {
     surgeSeconds: profile.seconds, bankContinuousA: battery?.bankContinuousA ?? null, bankShortCircuitA: battery?.bankShortCircuitA ?? null,
   })
-  const string = battery && battery.parallel > 1
-    ? sizeStringCable({
-      bankAmps: inverter.continuousA, bankSurgeAmps: startupA, parallel: battery.parallel, volts, cond,
-      gauges: hardware.gauges, fuses: hardware.fuses, surgeSeconds: profile.seconds,
-      unitContinuousA: battery.unit.maxContinuousA, unitShortCircuitA: battery.unit.shortCircuitA,
-    })
-    : null
-  const seriesLinks = battery ? (battery.series - 1) * battery.parallel : 0
-  const parallelLinks = battery ? 2 * (battery.parallel - 1) : 0
-  const linkLengthM = SIZING.LINK_LENGTH_M
+  const wiring = sizeBankWiring({
+    battery, main, bankAmps: inverter.continuousA, bankSurgeAmps: startupA, volts, cond,
+    gauges: hardware.gauges, fuses: hardware.fuses, surgeSeconds: profile.seconds,
+  })
+  const jumpers = (wiring.links?.count ?? 0) + (wiring.string?.leads ?? 0)
 
   return {
     empty: items.length === 0,
@@ -139,17 +134,17 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
       ambientFactor: ambientFactor(cond.ambientC, cond.insulationC),
       bundled: cond.bundled, conductors: main.conductors, bundleFactor: bundleFactor(main.conductors),
       mainCount: 2 * main.runs, mainLengthM: cond.runLengthM,
-      seriesLinks, parallelLinks, linkLengthM,
-      totalLengthM: tenth(2 * main.runs * cond.runLengthM + (seriesLinks + parallelLinks) * linkLengthM),
+      links: wiring.links,
+      totalLengthM: tenth(2 * main.runs * cond.runLengthM + jumpers * SIZING.LINK_LENGTH_M),
       fuseA: main.fuse.a, dropPct: tenth(main.dropPct), startupDropPct: tenth(main.startupDropPct),
-      string,
+      string: wiring.string,
     },
     fuse: main.fuse,
     parallelNotes: parallelNotes(battery),
     warnings: [
       ...buildWarnings({
         items, inverter, surgeProfile: profile, amps: dcAmps(inverter.w, volts), volts, battery, loadWh,
-        protection: [...main.warnings, ...(string?.warnings ?? [])], missing, startupA,
+        protection: [...main.warnings, ...undersized('mainCable', main), ...wiring.warnings], missing, startupA,
       }),
       ...roofWarning,
     ],

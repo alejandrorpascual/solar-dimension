@@ -15,21 +15,54 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(parts.every(p => Number(p.qty) > 0)).toBe(true)
   })
 
-  test('a series-only bank does not mention zero parallel links', () => {
-    const part = buildParts(result('12-200'), t, locale).find(p => p.id === 'interconnects')!
+  test('a series-only bank lists one link per joint, at the gauge and design current of the cable it feeds', () => {
+    const parts = buildParts(result('12-200'), t, locale)
+    const part = parts.find(p => p.id === 'interconnects')!
     expect(part.qty).toBe('3')
-    expect(part.note).toBe(locale === 'es' ? '3 enlaces en serie' : '3 series links')
+    expect(part.spec).toBe(locale === 'es' ? 'Puentes 2 AWG, 30 cm cada uno' : '2 AWG jumpers, 30 cm each')
+    expect(part.note).toBe(locale === 'es'
+      ? 'Entre baterías en serie · 87 A de corriente de diseño · 115 A tras la corrección'
+      : 'Between batteries in series · 87 A design current · 115 A after derating')
+    expect(parts.map(p => p.id)).toEqual(['inverter', 'batteries', 'mainCable', 'interconnects', 'fuse'])
   })
 
-  test('a parallel-only bank does not mention zero series links, and gets a fuse per string', () => {
+  test('a parallel-only bank has no link row; each string gets a lead pair to the bus bars and a fuse', () => {
     const parts = buildParts(result('48-50'), t, locale)
-    const links = parts.find(p => p.id === 'interconnects')!
-    expect(links.qty).toBe('4')
-    expect(links.note).toBe(locale === 'es' ? '4 puentes en paralelo' : '4 parallel jumpers')
+    const leads = parts.find(p => p.id === 'stringLeads')!
+    expect(leads.name).toBe(locale === 'es' ? 'Cables de rama' : 'String leads')
+    expect(leads.qty).toBe('6')
+    expect(leads.spec).toBe(locale === 'es' ? '6 AWG (13.3 mm²) de cobre, 30 cm cada uno' : '6 AWG (13.3 mm²) copper, 30 cm each')
+    expect(leads.note).toBe(locale === 'es'
+      ? 'Un positivo y un negativo de cada rama a las barras colectoras · 29 A de corriente de diseño · 65 A tras la corrección'
+      : 'A positive and a negative from each string to the bus bars · 29 A design current · 65 A after derating')
     const strings = parts.find(p => p.id === 'stringFuses')!
     expect(strings.qty).toBe('3')
     expect(strings.spec).toContain(locale === 'es' ? 'clase T, uno por rama' : 'class T, one per parallel string')
-    expect(parts.map(p => p.id)).toEqual(['inverter', 'batteries', 'mainCable', 'interconnects', 'fuse', 'stringFuses'])
+    expect(parts.map(p => p.id)).toEqual(['inverter', 'batteries', 'mainCable', 'stringLeads', 'fuse', 'stringFuses'])
+  })
+
+  test('strings in series and in parallel: the links carry one string, so they print at the lead gauge, not the main cable gauge', () => {
+    const parts = buildParts(result('12-100'), t, locale)
+    expect(parts.find(p => p.id === 'mainCable')!.spec).toContain('2 AWG')
+    const links = parts.find(p => p.id === 'interconnects')!
+    expect(links.qty).toBe('6')
+    expect(links.spec).toContain('6 AWG')
+    expect(links.note).toContain(locale === 'es' ? '43 A de corriente de diseño · 65 A tras la corrección' : '43 A design current · 65 A after derating')
+    expect(parts.find(p => p.id === 'stringLeads')!.qty).toBe('4')
+    expect(parts.map(p => p.id)).toEqual(['inverter', 'batteries', 'mainCable', 'interconnects', 'stringLeads', 'fuse', 'stringFuses'])
+  })
+
+  test('a one-string bank on a main cable split in two runs prints two jumpers for its one link', () => {
+    const custom = [{ id: 'x', name: 'Load', watts: 3000, surge: 3000, note: '' }]
+    const r = compute({ qty: { x: 1 }, custom, hours: 1, volts: 24, chemistry: 'lifepo4', batteryUnit: '12-200' }, CATALOG_SNAPSHOT)
+    const parts = buildParts(r, t, locale)
+    expect(parts.find(p => p.id === 'mainCable')).toMatchObject({ qty: '4' })
+    const links = parts.find(p => p.id === 'interconnects')!
+    expect(links.qty).toBe('2')
+    expect(links.spec).toBe(locale === 'es' ? 'Puentes 1 AWG, 30 cm cada uno' : '1 AWG jumpers, 30 cm each')
+    expect(links.note).toBe(locale === 'es'
+      ? 'Entre baterías en serie, 2 puentes juntos por enlace · 116 A de corriente de diseño cada uno · 130 A tras la corrección'
+      : 'Between batteries in series, 2 side by side per link · 116 A design current each · 130 A after derating')
   })
 
   test('the fuse keeps its class in the spec and states its interrupting rating', () => {
