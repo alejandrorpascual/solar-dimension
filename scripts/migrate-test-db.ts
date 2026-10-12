@@ -5,7 +5,8 @@
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { migrate } from 'drizzle-orm/neon-http/migrator'
-import { endpointOf, loadTestEnv } from '../e2e/test-env'
+import { loadTestEnv } from '../e2e/test-env'
+import { endpointOf } from '../src/lib/db-endpoint'
 
 loadTestEnv()
 const url = process.env.DATABASE_URL

@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
 import { productKey } from '../src/lib/product-schema'
-import { ANOTHER_DATABASE, catalogAuthHeader as auth, expectingDatabase } from './catalog-token'
+import { catalogAuthHeader as auth, writeHeaders } from './catalog-token'
 import { deleteTestProduct, insertUnreadableTestProduct, rawTestProduct, testProductDates } from './db'
 
 test.beforeEach(({}, info) => {
@@ -23,26 +23,14 @@ function inverter(model: string, continuousW = 6000, chargerA: ReturnType<typeof
   }
 }
 
-const post = (request: APIRequestContext, query: string, data: unknown) => request.post(`/api/catalog/products${query}`, { headers: auth, data })
+// Every POST names this run's database; the server refuses one that does not (see e2e/catalog-api.spec.ts).
+const post = (request: APIRequestContext, query: string, data: unknown) => request.post(`/api/catalog/products${query}`, { headers: writeHeaders(), data })
 const stored = async (request: APIRequestContext, key: string) =>
   ((await (await request.get('/api/catalog/products', { headers: auth })).json()).items as Array<{ key: string }>).find((i) => i.key === key)
 
 test('the products API needs the token', async ({ request }) => {
   expect((await request.get('/api/catalog/products')).status()).toBe(401)
   expect((await request.post('/api/catalog/products', { data: [inverter(`X${Date.now()}`)] })).status()).toBe(401)
-})
-
-test('refuses a product write meant for another database', async ({ request }) => {
-  const model = `X${Date.now()}`
-  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
-  try {
-    const elsewhere = await request.post('/api/catalog/products', { headers: expectingDatabase(ANOTHER_DATABASE), data: [inverter(model)] })
-
-    expect(elsewhere.status()).toBe(412)
-    expect(await stored(request, key)).toBeUndefined()
-  } finally {
-    await deleteTestProduct(key)
-  }
 })
 
 test('dry run, create, keep a conflicting reading aside, then replace it', async ({ request }) => {

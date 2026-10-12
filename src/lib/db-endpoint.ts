@@ -1,7 +1,12 @@
-/** Neon endpoint of the production database (an id, not a credential). No test run may ever use it. */
+/** Neon endpoint of the production database (an id, not a credential). No test run may use it, and a server on it says so. */
 export const PRODUCTION_DB_ENDPOINT = 'ep-round-sea-auutoq9o'
+/**
+ * The variable that vouches for a test database. The e2e guard sets it to the endpoint it has checked (not production,
+ * declared for tests, not the dev file's), and a server calls its database a test one only when it is on that endpoint.
+ */
+export const TEST_DB_ENDPOINT_ENV = 'TEST_DB_ENDPOINT'
 
-/** Neon endpoint id ("ep-…"): the pooled and direct hosts of one database share it, in any letter case. */
+/** The first label of the URL's host, lower-cased and without `-pooler`: for a Neon URL, its endpoint id ("ep-…"), which the pooled and direct hosts share. */
 export function endpointOf(url: string | undefined): string | undefined {
   if (!url) return undefined
   try {
@@ -12,11 +17,18 @@ export function endpointOf(url: string | undefined): string | undefined {
   }
 }
 
-/** The database a URL writes to, with nothing of the URL but its endpoint id, so it is safe to show. */
-export type DatabaseTarget = { endpoint: string; production: boolean }
+export type DatabaseEnvironment = 'production' | 'test' | 'unknown'
+/** The database a URL writes to, with nothing of the URL but that first host label, so it is safe to show. */
+export type DatabaseTarget = { endpoint: string; environment: DatabaseEnvironment }
 
-/** Undefined when the URL is missing or can't be read: the caller must not guess a database. */
-export function databaseTarget(url: string | undefined): DatabaseTarget | undefined {
+/**
+ * `production` for the known production endpoint, `test` only for the endpoint that was vouched for, `unknown` for any
+ * other: a database nobody checked is never called safe, so a stale PRODUCTION_DB_ENDPOINT cannot pass production off
+ * as a test database. Undefined when the URL is missing or can't be read: the caller must not guess a database.
+ */
+export function databaseTarget(url: string | undefined, vouchedTestEndpoint: string | undefined): DatabaseTarget | undefined {
   const endpoint = endpointOf(url)
-  return endpoint ? { endpoint, production: endpoint === PRODUCTION_DB_ENDPOINT } : undefined
+  if (!endpoint) return undefined
+  if (endpoint === PRODUCTION_DB_ENDPOINT) return { endpoint, environment: 'production' }
+  return { endpoint, environment: endpoint === vouchedTestEndpoint ? 'test' : 'unknown' }
 }

@@ -4,7 +4,8 @@
 // for .env.local's database before the server is loaded.
 //
 //   npm run build && node scripts/start-on-test-db.ts
-import { endpointOf, loadTestEnv } from '../e2e/test-env.ts'
+import { loadTestEnv } from '../e2e/test-env.ts'
+import { endpointOf } from '../src/lib/db-endpoint.ts'
 
 loadTestEnv()
 console.log(`starting on ${endpointOf(process.env.DATABASE_URL)}`)

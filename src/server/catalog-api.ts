@@ -7,7 +7,7 @@ const FAILURE_WINDOW_MS = 10 * 60_000
 const throttle = failureThrottle({ limit: FAILURE_LIMIT, windowMs: FAILURE_WINDOW_MS })
 
 export const API_ACTOR = 'api-token'
-/** A request may name the database it means to reach (an endpoint id from /api/catalog/database) in this header. */
+/** Where a request names the database it means to reach: the endpoint GET /api/catalog/database answered. */
 const EXPECT_DATABASE_HEADER = 'x-expect-database'
 export const json = (body: unknown, status = 200): Response => Response.json(body, { status })
 
@@ -15,18 +15,32 @@ export const json = (body: unknown, status = 200): Response => Response.json(bod
 const clientIp = (request: Request) =>
   request.headers.get('x-real-ip')?.trim() || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 
+const isRead = (request: Request): boolean => request.method === 'GET' || request.method === 'HEAD'
+
 /**
- * Null unless the request names a database this server does not write to. The server on a port can change between
- * the question "which database?" and the write the user agreed to, so the research skills send the id they were given.
+ * Null when the request is meant for this server's database. The server on a port can change between the question
+ * "which database?" and the write the user agreed to, so every POST, dry runs included, must name the database it was
+ * agreed for (428 without a name), and any request that names another database is refused (412). A header left out
+ * by mistake therefore stops the write instead of dropping the check.
  */
-function refuseOtherDatabase(request: Request): Response | null {
+function refuseUnlessMeantForThisDatabase(request: Request): Response | null {
   const expected = request.headers.get(EXPECT_DATABASE_HEADER)
-  if (expected === null || expected === dbTarget?.endpoint) return null
-  console.warn('[catalog-api] refused a request that expects another database', { expected, actual: dbTarget?.endpoint, path: new URL(request.url).pathname })
-  return json({ error: 'This server is not on the database the request expects; the request was refused', database: dbTarget ?? null }, 412)
+  const where = { method: request.method, path: new URL(request.url).pathname }
+  if (expected === null) {
+    if (isRead(request)) return null
+    console.warn('[catalog-api] refused a POST that names no database', where)
+    // Without the server's own endpoint: the name has to come from the answer the user was shown, not from this refusal.
+    return json({ error: `Name the database this request is meant for in the ${EXPECT_DATABASE_HEADER} header: the endpoint GET /api/catalog/database answered` }, 428)
+  }
+  if (expected === dbTarget?.endpoint) return null
+  console.warn('[catalog-api] refused a request meant for another database', { expected, actual: dbTarget?.endpoint, ...where })
+  return json({ error: 'This server is not on the database the request names; the request was refused', expected, database: dbTarget ?? null }, 412)
 }
 
-/** Null when the request may proceed; otherwise the response to send. Unconfigured = the API does not exist. */
+/**
+ * Null when the request may proceed; otherwise the response to send. Unconfigured = the API does not exist. Past the
+ * token, a request must also be meant for this server's database (see refuseUnlessMeantForThisDatabase).
+ */
 export function authorize(request: Request): Response | null {
   const expected = process.env.CATALOG_API_TOKEN
   if (!isApiEnabled(expected)) return json({ error: 'Not found' }, 404)
@@ -37,7 +51,7 @@ export function authorize(request: Request): Response | null {
     console.warn('[catalog-api] rejected a request with a missing or wrong token', { ip, path: new URL(request.url).pathname })
     return json({ error: 'Unauthorized' }, 401)
   }
-  return refuseOtherDatabase(request)
+  return refuseUnlessMeantForThisDatabase(request)
 }
 
 /** Tells a token holder which database this server writes to, so the research skills never confirm a write blind. */
