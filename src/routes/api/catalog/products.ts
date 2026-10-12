@@ -25,9 +25,9 @@ export const Route = createFileRoute('/api/catalog/products')({
         const denied = authorize(request)
         if (denied) return denied
         // Before the body is read: a mistyped flag must never fall through to a real write.
-        const flags = parseWriteFlags(new URL(request.url).searchParams)
-        if (!flags.ok) return json({ error: flags.error }, 400)
-        const { dryRun, replace } = flags
+        const query = parseWriteFlags(new URL(request.url).searchParams, ['dryRun', 'replace'])
+        if (!query.ok) return json({ error: query.error }, 400)
+        const { dryRun, replace } = query.flags
         const parsed = parseProducts(await request.json().catch(() => undefined))
         if (!parsed.ok) return json({ errors: parsed.errors }, 422)
         const keys = parsed.items.map(productKey)

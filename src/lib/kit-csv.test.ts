@@ -29,7 +29,7 @@ describe('csvFor', () => {
     expect(parts.map((p) => p.id)).toEqual(['inverter', 'batteries', 'mainCable', 'interconnects', 'stringLeads', 'fuse', 'stringFuses'])
     for (const p of parts) expect(lines.some((l) => l.startsWith(`${p.name},`) && l.endsWith(`,${p.qty}`))).toBe(true)
     expect(lines).toContain('Interconnects,"6 AWG jumpers, 30 cm each",Between batteries in series · 43 A design current · 65 A after derating,6')
-    expect(lines).toContain('String leads,"6 AWG (13.3 mm²) copper, 30 cm each",A positive and a negative from each string to the bus bars · 43 A design current · 65 A after derating,4')
+    expect(lines).toContain('String leads,"6 AWG (13.3 mm²) copper, 30 cm each",A positive and a negative from each string to the bus bars (bus bars not listed) · 43 A design current · 65 A after derating,4')
     const spanish = csvFor(bank, buildParts(bank, es, 'es'), { appliances: false, parts: true }, es)
     expect(spanish).toContain('Cables de rama,"6 AWG (13.3 mm²) de cobre, 30 cm cada uno",')
   })

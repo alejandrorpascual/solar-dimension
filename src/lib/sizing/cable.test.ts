@@ -72,20 +72,79 @@ describe('sizeMainCable', () => {
 
 describe('undersized', () => {
   const hot = { ...room, ambientC: 50, insulationC: 75 as const }
+  const at = (cond: CableConditions, volts: 12 | 24 | 36 | 48 = 12) => ({ cond, volts })
 
   test('says nothing about a cable that covers its design current', () => {
-    expect(undersized('mainCable', sizeMainCable(69.4, 138.9, 48, room, GAUGES, FUSES, noBank))).toEqual([])
+    expect(undersized('mainCable', sizeMainCable(69.4, 138.9, 48, room, GAUGES, FUSES, noBank), at(room, 48))).toEqual([])
   })
 
   test('names the row and gauge, with what one conductor carries rounded down and what it needs rounded up, to a tenth', () => {
     // Six runs of 4/0 at 172.5 A each against 1,500 A × 1.25 / 6 = 312.5 A.
     const huge = sizeMainCable(1500, 3000, 12, hot, GAUGES, FUSES, noBank)
-    expect(undersized('mainCable', huge)).toEqual([{ code: 'cableUndersized', params: { conductor: 'mainCable', gauge: '4/0 AWG', maxA: 172.5, needA: 312.5 } }])
+    expect(undersized('mainCable', huge, at(hot))).toEqual([{
+      code: 'cableUndersized',
+      params: { conductor: 'mainCable', gauge: '4/0 AWG', maxA: 172.5, needA: 312.5, canCool: false, canRaiseInsulation: false, nextVolts: 24 },
+    }])
   })
 
   test('judges a row cut from the same gauge by the ampacity it has where it is installed', () => {
     const huge = sizeMainCable(1500, 3000, 12, hot, GAUGES, FUSES, noBank)
-    expect(undersized('interconnects', huge, 320)).toEqual([])
+    expect(undersized('interconnects', huge, at(hot), 320)).toEqual([])
+  })
+
+  test('a cable that carries exactly its design current passes, and a gap under a tenth of an amp still prints as a gap', () => {
+    // 312.5 A a run.
+    const huge = sizeMainCable(1500, 3000, 12, hot, GAUGES, FUSES, noBank)
+    expect(undersized('interconnects', huge, at(hot), 312.5)).toEqual([])
+    expect(undersized('interconnects', huge, at(hot), 312.46)[0]!.params).toMatchObject({ maxA: 312.4, needA: 312.5 })
+  })
+
+  test('float noise in a table factor does not shave a tenth off what the cable carries', () => {
+    // 230 × 0.58 is 133.39999999999998 in floating point, and 133.4 A on the page.
+    const huge = sizeMainCable(1500, 3000, 12, hot, GAUGES, FUSES, noBank)
+    expect(230 * 0.58).toBeLessThan(133.4)
+    expect(undersized('interconnects', huge, at(hot), 230 * 0.58)[0]!.params.maxA).toBe(133.4)
+  })
+
+  test('air too hot for the insulation is left to the ambient warning, not repeated as a 0 A row', () => {
+    const oven = { ...room, ambientC: 90 }
+    const sized = sizeMainCable(69.4, 138.9, 48, oven, GAUGES, FUSES, noBank)
+    expect(sized.ampacity).toBe(0)
+    expect(sized.warnings.map((w) => w.code)).toContain('cableAmbient')
+    expect(undersized('mainCable', sized, at(oven, 48))).toEqual([])
+  })
+
+  test('offers a cool room or 90 °C cable only when the same gauge would then cover the design current', () => {
+    const ways = (amps: number, cond: CableConditions) => {
+      const sized = sizeMainCable(amps, amps * 2, 12, cond, GAUGES, FUSES, noBank, 1)
+      const [w] = undersized('stringLeads', sized, at(cond))
+      return [sized.gauge.awg, w!.params.maxA, w!.params.needA, w!.params.canCool, w!.params.canRaiseInsulation]
+    }
+    // A cool room: 4/0 sits at its 230 A terminations on either insulation, so neither a cooler spot nor hotter cable adds an amp.
+    expect(ways(185.2, room)).toEqual(['4/0 AWG', 230, 231.5, false, false])
+    expect(ways(185.2, { ...room, insulationC: 75 })).toEqual(['4/0 AWG', 230, 231.5, false, false])
+    // 50 °C on 75 °C cable, 230 × 0.75: at 30 °C it carries 230 A and on 90 °C cable 213 A, either enough for 173.7 A.
+    expect(ways(138.9, hot)).toEqual(['4/0 AWG', 172.5, 173.7, true, true])
+    // The same room with 220 A to carry: a cool room would do it, 90 °C cable (213 A) would not.
+    expect(ways(176, hot)).toEqual(['4/0 AWG', 172.5, 220, true, false])
+    // 50 °C on 90 °C cable, 260 × 0.82: a cool room would do it; the cable is already the hotter kind.
+    expect(ways(176, { ...room, ambientC: 50 })).toEqual(['4/0 AWG', 213.2, 220, true, false])
+    // Past the 230 A terminations nothing about the room or the insulation is enough.
+    expect(ways(300, hot)).toEqual(['4/0 AWG', 172.5, 375, false, false])
+  })
+
+  test('a bundled main cable is not told to cool down when a cool room would still leave it short', () => {
+    // Six bundled runs of 4/0 at 40 °C on 90 °C cable carry 118.3 A each; at 30 °C they carry 130 A, still under 145.9 A.
+    const cond = { ...room, ambientC: 40, bundled: true }
+    const [w] = undersized('mainCable', sizeMainCable(700, 1400, 24, cond, GAUGES, FUSES, noBank), { cond, volts: 24 })
+    expect(w!.params).toEqual({ conductor: 'mainCable', gauge: '4/0 AWG', maxA: 118.3, needA: 145.9, canCool: false, canRaiseInsulation: false, nextVolts: 36 })
+  })
+
+  test('offers a higher bank voltage only where there is one', () => {
+    const sized = sizeMainCable(300, 600, 12, hot, GAUGES, FUSES, noBank, 1)
+    expect(undersized('stringLeads', sized, at(hot, 12))[0]!.params.nextVolts).toBe(24)
+    expect(undersized('stringLeads', sized, at(hot, 36))[0]!.params.nextVolts).toBe(48)
+    expect(undersized('stringLeads', sized, at(hot, 48))[0]!.params.nextVolts).toBeNull()
   })
 })
 
@@ -113,6 +172,33 @@ describe('sizeBankWiring', () => {
     expect(warnings).toEqual([])
   })
 
+  test('one string on three or more main runs: every link still gets a jumper per run, enough for the whole string', () => {
+    // 463 A splits into three runs, 600 A into four of 3/0 and 900 A into five of 4/0.
+    for (const [amps, runs] of [[463, 3], [600, 4], [900, 5]] as const) {
+      const { main, links, warnings } = wire(3, 1, amps)
+      expect(main.runs).toBe(runs)
+      expect(links).toMatchObject({ positions: 2, perPosition: runs, count: 2 * runs, gauge: main.gauge.awg })
+      expect(links!.perPosition * links!.ampacity).toBeGreaterThanOrEqual(amps * 1.25)
+      expect(warnings).toEqual([])
+    }
+  })
+
+  test('one string whose main cable is too small at six runs: its links are too, and the warning names them', () => {
+    const hot = { ...room, ambientC: 50, insulationC: 75 as const }
+    const { main, warnings } = wire(2, 1, 1500, hot)
+    expect(main.runs).toBe(6)
+    expect(warnings).toMatchObject([{ code: 'cableUndersized', params: { conductor: 'interconnects', gauge: '4/0 AWG', maxA: 172.5, needA: 312.5 } }])
+    expect(warnings).toHaveLength(1)
+  })
+
+  test('a link is judged in open air: bundling that leaves the main run short does not flag the link', () => {
+    // Six bundled runs of 4/0 at 40 °C carry 118.3 A each against 145.9 A; the same 4/0 as a jumper keeps 230 A.
+    const { main, links, warnings } = wire(2, 1, 700, { ...room, ambientC: 40, bundled: true })
+    expect(undersized('mainCable', main, { cond: { ...room, ambientC: 40, bundled: true }, volts: 24 })).toHaveLength(1)
+    expect(links).toMatchObject({ perPosition: 6, gauge: '4/0 AWG', ampacity: 230 })
+    expect(warnings).toEqual([])
+  })
+
   test('a link sits in open air: it keeps the full ampacity of a gauge the bundled main run had to derate', () => {
     const { main, links } = wire(3, 1, 185.2, { ...room, bundled: true })
     expect(links!.gauge).toBe(main.gauge.awg)
@@ -125,8 +211,13 @@ describe('sizeBankWiring', () => {
     const main = sizeMainCable(92.6, 185, 12, cond, GAUGES, FUSES, noBank)
     const ctx = { main, bankAmps: 92.6, bankSurgeAmps: 185, volts: 12 as const, cond, gauges: GAUGES, fuses: FUSES, surgeSeconds: 3 }
     const { string, links } = sizeBankWiring({ ...ctx, battery: { series: 1, parallel: 2, unit } })
-    expect(string).toMatchObject({ amps: 46, designA: 58, gauge: '6 AWG', lengthM: 0.3, count: 2, leads: 4, fuse: { a: 60, count: 2 }, warnings: [] })
+    expect(string).toMatchObject({ amps: 46, designA: 58, gauge: '6 AWG', lengthM: 0.3, leads: 4, fuse: { a: 60, count: 2 }, warnings: [] })
     expect(links).toBeNull()
+    // The lead is 30 cm whatever the main run's length: a 10 m run thickens the main cable for drop, not the lead.
+    const far = { ...cond, runLengthM: 10 }
+    const farMain = sizeMainCable(92.6, 185, 12, far, GAUGES, FUSES, noBank)
+    expect(GAUGES.indexOf(farMain.gauge)).toBeGreaterThan(GAUGES.indexOf(main.gauge))
+    expect(sizeBankWiring({ ...ctx, main: farMain, cond: far, battery: { series: 1, parallel: 2, unit } }).string!.gauge).toBe('6 AWG')
     // 100 A per string against a 30 A unit: the unit would only justify the smallest fuse, and it can short past 20 kA.
     const weak = sizeBankWiring({ ...ctx, bankAmps: 200, bankSurgeAmps: 400, battery: { series: 1, parallel: 2, unit: { ...unit, maxContinuousA: 30, shortCircuitA: 30000 } } })
     expect(weak.string!.warnings.map((w) => w.code)).toEqual(['fuseAboveBank', 'fuseInterrupt'])
@@ -135,7 +226,7 @@ describe('sizeBankWiring', () => {
 
   test('parallel strings: each gets a lead pair and a fuse, and its links match the lead', () => {
     const { main, links, string, warnings } = wire(2, 3, 185.2)
-    expect(string).toMatchObject({ amps: 62, designA: 77, gauge: '4 AWG', ampacity: 85, count: 3, leads: 6, fuse: { a: 80, count: 3 } })
+    expect(string).toMatchObject({ amps: 62, designA: 77, gauge: '4 AWG', ampacity: 85, leads: 6, fuse: { a: 80, count: 3 } })
     expect(links).toMatchObject({ positions: 3, perPosition: 1, count: 3, gauge: '4 AWG', designA: 77, ampacity: 85 })
     expect(GAUGES.findIndex((g) => g.awg === links!.gauge)).toBeLessThan(GAUGES.indexOf(main.gauge))
     expect(warnings).toEqual([])
@@ -144,9 +235,10 @@ describe('sizeBankWiring', () => {
   test('a string too heavy for any one cable warns for the leads and for the links in that string', () => {
     const hot = { ...room, ambientC: 50, insulationC: 75 as const }
     const { warnings } = wire(2, 2, 277.8, hot)
+    const ways = { canCool: true, canRaiseInsulation: true, nextVolts: 36 }
     expect(warnings.filter((w) => w.code === 'cableUndersized').map((w) => w.params)).toEqual([
-      { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7 },
-      { conductor: 'interconnects', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7 },
+      { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7, ...ways },
+      { conductor: 'interconnects', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7, ...ways },
     ])
   })
 })
