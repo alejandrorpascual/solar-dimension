@@ -145,7 +145,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     inverterNotes: inverterNotes(inverter),
     warnings: [
       ...buildWarnings({
-        items, inverter, runningW, surgeProfile: profile, amps: dcAmps(inverter.unitW, volts), volts, battery, loadWh,
+        items, inverter, runningW, surgeProfile: profile, amps: inverter.continuousA, volts, battery, loadWh,
         protection: [...main.warnings, ...undersized('mainCable', main), ...wiring.warnings], missing, startupA,
       }),
       ...roofWarning,

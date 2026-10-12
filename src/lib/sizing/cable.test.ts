@@ -73,6 +73,18 @@ describe('sizeMainCable', () => {
     expect(pair.dropPct).toBeCloseTo(alone.dropPct)
   })
 
+  test('a set number of runs and a share for each inverter cannot be asked for together', () => {
+    // @ts-expect-error fixedRuns is for one string's lead and feeds for inverters in parallel: a layout names one or neither.
+    const both: Parameters<typeof sizeMainCable>[7] = { fixedRuns: 1, feeds: 2 }
+    expect(both).toBeDefined()
+  })
+
+  test('a count of inverters that is zero, a fraction or no number is read as a whole number of at least one', () => {
+    const alone = sizeMainCable(150, 300, 48, room, GAUGES, FUSES, noBank)
+    for (const feeds of [0, -1, Number.NaN]) expect(sizeMainCable(150, 300, 48, room, GAUGES, FUSES, noBank, { feeds })).toEqual(alone)
+    expect(sizeMainCable(150, 300, 48, room, GAUGES, FUSES, noBank, { feeds: 2.5 }).runs).toBe(2)
+  })
+
   test('runs come in multiples of the inverters fed, up to six for each', () => {
     // An 8 kW inverter at 48 V needs two runs on its own, so two of them need four and three need six: never five.
     expect(sizeMainCable(185.2, 370.4, 48, room, GAUGES, FUSES, noBank).runs).toBe(2)

@@ -98,14 +98,20 @@ describe('kitChecks', () => {
     expect(inverter(load(9000), 'es')).toEqual(['Los 2 inversores de 5,000 W en paralelo (10,000 W) dejan 11% de margen sobre la carga en marcha de 9,000 W; este kit prevé 25%. Reduce la carga o pregunta a un instalador por un sistema hecho para ella.'])
     expect(inverter(load(12000), 'en')).toEqual(['The 2 × 5,000 W inverters in parallel (10,000 W) are smaller than the 12,000 W running load and cannot carry it. Trim the load, or ask an installer about a system built for it.'])
     expect(inverter(load(12000), 'es')).toEqual(['Los 2 inversores de 5,000 W en paralelo (10,000 W) son menores que la carga en marcha de 12,000 W y no pueden sostenerla. Reduce la carga o pregunta a un instalador por un sistema hecho para ella.'])
-    // Two 8 kW units on a 24 V bank draw 370 A each: the note names one inverter's share, not the 741 A at the bus bars.
+    // Two 8 kW units on a 24 V bank draw 741 A between them: a higher voltage would carry that on less, so the whole DC side is named.
     const low = (watts: number) =>
       compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts, surge: watts, note: '' }], hours: 2, volts: 24, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 8000, surge: 16000, volts: [24] as const, surgeSeconds: 5, maxParallel: 2 }] })
     const high = low(9000).warnings.find((w) => w.code === 'highCurrent')!
-    expect(high.params).toMatchObject({ amps: 370, inverters: 2 })
-    expect(warningText(en, high, [])).toBe('370 A to each inverter at 24 V is hard to wire safely. Consider 36 V.')
-    expect(warningText(es, high, [])).toBe('370 A hacia cada inversor a 24 V es difícil de cablear con seguridad. Considera 36 V.')
+    expect(high.params).toEqual({ amps: 741, volts: 24, nextVolts: 36 })
+    expect(warningText(en, high, [])).toBe('741 A on the DC side at 24 V is hard to wire safely. Consider 36 V.')
+    expect(warningText(es, high, [])).toBe('741 A en el lado de CC a 24 V es difícil de cablear con seguridad. Considera 36 V.')
     expect(warningText(en, low(5000).warnings.find((w) => w.code === 'highCurrent')!, [])).toBe('370 A on the DC side at 24 V is hard to wire safely. Consider 36 V.')
+    // At 48 V there is no higher voltage to suggest: the note is about what one inverter's cables are asked for.
+    const top = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 20000, surge: 20000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 15000, surge: 30000, volts: [48] as const, surgeSeconds: 5, maxParallel: 2 }] })
+    const each = top.warnings.find((w) => w.code === 'highCurrent')!
+    expect(each.params).toEqual({ amps: 347, volts: 48, nextVolts: null, inverters: 2 })
+    expect(warningText(en, each, [])).toBe('347 A to each inverter at 48 V is hard to wire safely.')
+    expect(warningText(es, each, [])).toBe('347 A hacia cada inversor a 48 V es difícil de cablear con seguridad.')
     // Four 8 kW units draw 741 A; an hour of it takes eleven 50 A units, 550 A, so the bank is named as short for the set.
     const starved = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 20000, surge: 20000, note: '' }], hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-50' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 8000, surge: 16000, volts: [48] as const, surgeSeconds: 5, maxParallel: 4 }] })
     const discharge = starved.warnings.find((w) => w.code === 'bankDischarge')!

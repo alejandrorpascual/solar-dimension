@@ -35,9 +35,11 @@ function inverterNote(r: SizingResult, t: Dictionary, locale: Locale): string {
   const w = (n: number) => fmtW(n, locale)
   // Under the load the gap can be a few watts, which kilowatts to one decimal would print as "12.0 kW under 12.0 kW".
   const running = inv.runningOk ? w(r.runningW) : `${fmtInt(r.runningW, locale)} W`
+  // The row's size is one unit's, so a set's surge says it is all of them together.
+  const surge = tr(t, inv.count > 1 ? 'inverterSurgeSet' : 'inverterSurge', { surge: w(inv.surge) })
   return joinNotes([
     inv.count > 1 ? tr(t, 'inverterParallelNote', { count: inv.count, total: w(inv.w), amps: fmtInt(inv.continuousA, locale) }) : '',
-    tr(t, key, { surge: w(inv.surge), running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) }),
+    tr(t, key, { surge, running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) }),
     ...r.inverterNotes.map((n) => t.inverterNotes[n]),
   ])
 }

@@ -19,8 +19,11 @@ export const asOne = ({ unit, count }: InverterSet): Inverter => ({
   ...(unit.surgeLong ? { surgeLong: { w: unit.surgeLong.w * count, seconds: unit.surgeLong.seconds } } : {}),
 })
 
-/** How many of this unit may work as one: a whole number, never less than the unit itself. */
-const maxUnits = (unit: Inverter): number => Math.max(SOLO, Math.trunc(unit.maxParallel ?? SOLO))
+/** A count of inverters as the engine uses it: a whole number of at least one. Anything that is no number counts as one. */
+export const wholeUnits = (n: number): number => (Number.isFinite(n) ? Math.max(SOLO, Math.trunc(n)) : SOLO)
+
+/** How many of this unit may work as one; a unit with no limit stated works alone. */
+const maxUnits = (unit: Inverter): number => wholeUnits(unit.maxParallel ?? SOLO)
 
 /** Every size of set this unit's maker allows, from two units up. */
 function parallelSets(unit: Inverter): InverterSet[] {
@@ -29,7 +32,9 @@ function parallelSets(unit: Inverter): InverterSet[] {
 
 /**
  * How sets that all carry the load are ranked, best first. The fewest units: each one adds a cable pair, a fuse, a
- * link to its neighbours and its own idle draw. Then one sold for the bank voltage, then the smallest.
+ * link to its neighbours and its own idle draw. Then one sold for the bank voltage, then the smallest. Count comes
+ * before voltage because a set sold for another voltage carries the note that sends the bank there, where fewer,
+ * larger units draw less current than more small ones would at the lower voltage.
  */
 const bySetPreference = (volts: Voltage) => (a: InverterSet, b: InverterSet): number =>
   a.count - b.count || Number(b.unit.volts.includes(volts)) - Number(a.unit.volts.includes(volts)) || a.unit.w - b.unit.w
@@ -44,11 +49,13 @@ function largestSet(inverters: readonly Inverter[]): InverterSet {
 }
 
 /**
- * The smallest inverter with headroom over the running load that holds the start-up for as long as it lasts: one sold
- * for the bank voltage, then one sold for another. When no single unit does, identical units in parallel; and when not
- * even those do, the largest set the list can build, which the checks then flag.
+ * The first inverter in the list, which is kept smallest first, with headroom over the running load that holds the
+ * start-up for as long as it lasts: one sold for the bank voltage, then one sold for another. When no single unit
+ * does, identical units in parallel; and when not even those do, the largest set the list can build, which the checks
+ * then flag.
  */
 export function pickInverter(runningW: number, profile: SurgeProfile, volts: Voltage, inverters: readonly Inverter[]): InverterSet {
+  if (inverters.length === 0) throw new Error('The hardware catalog lists no inverter')
   const needW = runningW * SIZING.HEADROOM
   const fits = (inv: Inverter) => inv.w >= needW && surgeRatedFor(inv, profile.seconds) >= profile.surgeW
   const single = inverters.find((inv) => inv.volts.includes(volts) && fits(inv)) ?? inverters.find(fits)

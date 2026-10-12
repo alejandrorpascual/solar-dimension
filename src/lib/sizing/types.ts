@@ -218,10 +218,7 @@ export type WarningCode =
   | 'roofLimited'
 
 export interface WarningParams {
-  /**
-   * The inverter's rating: the whole set's when units work in parallel, with how many there are and one unit's rating.
-   * `inverterVoltage` is about what a unit is built for, so there it is one unit's.
-   */
+  /** The inverter's rating: the whole set's when units work in parallel, with how many there are and one unit's rating. */
   inverterW?: number
   inverters?: number
   unitW?: number

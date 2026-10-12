@@ -1,6 +1,7 @@
 import { SIZING, type Fuse, type Gauge, type Voltage } from '../catalog'
 import { ambientFactor, ampsAt, bundleFactor } from '../nec'
 import { pickFuse } from './fuse'
+import { wholeUnits } from './inverter'
 import type { BatteryPick, CableConditions, ConductorKind, FusePick, LinkCable, StringCable, Warning } from './types'
 
 /** One DC run is a positive and a negative lead: two current-carrying conductors. */
@@ -44,12 +45,15 @@ export interface ProtectionContext {
   bankShortCircuitA: number | null
 }
 
-/** How the run may split: a set number of runs, or a share for each inverter fed. Neither means one run, split only if it must. */
-export interface RunLayout {
-  fixedRuns?: number
-  /** Inverters in parallel, each on its own runs and fuse: the runs start at one per inverter and grow one per inverter at a time. */
-  feeds?: number
-}
+/**
+ * How the run may split: a set number of runs, or a share for each inverter fed, never both. Neither means one run,
+ * split only if it must. With `feeds`, inverters in parallel each get their own runs and fuse: the runs start at one
+ * per inverter and grow one per inverter at a time, up to MAX_RUNS for each. In open air that is what each inverter
+ * would get alone; bundled, every inverter's conductors are derated together, so the gauge may be heavier.
+ */
+export type RunLayout =
+  | { fixedRuns: number; feeds?: never }
+  | { feeds?: number; fixedRuns?: never }
 
 /**
  * The battery-to-inverter run, NEC style: the design current is the continuous draw plus 25%; runs split until one
@@ -61,7 +65,7 @@ export function sizeMainCable(
   amps: number, surgeAmps: number, volts: Voltage, cond: CableConditions, gauges: readonly Gauge[], fuses: readonly Fuse[],
   protection: ProtectionContext, layout: RunLayout = {},
 ): MainCableSizing {
-  const feeds = layout.feeds ?? 1
+  const feeds = wholeUnits(layout.feeds ?? 1)
   const designA = amps * SIZING.NEC_CONTINUOUS
   const last = gauges.length - 1
   const top = gauges[last]!

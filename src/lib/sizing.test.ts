@@ -265,7 +265,7 @@ describe('inverter against the running load', () => {
     },
   )
 
-  test('three water heaters at 48 V: 13.5 kW gets two 10 kW inverters and only the notes it already had', () => {
+  test('three water heaters at 48 V: 13.5 kW gets two 10 kW inverters and no inverter warning', () => {
     const r = compute({ qty: { wheater: 3 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect([r.runningW, r.inverter.count, r.inverter.unitW]).toEqual([13500, 2, 10000])
     expect(r.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase'])
@@ -274,7 +274,7 @@ describe('inverter against the running load', () => {
   test('a 24 V bank past one inverter is pointed at 48 V units, as it is for a single one', () => {
     const r = kit(11000, 24)
     expect(r.inverter).toMatchObject({ count: 2, unitW: 8000, voltsOk: false, headroomOk: true })
-    expect(r.warnings).toContainEqual({ code: 'inverterVoltage', params: { inverterW: 8000, voltsList: '48' } })
+    expect(r.warnings).toContainEqual({ code: 'inverterVoltage', params: { unitW: 8000, voltsList: '48' } })
   })
 
   test('an empty project warns about nothing', () => {
@@ -290,7 +290,7 @@ describe('inverters in parallel', () => {
     compute({ custom: [{ id: 'x', name: 'Load', watts, surge, note: '' }], qty: { x: 1 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
   const codes = (r: ReturnType<typeof compute>) => r.warnings.map((w) => w.code)
 
-  test('a load one unit cannot carry gets identical units in parallel, and the inverter is no longer flagged', () => {
+  test('a load one unit cannot carry gets identical units in parallel, with no inverter warning', () => {
     const r = kit(12000)
     expect(r.inverter).toMatchObject({ count: 2, unitW: 8000, w: 16000, surge: 32000, voltsOk: true, runningOk: true, headroomOk: true, surgeOk: true })
     expect(codes(r)).not.toContain('inverterUndersized')
@@ -335,9 +335,19 @@ describe('inverters in parallel', () => {
     expect(r.cable.string!.ampacity).toBeGreaterThanOrEqual(stringA * 1.25)
   })
 
-  test('the high-current note is about what one inverter draws, not the set', () => {
-    // 370 A reach the bus bars, 185 A each inverter: no single cable or fuse sees more than a lone 8 kW unit would.
+  test('at 48 V the high-current note is about what one inverter draws: no higher bank voltage would carry the set on less', () => {
+    // 370 A reach the bus bars, 185 A each inverter: no main cable or main fuse sees more than a lone 8 kW unit's would.
     expect(codes(kit(12000))).not.toContain('highCurrent')
+  })
+
+  test('below 48 V the whole DC side counts, so the note does not go away when a second inverter is added', () => {
+    const at36 = (watts: number) =>
+      compute({ custom: [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }], qty: { x: 1 }, hours: 2, volts: 36, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    const high = (r: ReturnType<typeof compute>) => r.warnings.find((w) => w.code === 'highCurrent')?.params
+    // One 12 kW unit draws 370 A at 36 V. A watt more and two 8 kW units draw 494 A between them, 247 A each.
+    expect([at36(9600).inverter.count, at36(9601).inverter.count]).toEqual([1, 2])
+    expect(high(at36(9600))).toEqual({ amps: 370, volts: 36, nextVolts: 48 })
+    expect(high(at36(9601))).toEqual({ amps: 494, volts: 36, nextVolts: 48 })
   })
 
   test('a start-up one unit cannot hold is shared by the set', () => {
@@ -358,7 +368,7 @@ describe('inverters in parallel', () => {
   test('a set sold for another voltage is named by its unit in the voltage note', () => {
     const r = compute({ custom: [{ id: 'x', name: 'Load', watts: 12000, surge: 12000, note: '' }], qty: { x: 1 }, hours: 2, volts: 24, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
     expect(r.inverter).toMatchObject({ count: 2, voltsOk: false })
-    expect(r.warnings).toContainEqual({ code: 'inverterVoltage', params: { inverterW: 8000, voltsList: '48' } })
+    expect(r.warnings).toContainEqual({ code: 'inverterVoltage', params: { unitW: 8000, voltsList: '48' } })
   })
 })
 

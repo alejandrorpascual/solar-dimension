@@ -46,7 +46,7 @@ export type UiKey =
   | 'kitFor' | 'kitEmpty' | 'kitSummary' | 'editAppliances' | 'editWindow'
   | 'runningLoad' | 'averageDraw' | 'startupPeak' | 'batteryNeeded' | 'runtime'
   | 'part' | 'specification' | 'quantity' | 'nothingSelected'
-  | 'inverterSpec' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteUnder' | 'inverterNotePeak' | 'inverterParallelNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun' | 'perInverter' | 'perRunOfInverter'
+  | 'inverterSpec' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteUnder' | 'inverterNotePeak' | 'inverterSurge' | 'inverterSurgeSet' | 'inverterParallelNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun' | 'perInverter' | 'perRunOfInverter'
   | 'legal' | 'estimateNotice' | 'fine'
   | 'batterySize' | 'batterySizeHelp' | 'batteryAuto' | 'batteryRecommended' | 'batteryGroup' | 'batteryInSeries' | 'manyStrings'
   | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany' | 'inverterSizeOne' | 'inverterSizeMany'

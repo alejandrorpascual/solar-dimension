@@ -7,7 +7,7 @@ export interface WarningContext {
   inverter: InverterPick
   runningW: number
   surgeProfile: SurgeProfile
-  /** DC current of one inverter at full output: what a single run of cable and its fuse are asked to carry. */
+  /** DC current of the whole inverter set at full output. */
   amps: number
   volts: Voltage
   battery: BatteryPick | null
@@ -28,10 +28,15 @@ export function buildWarnings(ctx: WarningContext): Warning[] {
   const set = { inverterW: inv.w, inverters: inv.count, unitW: inv.unitW }
   const w: Warning[] = []
   if (!inv.voltsOk) {
-    w.push({ code: 'inverterVoltage', params: { inverterW: inv.unitW, voltsList: inv.volts.join(' / ') } })
+    w.push({ code: 'inverterVoltage', params: { unitW: inv.unitW, voltsList: inv.volts.join(' / ') } })
   }
-  if (ctx.amps > SIZING.MAX_PRACTICAL_AMPS) {
-    w.push({ code: 'highCurrent', params: { amps: Math.round(ctx.amps), volts: ctx.volts, nextVolts: VOLTAGES.find((v) => v > ctx.volts) ?? null, inverters: inv.count } })
+  const nextVolts = VOLTAGES.find((v) => v > ctx.volts) ?? null
+  // Below the top bank voltage the whole DC side counts: a higher voltage would carry it on less current. At the top
+  // there is none to suggest, so what counts is what one inverter's cables and fuse are asked for.
+  const isPerInverter = nextVolts === null
+  const amps = isPerInverter ? ctx.amps / inv.count : ctx.amps
+  if (amps > SIZING.MAX_PRACTICAL_AMPS) {
+    w.push({ code: 'highCurrent', params: { amps: Math.round(amps), volts: ctx.volts, nextVolts, ...(isPerInverter ? { inverters: inv.count } : {}) } })
   }
   if (b?.overMaxParallel) {
     w.push({ code: 'parallelStrings', params: { strings: b.parallel, maxParallel: b.unit.maxParallel, unitLabel: b.unitLabel } })

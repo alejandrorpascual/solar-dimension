@@ -68,7 +68,7 @@ export function batteryCount(t: Dictionary, count: number): string {
 
 /** "8,000 W inverter" / "2 × 8,000 W inverters" in the active language: one unit's size, and how many work in parallel. */
 export function inverterSize(t: Dictionary, inverter: { count: number; unitW: number }, locale: Locale): string {
-  return tr(t, inverter.count === 1 ? 'inverterSizeOne' : 'inverterSizeMany', { count: inverter.count, w: fmtW(inverter.unitW, locale) })
+  return tr(t, inverter.count > 1 ? 'inverterSizeMany' : 'inverterSizeOne', { count: inverter.count, w: fmtW(inverter.unitW, locale) })
 }
 
 /** "1 panel" / "5 panels" in the active language. */

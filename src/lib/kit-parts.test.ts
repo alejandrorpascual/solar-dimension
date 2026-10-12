@@ -105,8 +105,8 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(row(two, 'inverter')).toMatchObject({
       qty: '2', spec: es ? '5,000 W onda pura, entrada 48 V CC' : '5,000 W pure sine, 48 V DC input',
       note: es
-        ? '2 en paralelo trabajan como un inversor de 10.0 kW y toman hasta 231 A de las barras colectoras · 20.0 kW de arranque · cubre 7,000 W en marcha, 7,000 W pico · Mismo modelo, hechos y enlazados para trabajar en paralelo · Cada uno con sus propios cables con fusible, de igual largo, desde las barras colectoras'
-        : '2 in parallel work as one 10.0 kW inverter, drawing up to 231 A from the bus bars · 20.0 kW surge · covers 7,000 W running, 7,000 W peak · Same model, built and linked to run in parallel · Each on its own fused cables, of equal length, from the bus bars',
+        ? '2 en paralelo trabajan como un inversor de 10.0 kW y toman hasta 231 A de las barras colectoras · 20.0 kW de arranque en total · cubre 7,000 W en marcha, 7,000 W pico · Mismo modelo, hechos y enlazados para trabajar en paralelo · Cada uno con sus propios cables con fusible, de igual largo, desde las barras colectoras'
+        : '2 in parallel work as one 10.0 kW inverter, drawing up to 231 A from the bus bars · 20.0 kW surge together · covers 7,000 W running, 7,000 W peak · Same model, built and linked to run in parallel · Each on its own fused cables, of equal length, from the bus bars',
     })
     // Each inverter is wired as the single one is: same gauge and fuse, twice the cables and fuses.
     expect(row(two, 'mainCable')).toMatchObject({ spec: row(one, 'mainCable').spec, qty: '4' })

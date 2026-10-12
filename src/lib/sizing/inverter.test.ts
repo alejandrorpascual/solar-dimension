@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { INVERTERS, type Inverter } from '../catalog'
-import { asOne, dcAmps, headroomPct, pickInverter, surgeRatedFor, toInverterPick } from './inverter'
+import { asOne, dcAmps, headroomPct, pickInverter, surgeRatedFor, toInverterPick, wholeUnits } from './inverter'
 
 const three = INVERTERS.find((i) => i.w === 3000)!
 const one = INVERTERS.find((i) => i.w === 1000)!
@@ -40,7 +40,7 @@ describe('pickInverter with units that run in parallel', () => {
     const table = [unit(3000), unit(8000, 4)]
     // 12 kW running needs 15 kW: two 8 kW units give 16 kW.
     expect(pickInverter(12000, profile(12000, 1), 48, table)).toEqual({ unit: table[1], count: 2 })
-    // 13 kW needs 16.25 kW, one watt-step past two units.
+    // 13 kW needs 16.25 kW, more than two units' 16 kW.
     expect(pickInverter(13000, profile(13000, 1), 48, table)).toEqual({ unit: table[1], count: 3 })
   })
 
@@ -56,7 +56,7 @@ describe('pickInverter with units that run in parallel', () => {
   })
 
   test('fewer units win even when they are sold for another voltage; between sets of the same size, the bank voltage comes first', () => {
-    // 15 kW needed on a 24 V bank: three 5 kW units at 24 V would put about 700 A on the bus bars, so two 10 kW units are listed.
+    // 15 kW needed on a 24 V bank: three 5 kW units would keep it at 24 V and 694 A. Two 10 kW units carry the note that sends the bank to 48 V, where they draw 463 A.
     const mixed = [unit(5000, 6, [24]), unit(10000, 2)]
     expect(pickInverter(12000, profile(12000, 1), 24, mixed)).toEqual({ unit: mixed[1], count: 2 })
     const pairs = [unit(8000, 2, [24]), unit(10000, 2)]
@@ -94,9 +94,9 @@ describe('pickInverter with units that run in parallel', () => {
     expect(pickInverter(11000, profile(11000, 1), 24, INVERTERS)).toMatchObject({ unit: { w: 8000, volts: [48] }, count: 2 })
   })
 
-  test('a parallel limit of one, zero, a fraction or less than nothing is read as a whole number of at least one unit', () => {
+  test('a parallel limit of one, zero, a fraction, less than nothing or no number at all is read as a whole number of at least one unit', () => {
     const load = [20000, profile(20000, 1), 48] as const
-    for (const limit of [1, 0, -1]) expect(pickInverter(...load, [{ ...unit(8000), maxParallel: limit }])).toEqual({ unit: { ...unit(8000), maxParallel: limit }, count: 1 })
+    for (const limit of [1, 0, -1, Number.NaN, Number.POSITIVE_INFINITY]) expect(pickInverter(...load, [{ ...unit(8000), maxParallel: limit }])).toMatchObject({ unit: { w: 8000 }, count: 1 })
     expect(pickInverter(...load, [{ ...unit(8000), maxParallel: 2.5 }])).toMatchObject({ count: 2 })
     // A bad limit on the largest unit does not hide it behind a smaller one.
     expect(pickInverter(...load, [unit(5000), { ...unit(12000), maxParallel: 0 }])).toMatchObject({ unit: { w: 12000 }, count: 1 })
@@ -113,6 +113,18 @@ describe('pickInverter with units that run in parallel', () => {
     expect(pickInverter(12000, profile(12000, 1), 48, table)).toEqual({ unit: table[2], count: 2 })
     // 20 kW needed: 2 × 10 kW, not 4 × 5 kW.
     expect(pickInverter(16000, profile(16000, 1), 48, table)).toEqual({ unit: table[3], count: 2 })
+  })
+})
+
+describe('wholeUnits', () => {
+  test('a count is a whole number of at least one; anything that is no number counts as one', () => {
+    expect([3, 1, 0, -2, 2.9, Number.NaN, Number.POSITIVE_INFINITY].map(wholeUnits)).toEqual([3, 1, 1, 1, 2, 1, 1])
+  })
+})
+
+describe('an empty hardware list', () => {
+  test('says so, instead of failing somewhere inside the pick', () => {
+    expect(() => pickInverter(1000, { surgeW: 1000, seconds: 1, starters: [] }, 48, [])).toThrow('The hardware catalog lists no inverter')
   })
 })
 

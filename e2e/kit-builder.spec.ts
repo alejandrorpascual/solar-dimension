@@ -466,7 +466,7 @@ test('motors starting together and a hot cable run change the inverter, the chec
   await expect(page.getByText('5,000 W pure sine, 48 V DC input')).toBeVisible()
 })
 
-test('a load past the largest inverter gets inverters in parallel, with a cable run and a fuse for each', async ({ page }) => {
+test('a load past the largest inverter gets inverters in parallel, each with its own cable runs and fuses', async ({ page }) => {
   await page.goto('/')
   // Three electric water heaters put 13.5 kW on top of the starting kit: more than one 12 kW inverter carries with headroom.
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Add Electric water heater' }).click()
