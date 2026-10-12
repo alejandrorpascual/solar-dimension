@@ -1,6 +1,7 @@
 import { panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { hasPanels, type CablePick, type SizingResult } from './sizing'
+import { headroomPct } from './sizing/inverter'
 import { SOLAR } from './solar'
 
 export interface Part { id: string; name: string; spec: string; note: string; qty: string; group?: 'solar' }
@@ -22,6 +23,16 @@ function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
     { id: 'pvDisconnect', group: 'solar', name: t.parts.pvDisconnect, spec: tr(t, 'pvDisconnectSpec', { amps: s.breakerA }), note: t.ui.pvDisconnectNote, qty: String(s.controllers) },
     { id: 'mounting', group: 'solar', name: t.parts.mounting, spec: tr(t, 'mountingSpec', { panels: panelCount(t, s.panels) }), note: t.ui.mountingNote, qty: '1' },
   ]
+}
+
+/** What the inverter does for this load: "covers" only what its rating and surge window really cover. */
+function inverterNote(r: SizingResult, t: Dictionary, locale: Locale): string {
+  const inv = r.inverter
+  const key = !inv.runningOk ? 'inverterNoteUnder' : !inv.headroomOk ? 'inverterNoteTight' : !inv.surgeOk ? 'inverterNotePeak' : 'inverterNote'
+  const w = (n: number) => fmtW(n, locale)
+  // Under the load the gap can be a few watts, which kilowatts to one decimal would print as "12.0 kW under 12.0 kW".
+  const running = inv.runningOk ? w(r.runningW) : `${fmtInt(r.runningW, locale)} W`
+  return tr(t, key, { surge: w(inv.surge), running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) })
 }
 
 /**
@@ -62,7 +73,7 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
   ])
   const w = (n: number) => fmtW(n, locale)
   const base: Part[] = [
-    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: tr(t, 'inverterNote', { surge: w(r.inverter.surge), running: w(r.runningW), peak: w(r.surgeW) }), qty: '1' },
+    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: inverterNote(r, t, locale), qty: '1' },
     { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: batteriesNote, qty: String(b.count) },
     {
       id: 'mainCable', name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }),

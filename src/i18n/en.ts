@@ -28,6 +28,8 @@ export const en: Dictionary = {
     runningLoad: 'Running load', averageDraw: '~{w} average', startupPeak: 'Start-up peak', batteryNeeded: 'Battery needed', runtime: 'Runtime',
     part: 'Part', specification: 'Specification', quantity: 'Quantity', nothingSelected: '{name} has nothing selected yet.',
     inverterSpec: '{w} pure sine, {volts} V DC input', inverterNote: '{surge} surge · covers {running} running, {peak} peak',
+    inverterNoteTight: '{surge} surge · {running} running leaves {pct}% headroom, {peak} peak', inverterNoteUnder: '{surge} surge · smaller than the {running} running load',
+    inverterNotePeak: '{surge} surge · covers {running} running, not the {peak} peak',
     batteriesNote: '{series} in series × {parallel} in parallel ({config}) · {bank} bank, {usable} usable',
     mainCableSpec: '{gauge} ({mm2} mm²) copper, {length} m each', mainCableNote: 'Battery to inverter · {amps} A design current{perRun} · {ampacity} A after derating · {drop}% drop at start-up',
     interconnectsSpec: '{gauge} jumpers, {cm} cm each',
@@ -96,7 +98,7 @@ export const en: Dictionary = {
     insulationLabel: 'Cable insulation', insulation75: '75 °C · THW, welding cable', insulation90: '90 °C · THHN, XHHW-2, most battery cable',
     runtimeRange: '{worst} on a hard day · {best} on a light day',
     checks: 'Checks', incChecks: 'Checks', checkPass: 'Passes', checkWarn: 'Needs attention',
-    checkSurge: 'Start-up peak', checkSurgeOk: "{peak} for {seconds} s, within the inverter's {rating} surge rating",
+    checkSurge: 'Inverter', checkSurgeOk: '{running} running on a {inverter} inverter · {peak} for {seconds} s, within its {rating} surge rating',
     checkSurgeContributors: '{running} running + {list} starting',
     checkBatteryContinuous: 'Battery continuous current', checkBatteryContinuousOk: 'Bank gives {bankA} A continuous; the inverter draws up to {needA} A',
     checkBatteryPeak: 'Battery peak current', checkBatteryPeakOk: 'Bank peak {bankA} A covers the {needA} A start-up for {seconds} s',
@@ -113,6 +115,13 @@ export const en: Dictionary = {
     parallelStrings: (p) => `${p.strings} parallel strings drift out of balance. Prefer bigger units or a higher voltage.`,
     dominantLoad: (p) => `${p.itemName} is ${p.sharePct}% of the energy. Dropping it is the cheapest way to shrink the bank.`,
     splitPhase: (p) => `${p.itemName} usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.`,
+    inverterUndersized: (p) => {
+      const advice = 'Trim the load, or ask an installer about a larger inverter or units built to run in parallel.'
+      const [inverter, running] = [p.inverterW ?? 0, p.runningW ?? 0].map((n) => n.toLocaleString('en-US'))
+      return (p.inverterW ?? 0) < (p.runningW ?? 0)
+        ? `The ${inverter} W inverter is smaller than the ${running} W running load and cannot carry it. ${advice}`
+        : `The ${inverter} W inverter leaves ${p.headroomPct}% headroom over the ${running} W running load; this kit plans for ${p.needPct}%. ${advice}`
+    },
     surgeDuration: (p) => `A ${p.surgeW?.toLocaleString('en-US')} W start-up lasting ${p.seconds} s is longer than the ${p.inverterW?.toLocaleString('en-US')} W inverter's surge window; it only holds ${p.ratedW?.toLocaleString('en-US')} W that long. Choose a bigger inverter or let fewer motors start at once.`,
     bankDischarge: (p) => `The inverter draws up to ${p.needA?.toLocaleString('en-US')} A at full load; ${p.strings} × ${p.unitLabel} allows ${p.maxA?.toLocaleString('en-US')} A continuous and its BMS would cut out. Pick a larger unit or a higher voltage.`,
     bankPeak: (p) => `Start-up pulls ${p.needA?.toLocaleString('en-US')} A for ${p.seconds} s; the bank's BMS allows ${p.maxA?.toLocaleString('en-US')} A peak and may shut off. Let fewer motors start at once or add a string.`,

@@ -206,6 +206,59 @@ describe('battery unit choice', () => {
   })
 })
 
+describe('inverter against the running load', () => {
+  const kit = (watts: number, volts: 12 | 24 | 36 | 48 = 48) =>
+    compute({ custom: [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }], qty: { x: 1 }, hours: 2, volts, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+  const undersized = (r: ReturnType<typeof compute>) => r.warnings.filter((w) => w.code === 'inverterUndersized')
+
+  test('9,600 W is the last load the largest inverter carries with its 25% headroom', () => {
+    const r = kit(9600)
+    expect(r.inverter).toMatchObject({ w: 12000, runningOk: true, headroomOk: true })
+    expect(undersized(r)).toEqual([])
+  })
+
+  test('one watt more and the headroom is short: the kit says how much is left', () => {
+    const r = kit(9601)
+    expect(r.inverter).toMatchObject({ w: 12000, runningOk: true, headroomOk: false })
+    expect(undersized(r)).toEqual([{ code: 'inverterUndersized', params: { inverterW: 12000, runningW: 9601, headroomPct: 24, needPct: 25 } }])
+  })
+
+  test('a load equal to the rating has no headroom at all', () => {
+    expect(undersized(kit(12000))).toEqual([{ code: 'inverterUndersized', params: { inverterW: 12000, runningW: 12000, headroomPct: 0, needPct: 25 } }])
+  })
+
+  test('past the rating the inverter cannot carry the load, which is a different warning text', () => {
+    for (const watts of [12001, 15000]) {
+      const r = kit(watts)
+      expect(r.inverter).toMatchObject({ w: 12000, runningOk: false, headroomOk: false, surgeOk: true })
+      expect(undersized(r)).toEqual([{ code: 'inverterUndersized', params: { inverterW: 12000, runningW: watts, headroomPct: 0, needPct: 25 } }])
+    }
+  })
+
+  test.each([[12, 2400, 3000, 4000], [24, 4000, 5000, 6000], [36, 4000, 5000, 6000]] as const)(
+    'at %i V the limit is %i W: past it the engine reaches for a bigger inverter built for another voltage, still with headroom',
+    (volts, limitW, atLimitW, pastLimitW) => {
+      const at = kit(limitW, volts)
+      expect(at.inverter).toMatchObject({ w: atLimitW, voltsOk: true, headroomOk: true })
+      expect(at.warnings.map((w) => w.code)).not.toContain('inverterVoltage')
+      const past = kit(limitW + 1, volts)
+      expect(past.inverter).toMatchObject({ w: pastLimitW, voltsOk: false, headroomOk: true })
+      expect(past.warnings.map((w) => w.code)).toContain('inverterVoltage')
+      expect(undersized(past)).toEqual([])
+    },
+  )
+
+  test('three water heaters at 48 V: 13.5 kW on a 12 kW inverter is flagged beside the notes it already had', () => {
+    const r = compute({ qty: { wheater: 3 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect([r.runningW, r.inverter.w]).toEqual([13500, 12000])
+    expect(r.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase', 'inverterUndersized'])
+  })
+
+  test('an empty project warns about nothing', () => {
+    expect(compute({ qty: {}, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT).inverter).toMatchObject({ runningOk: true, headroomOk: true })
+  })
+})
+
 describe('bank wiring', () => {
   const load = (watts: number) => ({ custom: [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }], qty: { x: 1 } })
 

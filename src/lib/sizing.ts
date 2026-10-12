@@ -89,7 +89,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const requiredWh = loadWh / SIZING.INVERTER_EFF / chem.dod
   const requiredAh = requiredWh / volts
 
-  const inverter = toInverterPick(pickInverter(runningW, profile, volts, hardware.inverters), profile, volts)
+  const inverter = toInverterPick(pickInverter(runningW, profile, volts, hardware.inverters), profile, volts, runningW)
   // What flows at start-up is the load's surge, not the inverter's rating: the bank, fuse and cable see that current.
   const startupA = dcAmps(profile.surgeW, volts)
   const demand = { continuousA: inverter.continuousA, surgeA: startupA, surgeSeconds: profile.seconds }
@@ -143,7 +143,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     parallelNotes: parallelNotes(battery),
     warnings: [
       ...buildWarnings({
-        items, inverter, surgeProfile: profile, amps: dcAmps(inverter.w, volts), volts, battery, loadWh,
+        items, inverter, runningW, surgeProfile: profile, amps: dcAmps(inverter.w, volts), volts, battery, loadWh,
         protection: [...main.warnings, ...undersized('mainCable', main), ...wiring.warnings], missing, startupA,
       }),
       ...roofWarning,

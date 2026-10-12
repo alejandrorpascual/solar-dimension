@@ -28,6 +28,8 @@ export const es: Dictionary = {
     runningLoad: 'Carga en marcha', averageDraw: '~{w} de promedio', startupPeak: 'Pico de arranque', batteryNeeded: 'Batería necesaria', runtime: 'Autonomía',
     part: 'Parte', specification: 'Especificación', quantity: 'Cantidad', nothingSelected: '{name} aún no tiene nada seleccionado.',
     inverterSpec: '{w} onda pura, entrada {volts} V CC', inverterNote: '{surge} de arranque · cubre {running} en marcha, {peak} pico',
+    inverterNoteTight: '{surge} de arranque · {running} en marcha dejan {pct}% de margen, {peak} pico', inverterNoteUnder: '{surge} de arranque · menor que la carga en marcha de {running}',
+    inverterNotePeak: '{surge} de arranque · cubre {running} en marcha, no el pico de {peak}',
     batteriesNote: '{series} en serie × {parallel} en paralelo ({config}) · banco de {bank}, {usable} utilizables',
     mainCableSpec: '{gauge} ({mm2} mm²) de cobre, {length} m cada uno', mainCableNote: 'De batería a inversor · {amps} A de corriente de diseño{perRun} · {ampacity} A tras la corrección · {drop}% de caída al arrancar',
     interconnectsSpec: 'Puentes {gauge}, {cm} cm cada uno',
@@ -96,7 +98,7 @@ export const es: Dictionary = {
     insulationLabel: 'Aislamiento del cable', insulation75: '75 °C · THW, cable de soldadura', insulation90: '90 °C · THHN, XHHW-2, cable de batería común',
     runtimeRange: '{worst} en un día duro · {best} en un día ligero',
     checks: 'Verificaciones', incChecks: 'Verificaciones', checkPass: 'Cumple', checkWarn: 'Revisar',
-    checkSurge: 'Pico de arranque', checkSurgeOk: '{peak} durante {seconds} s, dentro de los {rating} de arranque del inversor',
+    checkSurge: 'Inversor', checkSurgeOk: '{running} en marcha con un inversor de {inverter} · {peak} durante {seconds} s, dentro de sus {rating} de arranque',
     checkSurgeContributors: '{running} en marcha + {list} arrancando',
     checkBatteryContinuous: 'Corriente continua de la batería', checkBatteryContinuousOk: 'El banco entrega {bankA} A continuos; el inversor toma hasta {needA} A',
     checkBatteryPeak: 'Corriente pico de la batería', checkBatteryPeakOk: 'El pico del banco, {bankA} A, cubre los {needA} A de arranque durante {seconds} s',
@@ -113,6 +115,13 @@ export const es: Dictionary = {
     parallelStrings: (p) => `${p.strings} ramas en paralelo se desbalancean. Prefiere unidades más grandes o un voltaje mayor.`,
     dominantLoad: (p) => `${p.itemName} es el ${p.sharePct}% de la energía. Quitarlo es la forma más barata de reducir el banco.`,
     splitPhase: (p) => `${p.itemName} normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.`,
+    inverterUndersized: (p) => {
+      const advice = 'Reduce la carga o pregunta a un instalador por un inversor mayor o por equipos hechos para trabajar en paralelo.'
+      const [inverter, running] = [p.inverterW ?? 0, p.runningW ?? 0].map((n) => n.toLocaleString('es-419'))
+      return (p.inverterW ?? 0) < (p.runningW ?? 0)
+        ? `El inversor de ${inverter} W es menor que la carga en marcha de ${running} W y no puede sostenerla. ${advice}`
+        : `El inversor de ${inverter} W deja ${p.headroomPct}% de margen sobre la carga en marcha de ${running} W; este kit prevé ${p.needPct}%. ${advice}`
+    },
     surgeDuration: (p) => `Un arranque de ${p.surgeW?.toLocaleString('es-419')} W durante ${p.seconds} s supera la ventana de arranque del inversor de ${p.inverterW?.toLocaleString('es-419')} W; solo sostiene ${p.ratedW?.toLocaleString('es-419')} W ese tiempo. Elige un inversor mayor o deja que arranquen menos motores a la vez.`,
     bankDischarge: (p) => `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.`,
     bankPeak: (p) => `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; el BMS del banco permite ${p.maxA?.toLocaleString('es-419')} A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.`,

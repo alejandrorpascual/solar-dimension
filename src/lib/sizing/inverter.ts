@@ -19,15 +19,27 @@ export function pickInverter(runningW: number, profile: SurgeProfile, volts: Vol
   )
 }
 
+const PERCENT = 100
+/** The headroom the engine plans for over the running load, in whole percent. */
+export const HEADROOM_PCT = Math.round((SIZING.HEADROOM - 1) * PERCENT)
+
+/**
+ * Whole percent of rating left over the running load, rounded down; 0 when the load is at or past the rating. The
+ * difference is multiplied before it is divided, so whole watts give an exact 20% and not 19.999…%.
+ */
+export const headroomPct = (inverterW: number, runningW: number): number =>
+  runningW > 0 ? Math.max(0, Math.floor(((inverterW - runningW) * PERCENT) / runningW)) : HEADROOM_PCT
+
 /** DC-side current for a given AC output at the engine's inverter efficiency. */
 export const dcAmps = (watts: number, volts: Voltage): number => watts / volts / SIZING.INVERTER_EFF
 
-export function toInverterPick(inv: Inverter, profile: SurgeProfile, volts: Voltage): InverterPick {
+export function toInverterPick(inv: Inverter, profile: SurgeProfile, volts: Voltage, runningW: number): InverterPick {
   const surgeRatedW = surgeRatedFor(inv, profile.seconds)
   return {
     w: inv.w, surge: inv.surge, volts: inv.volts, voltsOk: inv.volts.includes(volts),
     surgeSeconds: inv.surgeSeconds, surgeLong: inv.surgeLong ?? null,
     surgeRatedW, surgeOk: surgeRatedW >= profile.surgeW,
+    runningOk: inv.w >= runningW, headroomOk: inv.w >= runningW * SIZING.HEADROOM,
     continuousA: dcAmps(inv.w, volts), surgeA: dcAmps(inv.surge, volts),
   }
 }

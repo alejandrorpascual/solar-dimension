@@ -63,6 +63,9 @@ export interface InverterPick {
   /** The surge rating that applies to the load's surge duration, and whether it covers the peak. */
   surgeRatedW: number
   surgeOk: boolean
+  /** Whether the continuous rating covers the running load at all, and with the engine's headroom on top. */
+  runningOk: boolean
+  headroomOk: boolean
   /** DC-side current at full continuous output and at the surge rating. */
   continuousA: number
   surgeA: number
@@ -202,13 +205,17 @@ export interface CablePick {
 
 export type WarningCode =
   | 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase'
-  | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'startupDrop' | 'cableAmbient'
+  | 'inverterUndersized' | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'startupDrop' | 'cableAmbient'
   | 'cableUndersized'
   | 'missingAppliances'
   | 'roofLimited'
 
 export interface WarningParams {
   inverterW?: number
+  runningW?: number
+  /** Whole percent of headroom the inverter has over the running load, and the percent the engine plans for. */
+  headroomPct?: number
+  needPct?: number
   volts?: number
   voltsList?: string
   amps?: number

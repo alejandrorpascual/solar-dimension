@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { INVERTERS, type Inverter } from '../catalog'
-import { dcAmps, pickInverter, surgeRatedFor, toInverterPick } from './inverter'
+import { dcAmps, headroomPct, pickInverter, surgeRatedFor, toInverterPick } from './inverter'
 
 const three = INVERTERS.find((i) => i.w === 3000)!
 const one = INVERTERS.find((i) => i.w === 1000)!
@@ -33,12 +33,29 @@ describe('pickInverter', () => {
 
 describe('toInverterPick', () => {
   test('reports the applicable surge rating, whether it covers the peak, and the DC currents', () => {
-    const pick = toInverterPick(three, { surgeW: 5000, seconds: 20, starters: [] }, 48)
+    const pick = toInverterPick(three, { surgeW: 5000, seconds: 20, starters: [] }, 48, 2000)
     expect(pick).toMatchObject({ w: 3000, voltsOk: true, surgeRatedW: 4500, surgeOk: false, surgeSeconds: 5, surgeLong: { w: 4500, seconds: 30 } })
     expect(pick.continuousA).toBeCloseTo(3000 / 48 / 0.9)
     expect(pick.surgeA).toBeCloseTo(6000 / 48 / 0.9)
     const noLong: Inverter = { w: 1000, surge: 2000, volts: [12], surgeSeconds: 3 }
-    expect(toInverterPick(noLong, { surgeW: 1500, seconds: 1, starters: [] }, 24)).toMatchObject({ voltsOk: false, surgeLong: null, surgeOk: true })
+    expect(toInverterPick(noLong, { surgeW: 1500, seconds: 1, starters: [] }, 24, 500)).toMatchObject({ voltsOk: false, surgeLong: null, surgeOk: true })
+  })
+
+  test('says whether the rating covers the running load, and whether the headroom is on top', () => {
+    const quiet = { surgeW: 0, seconds: 0, starters: [] }
+    expect(toInverterPick(three, quiet, 48, 2400)).toMatchObject({ runningOk: true, headroomOk: true })
+    expect(toInverterPick(three, quiet, 48, 2401)).toMatchObject({ runningOk: true, headroomOk: false })
+    expect(toInverterPick(three, quiet, 48, 3000)).toMatchObject({ runningOk: true, headroomOk: false })
+    expect(toInverterPick(three, quiet, 48, 3001)).toMatchObject({ runningOk: false, headroomOk: false })
+  })
+
+  test('headroom is a whole percent rounded down, exact at whole fractions and never negative', () => {
+    expect(headroomPct(12000, 9600)).toBe(25)
+    expect(headroomPct(12000, 9601)).toBe(24)
+    expect(headroomPct(12000, 10000)).toBe(20)
+    expect(headroomPct(3000, 2500)).toBe(20)
+    expect(headroomPct(12000, 12000)).toBe(0)
+    expect(headroomPct(12000, 15000)).toBe(0)
   })
 
   test('dcAmps divides by voltage and inverter efficiency', () => {

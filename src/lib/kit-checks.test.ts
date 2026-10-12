@@ -16,7 +16,7 @@ describe('kitChecks', () => {
     expect(checks.map((c) => c.id)).toEqual(CHECK_IDS)
     expect(checks.every((c) => c.status === 'pass')).toBe(true)
     const by = Object.fromEntries(checks.map((c) => [c.id, c]))
-    expect(by.surge!.lines[0]).toBe("1,515 W for 3 s, within the inverter's 6,000 W surge rating")
+    expect(by.surge!.lines[0]).toBe('465 W running on a 3,000 W inverter · 1,515 W for 3 s, within its 6,000 W surge rating')
     expect(by.surge!.lines[1]).toBe('465 W running + 1,050 W (Refrigerator) starting')
     expect(by.batteryContinuous!.lines).toEqual(['Bank gives 200 A continuous; the inverter draws up to 69 A'])
     expect(by.batteryPeak!.lines).toEqual(['Bank peak 400 A covers the 35 A start-up for 3 s'])
@@ -26,8 +26,8 @@ describe('kitChecks', () => {
   })
 
   test('names come from the dictionary in both languages', () => {
-    expect(kitChecks(en, kit(ESSENTIALS), 'en').map((c) => c.name)).toEqual(['Start-up peak', 'Battery continuous current', 'Battery peak current', 'Parallel strings', 'Fuse', 'Cable'])
-    expect(kitChecks(es, kit(ESSENTIALS), 'es').map((c) => c.name)).toEqual(['Pico de arranque', 'Corriente continua de la batería', 'Corriente pico de la batería', 'Ramas en paralelo', 'Fusible', 'Cable'])
+    expect(kitChecks(en, kit(ESSENTIALS), 'en').map((c) => c.name)).toEqual(['Inverter', 'Battery continuous current', 'Battery peak current', 'Parallel strings', 'Fuse', 'Cable'])
+    expect(kitChecks(es, kit(ESSENTIALS), 'es').map((c) => c.name)).toEqual(['Inversor', 'Corriente continua de la batería', 'Corriente pico de la batería', 'Ramas en paralelo', 'Fusible', 'Cable'])
   })
 
   test('a failing check shows its warnings instead of the pass line, and lists every starter', () => {
@@ -54,6 +54,20 @@ describe('kitChecks', () => {
     expect(cable.status).toBe('pass')
     expect(cable.lines[0]).toContain('2 × 1/0 AWG carries 150 A')
     expect(cable.lines[0]).toContain('145 A design current per run')
+  })
+
+  test('an inverter under the running load, or short of its headroom, fails the inverter check with its own wording in both languages', () => {
+    const load = (watts: number) => kit({ custom1: 1 }, { custom: [{ id: 'custom1', name: 'Workshop', watts, surge: watts, note: '' }] })
+    const inverter = (r: ReturnType<typeof kit>, locale: 'en' | 'es') => kitChecks(locale === 'en' ? en : es, r, locale).find((c) => c.id === 'surge')!
+    expect(inverter(load(9600), 'en').status).toBe('pass')
+    const tight = load(9601)
+    expect(inverter(tight, 'en').status).toBe('warn')
+    expect(inverter(tight, 'en').lines).toEqual(['The 12,000 W inverter leaves 24% headroom over the 9,601 W running load; this kit plans for 25%. Trim the load, or ask an installer about a larger inverter or units built to run in parallel.'])
+    expect(inverter(tight, 'es').lines).toEqual(['El inversor de 12,000 W deja 24% de margen sobre la carga en marcha de 9,601 W; este kit prevé 25%. Reduce la carga o pregunta a un instalador por un inversor mayor o por equipos hechos para trabajar en paralelo.'])
+    const over = load(15000)
+    expect(inverter(over, 'en').lines).toEqual(['The 12,000 W inverter is smaller than the 15,000 W running load and cannot carry it. Trim the load, or ask an installer about a larger inverter or units built to run in parallel.'])
+    expect(inverter(over, 'es').lines).toEqual(['El inversor de 12,000 W es menor que la carga en marcha de 15,000 W y no puede sostenerla. Reduce la carga o pregunta a un instalador por un inversor mayor o por equipos hechos para trabajar en paralelo.'])
+    expect(uncheckedWarnings(over).map((w) => w.code)).not.toContain('inverterUndersized')
   })
 
   test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {
