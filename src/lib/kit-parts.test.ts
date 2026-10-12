@@ -15,7 +15,7 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(parts.every(p => Number(p.qty) > 0)).toBe(true)
   })
 
-  test('a series-only bank lists one link per joint, at the gauge and design current of the cable it feeds', () => {
+  test('a series-only bank lists one jumper per link, at the gauge and design current of the cable it feeds', () => {
     const parts = buildParts(result('12-200'), t, locale)
     const part = parts.find(p => p.id === 'interconnects')!
     expect(part.qty).toBe('3')
@@ -33,8 +33,8 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(leads.qty).toBe('6')
     expect(leads.spec).toBe(locale === 'es' ? '6 AWG (13.3 mm²) de cobre, 30 cm cada uno' : '6 AWG (13.3 mm²) copper, 30 cm each')
     expect(leads.note).toBe(locale === 'es'
-      ? 'Un positivo y un negativo de cada rama a las barras colectoras · 29 A de corriente de diseño · 65 A tras la corrección'
-      : 'A positive and a negative from each string to the bus bars · 29 A design current · 65 A after derating')
+      ? 'Un positivo y un negativo de cada rama a las barras colectoras (barras no incluidas) · 29 A de corriente de diseño · 65 A tras la corrección'
+      : 'A positive and a negative from each string to the bus bars (bus bars not listed) · 29 A design current · 65 A after derating')
     const strings = parts.find(p => p.id === 'stringFuses')!
     expect(strings.qty).toBe('3')
     expect(strings.spec).toContain(locale === 'es' ? 'clase T, uno por rama' : 'class T, one per parallel string')
@@ -61,8 +61,19 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(links.qty).toBe('2')
     expect(links.spec).toBe(locale === 'es' ? 'Puentes 1 AWG, 30 cm cada uno' : '1 AWG jumpers, 30 cm each')
     expect(links.note).toBe(locale === 'es'
-      ? 'Entre baterías en serie, 2 puentes juntos por enlace · 116 A de corriente de diseño cada uno · 130 A tras la corrección'
-      : 'Between batteries in series, 2 side by side per link · 116 A design current each · 130 A after derating')
+      ? 'Entre baterías en serie · 2 puentes idénticos lado a lado en cada enlace · 116 A de corriente de diseño cada uno · 130 A tras la corrección'
+      : 'Between batteries in series · 2 identical jumpers side by side at every link · 116 A design current each · 130 A after derating')
+  })
+
+  test('three in series on two main runs: four jumpers, two at each link, at the same design current the main cable row states', () => {
+    const custom = [{ id: 'x', name: 'Load', watts: 4801, surge: 4801, note: '' }]
+    const parts = buildParts(compute({ qty: { x: 1 }, custom, hours: 2, volts: 36, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT), t, locale)
+    const links = parts.find(p => p.id === 'interconnects')!
+    expect(links.qty).toBe('4')
+    expect(links.note).toContain(locale === 'es'
+      ? '2 puentes idénticos lado a lado en cada enlace · 154 A de corriente de diseño cada uno'
+      : '2 identical jumpers side by side at every link · 154 A design current each')
+    expect(parts.find(p => p.id === 'mainCable')!.note).toContain(locale === 'es' ? '154 A de corriente de diseño por tramo' : '154 A design current per run')
   })
 
   test('the fuse keeps its class in the spec and states its interrupting rating', () => {
@@ -74,9 +85,9 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
   test('the batteries note states the bank currents, and the parallel notes only with parallel strings', () => {
     const single = buildParts(result('48-300'), t, locale).find(p => p.id === 'batteries')!
     expect(single.note).toContain(locale === 'es' ? '200 A continuos, 400 A pico' : '200 A continuous, 400 A peak')
-    expect(single.note).not.toContain(locale === 'es' ? 'barra colectora' : 'bus bar')
+    expect(single.note).not.toContain(locale === 'es' ? 'barras colectoras' : 'bus bars')
     const parallel = buildParts(result('48-50'), t, locale).find(p => p.id === 'batteries')!
-    expect(parallel.note).toContain(locale === 'es' ? 'barra colectora' : 'bus bar')
+    expect(parallel.note).toContain(locale === 'es' ? 'barras colectoras' : 'bus bars')
     expect(parallel.note).toContain('RS485')
   })
 

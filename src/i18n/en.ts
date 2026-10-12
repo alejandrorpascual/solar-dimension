@@ -32,9 +32,9 @@ export const en: Dictionary = {
     mainCableSpec: '{gauge} ({mm2} mm²) copper, {length} m each', mainCableNote: 'Battery to inverter · {amps} A design current{perRun} · {ampacity} A after derating · {drop}% drop at start-up',
     interconnectsSpec: '{gauge} jumpers, {cm} cm each',
     seriesLinksNote: 'Between batteries in series · {amps} A design current · {ampacity} A after derating',
-    seriesLinksSharedNote: 'Between batteries in series, {each} side by side per link · {amps} A design current each · {ampacity} A after derating',
+    seriesLinksSharedNote: 'Between batteries in series · {each} identical jumpers side by side at every link · {amps} A design current each · {ampacity} A after derating',
     stringLeadsSpec: '{gauge} ({mm2} mm²) copper, {cm} cm each',
-    stringLeadsNote: 'A positive and a negative from each string to the bus bars · {amps} A design current · {ampacity} A after derating',
+    stringLeadsNote: 'A positive and a negative from each string to the bus bars (bus bars not listed) · {amps} A design current · {ampacity} A after derating',
     fuseSpec: '{amps} A class {class}{perRun}', fuseNote: 'Inline on the positive lead, as close to the bank as possible', perRun: ' per run',
     fuseAicNote: '{aic} kA interrupting rating', stringFuseSpec: '{amps} A class {class}, one per parallel string', stringFuseNote: "On each string's positive lead, so a shorted string drops out alone",
     batteriesCurrentNote: '{cont} A continuous, {peak} A peak from the bank',
@@ -122,7 +122,7 @@ export const en: Dictionary = {
     fuseInterrupt: (p) => `A shorted bank can deliver about ${p.shortCircuitA?.toLocaleString('en-US')} A, more than the fuse's ${p.aicA?.toLocaleString('en-US')} A interrupting rating. Use a fuse rated for it or fewer strings.`,
     startupDrop: (p) => `The cable drops ${p.dropPct}% at start-up current; the inverter may cut out when a motor starts. Shorten the run or go up a gauge.`,
     cableAmbient: (p) => `No cable in the table is rated for ${p.ambientC} °C air. Move the run somewhere cooler.`,
-    cableUndersized: (p) => `${p.gauge} for the ${CONDUCTORS[p.conductor ?? 'mainCable']} carries only ${p.maxA?.toLocaleString('en-US')} A after derating, under its ${p.needA?.toLocaleString('en-US')} A design current. Raise the voltage, trim the load or move the bank somewhere cooler.`,
+    cableUndersized: (p) => `${p.gauge} for the ${CONDUCTORS[p.conductor!]} carries only ${p.maxA?.toLocaleString('en-US')} A after derating, under the ${p.needA?.toLocaleString('en-US')} A design current of each cable. Raise the voltage or trim the load.`,
     missingAppliances: (p) => p.count === 1
       ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute to include it.'
       : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute to include them.`,
@@ -132,7 +132,7 @@ export const en: Dictionary = {
   kinds: { continuous: 'Always on', cycling: 'Cycles on and off', momentary: 'Short bursts' },
   parallelNotes: {
     sameModelAge: 'Same model and age in every string',
-    equalLeadsOrBusbar: 'Equal cable lengths to a bus bar',
+    equalLeadsOrBusbar: 'Equal cable lengths to the bus bars',
     stringFuses: 'A fuse on each string',
     bmsComms: 'BMS units linked (CAN or RS485) so they share the load',
   },

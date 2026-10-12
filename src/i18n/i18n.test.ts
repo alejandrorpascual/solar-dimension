@@ -77,10 +77,16 @@ describe('dictionaries', () => {
     const p = { gauge: '4/0 AWG', maxA: 172, needA: 174 }
     expect(en.warnings.cableUndersized({ ...p, conductor: 'mainCable' })).toContain('4/0 AWG for the main cable carries only 172 A')
     expect(en.warnings.cableUndersized({ ...p, conductor: 'interconnects' })).toContain('for the interconnects')
-    expect(en.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('under its 174 A design current')
+    expect(en.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('for the string leads carries only 172 A after derating, under the 174 A design current of each cable')
     expect(es.warnings.cableUndersized({ ...p, conductor: 'mainCable' })).toContain('El 4/0 AWG para el cable principal solo soporta 172 A')
     expect(es.warnings.cableUndersized({ ...p, conductor: 'interconnects' })).toContain('para las interconexiones')
-    expect(es.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('para los cables de rama')
+    expect(es.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('para los cables de rama solo soporta 172 A tras la corrección, menos que la corriente de diseño de 174 A de cada cable')
+  })
+  test('the undersized-cable warning offers only remedies that work at any air temperature', () => {
+    // In a cool room the terminations cap the cable, so cooler air would not raise what it carries.
+    const p = { gauge: '4/0 AWG', maxA: 230, needA: 231.5, conductor: 'stringLeads' as const }
+    expect(en.warnings.cableUndersized(p).endsWith('Raise the voltage or trim the load.')).toBe(true)
+    expect(es.warnings.cableUndersized(p).endsWith('Sube el voltaje o reduce la carga.')).toBe(true)
   })
   test('every part the kit can list has a name in both languages', () => {
     const keys = ['inverter', 'batteries', 'mainCable', 'interconnects', 'stringLeads', 'fuse', 'stringFuses', 'solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'] as const

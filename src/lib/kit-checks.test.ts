@@ -62,8 +62,8 @@ describe('kitChecks', () => {
     const r = kit({ custom1: 1 }, { custom, hours: 1, volts: 12, cable: { ambientC: 50, insulationC: 75 } })
     const cable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
     expect(cable.status).toBe('warn')
-    expect(cable.lines).toEqual(['4/0 AWG for the string leads carries only 172.5 A after derating, under its 173.7 A design current. Raise the voltage, trim the load or move the bank somewhere cooler.'])
-    expect(kitChecks(es, r, 'es').find((c) => c.id === 'cable')!.lines).toEqual(['El 4/0 AWG para los cables de rama solo soporta 172.5 A tras la corrección, menos que su corriente de diseño de 173.7 A. Sube el voltaje, reduce la carga o lleva el banco a un lugar más fresco.'])
+    expect(cable.lines).toEqual(['4/0 AWG for the string leads carries only 172.5 A after derating, under the 173.7 A design current of each cable. Raise the voltage or trim the load.'])
+    expect(kitChecks(es, r, 'es').find((c) => c.id === 'cable')!.lines).toEqual(['El 4/0 AWG para los cables de rama solo soporta 172.5 A tras la corrección, menos que la corriente de diseño de 173.7 A de cada cable. Sube el voltaje o reduce la carga.'])
   })
 
   test('nothing to check for an empty kit', () => {
@@ -90,5 +90,6 @@ describe('uncheckedWarnings and keys', () => {
   test('warningKey tells apart two warnings with the same code', () => {
     expect(warningKey({ code: 'splitPhase', params: { itemId: 'a' } })).not.toBe(warningKey({ code: 'splitPhase', params: { itemId: 'b' } }))
     expect(warningKey({ code: 'highCurrent', params: { amps: 1 } })).toBe(warningKey({ code: 'highCurrent', params: { amps: 2 } }))
+    expect(warningKey({ code: 'cableUndersized', params: { conductor: 'stringLeads' } })).not.toBe(warningKey({ code: 'cableUndersized', params: { conductor: 'interconnects' } }))
   })
 })
