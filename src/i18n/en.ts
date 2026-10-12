@@ -1,10 +1,22 @@
-import type { ConductorKind } from '../lib/sizing'
+import type { ConductorKind, WarningParams } from '../lib/sizing'
 import type { Dictionary } from './types'
 import { quoteItemsEn, quoteItemsInlineEn, quoteItemsListEn, quoteItemsShortEn, quotesEn } from './quotes-en'
 import { requesterEn } from './requester-en'
 
 /** The cable rows as a warning names them mid-sentence. */
 const CONDUCTORS: Record<ConductorKind, string> = { mainCable: 'main cable', interconnects: 'interconnects', stringLeads: 'string leads' }
+
+/** What to do about a cable row that falls short: only the ways out the engine says would work for it, ending with the one that always does. */
+function cableRemedy(p: WarningParams): string {
+  const ways = [
+    ...(p.canCool ? ['move the bank somewhere cooler'] : []),
+    ...(p.canRaiseInsulation ? ['use 90 °C cable'] : []),
+    ...(p.nextVolts ? [`raise the voltage to ${p.nextVolts} V`] : []),
+    'trim the load',
+  ]
+  const list = ways.length > 1 ? `${ways.slice(0, -1).join(', ')} or ${ways[ways.length - 1]}` : ways[0]!
+  return `${list[0]!.toUpperCase()}${list.slice(1)}.`
+}
 
 export const en: Dictionary = {
   locale: 'en',
@@ -122,7 +134,7 @@ export const en: Dictionary = {
     fuseInterrupt: (p) => `A shorted bank can deliver about ${p.shortCircuitA?.toLocaleString('en-US')} A, more than the fuse's ${p.aicA?.toLocaleString('en-US')} A interrupting rating. Use a fuse rated for it or fewer strings.`,
     startupDrop: (p) => `The cable drops ${p.dropPct}% at start-up current; the inverter may cut out when a motor starts. Shorten the run or go up a gauge.`,
     cableAmbient: (p) => `No cable in the table is rated for ${p.ambientC} °C air. Move the run somewhere cooler.`,
-    cableUndersized: (p) => `${p.gauge} for the ${CONDUCTORS[p.conductor!]} carries only ${p.maxA?.toLocaleString('en-US')} A after derating, under the ${p.needA?.toLocaleString('en-US')} A design current of each cable. Raise the voltage or trim the load.`,
+    cableUndersized: (p) => `${p.gauge} for the ${CONDUCTORS[p.conductor!]} carries only ${p.maxA?.toLocaleString('en-US')} A after derating, under the ${p.needA?.toLocaleString('en-US')} A design current of each cable. ${cableRemedy(p)}`,
     missingAppliances: (p) => p.count === 1
       ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute to include it.'
       : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute to include them.`,

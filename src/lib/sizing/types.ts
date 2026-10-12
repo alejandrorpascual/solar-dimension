@@ -242,6 +242,9 @@ export interface WarningParams {
   ambientC?: number
   conductor?: ConductorKind
   gauge?: string
+  /** Whether a short cable row would cover its design current in a cool room, and on 90 °C cable. */
+  canCool?: boolean
+  canRaiseInsulation?: boolean
   fit?: number
   need?: number
 }

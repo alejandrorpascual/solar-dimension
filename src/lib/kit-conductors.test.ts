@@ -192,7 +192,7 @@ describe('printed conductors', () => {
     expect(r.battery!.parallel).toBe(2)
     expect(printedConductors(r).filter(isShort).map((x) => x.row)).toEqual(['stringLeads'])
     expect(kitChecks(en, r, 'en').find((c) => c.id === 'cable')!.status).toBe('warn')
-    expect(r.warnings.filter((w) => w.code === 'cableUndersized').map((w) => w.params)).toEqual([{ conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7 }])
+    expect(r.warnings.filter((w) => w.code === 'cableUndersized').map((w) => w.params)).toMatchObject([{ conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7 }])
   })
 })
 
@@ -239,7 +239,7 @@ describe('kits the audit found with bank wiring under its current', () => {
     expect(leads.qty).toBe('4')
     expect(printedConductors(r).filter(isShort).map((x) => x.row)).toEqual(['stringLeads'])
     expect(cableCheck(r).status).toBe('warn')
-    expect(r.warnings.filter((w) => w.code === 'cableUndersized').map((w) => w.params)).toEqual([{ conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 230, needA: 231.5 }])
+    expect(r.warnings.filter((w) => w.code === 'cableUndersized').map((w) => w.params)).toMatchObject([{ conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 230, needA: 231.5 }])
   })
 })
 

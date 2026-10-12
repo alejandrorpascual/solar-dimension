@@ -229,7 +229,7 @@ describe('bank wiring', () => {
   })
 
   test('a run of the main cable and the jumper that copies it state one design current, rounded once', () => {
-    // 4,801 W at 36 V: 308.7 A over two runs is 154.3 A each. Rounding the total first and then the half would print 155.
+    // 4,801 W at 36 V: 308.6 A over two runs is 154.3 A each. Rounding the total first and then the half would print 155.
     const r = compute({ ...load(4801), hours: 2, volts: 36, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect([r.battery?.config, r.cable.runs]).toEqual(['3S1P', 2])
     expect(r.cable.designA).toBe(309)
@@ -251,7 +251,7 @@ describe('bank wiring', () => {
     const r = compute({ ...load(2400), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 75 } }, CATALOG_SNAPSHOT)
     expect(r.battery?.config).toBe('1S2P')
     expect(r.warnings.filter((w) => w.code === 'cableUndersized')).toEqual([
-      { code: 'cableUndersized', params: { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7 } },
+      { code: 'cableUndersized', params: { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7, canCool: true, canRaiseInsulation: true, nextVolts: 24 } },
     ])
   })
 
@@ -260,7 +260,7 @@ describe('bank wiring', () => {
     const r = compute({ ...load(6400), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 40, bundled: true } }, CATALOG_SNAPSHOT)
     expect([r.inverter.w, r.inverter.voltsOk, r.cable.runs, r.cable.gauge]).toEqual([8000, false, 6, '4/0 AWG'])
     expect(r.warnings.filter((w) => w.code === 'cableUndersized' && w.params.conductor === 'mainCable')).toEqual([
-      { code: 'cableUndersized', params: { conductor: 'mainCable', gauge: '4/0 AWG', maxA: 118.3, needA: 154.4 } },
+      { code: 'cableUndersized', params: { conductor: 'mainCable', gauge: '4/0 AWG', maxA: 118.3, needA: 154.4, canCool: false, canRaiseInsulation: false, nextVolts: 24 } },
     ])
   })
 })

@@ -1,13 +1,18 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Download, type Page } from '@playwright/test'
-import { showDownload } from './projects'
+import { RETRY_AFTER_MS, showDownload } from './projects'
 
 /** The default 48 V kit on 12 V 100 Ah units: eight batteries, four in series on each of two strings. */
 async function buildSeriesParallelKit(page: Page): Promise<void> {
   await page.goto('/?step=4')
-  await page.getByRole('button', { name: /Battery size/ }).click()
-  await page.getByRole('listbox').getByRole('group', { name: /^12 V batteries/ }).getByRole('option', { name: /^100 Ah/ }).click()
-  await expect(page.getByRole('listbox')).toBeHidden()
+  const sizes = page.getByRole('listbox')
+  // The battery picker ignores a click that lands before hydration.
+  await expect(async () => {
+    if (!(await sizes.isVisible())) await page.getByRole('button', { name: /Battery size/ }).click()
+    await expect(sizes).toBeVisible({ timeout: RETRY_AFTER_MS })
+  }).toPass()
+  await sizes.getByRole('group', { name: /^12 V batteries/ }).getByRole('option', { name: /^100 Ah/ }).click()
+  await expect(sizes).toBeHidden()
 }
 
 const partRow = (page: Page, name: string) => page.getByRole('row').filter({ has: page.getByRole('rowheader', { name, exact: true }) })
