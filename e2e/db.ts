@@ -200,30 +200,92 @@ export async function quoteRetryCount(id: string): Promise<number> {
 }
 
 /**
- * Locks one quote row in a transaction of its own until `release`, so statements that touch the row wait for it. The
- * HTTP driver can't keep a transaction open between calls, so this uses a WebSocket connection.
+ * Runs `text` in a transaction of its own and keeps that transaction open until `release` rolls it back, so whatever
+ * the statement locked stays locked. The HTTP driver can't keep a transaction open between calls, so this uses a
+ * WebSocket connection. With `lockTimeoutMs`, a statement still waiting for its lock after that long fails
+ * (isLockTimeout) and nothing is left open.
  */
-export async function holdQuoteRow(id: string): Promise<{ release: () => Promise<void> }> {
+async function lockUntilReleased(
+  text: string, params: unknown[], lockTimeoutMs?: number,
+): Promise<{ rows: Record<string, unknown>[]; release: () => Promise<void> }> {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL })
   const client = await pool.connect()
-  await client.query('begin')
-  await client.query('select id from quotes where id = $1::uuid for update', [id])
-  return {
-    release: async () => {
-      try {
-        await client.query('rollback')
-      } finally {
-        client.release()
-        await pool.end()
-      }
-    },
+  const release = async (): Promise<void> => {
+    try {
+      await client.query('rollback')
+    } finally {
+      client.release()
+      await pool.end()
+    }
+  }
+  try {
+    await client.query('begin')
+    if (lockTimeoutMs !== undefined) await client.query(`select set_config('lock_timeout', $1, true)`, [`${lockTimeoutMs}ms`])
+    const { rows } = await client.query(text, params)
+    return { rows, release }
+  } catch (error) {
+    // The statement's error is the one to report; a rollback that fails after it would only hide it.
+    await release().catch(() => undefined)
+    throw error
   }
 }
 
-/** How many retry statements (the only statements with a `retried` CTE) wait on a lock right now. */
-export async function waitingRetryStatements(): Promise<number> {
+/** Postgres's code for a statement that gave up waiting for a lock (lock_not_available). */
+const LOCK_TIMEOUT_CODE = '55P03'
+const isLockTimeout = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && 'code' in error && error.code === LOCK_TIMEOUT_CODE
+
+/**
+ * Locks one quote row until `release`, so statements that touch the row wait for it. `pid` is the backend that holds
+ * the lock: it tells the statements waiting on this row from the ones waiting on any other test's
+ * (retryStatementsBehind).
+ */
+export async function holdQuoteRow(id: string): Promise<{ pid: number; release: () => Promise<void> }> {
+  const { rows, release } = await lockUntilReleased('select pg_backend_pid() as pid from quotes where id = $1::uuid for update', [id])
+  if (!rows[0]) {
+    await release()
+    throw new Error(`no quote ${id} to hold`)
+  }
+  return { pid: rows[0].pid as number, release }
+}
+
+/**
+ * How many retry statements (the only statements with a `retried` CTE) wait behind the lock that backend `holderPid`
+ * holds: on the lock itself, or in line behind a statement that does (the second retry of a quote waits for the
+ * first, not for the holder). Other tests, and other runs on this database, queue retries behind locks of their own at
+ * the same moment; those are not counted.
+ */
+export async function retryStatementsBehind(holderPid: number): Promise<number> {
   const rows = await testDb()`
-    select count(*)::int as n from pg_stat_activity
-    where wait_event_type = 'Lock' and query like '%retried as (%' and pid <> pg_backend_pid()`
+    with recursive behind as (
+      select a.pid, a.query from pg_stat_activity a where ${holderPid}::int = any(pg_blocking_pids(a.pid))
+      union
+      select a.pid, a.query from pg_stat_activity a join behind b on b.pid = any(pg_blocking_pids(a.pid))
+    )
+    select count(*)::int as n from behind where query like '%retried as (%'`
   return rows[0]!.n as number
+}
+
+/**
+ * How long a copy waits for its turn. A turn lasts a few seconds, so only a copy that stalled while holding one (a
+ * paused debugger, a laptop asleep) keeps the others waiting this long.
+ */
+const TURN_WAIT_MS = 30_000
+
+/**
+ * Waits for the turn named `name`, then holds it until `release`: a transaction-scoped advisory lock, so copies of a
+ * test that run at the same moment (the desktop and phone projects, another checkout, CI: all on this database) go one
+ * after the other. A copy that dies drops its connection, which ends its turn. One that stalls keeps it, so after
+ * TURN_WAIT_MS the caller goes ahead without the turn: a turn keeps other copies out of a test's readings, and a test
+ * must still be right without one. The two-key form shares nothing with the app's one-key locks (lockUserQuotes).
+ */
+export async function takeTurn(name: string): Promise<{ release: () => Promise<void> }> {
+  try {
+    const { release } = await lockUntilReleased(`select pg_advisory_xact_lock(hashtext('e2e-turn'), hashtext($1))`, [name], TURN_WAIT_MS)
+    return { release }
+  } catch (error) {
+    if (!isLockTimeout(error)) throw error
+    console.warn(`[e2e] still no turn "${name}" after ${TURN_WAIT_MS / 1000} s (a copy holding it has probably stalled): going ahead without it`)
+    return { release: async () => undefined }
+  }
 }
