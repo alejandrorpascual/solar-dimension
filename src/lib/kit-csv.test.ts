@@ -34,6 +34,26 @@ describe('csvFor', () => {
     expect(spanish).toContain('Cables de rama,"6 AWG (13.3 mm²) de cobre, 30 cm cada uno",')
   })
 
+  test('failing checks and notes follow the parts as a block of their own, whatever is ticked', () => {
+    const stress = compute({ qty: { ...DEFAULT_QTY, heater: 2, kettle: 2, wheater: 1 }, hours: 10, volts: 12, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    const lines = csvFor(stress, buildParts(stress, en, 'en'), { appliances: false, parts: true }, en).slice(1).split('\r\n')
+    const start = lines.indexOf('Needs attention,Note')
+    expect(start).toBeGreaterThan(lines.indexOf('Part,Specification,Note,Quantity'))
+    expect(lines[start - 1]).toBe('')
+    const block = lines.slice(start + 1)
+    expect(block).toContain('Note,Electric water heater usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.')
+    expect(block).toContain('Note,"12,000 W inverters are normally built for 48 V. Change the battery voltage or trim the load."')
+    expect(block.some((l) => l.startsWith('Cable,') && l.includes('is hard to wire safely'))).toBe(true)
+    expect(block.some((l) => l.startsWith('Inverter,'))).toBe(true)
+    const bare = csvFor(stress, [], { appliances: false, parts: false }, es)
+    expect(bare).toContain('Revisar,Nota')
+    expect(bare).toContain('Nota,Calentador de agua eléctrico normalmente funciona a 240 V.')
+  })
+
+  test('a sound kit adds no block', () => {
+    expect(csvFor(result, buildParts(result, en, 'en'), { appliances: true, parts: true }, en)).not.toContain('Needs attention')
+  })
+
   test('translates the kinds and headers', () => {
     const csv = csvFor(result, [], { appliances: true, parts: false }, es)
     expect(csv).toContain('Aparato,Tipo,Cantidad,C/u (W),En marcha (W),Promedio (W),Wh en 10 h')

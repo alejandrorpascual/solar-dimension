@@ -4,12 +4,16 @@ const FALLBACK_NAME = 'kit'
 
 export interface CsvApplianceRow { name: string; kind: string; qty: number; eachW: number; runningW: number; averageW: number; wh: number }
 export interface CsvPartRow { name: string; spec: string; note: string; qty: string }
+/** A failing check or a note: what it is about, and the line that says it. */
+export interface CsvAttentionRow { name: string; text: string }
 
 export interface CsvInput {
   appliances: CsvApplianceRow[]
   parts: CsvPartRow[]
+  /** Failing checks and notes. They are not behind an include switch: a kit never exports without them. */
+  attention: CsvAttentionRow[]
   /** Column titles in the user's language. */
-  headers: { appliances: string[]; parts: string[] }
+  headers: { appliances: string[]; parts: string[]; attention: string[] }
   include: { appliances: boolean; parts: boolean }
 }
 
@@ -29,8 +33,8 @@ export function csvCell(value: string | number): string {
 const line = (cells: ReadonlyArray<string | number>) => cells.map(csvCell).join(',')
 
 /**
- * The load schedule and the parts list as one spreadsheet, a blank row between them. The BOM makes Excel read the
- * file as UTF-8, so "LiFePO₄" and accented names survive.
+ * The load schedule, the parts list and whatever needs attention as one spreadsheet, a blank row between blocks. The
+ * BOM makes Excel read the file as UTF-8, so "LiFePO₄" and accented names survive.
  */
 export function buildCsv(input: CsvInput): string {
   const blocks: string[][] = []
@@ -39,6 +43,9 @@ export function buildCsv(input: CsvInput): string {
   }
   if (input.include.parts) {
     blocks.push([line(input.headers.parts), ...input.parts.map((p) => line([p.name, p.spec, p.note, p.qty]))])
+  }
+  if (input.attention.length > 0) {
+    blocks.push([line(input.headers.attention), ...input.attention.map((a) => line([a.name, a.text]))])
   }
   return BOM + blocks.map((b) => b.join(EOL)).join(EOL + EOL)
 }

@@ -124,6 +124,24 @@ test('a CSV has no printed pages, so there is no larger view to open', async ({ 
   await expect(page.getByRole('button', { name: 'View larger' })).toBeVisible()
 })
 
+test('notes and failing checks stay on the sheet and in the CSV with their Include boxes unticked', async ({ page }) => {
+  await page.goto('/?step=1')
+  await page.getByRole('button', { name: 'Add Electric water heater' }).click()
+  await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+  await showDownload(page)
+  const sheet = page.locator('.ksheet').filter({ visible: true })
+  await expect(sheet.getByText('Read before quoting · Notes: 2')).toBeVisible()
+  await page.getByRole('checkbox', { name: 'Checks' }).uncheck()
+  await page.getByRole('checkbox', { name: 'Assumptions' }).uncheck()
+  await expect(sheet.getByText(/usually runs on 240 V\. You need a split-phase \(240 V\) inverter/)).toBeVisible()
+  // Parts first, so page one keeps its layout; the notes print with the checks at the end.
+  await expect(sheet.locator('h3')).toHaveText(['Parts list', 'Load schedule', 'Notes'])
+  const csv = await downloadAs(page, /^Parts list \(CSV\)/, 'Download CSV')
+  const text = await readFile((await csv.path())!, 'utf8')
+  expect(text).toContain('Needs attention,Note')
+  expect(text).toContain('Note,Electric water heater usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.')
+})
+
 test('the checks print last on the sheet and can be left out', async ({ page }) => {
   await page.goto('/?step=4')
   await showDownload(page)
