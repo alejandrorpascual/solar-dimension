@@ -431,6 +431,30 @@ describe('bank wiring', () => {
     expect(pair.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase'])
   })
 
+  test('a battery picked by hand that cannot take the string its leads need is left as it was, and flagged', () => {
+    // Two 5 ton ACs for 2 h on 314 Ah units: a third string would fit the leads but put 23,550 A into a fault,
+    // past the fuses' 20,000 A. The bank keeps two strings; the fuse and cable checks say the leads are short.
+    const picked = compute({ qty: { ac5c: 2 }, hours: 2, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-314' }, CATALOG_SNAPSHOT)
+    expect(picked.battery).toMatchObject({ config: '1S2P', leadOk: false, interruptOk: true })
+    expect(picked.warnings.map((w) => w.code)).toEqual(expect.arrayContaining(['fuseAboveCable', 'cableUndersized']))
+    expect(picked.warnings.map((w) => w.code)).not.toContain('fuseInterrupt')
+    // Left to itself the engine takes the unit whose strings fit both.
+    const auto = compute({ qty: { ac5c: 2 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(auto.battery).toMatchObject({ unitLabel: '48 V 200 Ah LiFePO₄', config: '1S3P', leadOk: true, interruptOk: true })
+  })
+
+  test('the automatic bank is the one that passes the most, before the one with the fewest batteries', () => {
+    // 3 kW at 12 V for 2 h falls back to a 4 kW inverter, 370 A. Two 400 Ah units ask each lead for 185 A; three 300 Ah
+    // units put 22,500 A into a fault; four 200 Ah units fit their leads and stay at the fuses' 20,000 A.
+    const r = compute({ ...load(3000), hours: 2, volts: 12, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.inverter).toMatchObject({ count: 1, w: 4000 })
+    expect(r.battery).toMatchObject({ unitLabel: '12 V 200 Ah LiFePO₄', config: '1S4P', leadOk: true, interruptOk: true, bankShortCircuitA: 20000 })
+    const failing = r.warnings.map((w) => w.code)
+    expect(failing).not.toContain('fuseInterrupt')
+    expect(failing).not.toContain('fuseAboveCable')
+    expect(failing).not.toContain('cableUndersized')
+  })
+
   test('past the parallel limit of the battery\'s maker, a string lead no single cable can carry is a cable warning that names the row', () => {
     // 6 kW at 12 V draws 556 A: five strings would keep each under 120 A, but the maker allows four.
     const r = compute({ ...load(4800), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 75 } }, CATALOG_SNAPSHOT)

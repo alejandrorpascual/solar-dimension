@@ -57,6 +57,18 @@ describe('pickInverter with units that run in parallel', () => {
     expect(pickInverter(5000, profile(30000, 60), 48, slow)).toEqual({ unit: slow[0], count: 4 })
   })
 
+  test('the count agrees with the test a single unit takes, whatever the ratings divide to', () => {
+    const profileOf = (surgeW: number) => ({ surgeW, seconds: 1, starters: [] })
+    for (const w of [2999.7, 3333.3, 7000.1, 8000]) {
+      for (const running of [4000.3, 9601, 12800, 15999.9, 16000.1]) {
+        const table = [{ ...unit(w, 50), surge: w * 1.7 }]
+        const { count } = pickInverter(running, profileOf(running * 2.1), 48, table)
+        const carries = (n: number) => n * w >= running * 1.25 && n * w * 1.7 >= running * 2.1
+        expect([w, running, carries(count), count === 2 || !carries(count - 1)]).toEqual([w, running, true, true])
+      }
+    }
+  })
+
   test('a parallel limit far past any real one costs nothing to consider', () => {
     const table = [{ ...unit(8000), maxParallel: 1e9 }]
     expect(pickInverter(12000, profile(12000, 1), 48, table)).toEqual({ unit: table[0], count: 2 })

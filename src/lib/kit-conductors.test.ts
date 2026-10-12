@@ -112,13 +112,17 @@ describe('printed conductors', () => {
     expect(unflagged).toEqual([])
   })
 
-  test('in a cool room with open-air cable, no kit whose inverter is built for its bank voltage prints a short conductor at all, unless its strings would pass the limit of the battery\'s maker', () => {
-    // A bank takes the strings its leads need. Past the maker's parallel limit it cannot, and the cable check names the lead (the test above).
-    const hasItsStrings = (k: Kit) => k.r.battery!.parallel === 1 || k.r.battery!.parallelFor.lead <= k.r.battery!.unit.maxParallel
-    const sound = kits.filter((k) => k.cable === COOL_OPEN_AIR && k.r.inverter.voltsOk && hasItsStrings(k))
+  test('in a cool room with open-air cable, no kit whose inverter is built for its bank voltage prints a short conductor at all, unless the bank is marked short on its leads', () => {
+    // A bank takes the strings its leads need. A battery picked by hand may not allow them (its maker's parallel limit, or a
+    // fault its fuses could not interrupt): the bank then says so, and the cable check names the lead (the test above).
+    const sound = kits.filter((k) => k.cable === COOL_OPEN_AIR && k.r.inverter.voltsOk && k.r.battery!.leadOk)
     expect(sound.length).toBeGreaterThan(1500)
     expect(sound.filter((k) => k.r.inverter.count > 1).length).toBeGreaterThan(500)
     expect(sound.flatMap((k) => k.printed.filter(isShort).map((x) => `${k.label} | ${show(x)}`))).toEqual([])
+    // Whenever some battery size allows them, the automatic bank is one that does.
+    const automatic = kits.filter((k) => k.cable === COOL_OPEN_AIR && k.r.inverter.voltsOk && k.r.batteryUnit === null)
+    const avoidable = automatic.filter((k) => !k.r.battery!.leadOk && k.r.batteryOptions.some((o) => o.dischargeOk && o.peakOk && !o.overMaxParallel && o.leadOk))
+    expect(avoidable.map((k) => k.label)).toEqual([])
   })
 
   test('every inverter of a kit gets the same whole number of runs, with a fuse on each run and a cable pair for it', () => {

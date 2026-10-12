@@ -2,6 +2,7 @@ import { DEFAULT_HARDWARE, SIZING, VOLTAGES, type CatalogItem, type HardwareCata
 import { ambientFactor, ampsAt, bundleFactor } from './nec'
 import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate } from './sizing/battery'
 import { maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
+import { maxInterruptAmps } from './sizing/fuse'
 import { dcAmps, pickInverter, toInverterPick } from './sizing/inverter'
 import { selectItems, surgeProfile } from './sizing/loads'
 import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
@@ -64,7 +65,7 @@ const toOption = (c: BankCandidate, ctx: RuntimeContext, autoId: string | undefi
     id: c.id, label: c.unitLabel, unitV: c.unitV, unitAh: c.unitAh,
     count: c.count, series: c.series, parallel: c.parallel, config: c.config, bankWh: c.bankWh,
     hoursActual: runtime.typical, runtime, isAuto: c.id === autoId,
-    dischargeOk: c.dischargeOk, peakOk: c.peakOk, overMaxParallel: c.overMaxParallel, maxParallel: c.unit.maxParallel,
+    dischargeOk: c.dischargeOk, peakOk: c.peakOk, overMaxParallel: c.overMaxParallel, leadOk: c.leadOk, interruptOk: c.interruptOk, maxParallel: c.unit.maxParallel,
   }
 }
 
@@ -94,7 +95,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const startupA = dcAmps(profile.surgeW, volts)
   const demand = {
     continuousA: inverter.continuousA, surgeA: startupA, surgeSeconds: profile.seconds,
-    maxStringA: maxStringAmps(volts, cond, hardware.gauges, hardware.fuses),
+    maxStringA: maxStringAmps(volts, cond, hardware.gauges, hardware.fuses), maxShortCircuitA: maxInterruptAmps(hardware.fuses, volts),
   }
   const candidates = batteryCandidates(chem, volts, requiredAh, demand)
   const auto = autoPick(candidates)

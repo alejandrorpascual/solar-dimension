@@ -120,6 +120,10 @@ export interface BatteryPick {
   dischargeOk: boolean
   peakOk: boolean
   overMaxParallel: boolean
+  /** No string is asked for more than its lead carries; true for one string, which has none. */
+  leadOk: boolean
+  /** The fuses can interrupt what this bank puts into a fault. */
+  interruptOk: boolean
 }
 
 /** One battery unit that can build this bank, with the bank it would make. */
@@ -139,6 +143,8 @@ export interface BatteryOption {
   dischargeOk: boolean
   peakOk: boolean
   overMaxParallel: boolean
+  leadOk: boolean
+  interruptOk: boolean
   maxParallel: number
 }
 

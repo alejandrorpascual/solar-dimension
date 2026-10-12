@@ -27,6 +27,9 @@ export function fusePool(fuses: readonly Fuse[], volts: Voltage): readonly Fuse[
   return usable.length > 0 ? usable : fuses
 }
 
+/** The most fault current any fuse listed for this bank voltage can interrupt. */
+export const maxInterruptAmps = (fuses: readonly Fuse[], volts: Voltage): number => Math.max(0, ...fusePool(fuses, volts).map((f) => f.aicA))
+
 /**
  * The fuse that protects the cable: a standard rating at least the NEC continuous factor over the running current,
  * never above the cable's corrected ampacity (the gauge steps up until it fits). Then three checks against what the

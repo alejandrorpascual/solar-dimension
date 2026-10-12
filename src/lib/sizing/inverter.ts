@@ -29,11 +29,13 @@ const PAIR = 2
 
 /**
  * The fewest of this unit that carry the load and hold the start-up together, or null when its maker allows fewer.
- * Ratings add up across a set, so the count follows from each requirement over what one unit gives.
+ * Ratings add up across a set, so the count follows from each requirement over what one unit gives. A division can
+ * land a hair either side of a whole number, so the count is settled with the test a single unit takes.
  */
-function smallestSet(unit: Inverter, needW: number, profile: SurgeProfile): InverterSet | null {
-  const count = Math.max(PAIR, Math.ceil(needW / unit.w), Math.ceil(profile.surgeW / surgeRatedFor(unit, profile.seconds)))
-  return count <= maxUnits(unit) ? { unit, count } : null
+function smallestSet(unit: Inverter, needW: number, profile: SurgeProfile, fits: (inv: Inverter) => boolean): InverterSet | null {
+  const estimate = Math.max(PAIR, Math.ceil(needW / unit.w), Math.ceil(profile.surgeW / surgeRatedFor(unit, profile.seconds)))
+  const count = [estimate - 1, estimate, estimate + 1].find((n) => n >= PAIR && fits(asOne({ unit, count: n })))
+  return count !== undefined && count <= maxUnits(unit) ? { unit, count } : null
 }
 
 /**
@@ -67,7 +69,7 @@ export function pickInverter(runningW: number, profile: SurgeProfile, volts: Vol
   const single = inverters.find((inv) => inv.volts.includes(volts) && fits(inv)) ?? inverters.find(fits)
   if (single) return { unit: single, count: SOLO }
   // More units of a model that already carries the load are never better, so each model offers its smallest set.
-  const sets = inverters.flatMap((unit) => smallestSet(unit, needW, profile) ?? [])
+  const sets = inverters.flatMap((unit) => smallestSet(unit, needW, profile, fits) ?? [])
   return [...sets].sort(bySetPreference(volts))[0] ?? largestSet(inverters)
 }
 
