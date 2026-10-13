@@ -123,7 +123,7 @@ const SCRIPT = resolve('scripts/migrate.ts')
 const emptyFolders: string[] = []
 afterAll(() => { for (const folder of emptyFolders) rmSync(folder, { recursive: true, force: true }) })
 
-function runMigrateScript(env: Record<string, string>, files: { envFile?: string; drizzleKit?: string } = {}) {
+function runMigrateScript(env: Record<string, string>, files: { envFile?: string; drizzleKit?: string; journal?: unknown; args?: string[] } = {}) {
   const cwd = mkdtempSync(join(tmpdir(), 'migrate-guard-'))
   emptyFolders.push(cwd)
   if (files.envFile !== undefined) writeFileSync(join(cwd, '.env.local'), files.envFile)
@@ -131,9 +131,16 @@ function runMigrateScript(env: Record<string, string>, files: { envFile?: string
     mkdirSync(join(cwd, 'node_modules/drizzle-kit'), { recursive: true })
     writeFileSync(join(cwd, 'node_modules/drizzle-kit/bin.cjs'), files.drizzleKit)
   }
-  return spawnSync(process.execPath, [SCRIPT], { cwd, env: { PATH: process.env.PATH ?? '', ...env }, encoding: 'utf8' })
+  if (files.journal !== undefined) {
+    mkdirSync(join(cwd, 'drizzle/meta'), { recursive: true })
+    writeFileSync(join(cwd, 'drizzle/meta/_journal.json'), JSON.stringify(files.journal))
+  }
+  return spawnSync(process.execPath, [SCRIPT, ...(files.args ?? [])], { cwd, env: { PATH: process.env.PATH ?? '', ...env }, encoding: 'utf8' })
 }
 // A stand-in for drizzle-kit, put where the script looks for it: it says what it was asked to do and ends as told.
+// The script reads the journal before it starts drizzle-kit, so a folder with the stand-in gets a journal too.
+const journalOf = (...entries: [when: number, tag: string][]) => ({ entries: entries.map(([when, tag], idx) => ({ idx, when, tag })) })
+const ONE_MIGRATION = journalOf([1_791_586_271_729, '0000_first'])
 const standInDrizzleKit = (ending: string) => `console.log('stand-in drizzle-kit: ' + process.argv.slice(2).join(' '))\n${ending}\n`
 const reasonOf = (env: Parameters<typeof migrationPlan>[0]): string => {
   const plan = migrationPlan(env)
@@ -178,33 +185,67 @@ test('an env file cannot say this is the production build: only the environment 
   expect(run.stdout).toBe('')
 })
 
-test('when the migration succeeds the script exits 0, so the build goes on', () => {
-  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.exit(0)') })
+test('when the migration succeeds the script goes on to ask the database what it recorded, and fails if it cannot', () => {
+  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.exit(0)'), journal: ONE_MIGRATION })
 
   expect(run.stdout).toContain(`db:migrate: migrating ${BRANCH_ENDPOINT}`)
   expect(run.stdout).toContain('stand-in drizzle-kit: migrate')
-  expect(run.status).toBe(0)
+  // The database of these tests cannot be reached, which is as far as a run without one goes: CI's own
+  // `npm run db:migrate` is the run that ends on "has all N migrations of the journal".
+  expect(run.stderr).toContain(`db:migrate failed: could not read the applied migrations of ${BRANCH_ENDPOINT}`)
+  expect(run.stderr).not.toContain('not-a-real-password')
+  expect(run.status).toBe(1)
+})
+
+test('a journal that is out of order stops the script before drizzle-kit starts', () => {
+  const outOfOrder = journalOf([1_791_700_000_000, '0000_generated_later'], [1_791_650_000_000, '0001_generated_earlier'])
+
+  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.exit(0)'), journal: outOfOrder })
+
+  expect(run.stderr).toContain('db:migrate failed: drizzle/meta/_journal.json is out of order, so nothing was run')
+  expect(run.stderr).toContain('0001_generated_earlier')
+  expect(run.stdout).toBe('')
+  expect(run.status).toBe(1)
 })
 
 test('when the migration fails the script exits with drizzle-kit\'s own code, so the build stops', () => {
-  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.exit(3)') })
+  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.exit(3)'), journal: ONE_MIGRATION })
 
   expect(run.stdout).toContain('stand-in drizzle-kit: migrate')
   expect(run.status).toBe(3)
 })
 
 test('when drizzle-kit is killed before it ends the script fails all the same', () => {
-  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.kill(process.pid, \'SIGKILL\')') })
+  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.kill(process.pid, \'SIGKILL\')'), journal: ONE_MIGRATION })
 
   expect(run.stdout).toContain('stand-in drizzle-kit: migrate')
   expect(run.status).toBe(1)
 })
 
 test('the production build\'s own VERCEL_ENV gets past the guard, to the migration itself', () => {
-  const run = runMigrateScript({ DATABASE_URL: PRODUCTION_URL, VERCEL_ENV: 'production' })
+  const run = runMigrateScript(
+    { DATABASE_URL: PRODUCTION_URL, VERCEL_ENV: 'production' },
+    { drizzleKit: standInDrizzleKit('process.exit(3)'), journal: ONE_MIGRATION },
+  )
 
-  // In the empty folder there is nothing to migrate with, so the run stops there; what matters is that it was not refused.
   expect(run.stderr).not.toContain('refused')
   expect(run.stdout).toContain(`db:migrate: migrating ${PRODUCTION_DB_ENDPOINT}`)
-  expect(run.status).not.toBe(0)
+  expect(run.stdout).toContain('stand-in drizzle-kit: migrate')
+  expect(run.status).toBe(3)
+})
+
+test('without a journal to read nothing is run, in the production build too', () => {
+  const run = runMigrateScript({ DATABASE_URL: PRODUCTION_URL, VERCEL_ENV: 'production' }, { drizzleKit: standInDrizzleKit('process.exit(0)') })
+
+  expect(run.stderr).toContain('db:migrate failed: could not read drizzle/meta/_journal.json')
+  expect(run.stdout).toBe('')
+  expect(run.status).toBe(1)
+})
+
+test('the check alone never asks the guard: it only reads, and stops at the missing journal the same way', () => {
+  const run = runMigrateScript({ DATABASE_URL: PRODUCTION_URL }, { args: ['--check'] })
+
+  expect(run.stderr).toContain('db:check failed: could not read drizzle/meta/_journal.json')
+  expect(run.stderr).not.toContain('not-a-real-password')
+  expect(run.status).toBe(1)
 })
