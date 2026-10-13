@@ -176,6 +176,29 @@ describe('kitChecks', () => {
     expect(warningText(es, long, brief.items)).toBe(`Un arranque de 3,000 W durante ${brief.surgeSeconds} s supera la ventana de arranque de los 2 inversores de 1,000 W; juntos solo sostienen 2,000 W ese tiempo. Deja que arranquen menos motores a la vez.`)
   })
 
+  test('a start-up between the two surge windows is too long up to the full surge rating, and names what the longer rating holds', () => {
+    // A pair whose units each hold 2 kW for half a second, 1.5 kW for two seconds and 1 kW after that.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 1000, surge: 2000, volts: [48] as const, surgeSeconds: 0.5, surgeLong: { w: 1500, seconds: 2 }, maxParallel: 2 }] }
+    const start = (surge: number) =>
+      compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 1000, surge, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    const warning = (r: ReturnType<typeof start>) => r.warnings.find((w) => w.code === 'surgeDuration')!
+    // 3.5 kW for 1 s is within the 4 kW the pair ever holds and over the 3 kW it holds that long.
+    const within = start(3500)
+    expect(warning(within).params).toEqual({ inverterW: 2000, inverters: 2, unitW: 1000, surgeW: 3500, seconds: 1, ratedW: 3000, inverterSurgeW: 4000, tooLong: true })
+    expect(warningText(en, warning(within), within.items)).toBe('A 3,500 W start-up lasting 1 s is longer than the surge window of the 2 × 1,000 W inverters; together they only hold 3,000 W that long. Let fewer motors start at once.')
+    expect(warningText(es, warning(within), within.items)).toBe('Un arranque de 3,500 W durante 1 s supera la ventana de arranque de los 2 inversores de 1,000 W; juntos solo sostienen 3,000 W ese tiempo. Deja que arranquen menos motores a la vez.')
+    // A start-up of exactly the surge rating is still within it: its length is the reason, not its watts.
+    const atRating = start(4000)
+    expect(warning(atRating).params).toMatchObject({ surgeW: 4000, ratedW: 3000, inverterSurgeW: 4000, tooLong: true })
+    expect(warningText(en, warning(atRating), atRating.items)).toBe('A 4,000 W start-up lasting 1 s is longer than the surge window of the 2 × 1,000 W inverters; together they only hold 3,000 W that long. Let fewer motors start at once.')
+    expect(warningText(es, warning(atRating), atRating.items)).toBe('Un arranque de 4,000 W durante 1 s supera la ventana de arranque de los 2 inversores de 1,000 W; juntos solo sostienen 3,000 W ese tiempo. Deja que arranquen menos motores a la vez.')
+    // One watt more is over the rating at any length.
+    const over = start(4001)
+    expect(warning(over).params).toMatchObject({ surgeW: 4001, inverterSurgeW: 4000, tooLong: false })
+    expect(warningText(en, warning(over), over.items)).toBe('A 4,001 W start-up is more than the 4,000 W surge rating of the 2 × 1,000 W inverters together. Let fewer motors start at once.')
+    expect(warningText(es, warning(over), over.items)).toBe('Un arranque de 4,001 W supera los 4,000 W de arranque de los 2 inversores de 1,000 W juntos. Deja que arranquen menos motores a la vez.')
+  })
+
   test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {
     // 6 kW at 12 V in 50 °C air on 75 °C cable: the maker's four strings are not enough, so three carry 185 A each
     // and need 231.5 A of cable, where 4/0 carries 172.5 A.
