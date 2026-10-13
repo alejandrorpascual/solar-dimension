@@ -6,9 +6,10 @@ on:
 # The job's token can read the repository and nothing else.
 permissions:
   contents: read
-# A newer push to a pull request replaces the run of the older one; runs on main each finish. Runs of different
-# branches still overlap on the one test database: GitHub keeps a single waiting run per group and cancels the others,
-# so one group for every run would leave stacked pull requests without their check.
+# A newer push to a pull request replaces the run of the older one. On main a newer push never stops a run that has
+# started, but it does replace one still waiting, whose commit it contains: GitHub keeps a single waiting run per
+# group and cancels the others. That is also why one group for every run would leave stacked pull requests without
+# their check, so runs of different branches still overlap on the one test database.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

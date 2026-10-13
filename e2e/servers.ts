@@ -12,9 +12,10 @@ export const BUDGET_PORT = E2E_PORT + 1
 export const BUDGET_DAILY_READS = 1
 
 /**
- * The admin test's account, made new for every run so the repository never holds a credential that works anywhere.
- * The runner sets the two variables when it loads the config and its workers inherit them, so the server's
- * ADMIN_EMAILS and the test agree on the account.
+ * The admin test's account, made new for every run so the repository holds no email and password for it. Only this
+ * account: the other tests still sign up with a password written in their specs. The runner sets the two variables
+ * when it loads the config and its workers inherit them, so the server's ADMIN_EMAILS and the test agree on the
+ * account.
  */
 export const E2E_ADMIN = {
   email: (process.env.E2E_ADMIN_EMAIL ??= `e2e-admin-${randomUUID()}@example.com`),
