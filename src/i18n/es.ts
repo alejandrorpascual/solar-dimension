@@ -56,6 +56,8 @@ export const es: Dictionary = {
     batterySize: 'Tamaño de batería', batterySizeHelp: 'Elige la batería que piensas comprar. Automático usa la menor cantidad.', batteryAuto: 'Automático',
     batteryRecommended: 'Menos baterías', batteryGroup: 'Baterías de {v} V', batteryInSeries: '{n} en serie', manyStrings: 'Muchas ramas en paralelo',
     batteryCountOne: '{count} batería', batteryCountMany: '{count} baterías', panelCountOne: '{count} panel', panelCountMany: '{count} paneles',
+    legal: 'Legal',
+    estimateNotice: 'Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada.',
     fine: 'Supone 90% de eficiencia del inversor, 25% de margen, {dod}% de profundidad de descarga, 1,100 W por tonelada de refrigeración, {starts}, cable de cobre con aislamiento de {insulation} °C a {ambient} °C{bundled}. Tablas de ampacidad NEC; verifica con la normativa local.',
     fineStartsOne: 'un solo motor arrancando a la vez', fineStartsTwo: 'dos motores arrancando juntos', fineStartsAll: 'todos los motores arrancando a la vez', fineBundled: ', agrupado',
     footer1: '{name} · {count} aparatos · {running} en marcha · {peak} pico', footer2: '{hours} h a {volts} V · {load} de carga', footer3: '{batteries} · inversor de {inverter} · {gauge}', footerEmpty: 'Nada seleccionado todavía',

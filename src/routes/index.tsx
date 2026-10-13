@@ -7,6 +7,7 @@ import { BackupWindow } from '../components/BackupWindow'
 import { CustomApplianceForm } from '../components/CustomApplianceForm'
 import { DownloadPanel } from '../components/DownloadPanel'
 import { HeaderBar } from '../components/HeaderBar'
+import { LegalLinks } from '../components/LegalLinks'
 import { KitStep } from '../components/KitStep'
 import { RailSheet, SideRail, type RailTab } from '../components/SideRail'
 import { SolarStep } from '../components/solar/SolarStep'
@@ -105,6 +106,7 @@ function KitBuilderPage() {
           )}
           {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={() => go(1)} />}
         </section>
+        <LegalLinks />
         <WizardFooter
           step={step}
           summary={footerSummary(step, project.name, result, t, locale)}

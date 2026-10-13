@@ -91,3 +91,44 @@ describe('the spec sheet carries what a supplier must read', () => {
     expect(text).toContain('Read before quoting · Notes: 1')
   })
 })
+
+describe('the spec sheet says what it is', () => {
+  const EN = 'An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.'
+  const ES = 'Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada.'
+
+  test('the estimate sentence prints in English and Spanish', () => {
+    expect(sheetText(SOUND, 'en').split('\n')).toContain(EN)
+    expect(sheetText(SOUND, 'es').split('\n')).toContain(ES)
+  })
+
+  test('no Include box takes it off, and it prints after the parts list and before the assumptions', () => {
+    expect(sheetText(SOUND, 'en', NOTHING).split('\n')).toContain(EN)
+    expect(sheetText(SOUND, 'es', NOTHING).split('\n')).toContain(ES)
+    const text = sheetText(SOUND, 'en')
+    expect(text.indexOf(EN)).toBeGreaterThan(text.indexOf('Parts list'))
+    expect(text.indexOf(EN)).toBeLessThan(text.indexOf('Assumes 90% inverter efficiency'))
+  })
+
+  test('an empty project still says it', () => {
+    expect(sheetText({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4' }, 'en', NOTHING)).toContain(EN)
+  })
+
+  test.each<[string, ExportInclude]>([
+    ['the parts list left out', { ...EVERYTHING, parts: false }],
+    ['only the appliance list ticked', { ...NOTHING, appliances: true }],
+    ['only the assumptions ticked', { ...NOTHING, notes: true }],
+  ])('it stays with %s, in both languages', (_, include) => {
+    expect(sheetText(SOUND, 'en', include).split('\n')).toContain(EN)
+    expect(sheetText(SOUND, 'es', include).split('\n')).toContain(ES)
+  })
+
+  test('a kit with notes and failing checks carries it as well as them, whatever is ticked', () => {
+    for (const include of [EVERYTHING, NOTHING]) {
+      const text = sheetText(STRESS_12V, 'en', include)
+      expect(text.split('\n')).toContain(EN)
+      expect(text).toContain('You need a split-phase (240 V) inverter')
+      expect(text).toContain('[Needs attention]')
+      expect(sheetText(STRESS_12V, 'es', include).split('\n')).toContain(ES)
+    }
+  })
+})

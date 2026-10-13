@@ -15,6 +15,8 @@ export interface CsvInput {
   /** Column titles in the user's language. */
   headers: { appliances: string[]; parts: string[]; attention: string[] }
   include: { appliances: boolean; parts: boolean }
+  /** One closing line under everything, such as what kind of document this is. */
+  footer?: string
 }
 
 /** Text starting like this runs as a formula in Excel, Sheets and LibreOffice (CSV injection). */
@@ -33,8 +35,8 @@ export function csvCell(value: string | number): string {
 const line = (cells: ReadonlyArray<string | number>) => cells.map(csvCell).join(',')
 
 /**
- * The load schedule, the parts list and whatever needs attention as one spreadsheet, a blank row between blocks. The
- * BOM makes Excel read the file as UTF-8, so "LiFePO₄" and accented names survive.
+ * The load schedule, the parts list, whatever needs attention and the closing line as one spreadsheet, a blank row
+ * between blocks. The BOM makes Excel read the file as UTF-8, so "LiFePO₄" and accented names survive.
  */
 export function buildCsv(input: CsvInput): string {
   const blocks: string[][] = []
@@ -47,6 +49,7 @@ export function buildCsv(input: CsvInput): string {
   if (input.attention.length > 0) {
     blocks.push([line(input.headers.attention), ...input.attention.map((a) => line([a.name, a.text]))])
   }
+  if (input.footer) blocks.push([line([input.footer])])
   return BOM + blocks.map((b) => b.join(EOL)).join(EOL + EOL)
 }
 

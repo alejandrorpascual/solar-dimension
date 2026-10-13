@@ -304,6 +304,61 @@ test('hours, voltage and chemistry change the sizing summary', async ({ page }) 
   await expect(page.getByLabel('Hours without the grid')).toHaveValue('24')
 })
 
+const KIT_PAGE = {
+  English: {
+    estimate: 'An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.',
+    checks: 'Checks', empty: 'Garita has nothing selected yet.',
+  },
+  Español: {
+    estimate: 'Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada.',
+    checks: 'Verificaciones', empty: 'Garita aún no tiene nada seleccionado.',
+  },
+} as const
+
+for (const language of ['English', 'Español'] as const) {
+  const words = KIT_PAGE[language]
+
+  test(`the kit says it is an estimate between the parts list and the checks, in ${language}`, async ({ page }) => {
+    await page.goto('/?step=4')
+    if (language !== 'English') await switchLanguageOnLoad(page, language)
+    const kit = page.getByRole('main')
+    const notice = kit.getByRole('note')
+    await expect(notice).toHaveText(words.estimate)
+    await expect(notice).toBeVisible()
+    const [parts, box, checks] = await Promise.all([kit.getByRole('table'), notice, kit.getByRole('region', { name: words.checks })].map((part) => part.boundingBox()))
+    expect(box!.y).toBeGreaterThanOrEqual(parts!.y + parts!.height)
+    expect(box!.y + box!.height).toBeLessThanOrEqual(checks!.y)
+  })
+
+  test(`a kit with nothing selected has no parts to qualify, so it shows no estimate sentence, in ${language}`, async ({ page }) => {
+    await page.addInitScript(() => {
+      const key = 'solar-dimension.projects.v1'
+      if (localStorage.getItem(key)) return
+      const project = { id: 'p1', name: 'Garita', qty: {}, custom: [], hours: 8, volts: 48, chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1 }
+      localStorage.setItem(key, JSON.stringify({ version: 1, projects: [project], currentId: 'p1' }))
+    })
+    await page.goto('/?step=4')
+    if (language !== 'English') await switchLanguageOnLoad(page, language)
+    const kit = page.getByRole('main')
+    await expect(kit.getByText(words.empty)).toBeVisible()
+    await expect(kit.getByRole('table')).toHaveCount(0)
+    await expect(kit.getByRole('note')).toHaveCount(0)
+  })
+}
+
+for (const step of [1, 2, 3, 4]) {
+  test(`Privacy and Terms of use open from under step ${step}, without signing in`, async ({ page }) => {
+    await page.goto(`/?step=${step}`)
+    const legal = page.getByRole('navigation', { name: 'Legal' })
+    await legal.getByRole('link', { name: 'Terms of use' }).click()
+    await expect(page).toHaveURL(/\/terms$/)
+    await expect(page.getByRole('heading', { name: 'Estimates, not an installation plan' })).toBeVisible()
+    await page.goto(`/?step=${step}`)
+    await legal.getByRole('link', { name: 'Privacy', exact: true }).click()
+    await expect(page).toHaveURL(/\/privacy$/)
+  })
+}
+
 test('full flow: appliances → window → kit, and the project survives a reload', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Air conditioning' }).click()
