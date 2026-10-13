@@ -8,4 +8,5 @@
 import { loadTestEnv } from '../e2e/test-env.ts'
 
 console.log(`starting on ${loadTestEnv()}`)
+// @ts-expect-error The build output has no types, and before a build it is not there at all: an error either way.
 await import('../.output/server/index.mjs')
