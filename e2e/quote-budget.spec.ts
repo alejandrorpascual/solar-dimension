@@ -1,9 +1,9 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import {
-  countQuoteRows, dailyReads, firstProjectId, holdQuoteRow, quoteRetryCount, quoteRetryStates, raiseDailyReadsTo, seedFailedQuote, seedQuoteRows,
-  waitingRetryStatements,
+  countQuoteRows, dailyReads, firstProjectId, holdQuoteRow, quoteRetryCount, quoteRetryStates, raiseDailyReadsTo, retryStatementsBehind, seedFailedQuote,
+  seedQuoteRows, takeTurn,
 } from './db'
-import { captureRetryCall, postRetry, quotePdf, signUp, uploadQuotes } from './quotes'
+import { captureRetryCall, postRetry, quotePdf, signUp, uploadQuotes, type CapturedCall } from './quotes'
 import { BUDGET_DAILY_READS, BUDGET_PORT } from './servers'
 
 /** The server whose daily read budget is 1 (playwright.config.ts). It shares the build, the database and the session. */
@@ -11,7 +11,7 @@ const BUDGET_SERVER = `http://localhost:${BUDGET_PORT}`
 const PAUSED = 'Quote reading is paused for today. Try again tomorrow.'
 
 /** Signs up, waits for the default project to reach the server, and returns its id. */
-async function signUpWithProject(page: Parameters<typeof signUp>[0]): Promise<{ email: string; projectId: string }> {
+async function signUpWithProject(page: Page): Promise<{ email: string; projectId: string }> {
   const email = await signUp(page)
   await page.goto('/?step=4')
   await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
@@ -56,11 +56,42 @@ test('with the day’s reads spent, a retry is refused with the reason and the q
   expect(await quoteRetryStates(email, projectId)).toEqual([{ status: 'failed', retries: 0 }])
 })
 
-/** Other tests take reads at any moment, so a run can see more than one; any run that sees exactly one proves the point. */
+/**
+ * The day's counter is shared, so a read this race did not take (an upload or a retry in another test) can land
+ * between its two readings of the counter. Any run that sees exactly one read proves the point.
+ */
 const RACE_TRIALS = 5
+/**
+ * Every copy of the race waits for this turn. Without it the desktop and phone copies, started together, stay in
+ * step: each takes its one read between the other's two readings, in every run, and both see two.
+ */
+const RACE_TURN = 'quote-retry-race'
+
+/**
+ * One race: holds a lock on a failed quote while two retries of it arrive, so both statements are in flight at once,
+ * then lets them go. Returns the two answers and how far the day's counter moved from then on.
+ */
+async function raceTwoRetries(page: Page, call: CapturedCall, probe: string, id: string): Promise<{ bodies: string[]; reads: number }> {
+  const lock = await holdQuoteRow(id)
+  let answers: Promise<string[]>
+  let before: number
+  try {
+    answers = Promise.all([postRetry(page, call, probe, id), postRetry(page, call, probe, id)].map(async (r) => (await r).text()))
+    // Only retries waiting behind this quote's lock count. Another copy's two would let this lock go too early.
+    await expect.poll(() => retryStatementsBehind(lock.pid), { timeout: 15_000 }).toBe(2)
+    // Neither waiting statement has committed a read yet, with or without the retry's own lock on the quote: each is
+    // one transaction, and it ends after this lock goes.
+    before = await dailyReads()
+  } finally {
+    await lock.release()
+  }
+  const bodies = await answers
+  return { bodies, reads: (await dailyReads()) - before }
+}
 
 test('two retries of the same quote at once take one read and re-queue it once', async ({ page }) => {
-  // Several seeded races over Neon, each waiting for both statements to queue on a row lock: well past 30 s on CI.
+  // Several seeded races over Neon, each waiting for both statements to queue on a row lock, after a wait for the
+  // turn (up to 30 s when a copy has stalled): well past 30 s.
   test.slow()
   const { email, projectId } = await signUpWithProject(page)
   const probe = await seedFailedQuote(email, projectId, 'probe.pdf')
@@ -69,25 +100,20 @@ test('two retries of the same quote at once take one read and re-queue it once',
   await page.getByRole('article').filter({ hasText: 'probe.pdf' }).getByRole('button', { name: 'Retry', exact: true }).click()
   const call = await captured
 
-  // Each run holds a lock on a fresh failed quote while two retries of it arrive, so both statements are in flight at
-  // once, then lets them go. Without a lock on the quote in the retry, both take a read: a run never sees just one.
+  // Without a lock on the quote in the retry, both statements take a read: a run never sees just one.
   const reads: number[] = []
-  for (let run = 0; run < RACE_TRIALS && !reads.includes(1); run++) {
-    const id = await seedFailedQuote(email, projectId, `race-${run}.pdf`)
-    const lock = await holdQuoteRow(id)
-    const before = await dailyReads()
-    let answers: Promise<string[]>
-    try {
-      answers = Promise.all([postRetry(page, call, probe, id), postRetry(page, call, probe, id)].map(async (r) => (await r).text()))
-      await expect.poll(waitingRetryStatements, { timeout: 15_000 }).toBeGreaterThanOrEqual(2)
-    } finally {
-      await lock.release()
+  const turn = await takeTurn(RACE_TURN)
+  try {
+    for (let run = 0; run < RACE_TRIALS && !reads.includes(1); run++) {
+      const id = await seedFailedQuote(email, projectId, `race-${run}.pdf`)
+      const race = await raceTwoRetries(page, call, probe, id)
+      reads.push(race.reads)
+      // One call re-queued the quote; the other found nothing left to retry.
+      expect(race.bodies.filter((b) => !b.includes('$TSR/Error'))).toHaveLength(1)
+      expect(await quoteRetryCount(id)).toBe(1)
     }
-    const bodies = await answers
-    reads.push((await dailyReads()) - before)
-    // One call re-queued the quote; the other found nothing left to retry.
-    expect(bodies.filter((b) => !b.includes('$TSR/Error'))).toHaveLength(1)
-    expect(await quoteRetryCount(id)).toBe(1)
+  } finally {
+    await turn.release()
   }
   expect(reads).toContain(1)
 })
