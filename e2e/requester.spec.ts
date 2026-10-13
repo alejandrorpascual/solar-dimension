@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { hideProjects, showDownload } from './projects'
 
 const STORAGE_KEY = 'solar-dimension.projects.v1'
@@ -12,12 +12,24 @@ const LOS_SAMANES = {
 const visibleBand = (page: Page) => page.locator('.ksheet__client').filter({ visible: true })
 
 /** Opens the app with one saved project that already has a requester. Later reloads keep whatever the test changed. */
-async function seedRequester(page: Page, requester: Record<string, string> = LOS_SAMANES): Promise<void> {
-  await page.addInitScript(([key, requester]) => {
+async function seedRequester(page: Page, requester: Record<string, string> = LOS_SAMANES, kit: Record<string, unknown> = {}): Promise<void> {
+  await page.addInitScript(([key, requester, kit]) => {
     if (localStorage.getItem(key)) return
-    const project = { id: 'p1', name: 'Garita', qty: { fridge: 1, lights: 1 }, custom: [], hours: 8, volts: 48, chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1, requester }
+    const project = { id: 'p1', name: 'Garita', qty: { fridge: 1, lights: 1 }, custom: [], hours: 8, volts: 48, chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1, ...kit, requester }
     localStorage.setItem(key, JSON.stringify({ version: 1, projects: [project], currentId: 'p1' }))
-  }, [STORAGE_KEY, requester] as const)
+  }, [STORAGE_KEY, requester, kit] as const)
+}
+
+const longest = (text: string, max: number) => text.repeat(Math.ceil(max / text.length)).slice(0, max).trim()
+/** A client with every field at the longest the form accepts: the tallest the band on the sheet gets. */
+const LONGEST_CLIENT = {
+  kind: 'company', country: 'VE',
+  name: longest('Junta de Condominio Residencial Los Samanes ', 120),
+  contact: longest('Luis Alberto Pérez Rondón, administrador ', 80),
+  docPrefix: 'J', doc: '401234567',
+  phone: '+58 414 555 0192 / +58 212 555 0100',
+  email: `${longest('administracion.junta', 108)}@example.com`,
+  address: longest('Avenida Principal de La Trinidad, Urbanización Los Samanes, Torre B, piso 12, ', 160),
 }
 
 test('the spec sheet prints the requester band, and Include takes it off', async ({ page }) => {
@@ -290,16 +302,7 @@ test('clients saved while signed out are not offered to an account that signs in
 })
 
 test('a client with every field at its longest still leaves the parts list whole on page one', async ({ page }) => {
-  const longest = (text: string, max: number) => text.repeat(Math.ceil(max / text.length)).slice(0, max).trim()
-  await seedRequester(page, {
-    kind: 'company', country: 'VE',
-    name: longest('Junta de Condominio Residencial Los Samanes ', 120),
-    contact: longest('Luis Alberto Pérez Rondón, administrador ', 80),
-    docPrefix: 'J', doc: '401234567',
-    phone: '+58 414 555 0192 / +58 212 555 0100',
-    email: `${longest('administracion.junta', 108)}@example.com`,
-    address: longest('Avenida Principal de La Trinidad, Urbanización Los Samanes, Torre B, piso 12, ', 160),
-  })
+  await seedRequester(page, LONGEST_CLIENT)
   await page.goto('/?step=4')
   await showDownload(page)
   await expect(visibleBand(page).getByText('J-40123456-7')).toBeVisible()
@@ -315,6 +318,58 @@ test('a client with every field at its longest still leaves the parts list whole
   const bytes = await readFile((await pdf.path())!)
   expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
 })
+
+/** The preview is drawn scaled, so a block's edge can land a fraction of a pixel past the page's. */
+const EDGE_SLACK_PX = 0.5
+
+/** The pages of the larger preview, cut where the PDF cuts them, that show the whole of `selector`. */
+async function pagesShowing(view: Locator, selector: string): Promise<number[]> {
+  return view.locator('.pvw__frame').evaluateAll((frames, [selector, slack]) => frames.flatMap((frame, i) => {
+    // Each page draws the whole sheet and masks what is above and below its own slice.
+    const [above, below] = Array.from(frame.querySelectorAll('.pvw__mask'), (mask) => mask.getBoundingClientRect())
+    const box = frame.querySelector(selector)?.getBoundingClientRect()
+    return box && box.top >= above.bottom - slack && box.bottom <= below.top + slack ? [i + 1] : []
+  }), [selector, EDGE_SLACK_PX] as const)
+}
+
+const SHEET_WORDS = {
+  en: { download: 'Download', larger: 'View larger', preview: 'Preview', pdf: 'Download PDF' },
+  es: { download: 'Descargar', larger: 'Ver en grande', preview: 'Vista previa', pdf: 'Descargar PDF' },
+} as const
+/** Eight 12 V units, four in series on each of two strings: three more rows in the parts list than one battery needs. */
+const SERIES_PARALLEL_KIT = { qty: { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }, hours: 10, batteryUnit: '12-100' }
+
+for (const { lang, kit, where } of [
+  // The Spanish sheet runs a line longer, which puts the footer block at the very edge of page one.
+  { lang: 'es', kit: {}, where: 'in Spanish' },
+  { lang: 'en', kit: SERIES_PARALLEL_KIT, where: 'with a parts list too long for page one' },
+  { lang: 'es', kit: SERIES_PARALLEL_KIT, where: 'with a parts list too long for page one, in Spanish' },
+] as const) {
+  test(`the longest client ${where}: the estimate block prints whole, and the load schedule never takes a third page`, async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: 'lang', value: lang, url: baseURL! }])
+    await seedRequester(page, LONGEST_CLIENT, kit)
+    const words = SHEET_WORDS[lang]
+    await page.goto('/?step=4')
+    await showDownload(page, words.download)
+    await expect(visibleBand(page).getByText('J-40123456-7')).toBeVisible()
+    await page.evaluate(() => document.fonts.ready)
+
+    await page.getByRole('button', { name: words.larger }).click()
+    const view = page.getByRole('dialog', { name: words.preview })
+    await expect(view.locator('.pvw__page')).toHaveCount(2)
+    // The sentence and the assumptions are one block: wherever it lands, a page shows all of it.
+    const estimatePages = await pagesShowing(view, '.ksheet__foot')
+    expect(estimatePages).toHaveLength(1)
+    // What ran over from page one does not get page two to itself: the load schedule starts under it.
+    expect(await pagesShowing(view, '[data-pdf-break]')).toEqual([2])
+    if (kit === SERIES_PARALLEL_KIT) expect(estimatePages).toEqual([2])
+    await page.keyboard.press('Escape')
+    await expect(view).toBeHidden()
+
+    const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: words.pdf }).click()])
+    expect((await readFile((await pdf.path())!)).toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
+  })
+}
 
 /**
  * The phone keyboard can't be opened in a test. On iOS it shrinks only the visual viewport, so stand-in for it: report

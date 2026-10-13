@@ -62,6 +62,22 @@ describe('pageSlices', () => {
     expect(pageSlices(blocks, 1260, 1000)).toEqual([{ start: 0, end: 200 }, { start: 200, end: 1180 }, { start: 1180, end: 1260 }])
   })
 
+  test('a block marked to start a page follows on when the page only holds what ran over from the one before', () => {
+    // The footer at 960 crosses the edge and moves to page two; the schedule after it shares that page instead of taking a third.
+    const blocks = [row(0), row(900), row(960, 80), { top: 1068, bottom: 1108, keepWithNext: true, breakBefore: true }, row(1108), row(1148)]
+    expect(pageSlices(blocks, 1250, 1000, 60)).toEqual([{ start: 0, end: 960 }, { start: 960, end: 1250 }])
+  })
+
+  test('a marked block that does not fit under what ran over moves on whole', () => {
+    const blocks = [row(0), row(960, 80), row(1040, 800), { top: 1900, bottom: 2000, breakBefore: true }, row(2000)]
+    expect(pageSlices(blocks, 2100, 1000)).toEqual([{ start: 0, end: 960 }, { start: 960, end: 1900 }, { start: 1900, end: 2100 }])
+  })
+
+  test('a second marked block still starts a page when the first one started the page it is on', () => {
+    const blocks = [row(0), { top: 200, bottom: 240, breakBefore: true }, row(240), { top: 400, bottom: 440, breakBefore: true }, row(440)]
+    expect(pageSlices(blocks, 520, 1000)).toEqual([{ start: 0, end: 200 }, { start: 200, end: 400 }, { start: 400, end: 520 }])
+  })
+
   test('pages after the first leave room for their top margin', () => {
     const blocks = [row(0), { top: 200, bottom: 240, breakBefore: true }, row(1100), row(1150)]
     // Page 2 holds 1000 - 60 = 940: the row at 1100 still fits (ends 1140 = 200 + 940), the one at 1150 moves on.

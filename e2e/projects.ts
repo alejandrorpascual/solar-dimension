@@ -13,11 +13,14 @@ export async function showProjects(page: Page): Promise<void> {
   }).toPass()
 }
 
-/** Shows the Download tab: the rail's tab on desktop, the footer's Download button on step 3 elsewhere. */
-export async function showDownload(page: Page): Promise<void> {
-  const open = page.getByRole('button', { name: 'Download', exact: true })
+/**
+ * Shows the Download tab: the rail's tab on desktop, the footer's Download button on step 3 elsewhere. `label` is the
+ * tab's name in the page's language.
+ */
+export async function showDownload(page: Page, label = 'Download'): Promise<void> {
+  const open = page.getByRole('button', { name: label, exact: true })
   if (await open.isVisible()) await open.click()
-  await page.getByRole('tab', { name: 'Download' }).click()
+  await page.getByRole('tab', { name: label }).click()
 }
 
 /** Closes the projects sheet if one is open, so the page underneath can be used. */
