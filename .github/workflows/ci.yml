@@ -3,6 +3,16 @@ on:
   push:
     branches: [main]
   pull_request:
+# The job's token can read the repository and nothing else.
+permissions:
+  contents: read
+# A newer push to a pull request replaces the run of the older one. On main a newer push never stops a run that has
+# started, but it does replace one still waiting, whose commit it contains: GitHub keeps a single waiting run per
+# group and cancels the others. That is also why one group for every run would leave stacked pull requests without
+# their check, so runs of different branches still overlap on the one test database.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -26,13 +36,20 @@ jobs:
       - run: npm run test:coverage
       - run: npm run build
       - run: npx playwright install --with-deps chromium
+      # Signs the sessions of this run's test servers and nothing else: made here, never a stored secret, so a leak
+      # of the workflow's secrets cannot mint a session anywhere.
+      - name: Make a throwaway auth secret
+        run: |
+          secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$secret"
+          echo "BETTER_AUTH_SECRET=$secret" >> "$GITHUB_ENV"
       - run: npm run e2e
         env:
           CI: 'true'
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      # Also when the run passed: a test that needed its retry leaves the trace of the attempt that failed.
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: ${{ !cancelled() }}
         with:
           name: playwright-results
           path: |

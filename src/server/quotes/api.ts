@@ -12,6 +12,7 @@ import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quo
 import { checkBasics, cleanFileName, type Rejection } from '../../lib/quote-limits'
 import { FINISHED, withOptionDefaults } from '../../lib/quote-schema'
 import type { Project } from '../../lib/schema'
+import { PublicError } from '../../lib/server-error'
 import { loadCatalog } from '../catalog'
 import { toProject } from '../projects'
 import { requireQuoteUser, requireUserId } from '../session'
@@ -132,7 +133,7 @@ export const getProjectQuotes = createServerFn({ method: 'GET' })
 async function updateOwn(userId: string, quoteId: string, set: PgUpdateSetSource<typeof quotes>, when?: SQL) {
   const where = and(ownQuote(userId, quoteId), when)
   const rows = await db.update(quotes).set(set).where(where).returning({ id: quotes.id })
-  if (rows.length === 0) throw new Error('Not found')
+  if (rows.length === 0) throw new PublicError('Not found')
 }
 
 export const setQuoteOverride = createServerFn({ method: 'POST' })
@@ -162,7 +163,7 @@ export const setQuoteMust = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const userId = await requireUserId()
     const [p] = await db.select({ id: projects.id }).from(projects).where(ownProject(userId, data.projectId)).limit(1)
-    if (!p) throw new Error('Not found')
+    if (!p) throw new PublicError('Not found')
     const merged = sql`coalesce(${quoteSettings.musts}, '{}'::jsonb) || jsonb_build_object(${data.item}::text, ${data.value}::boolean)`
     await db.insert(quoteSettings)
       .values({ userId, projectId: data.projectId, musts: resolveMusts({ [data.item]: data.value }), updatedAt: new Date() })
@@ -188,7 +189,7 @@ export const retryQuote = createServerFn({ method: 'POST' })
     // Retries are free against the monthly limit, so the cap is checked in the update itself: parallel calls can't pass it.
     // Each one takes a read from the daily budget in the same statement, and a spent budget leaves the quote as it was.
     const refusal = retryRefusal(await retryWithinBudget(access.userId, data.quoteId))
-    if (refusal === 'not_found') throw new Error('Not found')
+    if (refusal === 'not_found') throw new PublicError('Not found')
     if (refusal) return { ok: false, rejection: logSpentBudget(refusal, access.userId, 'retry') }
     kickQuotes([data.quoteId])
     return { ok: true }
@@ -201,7 +202,7 @@ export const deleteQuote = createServerFn({ method: 'POST' })
     const own = ownQuote(userId, data.quoteId)
     // The file is trashed with the row, in one transaction, so a storage failure below leaves it for the sweep.
     const [, rows] = await db.batch([trashQuoteFiles(own), db.delete(quotes).where(own).returning({ path: quotes.blobPathname })])
-    if (rows.length === 0) throw new Error('Not found')
+    if (rows.length === 0) throw new PublicError('Not found')
     await emptyQuoteTrash(rows.map((r) => r.path))
     return { ok: true as const }
   })

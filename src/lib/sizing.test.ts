@@ -658,11 +658,30 @@ describe('engineering checks', () => {
     for (const o of r.batteryOptions) expect(o.hoursActual).toBe(o.runtime.typical)
   })
 
-  test('a start-up no inverter holds long enough is warned about', () => {
-    // Six 5 ton units starting together pull 99 kW, past the 72 kW three 12 kW inverters hold.
+  const surgeWarning = (r: ReturnType<typeof compute>) => r.warnings.find((w) => w.code === 'surgeDuration')?.params
+
+  test('a start-up above every surge rating is warned about, and its length is not blamed', () => {
+    // Six 5 ton units starting together pull 99 kW for 3 s, inside the 10 s window of three 12 kW inverters: the 72 kW
+    // they hold together is what falls short.
     const r = at48({ ac5c: 6 }, { simultaneousStarts: 'all' })
     expect(r.inverter.surgeOk).toBe(false)
-    expect(r.warnings.map((w) => w.code)).toContain('surgeDuration')
+    expect(surgeWarning(r)).toEqual({ surgeW: 99000, seconds: 3, ratedW: 72000, inverterW: 36000, inverters: 3, unitW: 12000, inverterSurgeW: 72000, tooLong: false })
+  })
+
+  test('a start-up within the surge rating that outlasts its window is warned about as too long', () => {
+    // A unit that holds 4 kW for half a second and 2 kW after that: the pump's 3 kW start is within the rating, not the window.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 2000, surge: 4000, volts: [48] as const, surgeSeconds: 0.5 }] }
+    const r = compute({ qty: { well: 1 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    expect(r.inverter).toMatchObject({ headroomOk: true, surgeOk: false })
+    expect(surgeWarning(r)).toEqual({ surgeW: 3000, seconds: 1, ratedW: 2000, inverterW: 2000, inverters: 1, unitW: 2000, inverterSurgeW: 4000, tooLong: true })
+  })
+
+  test('a start-up that is both too long and above the surge rating is blamed on its watts', () => {
+    // The same unit asked for 5 kW: no window would be long enough, because 5 kW is more than it ever holds.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 2000, surge: 4000, volts: [48] as const, surgeSeconds: 0.5 }] }
+    const custom = [{ id: 'x', name: 'Pump', watts: 1000, surge: 5000, note: '' }]
+    const r = compute({ qty: { x: 1 }, custom, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    expect(surgeWarning(r)).toMatchObject({ surgeW: 5000, ratedW: 2000, inverterSurgeW: 4000, tooLong: false })
   })
 
   test('the configured start-up, not the inverter rating, is what the fuse must hold', () => {
