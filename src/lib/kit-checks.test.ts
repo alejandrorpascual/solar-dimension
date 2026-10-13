@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { getDictionary } from '../i18n'
+import { DEFAULT_HARDWARE } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { CHECK_IDS, CHECK_WARNINGS, kitChecks, uncheckedWarnings, warningKey, warningText } from './kit-checks'
 import { compute, type SizingInput } from './sizing'
@@ -82,8 +83,20 @@ describe('kitChecks', () => {
     expect(check.status).toBe('warn')
     expect(check.lines).toHaveLength(3)
     expect(check.lines[0]).toContain('is smaller than the 15,000 W running load and cannot carry it')
-    expect(check.lines[1]).toContain('A 30,000 W start-up')
+    expect(check.lines[1]).toContain("A 30,000 W start-up is more than the 12,000 W inverter's 24,000 W surge rating")
     expect(check.lines[2]).toBe('15.0 kW running + 15.0 kW (Workshop) starting')
+  })
+
+  test('a start-up the inverter cannot hold says why, in both languages: above its surge rating, or within it and too long', () => {
+    // 2 kW running with a 30 kW start, inside the 12 kW inverter's window: the watts are over its 24 kW surge rating.
+    const above = load(2000, {}, 30000)
+    expect(inverter(above, 'en').lines[0]).toBe("A 30,000 W start-up is more than the 12,000 W inverter's 24,000 W surge rating. Choose a bigger inverter or let fewer motors start at once.")
+    expect(inverter(above, 'es').lines[0]).toBe('Un arranque de 30,000 W supera los 24,000 W de arranque del inversor de 12,000 W. Elige un inversor mayor o deja que arranquen menos motores a la vez.')
+    // A unit that holds 4 kW for half a second: the well pump's 3 kW start is within that rating and outlasts its window.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 2000, surge: 4000, volts: [48] as const, surgeSeconds: 0.5 }] }
+    const long = compute({ qty: { well: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    expect(inverter(long, 'en').lines[0]).toBe("A 3,000 W start-up lasting 1 s is longer than the 2,000 W inverter's surge window; it only holds 2,000 W that long. Choose a bigger inverter or let fewer motors start at once.")
+    expect(inverter(long, 'es').lines[0]).toBe('Un arranque de 3,000 W durante 1 s supera la ventana de arranque del inversor de 2,000 W; solo sostiene 2,000 W ese tiempo. Elige un inversor mayor o deja que arranquen menos motores a la vez.')
   })
 
   test('an inverter sold for another voltage is a note beside the checks, and the inverter size check still passes', () => {

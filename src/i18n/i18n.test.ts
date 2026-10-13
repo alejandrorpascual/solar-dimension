@@ -25,7 +25,7 @@ describe('dictionaries', () => {
     }
   })
   test('the engineering-check warnings render their figures in both languages', () => {
-    const p = { surgeW: 9400, seconds: 3, ratedW: 7500, inverterW: 5000, needA: 463, maxA: 540, strings: 9, unitLabel: '12 V 200 Ah AGM', fuseA: 200, surgeA: 309, shortCircuitA: 21600, aicA: 20000, dropPct: 12.5, ambientC: 90 }
+    const p = { surgeW: 9400, seconds: 3, ratedW: 7500, inverterW: 5000, inverterSurgeW: 10000, tooLong: true, needA: 463, maxA: 540, strings: 9, unitLabel: '12 V 200 Ah AGM', fuseA: 200, surgeA: 309, shortCircuitA: 21600, aicA: 20000, dropPct: 12.5, ambientC: 90 }
     for (const d of [en, es]) {
       expect(d.warnings.surgeDuration(p)).toContain('9,400')
       expect(d.warnings.bankDischarge(p)).toContain('463')

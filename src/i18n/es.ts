@@ -135,7 +135,14 @@ export const es: Dictionary = {
         ? `El inversor de ${inverter} W es menor que la carga en marcha de ${running} W y no puede sostenerla. ${advice}`
         : `El inversor de ${inverter} W deja ${p.headroomPct}% de margen sobre la carga en marcha de ${running} W; este kit prevé ${p.needPct}%. ${advice}`
     },
-    surgeDuration: (p) => `Un arranque de ${p.surgeW?.toLocaleString('es-419')} W durante ${p.seconds} s supera la ventana de arranque del inversor de ${p.inverterW?.toLocaleString('es-419')} W; solo sostiene ${p.ratedW?.toLocaleString('es-419')} W ese tiempo. Elige un inversor mayor o deja que arranquen menos motores a la vez.`,
+    surgeDuration: (p) => {
+      const start = `Un arranque de ${p.surgeW?.toLocaleString('es-419')} W`
+      const inverter = `del inversor de ${p.inverterW?.toLocaleString('es-419')} W`
+      const reason = p.tooLong
+        ? `${start} durante ${p.seconds} s supera la ventana de arranque ${inverter}; solo sostiene ${p.ratedW?.toLocaleString('es-419')} W ese tiempo.`
+        : `${start} supera los ${p.inverterSurgeW?.toLocaleString('es-419')} W de arranque ${inverter}.`
+      return `${reason} Elige un inversor mayor o deja que arranquen menos motores a la vez.`
+    },
     bankDischarge: (p) => `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.`,
     bankPeak: (p) => `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; el BMS del banco permite ${p.maxA?.toLocaleString('es-419')} A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.`,
     fuseAboveBank: (p) => `El fusible de ${p.fuseA} A está dimensionado para más de los ${p.maxA?.toLocaleString('es-419')} A que el banco puede entregar, así que cortaría el BMS y no el fusible en una sobrecarga. Elige un banco que entregue más.`,

@@ -244,6 +244,12 @@ export interface WarningParams {
   seconds?: number
   surgeW?: number
   ratedW?: number
+  /**
+   * For a start-up the inverter cannot hold: the most the inverter holds in a surge, and whether the start-up is within
+   * that and fails only because it outlasts the window. When false its watts are over the rating at any length.
+   */
+  inverterSurgeW?: number
+  tooLong?: boolean
   fuseA?: number
   surgeA?: number
   shortCircuitA?: number

@@ -47,7 +47,10 @@ export function buildWarnings(ctx: WarningContext): Warning[] {
     w.push({ code: 'inverterUndersized', params: { inverterW: inv.w, runningW: ctx.runningW, headroomPct: headroomPct(inv.w, ctx.runningW), needPct: HEADROOM_PCT } })
   }
   if (!inv.surgeOk) {
-    w.push({ code: 'surgeDuration', params: { surgeW: ctx.surgeProfile.surgeW, seconds: ctx.surgeProfile.seconds, ratedW: inv.surgeRatedW, inverterW: inv.w } })
+    // Two ways to fail, and the text names the one that applies: the start-up is more than the inverter ever holds in a
+    // surge, or it is within that rating and only outlasts the window the rating is given for.
+    const { surgeW, seconds } = ctx.surgeProfile
+    w.push({ code: 'surgeDuration', params: { surgeW, seconds, ratedW: inv.surgeRatedW, inverterW: inv.w, inverterSurgeW: inv.surge, tooLong: inv.surge >= surgeW } })
   }
   if (b && !b.dischargeOk) {
     w.push({ code: 'bankDischarge', params: { unitLabel: b.unitLabel, needA: Math.round(inv.continuousA), maxA: b.bankContinuousA, strings: b.parallel, maxParallel: b.unit.maxParallel } })

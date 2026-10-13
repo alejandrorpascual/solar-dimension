@@ -135,7 +135,14 @@ export const en: Dictionary = {
         ? `The ${inverter} W inverter is smaller than the ${running} W running load and cannot carry it. ${advice}`
         : `The ${inverter} W inverter leaves ${p.headroomPct}% headroom over the ${running} W running load; this kit plans for ${p.needPct}%. ${advice}`
     },
-    surgeDuration: (p) => `A ${p.surgeW?.toLocaleString('en-US')} W start-up lasting ${p.seconds} s is longer than the ${p.inverterW?.toLocaleString('en-US')} W inverter's surge window; it only holds ${p.ratedW?.toLocaleString('en-US')} W that long. Choose a bigger inverter or let fewer motors start at once.`,
+    surgeDuration: (p) => {
+      const start = `A ${p.surgeW?.toLocaleString('en-US')} W start-up`
+      const inverter = `the ${p.inverterW?.toLocaleString('en-US')} W inverter's`
+      const reason = p.tooLong
+        ? `${start} lasting ${p.seconds} s is longer than ${inverter} surge window; it only holds ${p.ratedW?.toLocaleString('en-US')} W that long.`
+        : `${start} is more than ${inverter} ${p.inverterSurgeW?.toLocaleString('en-US')} W surge rating.`
+      return `${reason} Choose a bigger inverter or let fewer motors start at once.`
+    },
     bankDischarge: (p) => `The inverter draws up to ${p.needA?.toLocaleString('en-US')} A at full load; ${p.strings} × ${p.unitLabel} allows ${p.maxA?.toLocaleString('en-US')} A continuous and its BMS would cut out. Pick a larger unit or a higher voltage.`,
     bankPeak: (p) => `Start-up pulls ${p.needA?.toLocaleString('en-US')} A for ${p.seconds} s; the bank's BMS allows ${p.maxA?.toLocaleString('en-US')} A peak and may shut off. Let fewer motors start at once or add a string.`,
     fuseAboveBank: (p) => `The ${p.fuseA} A fuse is sized for more than the ${p.maxA?.toLocaleString('en-US')} A the bank can deliver, so the BMS, not the fuse, would trip on an overload. Pick a bank that delivers more.`,
