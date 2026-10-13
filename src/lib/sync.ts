@@ -17,3 +17,56 @@ export function applyChanges(base: readonly Project[], changes: { upserts: reado
   const added = changes.upserts.filter((p) => !present.has(p.id) && !gone.has(p.id))
   return [...kept, ...added]
 }
+
+/** How far ahead of the server a device's clock may run and still be believed: the margin Kerberos allows between clocks. */
+export const MAX_CLOCK_LEAD_MS = 5 * 60_000
+
+/**
+ * The stamp the account stores for a save. A stamp further ahead of the server's clock than MAX_CLOCK_LEAD_MS comes
+ * from a wrong clock and is replaced by the server's time: left as it was, the account would refuse every later edit
+ * as older, from that device once its clock is right and from any other. A stamp within the margin is kept as the
+ * device wrote it, so two saves from one device keep their order whichever arrives first.
+ *
+ * The limit of this: saves stamped by a clock that far ahead are ordered by arrival, so an older one that a reload cut
+ * off and that arrives after a newer one replaces it. Stamping edits in the server's time would remove that; the
+ * device's clock is all an edit made without a connection has.
+ */
+export function clampStamp(stamp: number, now: number): number {
+  return stamp > now + MAX_CLOCK_LEAD_MS ? now : stamp
+}
+
+/**
+ * After a save the account refused for some projects because it holds a newer copy (`stale`): those copies replace
+ * the local ones, except where the project was edited again since it was sent (`sent`); that edit is on its way in a
+ * later save and stays on screen until the account answers it.
+ */
+export function adoptStale(projects: readonly Project[], sent: readonly Project[], stale: readonly Project[]): Project[] {
+  const sentById = new Map(sent.map((p) => [p.id, JSON.stringify(p)]))
+  const newer = new Map(stale.map((p) => [p.id, p]))
+  return projects.map((p) => (newer.has(p.id) && sentById.get(p.id) === JSON.stringify(p) ? newer.get(p.id)! : p))
+}
+
+/** Ids of the projects whose save or delete never reached the account. */
+export type Unsent = { upserts: ReadonlySet<string>; deletes: ReadonlySet<string> }
+export const NOTHING_UNSENT: Unsent = { upserts: new Set(), deletes: new Set() }
+export const hasUnsent = (unsent: Unsent): boolean => unsent.upserts.size > 0 || unsent.deletes.size > 0
+
+type Outgoing = { upserts: Project[]; deletes: string[] }
+
+/**
+ * What one save sends: its own change plus whatever failed before it, with every project as it stands in `next`, the
+ * store that save was made from. A project that was edited then and deleted since is only deleted.
+ */
+export function outgoing(next: readonly Project[], change: { upserts: readonly Project[]; deletes: readonly string[] }, unsent: Unsent): Outgoing {
+  const changed = new Set([...change.upserts.map((p) => p.id), ...unsent.upserts])
+  const kept = new Set(next.map((p) => p.id))
+  return {
+    upserts: next.filter((p) => changed.has(p.id)),
+    deletes: [...new Set([...change.deletes, ...unsent.deletes])].filter((id) => !kept.has(id)),
+  }
+}
+
+/** A save that failed, as what the next one must carry. */
+export function unsentOf(sent: Outgoing): Unsent {
+  return { upserts: new Set(sent.upserts.map((p) => p.id)), deletes: new Set(sent.deletes) }
+}
