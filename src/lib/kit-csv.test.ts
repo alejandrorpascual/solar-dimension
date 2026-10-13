@@ -44,7 +44,7 @@ describe('csvFor', () => {
     expect(block).toContain('Note,Electric water heater usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.')
     expect(block).toContain('Note,"12,000 W inverters are normally built for 48 V. Change the battery voltage or trim the load."')
     expect(block.some((l) => l.startsWith('Cable,') && l.includes('is hard to wire safely'))).toBe(true)
-    expect(block.some((l) => l.startsWith('Inverter,'))).toBe(true)
+    expect(block.some((l) => l.startsWith('Inverter size,'))).toBe(true)
     const bare = csvFor(stress, [], { appliances: false, parts: false }, es)
     expect(bare).toContain('Revisar,Nota')
     expect(bare).toContain('Nota,Calentador de agua eléctrico normalmente funciona a 240 V.')
