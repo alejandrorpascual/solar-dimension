@@ -35,6 +35,22 @@ export function initialStore(): Store {
   return { version: 1, projects: [p], currentId: p.id }
 }
 
+/**
+ * Work done signed out, on its way into an account. Every browser's first project has the same id, so an edited one
+ * would replace the account's own first project when it is saved there; it takes a new id and is added beside it. One
+ * that was never edited keeps its id and its stamp of 0, which no saved copy is older than.
+ */
+export function rekeyEditedSeed(store: Store): Store {
+  const seed = store.projects.find((p) => p.id === SEED_ID)
+  if (!seed || seed.updatedAt === 0) return store
+  const id = nextId(store.projects)
+  return {
+    ...store,
+    projects: store.projects.map((p) => (p === seed ? { ...p, id } : p)),
+    currentId: store.currentId === SEED_ID ? id : store.currentId,
+  }
+}
+
 export function currentProject(store: Store): Project {
   return store.projects.find((p) => p.id === store.currentId) ?? store.projects[0]!
 }

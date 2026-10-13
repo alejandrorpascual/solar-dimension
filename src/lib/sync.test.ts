@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { addProject, currentProject, initialStore, patchCurrent } from './store'
-import { adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, MAX_CLOCK_LEAD_MS, NOTHING_UNSENT, outgoing, unsentOf } from './sync'
+import { adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing, unsentOf } from './sync'
 
 test('reports new and changed projects as upserts and missing ones as deletes', () => {
   const a = initialStore()
@@ -112,4 +112,25 @@ test('a save that failed is what the next one must carry', () => {
   expect(hasUnsent(unsentOf({ upserts: [], deletes: ['c'] }))).toBe(true)
   expect(hasUnsent(NOTHING_UNSENT)).toBe(false)
   expect(ids(outgoing([project('a'), project('b')], { upserts: [], deletes: [] }, failed).upserts)).toEqual(['a', 'b'])
+})
+
+test('newestById keeps one copy of each project, the one stamped latest', () => {
+  const [home] = initialStore().projects
+  const older = { ...home!, id: 'a', hours: 4, updatedAt: 10 }
+  const newer = { ...home!, id: 'a', hours: 8, updatedAt: 20 }
+  const other = { ...home!, id: 'b', updatedAt: 5 }
+
+  expect(newestById([older, other, newer])).toEqual([newer, other])
+  expect(newestById([newer, other, older])).toEqual([newer, other])
+  expect(newestById([older, { ...older, hours: 6 }]).map((p) => p.hours)).toEqual([6])
+  expect(newestById([])).toEqual([])
+})
+
+test('an import stores a never-edited first project only for an account that has no project yet', () => {
+  const untouched = { ...seed!, updatedAt: 0 }
+  const edited = { ...seed!, id: 'edited', updatedAt: 5 }
+
+  expect(importable([untouched, edited], false)).toEqual([untouched, edited])
+  expect(importable([untouched, edited], true)).toEqual([edited])
+  expect(importable([untouched], true)).toEqual([])
 })

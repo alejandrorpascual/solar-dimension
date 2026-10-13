@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { clearPendingSave, hasPendingSave, loadStore, markPendingSave, saveStore, SYNCED_KEY } from '../lib/persistence'
+import { localCopyPlan } from '../lib/local-copy'
+import {
+  clearPendingSave, clearUnsent, hasPendingSave, loadOwner, loadStore, loadUnsent, markPendingSave, releaseAccountCopy, saveOwner, saveStore,
+} from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
-import { currentProject, initialStore } from '../lib/store'
-import { adoptStale, applyChanges, diffProjects, hasUnsent, NOTHING_UNSENT, outgoing, unsentOf, type Unsent } from '../lib/sync'
+import { currentProject, initialStore, rekeyEditedSeed } from '../lib/store'
+import { adoptStale, applyChanges, diffProjects, hasUnsent, newestById, NOTHING_UNSENT, outgoing, unsentOf, type Unsent } from '../lib/sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
 import { useRootData } from './useRootData'
 
@@ -12,8 +15,39 @@ function fromServer(list: Project[], prev: Store): Store {
   return { version: 1, projects, currentId }
 }
 
+/**
+ * The projects this page starts from, for the account `account` (null: nobody is signed in), and whether they must be
+ * sent before the account's own list is read.
+ *
+ * Projects that belong to an account other than the one signed in leave the browser before anything is shown. Work
+ * done signed out becomes the account's, and so does what a session's end set aside for it; either way the copy is
+ * marked as the account's with all of it still to send, so a load that fails does not leave it behind as work done
+ * signed out for the next account to take.
+ */
+function startingCopy(account: string | null): { local: Store; mustPush: boolean } {
+  // The owner first: reading it takes over a marker left by an earlier release, which sets the pending marker.
+  const owner = loadOwner()
+  const plan = localCopyPlan(account, owner, hasPendingSave())
+  if (plan === 'release') releaseAccountCopy()
+  // After a release nothing is read back: if storage refused the removal, the copy must still not be shown.
+  const stored = plan === 'release' ? initialStore() : loadStore() ?? initialStore()
+  if (!account) return { local: stored, mustPush: false }
+  const isOwn = plan === 'pull' || plan === 'push'
+  const setAside = loadUnsent(account)
+  const mine = isOwn ? stored : rekeyEditedSeed(stored)
+  const local = setAside.length ? { ...mine, projects: newestById([...setAside, ...mine.projects]) } : mine
+  const mustPush = plan !== 'pull' || setAside.length > 0
+  if (mustPush) {
+    saveStore(local)
+    saveOwner(account)
+    markPendingSave()
+  }
+  return { local, mustPush }
+}
+
 export function useProjectStore() {
   const { user } = useRootData()
+  const account = user?.id ?? null
   const [store, setStore] = useState<Store>(initialStore)
   const [syncing, setSyncing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -22,13 +56,16 @@ export function useProjectStore() {
   latest.current = store
   /**
    * Shows a store and keeps it in this browser. `latest` moves at once, not at the next render: a request that is
-   * answered before React renders again must still read what the user last did.
+   * answered before React renders again must still read what the user last did. Signed in, the copy is marked as the
+   * account's on every write, not only at load: another tab may have signed out and released it meanwhile, and what
+   * this page writes back must not read as work done signed out.
    */
   const show = useCallback((next: Store) => {
     latest.current = next
     setStore(next)
+    if (account) saveOwner(account)
     saveStore(next)
-  }, [])
+  }, [account])
   const inFlight = useRef(0)
   /** True once this mount's first sync with the account worked; until then nothing here knows what the account holds. */
   const loaded = useRef(false)
@@ -54,23 +91,20 @@ export function useProjectStore() {
   }, [])
 
   useEffect(() => {
-    const local = loadStore() ?? initialStore()
+    const { local, mustPush } = startingCopy(account)
     latest.current = local
     setStore(local)
     loaded.current = false
     unsent.current = NOTHING_UNSENT
-    if (!user) return
+    if (!account) return
     let cancelled = false
     setSyncing(true)
-    const alreadySynced = safeGet(SYNCED_KEY) === user.id
-    // Push local state first on the very first sync for this account, or when a save never reached it (it failed, or
-    // a reload or navigation cut it off); otherwise the server copy is the source of truth.
-    const pushLocal = !alreadySynced || hasPendingSave()
-    enqueue(() => (pushLocal ? importProjects({ data: { projects: local.projects } }) : listProjects()))
+    // Unless something here still has to reach the account, the server copy is the source of truth.
+    enqueue(() => (mustPush ? importProjects({ data: { account, projects: local.projects } }) : listProjects()))
       .then((list) => {
         if (cancelled) return
         loaded.current = true
-        safeSet(SYNCED_KEY, user.id)
+        clearUnsent(account)
         if (inFlight.current === 0) clearPendingSave()
         // Edits made while the load was in flight are already queued behind it; keep them visible.
         show(fromServer(applyChanges(list, diffProjects(local.projects, latest.current.projects)), latest.current))
@@ -83,12 +117,12 @@ export function useProjectStore() {
       })
       .finally(() => { if (!cancelled) setSyncing(false) })
     return () => { cancelled = true }
-  }, [user?.id, enqueue, show])
+  }, [account, enqueue, show])
 
   const commit = useCallback((next: Store) => {
     const prev = latest.current
     show(next)
-    if (!user) return
+    if (!account) return
     const { upserts, deletes } = diffProjects(prev.projects, next.projects)
     if (upserts.length === 0 && deletes.length === 0) return
     inFlight.current += 1
@@ -100,8 +134,8 @@ export function useProjectStore() {
       const sending = outgoing(next.projects, { upserts, deletes }, unsent.current)
       try {
         const [saved] = await Promise.all([
-          sending.upserts.length ? saveProjects({ data: { projects: sending.upserts } }) : null,
-          sending.deletes.length ? deleteProjects({ data: { ids: sending.deletes } }) : null,
+          sending.upserts.length ? saveProjects({ data: { account, projects: sending.upserts } }) : null,
+          sending.deletes.length ? deleteProjects({ data: { account, ids: sending.deletes } }) : null,
         ])
         unsent.current = NOTHING_UNSENT
         return { sent: sending.upserts, stale: saved?.stale ?? [] }
@@ -130,10 +164,7 @@ export function useProjectStore() {
         // What that load sends is projects: one deleted here whose delete never arrived is back after it.
         if (isClean()) clearPendingSave()
       })
-  }, [user?.id, enqueue, isClean, show])
+  }, [account, enqueue, isClean, show])
 
   return { store, project: currentProject(store), commit, syncing, saving, syncError }
 }
-
-function safeGet(key: string): string | null { try { return localStorage.getItem(key) } catch { return null } }
-function safeSet(key: string, v: string): void { try { localStorage.setItem(key, v) } catch { /* ignore */ } }

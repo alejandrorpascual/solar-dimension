@@ -1,17 +1,21 @@
 import { afterAll, afterEach, beforeEach, expect, test, vi, type MockInstance } from 'vitest'
-import { PENDING_KEY } from '../lib/persistence'
+import { LEGACY_SYNCED_KEY, OWNER_KEY, PENDING_KEY, STORAGE_KEY, UNSENT_KEY_PREFIX, releaseAccountCopy } from '../lib/persistence'
 import type { Project } from '../lib/schema'
-import { addProject, deleteProject, patchCurrent, selectProject, setQty } from '../lib/store'
-import { accounts, clock, net, resetServer, session } from './fake-account-server'
+import { addProject, deleteProject, initialStore, patchCurrent, selectProject, setQty } from '../lib/store'
+import { accounts, clock, net, resetServer, session, tab } from './fake-account-server'
 import { edit, fakeStorage, mount, names, openBrowser, storedStore, unmount, type FakeStorage } from './project-store-harness'
 
 vi.mock('../server/projects', () => import('./fake-account-server'))
 vi.mock('./useRootData', async () => {
   const server = await import('./fake-account-server')
-  return { useRootData: () => ({ user: server.session.user }) }
+  return { useRootData: () => ({ user: server.pageUser() }) }
 })
 
 const ANA = { id: 'user-ana' }
+const BEA = { id: 'user-bea' }
+const DAY_MS = 86_400_000
+/** A client of Ana's: the details that must not reach another person's screen or account. */
+const CLIENT = { kind: 'person', country: 'US', name: 'Carlos Lopez', contact: '', docPrefix: '', doc: '18456789', phone: '555-0100', email: '', address: '1 Secret St' } as const
 const HOUR_MS = 3_600_000
 
 let browser: FakeStorage
@@ -254,4 +258,329 @@ test('a save answered after its page was left writes nothing over the page that 
 
   expect(names(account(ANA))).toEqual(['Home', 'Made on the new page'])
   expect(browser.getItem(PENDING_KEY)).toBeNull()
+})
+
+/** Everything this browser stores, as one string: what a person at the keyboard could read out of it. */
+const everythingStored = (): string => browser.keys().map((key) => `${key}=${browser.getItem(key)}`).join('\n')
+/** Ana signed in on this browser, with a client's project saved to her account. */
+async function anaWithClient(): Promise<void> {
+  session.user = ANA
+  await mount()
+  await edit((h) => h.commit(addProject(h.store, 'Clinic for Lopez')))
+  await edit((h) => h.commit(patchCurrent(h.store, { requester: CLIENT })))
+}
+/** Bea's account as she left it on her own device: her first project, edited yesterday. */
+function beaHasHerOwnHome(): void {
+  accounts.set(BEA.id, [{ ...initialStore().projects[0]!, name: 'Bea house', hours: 6, updatedAt: clock.now() - DAY_MS }])
+}
+
+test("signing out takes the account's projects off the browser, and the next account receives none of them", async () => {
+  beaHasHerOwnHome()
+  await anaWithClient()
+
+  releaseAccountCopy()
+  session.user = null
+  const signedOut = await mount()
+
+  expect(names(signedOut.store.projects)).toEqual(['Home'])
+  expect(everythingStored()).not.toMatch(/Lopez|18456789|Secret St/)
+
+  session.user = BEA
+  net.calls = []
+  const bea = await mount()
+
+  expect(account(BEA).map((p) => [p.id, p.name, p.hours])).toEqual([['p1', 'Bea house', 6]])
+  expect(names(bea.store.projects)).toEqual(['Bea house'])
+  expect(browser.getItem(OWNER_KEY)).toBe(BEA.id)
+  expect(names(account(ANA))).toEqual(['Home', 'Clinic for Lopez'])
+})
+
+test('a session that ended without a sign-out is treated as one at the next page load', async () => {
+  beaHasHerOwnHome()
+  await anaWithClient()
+
+  session.user = null
+  const expired = await mount()
+
+  expect(names(expired.store.projects)).toEqual(['Home'])
+  expect(everythingStored()).not.toMatch(/Lopez|18456789|Secret St/)
+  expect(net.calls.at(-1)).toBe('save')
+
+  session.user = BEA
+  await mount()
+
+  expect(account(BEA).map((p) => [p.id, p.name, p.hours])).toEqual([['p1', 'Bea house', 6]])
+})
+
+test("an account that signs in over another account's copy receives none of it", async () => {
+  beaHasHerOwnHome()
+  await anaWithClient()
+
+  session.user = BEA
+  const bea = await mount()
+
+  expect(account(BEA).map((p) => [p.id, p.name, p.hours])).toEqual([['p1', 'Bea house', 6]])
+  expect(names(bea.store.projects)).toEqual(['Bea house'])
+  expect(everythingStored()).not.toMatch(/Lopez|18456789|Secret St/)
+})
+
+test('what never reached the account is set aside when its session ends, shown to nobody, and sent at its next sign-in', async () => {
+  await anaWithClient()
+  net.offline = true
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 24 })))
+  expect(byName(account(ANA), 'Clinic for Lopez').hours).toBe(10)
+
+  net.offline = false
+  session.user = null
+  const expired = await mount()
+
+  expect(names(expired.store.projects)).toEqual(['Home'])
+  expect(browser.getItem(STORAGE_KEY) ?? '').not.toMatch(/Lopez/)
+  expect(browser.getItem(`${UNSENT_KEY_PREFIX}${ANA.id}`)).toMatch(/Lopez/)
+
+  session.user = BEA
+  const bea = await mount()
+  expect(names(account(BEA))).toEqual(['Home'])
+  expect(names(bea.store.projects)).toEqual(['Home'])
+
+  releaseAccountCopy()
+  session.user = ANA
+  const back = await mount()
+
+  expect(byName(account(ANA), 'Clinic for Lopez').hours).toBe(24)
+  expect(names(back.store.projects)).toEqual(['Home', 'Clinic for Lopez'])
+  expect(browser.getItem(`${UNSENT_KEY_PREFIX}${ANA.id}`)).toBeNull()
+  expect(back.syncError).toBe(false)
+})
+
+test('what was set aside stays set aside while the sign-in that would send it cannot reach the account', async () => {
+  await anaWithClient()
+  net.offline = true
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 24 })))
+  session.user = null
+  await mount()
+
+  session.user = ANA
+  const offline = await mount()
+
+  expect(offline.syncError).toBe(true)
+  expect(browser.getItem(`${UNSENT_KEY_PREFIX}${ANA.id}`)).toMatch(/Lopez/)
+
+  net.offline = false
+  await mount()
+
+  expect(byName(account(ANA), 'Clinic for Lopez').hours).toBe(24)
+  expect(browser.getItem(`${UNSENT_KEY_PREFIX}${ANA.id}`)).toBeNull()
+})
+
+test("work done signed out becomes the account's at a first sign-in", async () => {
+  await mount()
+  await edit((h) => h.commit(addProject(h.store, 'Tried before signing up')))
+
+  session.user = ANA
+  const signedIn = await mount()
+
+  expect(names(account(ANA))).toEqual(['Home', 'Tried before signing up'])
+  expect(names(signedIn.store.projects)).toEqual(['Home', 'Tried before signing up'])
+  expect(browser.getItem(OWNER_KEY)).toBe(ANA.id)
+  expect(browser.getItem(PENDING_KEY)).toBeNull()
+})
+
+test("a first project edited signed out is added beside the account's own first project, not over it", async () => {
+  accounts.set(ANA.id, [{ ...initialStore().projects[0]!, name: 'Ana house', hours: 6, updatedAt: clock.now() - DAY_MS }])
+  await mount()
+  await edit((h) => h.commit(patchCurrent(h.store, { name: 'Trial', hours: 24 })))
+
+  session.user = ANA
+  const signedIn = await mount()
+
+  expect(account(ANA).map((p) => [p.name, p.hours])).toEqual([['Ana house', 6], ['Trial', 24]])
+  expect(names(signedIn.store.projects)).toEqual(['Ana house', 'Trial'])
+  expect(signedIn.project.name).toBe('Trial')
+})
+
+test("an edit from a tab left open after another tab signed out is still the account's, and leaves with it", async () => {
+  await anaWithClient()
+  // Another tab signs out. This one still shows Ana's projects, and its saves no longer reach the account.
+  releaseAccountCopy()
+  net.offline = true
+
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 24 })))
+
+  expect(browser.getItem(OWNER_KEY)).toBe(ANA.id)
+  expect(browser.getItem(PENDING_KEY)).toBe('1')
+
+  net.offline = false
+  session.user = null
+  const reloaded = await mount()
+
+  expect(names(reloaded.store.projects)).toEqual(['Home'])
+  expect(browser.getItem(STORAGE_KEY) ?? '').not.toMatch(/Lopez/)
+  expect(browser.getItem(`${UNSENT_KEY_PREFIX}${ANA.id}`)).toMatch(/Lopez/)
+})
+
+test('an account whose first project took a new id gets no empty Home at its next sign-in', async () => {
+  await mount()
+  await edit((h) => h.commit(setQty(h.store, 'fridge', 2)))
+  session.user = ANA
+  await mount()
+  expect(account(ANA).map((p) => [p.name, p.qty.fridge])).toEqual([['Home', 2]])
+
+  releaseAccountCopy()
+  session.user = null
+  await mount()
+  session.user = ANA
+  const back = await mount()
+
+  expect(account(ANA).map((p) => [p.name, p.qty.fridge])).toEqual([['Home', 2]])
+  expect(back.store.projects).toHaveLength(1)
+  expect(back.project.qty.fridge).toBe(2)
+})
+
+test('an account that deleted its first project does not get it back from a fresh browser', async () => {
+  accounts.set(ANA.id, [{ ...initialStore().projects[0]!, id: 'b0b0b0b0-0000-4000-8000-000000000001', name: 'Real project', updatedAt: clock.now() - DAY_MS }])
+
+  session.user = ANA
+  const signedIn = await mount()
+
+  expect(names(account(ANA))).toEqual(['Real project'])
+  expect(names(signedIn.store.projects)).toEqual(['Real project'])
+  expect(signedIn.project.name).toBe('Real project')
+})
+
+test('a new account that never edited anything still gets its first project, so quotes have a project to hang on', async () => {
+  session.user = ANA
+  const signedIn = await mount()
+
+  expect(account(ANA).map((p) => [p.id, p.name])).toEqual([['p1', 'Home']])
+  expect(signedIn.project.id).toBe('p1')
+})
+
+test('two devices that each built a kit in the first project while signed out both keep theirs after signing in', async () => {
+  const laptop = browser
+  const phone = fakeStorage()
+  await mount()
+  await edit((h) => h.commit(patchCurrent(h.store, { name: 'Farm house', hours: 24 })))
+  openBrowser(phone)
+  await mount()
+  await edit((h) => h.commit(patchCurrent(h.store, { name: 'Flat in town', hours: 4 })))
+
+  session.user = ANA
+  openBrowser(laptop)
+  await mount()
+  openBrowser(phone)
+  await mount()
+  openBrowser(laptop)
+  const laptopAgain = await mount()
+
+  expect(account(ANA).map((p) => [p.name, p.hours])).toEqual([['Farm house', 24], ['Flat in town', 4]])
+  expect(names(laptopAgain.store.projects)).toEqual(['Farm house', 'Flat in town'])
+})
+
+test('a second session end keeps what the first one set aside', async () => {
+  await anaWithClient()
+  net.offline = true
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 24 })))
+  session.user = null
+  await mount()
+  // Ana signs in while the account still cannot be reached, then her session ends again.
+  session.user = ANA
+  const offline = await mount()
+  expect(names(offline.store.projects)).toEqual(['Home', 'Clinic for Lopez'])
+  session.user = null
+  await mount()
+
+  net.offline = false
+  session.user = ANA
+  const back = await mount()
+
+  expect(byName(account(ANA), 'Clinic for Lopez').hours).toBe(24)
+  expect(names(back.store.projects)).toEqual(['Home', 'Clinic for Lopez'])
+  expect(browser.getItem(`${UNSENT_KEY_PREFIX}${ANA.id}`)).toBeNull()
+})
+
+/** A browser as the release before this one left it: Ana's projects, edited after she signed out, and its marker. */
+async function browserLeftByEarlierRelease(): Promise<void> {
+  await anaWithClient()
+  browser.setItem(LEGACY_SYNCED_KEY, ANA.id)
+  browser.removeItem(OWNER_KEY)
+  const store = storedStore(browser)!
+  const edited = { ...store, projects: store.projects.map((p) => (p.name === 'Clinic for Lopez' ? { ...p, hours: 24, updatedAt: clock.now() + 1 } : p)) }
+  browser.setItem(STORAGE_KEY, JSON.stringify(edited))
+  await unmount()
+}
+
+test('signed out on a browser an earlier release left, the account\'s projects leave the screen and are kept for it', async () => {
+  await browserLeftByEarlierRelease()
+
+  session.user = null
+  const signedOut = await mount()
+
+  expect(names(signedOut.store.projects)).toEqual(['Home'])
+  expect(browser.getItem(STORAGE_KEY) ?? '').not.toMatch(/Lopez/)
+  expect(browser.getItem(LEGACY_SYNCED_KEY)).toBeNull()
+
+  session.user = ANA
+  await mount()
+
+  expect(byName(account(ANA), 'Clinic for Lopez').hours).toBe(24)
+})
+
+test('signed in on a browser an earlier release left, edits made while signed out reach the account', async () => {
+  await browserLeftByEarlierRelease()
+  net.calls = []
+
+  session.user = ANA
+  const signedIn = await mount()
+
+  expect(net.calls).toEqual(['import'])
+  expect(byName(account(ANA), 'Clinic for Lopez').hours).toBe(24)
+  expect(byName(signedIn.store.projects, 'Clinic for Lopez').hours).toBe(24)
+  expect(browser.getItem(OWNER_KEY)).toBe(ANA.id)
+  expect(browser.getItem(PENDING_KEY)).toBeNull()
+})
+
+test("a tab left open across a sign-out and another account's sign-in cannot save into that account", async () => {
+  beaHasHerOwnHome()
+  await anaWithClient()
+  // Another tab: Ana signs out and Bea signs in. This tab still shows Ana's projects and still believes it is hers.
+  tab.user = ANA
+  session.user = BEA
+
+  const stale = await edit((h) => h.commit(setQty(selectProject(h.store, 'p1'), 'tv', 3)))
+
+  expect(account(BEA).map((p) => [p.id, p.name, p.hours])).toEqual([['p1', 'Bea house', 6]])
+  expect(stale.syncError).toBe(true)
+  expect(browser.getItem(PENDING_KEY)).toBe('1')
+
+  // The tab is loaded again, now for Bea: Ana's copy leaves, with her unsent edit set aside for her.
+  delete tab.user
+  const bea = await mount()
+
+  expect(names(bea.store.projects)).toEqual(['Bea house'])
+  expect(account(BEA).map((p) => [p.id, p.name, p.hours])).toEqual([['p1', 'Bea house', 6]])
+  expect(browser.getItem(`${UNSENT_KEY_PREFIX}${ANA.id}`)).toMatch(/Lopez/)
+})
+
+test("a save answered after another tab released the copy writes it back as the account's, not as anybody's work", async () => {
+  await anaWithClient()
+  accounts.set(ANA.id, account(ANA).map((p) => ({ ...p, updatedAt: clock.now() + HOUR_MS })))
+  let answer!: () => void
+  net.gate = new Promise<void>((resolve) => { answer = resolve })
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 5 })))
+
+  // Another tab signs out while this tab's save, which the account will refuse as older, is in flight.
+  releaseAccountCopy()
+  net.gate = null
+  answer()
+  await edit(() => undefined)
+
+  expect(browser.getItem(STORAGE_KEY)).toMatch(/Lopez/)
+  expect(browser.getItem(OWNER_KEY)).toBe(ANA.id)
+
+  session.user = null
+  const signedOut = await mount()
+
+  expect(names(signedOut.store.projects)).toEqual(['Home'])
+  expect(browser.getItem(STORAGE_KEY) ?? '').not.toMatch(/Lopez/)
 })

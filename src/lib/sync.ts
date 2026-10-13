@@ -70,3 +70,22 @@ export function outgoing(next: readonly Project[], change: { upserts: readonly P
 export function unsentOf(sent: Outgoing): Unsent {
   return { upserts: new Set(sent.upserts.map((p) => p.id)), deletes: new Set(sent.deletes) }
 }
+
+/** One copy per project id, the one stamped latest (the later in the list on a tie), in the order ids first appear. */
+export function newestById(projects: readonly Project[]): Project[] {
+  const newest = new Map<string, Project>()
+  for (const p of projects) {
+    const seen = newest.get(p.id)
+    if (!seen || p.updatedAt >= seen.updatedAt) newest.set(p.id, p)
+  }
+  return [...newest.values()]
+}
+
+/**
+ * What an import writes. Every browser starts with the same first project, stamped 0 until it is edited. One that was
+ * never edited is nobody's work: it is stored only for an account that has no project yet, so a new account still
+ * gets its first project. Sent to an account that has projects, it would add an empty one at every sign-in.
+ */
+export function importable(incoming: readonly Project[], accountHasProjects: boolean): Project[] {
+  return accountHasProjects ? incoming.filter((p) => p.updatedAt > 0) : [...incoming]
+}

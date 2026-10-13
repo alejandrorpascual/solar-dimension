@@ -1,11 +1,12 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import {
-  CLIENTS_KEY_PREFIX, DRAFT_KEY, PENDING_KEY, REQUESTER_KEY, STORAGE_KEY, clearPendingSave, clearRequesterDraft, hasPendingSave,
-  loadRequesterDraft, loadSavedClients, loadStore, markPendingSave, saveRequesterDraft, saveSavedClients, saveStore,
+  CLIENTS_KEY_PREFIX, DRAFT_KEY, LEGACY_SYNCED_KEY, OWNER_KEY, PENDING_KEY, REQUESTER_KEY, STORAGE_KEY, UNSENT_KEY_PREFIX, clearPendingSave,
+  clearRequesterDraft, clearUnsent, hasPendingSave, loadOwner, loadRequesterDraft, loadSavedClients, loadStore, loadUnsent, markPendingSave,
+  releaseAccountCopy, saveOwner, saveRequesterDraft, saveSavedClients, saveStore,
 } from './persistence'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { compute } from './sizing'
-import { initialStore } from './store'
+import { addProject, initialStore, patchProject } from './store'
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = { ...initial }
@@ -149,4 +150,146 @@ test('blocked or missing storage never throws', () => {
   expect(() => clearRequesterDraft({ owner: null, projectId: 'p1', target: 'new' }, throwing)).not.toThrow()
   expect(loadSavedClients(null, null)).toEqual([])
   expect(loadRequesterDraft(null)).toBeNull()
+})
+
+const ANA = 'user-ana'
+const BEA = 'user-bea'
+const anaStore = () => addProject(initialStore(), 'Clinic')
+/** A browser holding Ana's projects, as her account left them. */
+function anaBrowser(extra: Record<string, string> = {}) {
+  return removableStorage({ [STORAGE_KEY]: JSON.stringify(anaStore()), [OWNER_KEY]: ANA, ...extra })
+}
+
+test('the owner of the projects is the account that was marked, and nobody before that', () => {
+  const storage = removableStorage()
+  expect(loadOwner(storage)).toBeNull()
+
+  saveOwner(ANA, storage)
+
+  expect(loadOwner(storage)).toBe(ANA)
+  expect(loadOwner(null)).toBeNull()
+})
+
+test("releasing takes an account's projects, its marker and the pending marker off the browser", () => {
+  const storage = anaBrowser()
+
+  releaseAccountCopy(storage)
+
+  expect(Object.keys(storage.data)).toEqual([])
+  expect(loadStore(storage)).toBeNull()
+  expect(loadOwner(storage)).toBeNull()
+})
+
+test('releasing sets aside what never reached the account, for that account only', () => {
+  const storage = anaBrowser({ [PENDING_KEY]: '1' })
+
+  releaseAccountCopy(storage)
+
+  expect(Object.keys(storage.data)).toEqual([`${UNSENT_KEY_PREFIX}${ANA}`])
+  expect(loadUnsent(ANA, storage).map((p) => p.name)).toEqual(['Home', 'Clinic'])
+  expect(loadUnsent(BEA, storage)).toEqual([])
+})
+
+test('work done signed out is nobody\'s to release', () => {
+  const storage = removableStorage({ [STORAGE_KEY]: JSON.stringify(anaStore()), [PENDING_KEY]: '1' })
+
+  releaseAccountCopy(storage)
+
+  expect(loadStore(storage)?.projects.map((p) => p.name)).toEqual(['Home', 'Clinic'])
+  expect(Object.keys(storage.data).sort()).toEqual([PENDING_KEY, STORAGE_KEY].sort())
+})
+
+test('what was set aside is gone once cleared, and unreadable entries read as none', () => {
+  const storage = anaBrowser({ [PENDING_KEY]: '1', [`${UNSENT_KEY_PREFIX}${BEA}`]: '{not json' })
+  releaseAccountCopy(storage)
+
+  clearUnsent(ANA, storage)
+
+  expect(loadUnsent(ANA, storage)).toEqual([])
+  expect(loadUnsent(BEA, storage)).toEqual([])
+  expect(loadUnsent(ANA, null)).toEqual([])
+})
+
+test('releasing and the owner marker swallow storage errors', () => {
+  const broken = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') }, removeItem: () => { throw new Error('blocked') } }
+
+  expect(() => releaseAccountCopy(broken)).not.toThrow()
+  expect(() => releaseAccountCopy(null)).not.toThrow()
+  expect(() => saveOwner(ANA, broken)).not.toThrow()
+  expect(() => saveOwner(ANA, null)).not.toThrow()
+  expect(loadOwner(broken)).toBeNull()
+  expect(loadUnsent(ANA, broken)).toEqual([])
+  expect(() => clearUnsent(ANA, broken)).not.toThrow()
+  expect(() => clearUnsent(ANA, null)).not.toThrow()
+})
+
+test('a marker left by an earlier release is taken over: the copy is that account\'s, with all of it still to send', () => {
+  const storage = removableStorage({ [STORAGE_KEY]: JSON.stringify(anaStore()), [LEGACY_SYNCED_KEY]: ANA })
+
+  expect(loadOwner(storage)).toBe(ANA)
+
+  expect(storage.data[OWNER_KEY]).toBe(ANA)
+  expect(hasPendingSave(storage)).toBe(true)
+  expect(LEGACY_SYNCED_KEY in storage.data).toBe(false)
+  expect(loadOwner(storage)).toBe(ANA)
+})
+
+test('releasing a copy left by an earlier release sets it aside, although that release never marked it', () => {
+  const storage = removableStorage({ [STORAGE_KEY]: JSON.stringify(anaStore()), [LEGACY_SYNCED_KEY]: ANA })
+
+  releaseAccountCopy(storage)
+
+  expect(Object.keys(storage.data)).toEqual([`${UNSENT_KEY_PREFIX}${ANA}`])
+  expect(loadUnsent(ANA, storage).map((p) => p.name)).toEqual(['Home', 'Clinic'])
+})
+
+test('releasing adds to what was already set aside for the account, the newer copy of each project', () => {
+  const earlier = patchProject(anaStore(), 'p1', { hours: 24 })
+  const now = addProject(initialStore(), 'Workshop')
+  const storage = removableStorage({
+    [STORAGE_KEY]: JSON.stringify(now), [OWNER_KEY]: ANA, [PENDING_KEY]: '1', [`${UNSENT_KEY_PREFIX}${ANA}`]: JSON.stringify(earlier),
+  })
+
+  releaseAccountCopy(storage)
+
+  const setAside = loadUnsent(ANA, storage)
+  expect(setAside.map((p) => p.name).sort()).toEqual(['Clinic', 'Home', 'Workshop'])
+  // The earlier Home was edited; the one in the copy released now was never touched.
+  expect(setAside.find((p) => p.id === 'p1')?.hours).toBe(24)
+})
+
+test('a copy the schema no longer reads is set aside as it is, but never over one that reads', () => {
+  const unreadable = JSON.stringify({ version: 1, projects: [{ id: 'x' }], currentId: 'x' })
+  const alone = removableStorage({ [STORAGE_KEY]: unreadable, [OWNER_KEY]: ANA, [PENDING_KEY]: '1' })
+  const besideEarlier = removableStorage({
+    [STORAGE_KEY]: unreadable, [OWNER_KEY]: ANA, [PENDING_KEY]: '1', [`${UNSENT_KEY_PREFIX}${ANA}`]: JSON.stringify(anaStore()),
+  })
+
+  releaseAccountCopy(alone)
+  releaseAccountCopy(besideEarlier)
+
+  expect(alone.data[`${UNSENT_KEY_PREFIX}${ANA}`]).toBe(unreadable)
+  expect(loadUnsent(ANA, besideEarlier).map((p) => p.name)).toEqual(['Home', 'Clinic'])
+  expect(STORAGE_KEY in alone.data || STORAGE_KEY in besideEarlier.data).toBe(false)
+})
+
+test('when storage is too full to set the unsent projects aside, they still leave the browser, and it is logged', () => {
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+  const storage = anaBrowser({ [PENDING_KEY]: '1' })
+  const full = { ...storage, setItem: () => { throw new Error('QuotaExceededError') } }
+
+  releaseAccountCopy(full)
+
+  expect(Object.keys(storage.data)).toEqual([])
+  expect(logged).toHaveBeenCalledWith('[projects] unsent projects could not be set aside and are lost', expect.anything())
+  logged.mockRestore()
+})
+
+test('a removal that storage refuses does not stop the others', () => {
+  const storage = anaBrowser({ [PENDING_KEY]: '1' })
+  const stubborn = { ...storage, removeItem: (key: string) => { if (key === STORAGE_KEY) throw new Error('blocked'); storage.removeItem(key) } }
+
+  expect(() => releaseAccountCopy(stubborn)).not.toThrow()
+
+  expect(OWNER_KEY in storage.data || PENDING_KEY in storage.data).toBe(false)
 })

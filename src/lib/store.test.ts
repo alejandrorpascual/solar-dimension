@@ -4,7 +4,7 @@ import { EMPTY_FORM, parseCustom } from './custom'
 import { compute } from './sizing'
 import {
   addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
-  hasSameLoads, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
+  hasSameLoads, rekeyEditedSeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
   renameProject, setSolarIn, takenLoadIds, unreadCustomCount, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
 import { SOLAR } from './solar'
@@ -426,5 +426,44 @@ describe('renameProject', () => {
     const s = initialStore()
     expect(renameProject(s, 'p1', ' Home ', 'Untitled')).toBe(s)
     expect(renameProject(s, 'nope', 'X', 'Untitled')).toBe(s)
+  })
+})
+
+describe('work done signed out, on its way into an account', () => {
+  test('an edited first project takes a new id and stays the open one', () => {
+    const edited = patchCurrent(initialStore(), { hours: 24 })
+
+    const rekeyed = rekeyEditedSeed(edited)
+
+    expect(rekeyed.projects).toHaveLength(1)
+    expect(rekeyed.projects[0]!.id).not.toBe('p1')
+    expect(rekeyed.projects[0]).toEqual({ ...edited.projects[0]!, id: rekeyed.projects[0]!.id })
+    expect(rekeyed.currentId).toBe(rekeyed.projects[0]!.id)
+    expect(StoreSchema.safeParse(rekeyed).success).toBe(true)
+  })
+
+  test('a first project that was never edited keeps its id and its stamp of 0', () => {
+    const untouched = addProject(initialStore(), 'Office')
+
+    expect(rekeyEditedSeed(untouched)).toBe(untouched)
+  })
+
+  test('another project being open stays open, and the others keep their ids', () => {
+    const withOffice = addProject(initialStore(), 'Office')
+    const office = currentProject(withOffice)
+    const edited = selectProject(patchProject(withOffice, 'p1', { hours: 24 }), office.id)
+
+    const rekeyed = rekeyEditedSeed(edited)
+
+    expect(rekeyed.currentId).toBe(office.id)
+    expect(rekeyed.projects.map((p) => p.name)).toEqual(['Home', 'Office'])
+    expect(rekeyed.projects[0]!.id).not.toBe('p1')
+    expect(rekeyed.projects[1]).toBe(edited.projects[1])
+  })
+
+  test('a store without the first project is returned as it is', () => {
+    const onlyOffice = deleteProject(selectProject(addProject(initialStore(), 'Office'), 'p1'))
+
+    expect(rekeyEditedSeed(onlyOffice)).toBe(onlyOffice)
   })
 })
