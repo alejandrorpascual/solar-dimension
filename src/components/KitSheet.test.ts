@@ -37,17 +37,17 @@ describe('the spec sheet carries what a supplier must read', () => {
     const en = sheetText(STRESS_12V, 'en')
     expect(en.split('\n')).toContain('Notes')
     expect(en).toContain('Electric water heater usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.')
-    expect(en).toContain('12,000 W inverters are normally built for 48 V. Change the battery voltage or trim the load.')
+    expect(en).toContain('8,000 W inverters are normally built for 48 V. Change the battery voltage or trim the load.')
     const es = sheetText(STRESS_12V, 'es')
     expect(es.split('\n')).toContain('Notas')
     expect(es).toContain('Calentador de agua eléctrico normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.')
-    expect(es).toContain('Los inversores de 12,000 W normalmente son de 48 V. Cambia el voltaje del banco o reduce la carga.')
+    expect(es).toContain('Los inversores de 8,000 W normalmente son de 48 V. Cambia el voltaje del banco o reduce la carga.')
   })
 
   test('the notes and the failing checks stay on the sheet with every Include box unticked', () => {
     const text = sheetText(STRESS_12V, 'en', NOTHING)
     expect(text).toContain('You need a split-phase (240 V) inverter')
-    expect(text).toContain('12,000 W inverters are normally built for 48 V')
+    expect(text).toContain('8,000 W inverters are normally built for 48 V')
     // The checks that fail print; the ones that pass went with the Checks box.
     expect(text).toContain('[Needs attention]')
     expect(text).toContain('is hard to wire safely')
@@ -57,14 +57,15 @@ describe('the spec sheet carries what a supplier must read', () => {
 
   test('the first page says in one line that checks fail and notes exist, before anything else', () => {
     const text = sheetText(STRESS_12V, 'en')
-    const line = 'Read before quoting · Checks to resolve: 4 · Notes: 2'
+    // Two 8 kW units carry the 11 kW, so the inverter check passes; the strings, the fuse and the cable still do not.
+    const line = 'Read before quoting · Checks to resolve: 3 · Notes: 2'
     expect(text.split('\n')).toContain(line)
     expect(text.indexOf(line)).toBeLessThan(text.indexOf('Parts list'))
     expect(sheetText(STRESS_12V, 'en', NOTHING)).toContain(line)
     // The notes and the checks print last, so page one keeps the header, the figures and the parts.
     expect(text.indexOf('Load schedule')).toBeLessThan(text.indexOf('\nNotes\n'))
     expect(text.indexOf('\nNotes\n')).toBeLessThan(text.indexOf('\nChecks\n'))
-    expect(sheetText(STRESS_12V, 'es')).toContain('Leer antes de cotizar · Verificaciones por resolver: 4 · Notas: 2')
+    expect(sheetText(STRESS_12V, 'es')).toContain('Leer antes de cotizar · Verificaciones por resolver: 3 · Notas: 2')
   })
 
   test('only notes, or only failing checks, name just that in the line', () => {

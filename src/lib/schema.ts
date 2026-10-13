@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { SIZING } from './catalog'
+import { CUSTOM_NAME_MAX } from './custom'
 import { RequesterSchema } from './requester'
 import { SOLAR } from './solar'
 
@@ -39,17 +40,28 @@ export const DEFAULT_ELECTRICAL: Electrical = ElectricalSchema.parse({})
 
 export const CustomLoadSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1).max(80),
+  name: z.string().min(1).max(CUSTOM_NAME_MAX),
   watts: z.number().positive(),
   surge: z.number().positive(),
   note: z.string(),
 })
 
+/**
+ * A project's custom appliances, read one at a time. One that no longer parses is left out by itself, as `requester`
+ * and `solar` are, so it never makes the whole saved store unreadable. Its count stays in `qty`, which is how the kit
+ * comes to say that an appliance could not be loaded.
+ */
+const CustomLoadsSchema = z.array(z.unknown()).catch([]).transform((entries) =>
+  entries.flatMap((entry) => {
+    const parsed = CustomLoadSchema.safeParse(entry)
+    return parsed.success ? [parsed.data] : []
+  }))
+
 export const ProjectSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).max(PROJECT_NAME_MAX),
   qty: z.record(z.string(), z.number().int().min(0).max(SIZING.MAX_QTY)),
-  custom: z.array(CustomLoadSchema),
+  custom: CustomLoadsSchema,
   hours: z.number().int().min(HOURS_MIN).max(HOURS_MAX),
   volts: z.union([z.literal(12), z.literal(24), z.literal(36), z.literal(48)]),
   chemistry: z.enum(['lifepo4', 'agm']),

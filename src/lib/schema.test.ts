@@ -93,3 +93,19 @@ test('a partial electrical object keeps the defaults for what it lacks, and a ba
   expect(parseOne({ electrical: { ambientC: 35, runLengthM: 99 } }).electrical).toEqual(DEFAULT_ELECTRICAL)
   expect(parseOne({ electrical: 7 }).electrical).toEqual(DEFAULT_ELECTRICAL)
 })
+
+test('a custom appliance that no longer parses is dropped by itself; the project and its other loads stay', () => {
+  const good = { id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 230 V × 4.5 A' }
+  const longName = { id: 'custom2', name: 'x'.repeat(93), watts: 180, surge: 180, note: 'Custom · 180 W' }
+  const zeroWatts = { id: 'custom3', name: 'Standby LED', watts: 0, surge: 0, note: 'Custom · 0 W' }
+  const parsed = StoreSchema.parse({ version: 1, projects: [{ ...project, qty: { fridge: 1, custom1: 1, custom2: 1 }, custom: [good, longName, zeroWatts, 'not a load'] }], currentId: 'p1' })
+  expect(parsed.projects[0]?.custom).toEqual([good])
+  // The count stays, so the kit can say an appliance was left out.
+  expect(parsed.projects[0]?.qty).toEqual({ fridge: 1, custom1: 1, custom2: 1 })
+})
+
+test('an unreadable custom list reads as empty instead of losing every saved project', () => {
+  const store = { version: 1, projects: [project, { ...project, id: 'p2', custom: 'oops' }, { ...project, id: 'p3', custom: null }], currentId: 'p1' }
+  expect(StoreSchema.parse(store).projects.map((p) => [p.id, p.custom])).toEqual([['p1', []], ['p2', []], ['p3', []]])
+})
+

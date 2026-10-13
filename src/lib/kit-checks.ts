@@ -1,6 +1,7 @@
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtInt, fmtList, fmtW } from '../i18n/format'
 import { SIZING } from './catalog'
+import { shareLabel } from './kit-parts'
 import type { SelectedItem, SizingResult, Warning, WarningCode } from './sizing'
 
 export type CheckId = 'surge' | 'batteryContinuous' | 'batteryPeak' | 'parallel' | 'fuse' | 'cable'
@@ -55,14 +56,17 @@ const NAME_KEY: Record<CheckId, 'checkSurge' | 'checkBatteryContinuous' | 'check
 function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): string {
   const b = r.battery!
   const c = r.cable
+  const inv = r.inverter
   const w = (n: number) => fmtW(n, locale)
   const a = (n: number) => fmtInt(Math.round(n), locale)
   const startupA = r.surgeW / r.volts / SIZING.INVERTER_EFF
   switch (id) {
     case 'surge':
-      return tr(t, 'checkSurgeOk', { running: w(r.runningW), inverter: w(r.inverter.w), peak: w(r.surgeW), seconds: r.surgeSeconds, rating: w(r.inverter.surgeRatedW) })
+      return tr(t, inv.count > 1 ? 'checkSurgeOkMany' : 'checkSurgeOk', {
+        running: w(r.runningW), inverter: w(inv.w), count: inv.count, unit: w(inv.unitW), peak: w(r.surgeW), seconds: r.surgeSeconds, rating: w(inv.surgeRatedW),
+      })
     case 'batteryContinuous':
-      return tr(t, 'checkBatteryContinuousOk', { bankA: a(b.bankContinuousA), needA: a(r.inverter.continuousA) })
+      return tr(t, inv.count > 1 ? 'checkBatteryContinuousOkMany' : 'checkBatteryContinuousOk', { bankA: a(b.bankContinuousA), needA: a(inv.continuousA), count: inv.count })
     case 'batteryPeak':
       return tr(t, 'checkBatteryPeakOk', { bankA: a(b.bankPeakA), needA: a(startupA), seconds: r.surgeSeconds })
     case 'parallel':
@@ -72,7 +76,7 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
-        designA: a(c.designPerRunA), perRun: c.runs > 1 ? t.ui.perRun : '', drop: c.startupDropPct,
+        designA: a(c.designPerRunA), perRun: shareLabel(r, t), drop: c.startupDropPct,
       })
   }
 }

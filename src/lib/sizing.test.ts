@@ -211,28 +211,45 @@ describe('inverter against the running load', () => {
     compute({ custom: [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }], qty: { x: 1 }, hours: 2, volts, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
   const undersized = (r: ReturnType<typeof compute>) => r.warnings.filter((w) => w.code === 'inverterUndersized')
 
-  test('9,600 W is the last load the largest inverter carries with its 25% headroom', () => {
+  test('9,600 W is the last load one inverter carries with its 25% headroom', () => {
     const r = kit(9600)
-    expect(r.inverter).toMatchObject({ w: 12000, runningOk: true, headroomOk: true })
+    expect(r.inverter).toMatchObject({ count: 1, w: 12000, runningOk: true, headroomOk: true })
     expect(undersized(r)).toEqual([])
   })
 
-  test('one watt more and the headroom is short: the kit says how much is left', () => {
-    const r = kit(9601)
-    expect(r.inverter).toMatchObject({ w: 12000, runningOk: true, headroomOk: false })
-    expect(undersized(r)).toEqual([{ code: 'inverterUndersized', params: { inverterW: 12000, runningW: 9601, headroomPct: 24, needPct: 25 } }])
-  })
-
-  test('a load equal to the rating has no headroom at all', () => {
-    expect(undersized(kit(12000))).toEqual([{ code: 'inverterUndersized', params: { inverterW: 12000, runningW: 12000, headroomPct: 0, needPct: 25 } }])
-  })
-
-  test('past the rating the inverter cannot carry the load: runningOk is false and the headroom reads 0', () => {
-    for (const watts of [12001, 15000]) {
+  test.each([[9601, 2, 8000], [12000, 2, 8000], [12001, 2, 8000], [15000, 2, 10000], [19200, 2, 12000], [19201, 3, 10000], [28800, 3, 12000]])(
+    '%i W is past one inverter: %i × %i W in parallel carry it with the headroom kept',
+    (watts, count, unitW) => {
       const r = kit(watts)
-      expect(r.inverter).toMatchObject({ w: 12000, runningOk: false, headroomOk: false, surgeOk: true })
-      expect(undersized(r)).toEqual([{ code: 'inverterUndersized', params: { inverterW: 12000, runningW: watts, headroomPct: 0, needPct: 25 } }])
+      expect(r.inverter).toMatchObject({ count, unitW, w: count * unitW, voltsOk: true, runningOk: true, headroomOk: true, surgeOk: true })
+      expect(undersized(r)).toEqual([])
+    },
+  )
+
+  test('28,800 W is the last load three 12 kW units carry with headroom: one watt more and the kit says how much is left', () => {
+    const r = kit(28801)
+    expect(r.inverter).toMatchObject({ count: 3, unitW: 12000, w: 36000, runningOk: true, headroomOk: false })
+    expect(undersized(r)).toEqual([{ code: 'inverterUndersized', params: { inverterW: 36000, inverters: 3, unitW: 12000, runningW: 28801, headroomPct: 24, needPct: 25 } }])
+  })
+
+  test('a load equal to the largest set has no headroom at all', () => {
+    expect(undersized(kit(36000))).toEqual([{ code: 'inverterUndersized', params: { inverterW: 36000, inverters: 3, unitW: 12000, runningW: 36000, headroomPct: 0, needPct: 25 } }])
+  })
+
+  test('past the largest set the inverters cannot carry the load: runningOk is false and the headroom reads 0', () => {
+    for (const watts of [36001, 50000]) {
+      const r = kit(watts)
+      expect(r.inverter).toMatchObject({ count: 3, w: 36000, runningOk: false, headroomOk: false, surgeOk: true })
+      expect(undersized(r)).toEqual([{ code: 'inverterUndersized', params: { inverterW: 36000, inverters: 3, unitW: 12000, runningW: watts, headroomPct: 0, needPct: 25 } }])
     }
+  })
+
+  test('a list whose units work alone still falls back to its largest one, flagged as a single inverter', () => {
+    const hardware = { ...DEFAULT_HARDWARE, inverters: DEFAULT_HARDWARE.inverters.map(({ maxParallel: _maxParallel, ...unit }) => unit) }
+    const alone = (watts: number) =>
+      compute({ custom: [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }], qty: { x: 1 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    expect(undersized(alone(9601))).toEqual([{ code: 'inverterUndersized', params: { inverterW: 12000, inverters: 1, unitW: 12000, runningW: 9601, headroomPct: 24, needPct: 25 } }])
+    expect(alone(15000).inverter).toMatchObject({ count: 1, w: 12000, runningOk: false })
   })
 
   test.each([[12, 2400, 3000, 4000], [24, 4000, 5000, 6000], [36, 4000, 5000, 6000]] as const)(
@@ -248,16 +265,114 @@ describe('inverter against the running load', () => {
     },
   )
 
-  test('three water heaters at 48 V: 13.5 kW on a 12 kW inverter is flagged beside the notes it already had', () => {
+  test('three water heaters at 48 V: 13.5 kW gets two 10 kW inverters and no inverter warning', () => {
     const r = compute({ qty: { wheater: 3 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
-    expect([r.runningW, r.inverter.w]).toEqual([13500, 12000])
-    expect(r.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase', 'inverterUndersized'])
+    expect([r.runningW, r.inverter.count, r.inverter.unitW]).toEqual([13500, 2, 10000])
+    expect(r.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase'])
+  })
+
+  test('a 24 V bank past one inverter is pointed at 48 V units, as it is for a single one', () => {
+    const r = kit(11000, 24)
+    expect(r.inverter).toMatchObject({ count: 2, unitW: 8000, voltsOk: false, headroomOk: true })
+    expect(r.warnings).toContainEqual({ code: 'inverterVoltage', params: { unitW: 8000, voltsList: '48' } })
   })
 
   test('an empty project warns about nothing', () => {
     const r = compute({ qty: {}, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.inverter).toMatchObject({ runningOk: true, headroomOk: true })
     expect(r.warnings).toEqual([])
+  })
+})
+
+describe('inverters in parallel', () => {
+  // One model only, so the pick does not depend on how sets are ranked: 8 kW at 48 V, up to four as one.
+  const eight = { w: 8000, surge: 16000, volts: [48] as const, surgeSeconds: 10, surgeLong: { w: 12000, seconds: 30 }, maxParallel: 4 }
+  const hardware = { ...DEFAULT_HARDWARE, inverters: [eight] }
+  const kit = (watts: number, surge = watts) =>
+    compute({ custom: [{ id: 'x', name: 'Load', watts, surge, note: '' }], qty: { x: 1 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+  const codes = (r: ReturnType<typeof compute>) => r.warnings.map((w) => w.code)
+
+  test('a load one unit cannot carry gets identical units in parallel, with no inverter warning', () => {
+    const r = kit(12000)
+    expect(r.inverter).toMatchObject({ count: 2, unitW: 8000, w: 16000, surge: 32000, voltsOk: true, runningOk: true, headroomOk: true, surgeOk: true })
+    expect(codes(r)).not.toContain('inverterUndersized')
+    expect(r.inverterNotes).toEqual(['builtForParallel', 'ownRunAndFuse'])
+  })
+
+  test('one inverter that carries the load stays one, with nothing to say about parallel units', () => {
+    const r = kit(6000)
+    expect(r.inverter).toMatchObject({ count: 1, unitW: 8000, w: 8000 })
+    expect(r.inverterNotes).toEqual([])
+  })
+
+  test('the bank feeds the whole set, and each inverter gets the runs and fuses it would get alone', () => {
+    const alone = kit(6000)
+    const pair = kit(12000)
+    expect(pair.inverter.continuousA).toBeCloseTo(2 * alone.inverter.continuousA)
+    expect([alone.cable.amps, pair.cable.amps]).toEqual([185, 370])
+    expect([alone.cable.runs, pair.cable.runs]).toEqual([2, 4])
+    expect([alone.cable.mainCount, pair.cable.mainCount]).toEqual([4, 8])
+    expect([alone.fuse.count, pair.fuse.count]).toEqual([2, 4])
+    expect(pair.cable).toMatchObject({ gauge: alone.cable.gauge, perRun: alone.cable.perRun, fuseA: alone.cable.fuseA })
+    expect(pair.fuse.a).toBe(alone.fuse.a)
+    // Every cable in the kit: eight main cables of 1.5 m, and a lead pair of 30 cm for each string.
+    expect(pair.cable.totalLengthM).toBe(8 * 1.5 + pair.cable.string!.leads * 0.3)
+  })
+
+  test('the bank counts its strings for the whole set\'s current, not one inverter\'s', () => {
+    // 100 A units: 370 A needs four of them where one inverter's 185 A would need two.
+    const r = compute({ custom: [{ id: 'x', name: 'Load', watts: 12000, surge: 12000, note: '' }], qty: { x: 1 }, hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-100' }, CATALOG_SNAPSHOT, hardware)
+    expect(r.inverter).toMatchObject({ count: 2, unitW: 8000 })
+    expect(r.battery!.unit.maxContinuousA).toBe(100)
+    expect(r.battery!.parallelFor.continuous).toBe(4)
+    expect(r.battery).toMatchObject({ parallel: 4, dischargeOk: true })
+  })
+
+  test('each string lead and its fuse carry the set\'s current split between the strings', () => {
+    const r = compute({ custom: [{ id: 'x', name: 'Load', watts: 12000, surge: 12000, note: '' }], qty: { x: 1 }, hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-100' }, CATALOG_SNAPSHOT, hardware)
+    const stringA = r.inverter.continuousA / r.battery!.parallel
+    expect(stringA).toBeCloseTo(92.6, 1)
+    expect(r.cable.string).toMatchObject({ amps: 93, designA: 116, leads: 8, fuse: { count: 4 } })
+    expect(r.cable.string!.fuse.a).toBeGreaterThanOrEqual(stringA * 1.25)
+    expect(r.cable.string!.ampacity).toBeGreaterThanOrEqual(stringA * 1.25)
+  })
+
+  test('at 48 V the high-current note is about what one inverter draws: no higher bank voltage would carry the set on less', () => {
+    // 370 A reach the bus bars, 185 A each inverter: no main cable or main fuse sees more than a lone 8 kW unit's would.
+    expect(codes(kit(12000))).not.toContain('highCurrent')
+  })
+
+  test('below 48 V the whole DC side counts, so the note does not go away when a second inverter is added', () => {
+    const at36 = (watts: number) =>
+      compute({ custom: [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }], qty: { x: 1 }, hours: 2, volts: 36, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    const high = (r: ReturnType<typeof compute>) => r.warnings.find((w) => w.code === 'highCurrent')?.params
+    // One 12 kW unit draws 370 A at 36 V. A watt more and two 8 kW units draw 494 A between them, 247 A each.
+    expect([at36(9600).inverter.count, at36(9601).inverter.count]).toEqual([1, 2])
+    expect(high(at36(9600))).toEqual({ amps: 370, volts: 36, nextVolts: 48 })
+    expect(high(at36(9601))).toEqual({ amps: 494, volts: 36, nextVolts: 48 })
+  })
+
+  test('a start-up one unit cannot hold is shared by the set, however many units that takes', () => {
+    // 5 kW running fits one unit. A 30 kW start takes the 32 kW two hold; a 40 kW start takes the 48 kW of three.
+    expect(kit(5000, 30000).inverter).toMatchObject({ count: 2, surgeRatedW: 32000, surgeOk: true })
+    const r = kit(5000, 40000)
+    expect(r.inverter).toMatchObject({ count: 3, surgeRatedW: 48000, surgeOk: true, headroomOk: true })
+    expect(codes(r)).not.toContain('surgeDuration')
+  })
+
+  test('past what the maker allows in parallel the largest set is listed and flagged, with its size', () => {
+    const tight = kit(30000)
+    expect(tight.inverter).toMatchObject({ count: 4, w: 32000, runningOk: true, headroomOk: false })
+    expect(tight.warnings).toContainEqual({ code: 'inverterUndersized', params: { inverterW: 32000, inverters: 4, unitW: 8000, runningW: 30000, headroomPct: 6, needPct: 25 } })
+    const over = kit(40000)
+    expect(over.inverter).toMatchObject({ count: 4, runningOk: false })
+    expect(over.warnings).toContainEqual({ code: 'inverterUndersized', params: { inverterW: 32000, inverters: 4, unitW: 8000, runningW: 40000, headroomPct: 0, needPct: 25 } })
+  })
+
+  test('a set sold for another voltage is named by its unit in the voltage note', () => {
+    const r = compute({ custom: [{ id: 'x', name: 'Load', watts: 12000, surge: 12000, note: '' }], qty: { x: 1 }, hours: 2, volts: 24, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    expect(r.inverter).toMatchObject({ count: 2, voltsOk: false })
+    expect(r.warnings).toContainEqual({ code: 'inverterVoltage', params: { unitW: 8000, voltsList: '48' } })
   })
 })
 
@@ -270,6 +385,18 @@ describe('bank wiring', () => {
     expect(r.cable.links).toEqual({ positions: 3, perPosition: 1, count: 3, gauge: r.cable.gauge, mm2: r.cable.mm2, designA: 87, ampacity: 115, lengthM: 0.3 })
     expect(r.cable.string).toBeNull()
     expect(r.cable.totalLengthM).toBe(3.9)
+  })
+
+  test('two inverters on a one-string bank: each series link is one jumper per inverter, so the string carries both', () => {
+    // 4 kW needs 5 kW: two 3 kW units, 69 A each; four 12 V batteries in series carry the 139 A of both.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 3000, surge: 6000, volts: [48] as const, surgeSeconds: 5, maxParallel: 3 }] }
+    const r = compute({ ...load(4000), hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '12-200' }, CATALOG_SNAPSHOT, hardware)
+    expect(r.inverter).toMatchObject({ count: 2, unitW: 3000 })
+    expect(r.battery?.config).toBe('4S1P')
+    expect(r.cable).toMatchObject({ runs: 2, perRun: 69, mainCount: 4 })
+    expect(r.cable.links).toMatchObject({ positions: 3, perPosition: 2, count: 6, gauge: r.cable.gauge, designA: 87 })
+    expect(r.cable.links!.perPosition * r.cable.links!.ampacity).toBeGreaterThanOrEqual(r.inverter.continuousA * 1.25)
+    expect(r.warnings.map((w) => w.code)).not.toContain('cableUndersized')
   })
 
   test('when the main cable splits in two runs, each series link is two jumpers, so 185 A never rides on one 130 A cable', () => {
@@ -302,11 +429,109 @@ describe('bank wiring', () => {
     expect(r.cable.totalLengthM).toBe(6)
   })
 
-  test('a string lead no single cable can carry is a cable warning that names the row', () => {
-    const r = compute({ ...load(2400), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 75 } }, CATALOG_SNAPSHOT)
-    expect(r.battery?.config).toBe('1S2P')
+  test('a bank takes another string rather than ask one lead for more than it carries', () => {
+    // 3 kW at 12 V draws 278 A. In 50 °C air on 75 °C cable one lead backs 120 A, so two strings of 139 A become three of 93 A.
+    const hot = compute({ ...load(2400), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 75 } }, CATALOG_SNAPSHOT)
+    expect(hot.battery).toMatchObject({ config: '1S3P', parallelFor: { continuous: 3, lead: 3 } })
+    expect(hot.cable.string).toMatchObject({ amps: 93, fuse: { count: 3 } })
+    expect(hot.warnings.map((w) => w.code)).not.toContain('cableUndersized')
+    // Two 8 kW inverters draw 370 A: two 200 A units could feed them, but 185 A is more than one 4/0 lead and its fuse carry.
+    const pair = compute({ qty: { ac5c: 2 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(pair.inverter).toMatchObject({ count: 2, unitW: 8000 })
+    expect(pair.battery).toMatchObject({ config: '1S3P', parallelFor: { continuous: 2, lead: 3 } })
+    expect(pair.cable.string).toMatchObject({ amps: 123, designA: 154, fuse: { count: 3 } })
+    expect(pair.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase'])
+  })
+
+  test('a battery picked by hand that cannot take the string its leads need is left as it was, and flagged', () => {
+    // Two 5 ton ACs for 2 h on 314 Ah units: a third string would fit the leads but put 23,550 A into a fault,
+    // past the fuses' 20,000 A. The bank keeps two strings; the fuse and cable checks say the leads are short.
+    const picked = compute({ qty: { ac5c: 2 }, hours: 2, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-314' }, CATALOG_SNAPSHOT)
+    expect(picked.battery).toMatchObject({ config: '1S2P', leadOk: false, interruptOk: true })
+    expect(picked.warnings.map((w) => w.code)).toEqual(expect.arrayContaining(['fuseAboveCable', 'cableUndersized']))
+    expect(picked.warnings.map((w) => w.code)).not.toContain('fuseInterrupt')
+    // Left to itself the engine takes the unit whose strings fit both.
+    const auto = compute({ qty: { ac5c: 2 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(auto.battery).toMatchObject({ unitLabel: '48 V 200 Ah LiFePO₄', config: '1S3P', leadOk: true, interruptOk: true })
+  })
+
+  const cannotInterrupt = (r: ReturnType<typeof compute>): boolean => r.warnings.some((w) => w.code === 'fuseInterrupt')
+  /** The stock fuses with one rating changed: a list whose fuses do not all interrupt the same fault. */
+  const fusesWhere = (isChanged: (a: number) => boolean, aicA: number) =>
+    ({ ...DEFAULT_HARDWARE, fuses: DEFAULT_HARDWARE.fuses.map((f) => (isChanged(f.a) ? { ...f, aicA } : f)) })
+
+  test('a bank is read against the fuses its kit is given, not the best rating in the list', () => {
+    // Arrange: only the 400 A fuse interrupts 50 kA. A 6 kW kit gets 20 kA fuses, and three 280 Ah units put 21,000 A into a fault.
+    const hardware = fusesWhere((a) => a === 400, 50000)
+    const input = { ...load(6000), hours: 4, volts: 48 as const, chemistry: 'lifepo4' as const }
+
+    // Act
+    const auto = compute(input, CATALOG_SNAPSHOT, hardware)
+    const byHand = compute({ ...input, batteryUnit: '48-280' }, CATALOG_SNAPSHOT, hardware)
+
+    // Assert
+    expect(auto.fuse.aicA).toBe(20000)
+    expect(auto.batteryOptions.find((o) => o.id === '48-280')).toMatchObject({ count: 3, interruptOk: false })
+    expect(auto.battery).toMatchObject({ unitLabel: '48 V 200 Ah LiFePO₄', config: '1S4P', bankShortCircuitA: 20000, interruptOk: true })
+    expect(cannotInterrupt(auto)).toBe(false)
+    expect(byHand.battery).toMatchObject({ config: '1S3P', bankShortCircuitA: 21000, interruptOk: false })
+    expect(cannotInterrupt(byHand)).toBe(true)
+  })
+
+  test('with strings in parallel, each string\'s fuse has to interrupt one battery as well', () => {
+    // Arrange: fuses up to 150 A that interrupt 4,000 A. A 6 kW inverter gets a 175 A main fuse, two strings a 100 A fuse each.
+    const hardware = fusesWhere((a) => a <= 150, 4000)
+    const input = { ...load(4800), hours: 2, volts: 48 as const, chemistry: 'lifepo4' as const }
+
+    // Act
+    const auto = compute(input, CATALOG_SNAPSHOT, hardware)
+    const byHand = compute({ ...input, batteryUnit: '48-200' }, CATALOG_SNAPSHOT, hardware)
+
+    // Assert: the main fuse interrupts the two 200 Ah units together, but each can put 5,000 A through its own string fuse.
+    expect(byHand.fuse).toMatchObject({ a: 175, aicA: 20000 })
+    expect(byHand.cable.string?.fuse).toMatchObject({ a: 100, aicA: 4000 })
+    expect(byHand.battery).toMatchObject({ config: '1S2P', bankShortCircuitA: 10000, interruptOk: false })
+    expect(cannotInterrupt(byHand)).toBe(true)
+    // The automatic pick takes a bank whose fuses do interrupt it.
+    expect(auto.battery?.interruptOk).toBe(true)
+    expect(cannotInterrupt(auto)).toBe(false)
+  })
+
+  test('a bank is marked as one the fuses can interrupt exactly when its kit\'s fuse check agrees, whatever the fuse list', () => {
+    // The third list leaves a 6 kW inverter (4,800 W here) a main fuse that interrupts the bank and string fuses that may not.
+    const lists = [DEFAULT_HARDWARE, fusesWhere((a) => a === 400, 50000), fusesWhere((a) => a <= 150, 4000), fusesWhere((a) => a >= 250, 12000)]
+    let kits = 0
+    for (const hardware of lists) for (const volts of [12, 24, 48] as const) for (const watts of [1500, 3000, 4800, 6000, 9000, 14000]) for (const hours of [2, 8]) {
+      const input = { ...load(watts), hours, volts, chemistry: 'lifepo4' as const }
+      for (const option of compute(input, CATALOG_SNAPSHOT, hardware).batteryOptions) {
+        const kit = compute({ ...input, batteryUnit: option.id }, CATALOG_SNAPSHOT, hardware)
+        const where = `${watts} W, ${hours} h, ${volts} V, ${option.id}, list ${lists.indexOf(hardware)}`
+        expect(kit.battery?.interruptOk, where).toBe(!cannotInterrupt(kit))
+        expect(option.interruptOk, where).toBe(kit.battery?.interruptOk)
+        kits++
+      }
+    }
+    expect(kits).toBeGreaterThan(500)
+  })
+
+  test('the automatic bank is the one that passes the most, before the one with the fewest batteries', () => {
+    // 3 kW at 12 V for 2 h falls back to a 4 kW inverter, 370 A. Two 400 Ah units ask each lead for 185 A; three 300 Ah
+    // units put 22,500 A into a fault; four 200 Ah units fit their leads and stay at the fuses' 20,000 A.
+    const r = compute({ ...load(3000), hours: 2, volts: 12, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.inverter).toMatchObject({ count: 1, w: 4000 })
+    expect(r.battery).toMatchObject({ unitLabel: '12 V 200 Ah LiFePO₄', config: '1S4P', leadOk: true, interruptOk: true, bankShortCircuitA: 20000 })
+    const failing = r.warnings.map((w) => w.code)
+    expect(failing).not.toContain('fuseInterrupt')
+    expect(failing).not.toContain('fuseAboveCable')
+    expect(failing).not.toContain('cableUndersized')
+  })
+
+  test('past the parallel limit of the battery\'s maker, a string lead no single cable can carry is a cable warning that names the row', () => {
+    // 6 kW at 12 V draws 556 A: five strings would keep each under 120 A, but the maker allows four.
+    const r = compute({ ...load(4800), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 75 } }, CATALOG_SNAPSHOT)
+    expect(r.battery).toMatchObject({ config: '1S3P', parallelFor: { lead: 5 }, unit: { maxParallel: 4 } })
     expect(r.warnings.filter((w) => w.code === 'cableUndersized')).toEqual([
-      { code: 'cableUndersized', params: { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7, canCool: true, canRaiseInsulation: true, nextVolts: 24 } },
+      { code: 'cableUndersized', params: { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 231.5, canCool: false, canRaiseInsulation: false, nextVolts: 24 } },
     ])
   })
 
@@ -388,7 +613,7 @@ describe('engineering checks', () => {
     const r = compute({ qty: { fridge: 1, ac2c: 1, ac15i: 1 }, hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-100' }, CATALOG_SNAPSHOT)
     expect(r.inverter.w).toBe(5000)
     // 8,400 W at start-up is 194 A, one unit's 200 A peak; the 116 A continuous draw needs two.
-    expect(r.battery?.parallelFor).toEqual({ energy: 1, continuous: 2, peak: 1 })
+    expect(r.battery?.parallelFor).toEqual({ energy: 1, continuous: 2, peak: 1, lead: 1 })
     expect(r.battery?.parallel).toBe(2)
     expect(r.battery).toMatchObject({ dischargeOk: true, peakOk: true, bankContinuousA: 200, bankPeakA: 400 })
   })
@@ -434,7 +659,8 @@ describe('engineering checks', () => {
   })
 
   test('a start-up no inverter holds long enough is warned about', () => {
-    const r = at48({ ac2c: 6 }, { simultaneousStarts: 'all' })
+    // Six 5 ton units starting together pull 99 kW, past the 72 kW three 12 kW inverters hold.
+    const r = at48({ ac5c: 6 }, { simultaneousStarts: 'all' })
     expect(r.inverter.surgeOk).toBe(false)
     expect(r.warnings.map((w) => w.code)).toContain('surgeDuration')
   })

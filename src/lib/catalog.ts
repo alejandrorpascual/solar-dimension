@@ -143,15 +143,25 @@ export interface Inverter {
   surgeSeconds: number
   /** A lower surge the unit holds for longer, when the maker states one. */
   surgeLong?: { w: number; seconds: number }
+  /** How many identical units the maker allows to work in parallel as one; absent means the unit works alone. */
+  maxParallel?: number
 }
 
 const SURGE_FACTOR = 2
 const LONG_SURGE_FACTOR = 1.5
 const LONG_SURGE_SECONDS = 30
 const surgeSecondsFor = (w: number): number => (w <= 2000 ? 3 : w <= 5000 ? 5 : 10)
+/** The smallest stock size taken to run in parallel: makers build for it from the 3 kVA class up (Victron MultiPlus 3000 at 12, 24 and 48 V). */
+const PARALLEL_MIN_W = 3000
+/**
+ * The fewest units on one phase any maker's datasheet allows, read in October 2026: SMA Sunny Island 6.0H/8.0H three,
+ * Schneider XW Pro four, Victron MultiPlus and Growatt SPF six, Sol-Ark, OutBack, EG4 and Deye ten or more.
+ */
+const MAX_PARALLEL_UNITS = 3
 const inverter = (w: number, volts: readonly Voltage[]): Inverter => ({
   w, surge: w * SURGE_FACTOR, volts, surgeSeconds: surgeSecondsFor(w),
   ...(w >= 3000 ? { surgeLong: { w: Math.round(w * LONG_SURGE_FACTOR), seconds: LONG_SURGE_SECONDS } } : {}),
+  ...(w >= PARALLEL_MIN_W ? { maxParallel: MAX_PARALLEL_UNITS } : {}),
 })
 
 export const INVERTERS: readonly Inverter[] = [

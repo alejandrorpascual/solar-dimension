@@ -1,4 +1,5 @@
 import type { ConductorKind, WarningParams } from '../lib/sizing'
+import { isInverterSet as isSet } from '../lib/sizing/warnings'
 import type { Dictionary } from './types'
 import { quoteItemsEn, quoteItemsInlineEn, quoteItemsListEn, quoteItemsShortEn, quotesEn } from './quotes-en'
 import { requesterEn } from './requester-en'
@@ -30,7 +31,11 @@ export const en: Dictionary = {
     running: 'running', surge: 'surge', runningSurgeLine: '{watts} W running · {surge} surge', splitPhase: 'Needs a 240 V / split-phase inverter',
     customTitle: 'Something not on the list?', customHelp: 'Type the watts from the label, or the volts and amps and we multiply them.',
     watts: 'Watts', voltsAmps: 'Volts × amps', name: 'Name', runningW: 'Running W', volts: 'Volts', amps: 'Amps', surgeOptional: 'Surge W (optional)', sameAsRunning: 'same as running', addAppliance: 'Add appliance',
-    errName: 'Give the appliance a name.', errVa: 'Enter volts and amps above zero.', errWatts: 'Enter running watts above zero.', errSurge: 'Surge cannot be below running watts.',
+    errName: 'Give the appliance a name.', errNameLong: 'Keep the name to {max} characters or fewer.', errVa: 'Enter volts and amps that make at least 1 watt.', errWatts: 'Enter at least 1 running watt.', errSurge: 'Surge cannot be below running watts.',
+    errThousands: 'Write watts as a whole number with no separator: 1500, not 1.500 or 1,500.',
+    customUnreadOne: '1 custom appliance in this project could not be loaded, so the kit leaves it out. Add it again below, then remove the one that did not load.',
+    customUnreadMany: '{count} custom appliances in this project could not be loaded, so the kit leaves them out. Add them again below, then remove the ones that did not load.',
+    customUnreadClearOne: 'Remove the one that did not load', customUnreadClearMany: 'Remove the ones that did not load',
     q2: 'How long should the backup last?', q2Help: 'The bank is sized for this many hours of your selected load, at the voltage you pick.',
     hoursLabel: 'Hours without the grid', step2Empty: 'Go back and add at least one appliance.',
     step2Summary: 'Your {count} appliances draw {running} and use about {load} over {hours} hours. We size the bank to {need} after inverter losses and depth of discharge.',
@@ -39,10 +44,12 @@ export const en: Dictionary = {
     editAppliances: 'Edit appliances', editWindow: 'Edit window',
     runningLoad: 'Running load', averageDraw: '~{w} average', startupPeak: 'Start-up peak', batteryNeeded: 'Battery needed', runtime: 'Runtime',
     part: 'Part', specification: 'Specification', quantity: 'Quantity', nothingSelected: '{name} has nothing selected yet.',
-    inverterSpec: '{w} pure sine, {volts} V DC input', inverterNote: '{surge} surge · covers {running} running, {peak} peak',
-    inverterNoteTight: '{surge} surge · {running} running leaves {pct}% headroom, {peak} peak', inverterNoteUnder: '{surge} surge · smaller than the {running} running load',
-    inverterNotePeak: '{surge} surge · covers {running} running, not the {peak} peak',
-    inverterNoteTightPeak: '{surge} surge · {running} running leaves {pct}% headroom, {peak} peak not covered',
+    inverterSpec: '{w} pure sine, {volts} V DC input', inverterNote: '{surge} · covers {running} running, {peak} peak',
+    inverterNoteTight: '{surge} · {running} running leaves {pct}% headroom, {peak} peak', inverterNoteUnder: '{surge} · smaller than the {running} running load',
+    inverterNotePeak: '{surge} · covers {running} running, not the {peak} peak',
+    inverterNoteTightPeak: '{surge} · {running} running leaves {pct}% headroom, {peak} peak not covered',
+    inverterSurge: '{surge} surge', inverterSurgeSet: '{surge} surge together',
+    inverterParallelNote: '{count} in parallel work as one {total} inverter, drawing up to {amps} A from the bus bars',
     batteriesNote: '{series} in series × {parallel} in parallel ({config}) · {bank} bank, {usable} usable',
     mainCableSpec: '{gauge} ({mm2} mm²) copper, {length} m each', mainCableNote: 'Battery to inverter · {amps} A design current{perRun} · {ampacity} A after derating · {drop}% drop at start-up',
     interconnectsSpec: '{gauge} jumpers, {cm} cm each',
@@ -50,17 +57,18 @@ export const en: Dictionary = {
     seriesLinksSharedNote: 'Between batteries in series · {each} identical jumpers side by side at every link · {amps} A design current each · {ampacity} A after derating',
     stringLeadsSpec: '{gauge} ({mm2} mm²) copper, {cm} cm each',
     stringLeadsNote: 'A positive and a negative from each string to the bus bars (bus bars not listed) · {amps} A design current · {ampacity} A after derating',
-    fuseSpec: '{amps} A class {class}{perRun}', fuseNote: 'Inline on the positive lead, as close to the bank as possible', perRun: ' per run',
+    fuseSpec: '{amps} A class {class}{perRun}', fuseNote: 'Inline on the positive lead, as close to the bank as possible', perRun: ' per run', perInverter: ' per inverter', perRunOfInverter: ' per run, {n} runs to each inverter',
     fuseAicNote: '{aic} kA interrupting rating', stringFuseSpec: '{amps} A class {class}, one per parallel string', stringFuseNote: "On each string's positive lead, so a shorted string drops out alone",
     batteriesCurrentNote: '{cont} A continuous, {peak} A peak from the bank',
-    batterySize: 'Battery size', batterySizeHelp: 'Pick the battery you plan to buy. Auto uses the fewest batteries.', batteryAuto: 'Auto',
-    batteryRecommended: 'Fewest batteries', batteryGroup: '{v} V batteries', batteryInSeries: '{n} in series', manyStrings: 'Many parallel strings',
+    batterySize: 'Battery size', batterySizeHelp: 'Pick the battery you plan to buy. Auto takes the size that passes the most checks, then the fewest batteries.', batteryAuto: 'Auto',
+    batteryRecommended: 'Best fit', batteryGroup: '{v} V batteries', batteryInSeries: '{n} in series', manyStrings: 'Many parallel strings',
     batteryCountOne: '{count} battery', batteryCountMany: '{count} batteries', panelCountOne: '{count} panel', panelCountMany: '{count} panels',
+    inverterSizeOne: '{w} inverter', inverterSizeMany: '{count} × {w} inverters',
     legal: 'Legal',
     estimateNotice: 'An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.',
     fine: 'Assumes 90% inverter efficiency, 25% inverter headroom, {dod}% depth of discharge, 1,100 W per ton of cooling, {starts}, copper cable with {insulation} °C insulation at {ambient} °C{bundled}. NEC ampacity tables; verify against local code.',
     fineStartsOne: 'one motor starting at a time', fineStartsTwo: 'two motors starting together', fineStartsAll: 'every motor starting at once', fineBundled: ', bundled',
-    footer1: '{name} · {count} appliances · {running} running · {peak} peak', footer2: '{hours} h at {volts} V · {load} of load', footer3: '{batteries} · {inverter} inverter · {gauge}', footerEmpty: 'Nothing selected yet',
+    footer1: '{name} · {count} appliances · {running} running · {peak} peak', footer2: '{hours} h at {volts} V · {load} of load', footer3: '{batteries} · {inverter} · {gauge}', footerEmpty: 'Nothing selected yet',
     back: 'Back', next: 'Next: backup window', nextSolar: 'Next: solar panels', buildKit: 'Build my kit', startOver: 'Start over',
     continueGoogle: 'Continue with Google', orDivider: 'or', googleExists: 'This email already has an account. Sign in with your password, then connect Google from the account menu.', googleFailed: "Google sign-in didn't finish. Try again.", connectGoogle: 'Connect Google',
     signIn: 'Sign in', signUp: 'Create account', signOut: 'Sign out', email: 'Email', password: 'Password', noAccount: 'No account yet? Create one', haveAccount: 'Already have an account? Sign in', authFailed: 'That did not work. Check the email and password.', signedInAs: 'Signed in as {email}', syncing: 'Syncing your projects…', syncFailed: 'Could not save to your account. Changes are kept on this device.', language: 'Language',
@@ -92,7 +100,7 @@ export const en: Dictionary = {
     cloudyDay: 'Cloudy day (40%)', cloudyNote: "{wh}, about {pct}% of a day's use.",
     solarAssumptions: 'Assumes 75% efficiency from panel to battery and no shade at midday. Your kit gains panels, an MPPT charge controller, PV cable, a DC disconnect and mounting.',
     solarRecharge: 'Solar recharge', solarRechargeSub: '{wh} a clear day',
-    footerSolar: '{hours} h at {volts} V · {load} of load · {panels}, {kw}', footerSolarNone: '{hours} h at {volts} V · {load} of load · no panels', footer4Solar: '{batteries} · {inverter} inverter · {gauge} · {panels}',
+    footerSolar: '{hours} h at {volts} V · {load} of load · {panels}, {kw}', footerSolarNone: '{hours} h at {volts} V · {load} of load · no panels', footer4Solar: '{batteries} · {inverter} · {gauge} · {panels}',
     solarPanelsSpec: '{w} monocrystalline, {size}', solarPanelsNote: '{strings} · {kw} array · about {m2} m² with walkways',
     chargeControllerSpec: 'MPPT {amps} A · {voc} V max PV · {volts} V bank', chargeControllerNote: '{chargeA} A into the bank at full sun · {stringVoc} V open-circuit per string',
     pvCableSpec: '{mm2} mm² ({awg}) solar cable, {length} m each', pvCableNote: 'Roof to controller · one pair per string · MC4 ends',
@@ -115,8 +123,10 @@ export const en: Dictionary = {
     runtimeRange: '{worst} on a hard day · {best} on a light day',
     checks: 'Checks', incChecks: 'Checks', checkPass: 'Passes', checkWarn: 'Needs attention',
     checkSurge: 'Inverter size', checkSurgeOk: '{running} running on a {inverter} inverter · {peak} for {seconds} s, within its {rating} surge rating',
+    checkSurgeOkMany: '{running} running on {count} × {unit} inverters ({inverter} together) · {peak} for {seconds} s, within their {rating} surge rating',
     checkSurgeContributors: '{running} running + {list} starting',
     checkBatteryContinuous: 'Battery continuous current', checkBatteryContinuousOk: 'Bank gives {bankA} A continuous; the inverter draws up to {needA} A',
+    checkBatteryContinuousOkMany: 'Bank gives {bankA} A continuous; the {count} inverters draw up to {needA} A together',
     checkBatteryPeak: 'Battery peak current', checkBatteryPeakOk: 'Bank peak {bankA} A covers the {needA} A start-up for {seconds} s',
     checkParallel: 'Parallel strings', checkParallelOk: '{parallel} in parallel, within the {max} the maker allows', checkParallelSingle: 'One string, nothing to balance',
     checkFuse: 'Fuse', checkFuseOk: "{amps} A class {class}: under the cable's {ampacity} A, {aic} kA interrupting, start-up {startA} A within what it holds",
@@ -126,22 +136,36 @@ export const en: Dictionary = {
   chemistries: { lifepo4: 'LiFePO₄ lithium', agm: 'AGM lead-acid' },
   voltageHints: { 12: 'Small systems up to ~2 kW', 24: 'Mid-size, up to ~5 kW', 36: 'Uncommon; golf-cart banks', 48: 'Whole-home, 3 kW and up' },
   warnings: {
-    inverterVoltage: (p) => `${p.inverterW?.toLocaleString('en-US')} W inverters are normally built for ${p.voltsList} V. Change the battery voltage or trim the load.`,
-    highCurrent: (p) => `${p.amps?.toLocaleString('en-US')} A on the DC side at ${p.volts} V is hard to wire safely${p.nextVolts ? `. Consider ${p.nextVolts} V.` : '.'}`,
+    inverterVoltage: (p) => `${p.unitW?.toLocaleString('en-US')} W inverters are normally built for ${p.voltsList} V. Change the battery voltage or trim the load.`,
+    highCurrent: (p) => `${p.amps?.toLocaleString('en-US')} A ${isSet(p) ? 'to each inverter' : 'on the DC side'} at ${p.volts} V is hard to wire safely${p.nextVolts ? `. Consider ${p.nextVolts} V.` : '.'}`,
     parallelStrings: (p) => `${p.strings} parallel strings drift out of balance. Prefer bigger units or a higher voltage.`,
     dominantLoad: (p) => `${p.itemName} is ${p.sharePct}% of the energy. Dropping it is the cheapest way to shrink the bank.`,
     splitPhase: (p) => `${p.itemName} usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.`,
     inverterUndersized: (p) => {
+      const [inverter, unit, running] = [p.inverterW ?? 0, p.unitW ?? 0, p.runningW ?? 0].map((n) => n.toLocaleString('en-US'))
+      const isUnder = (p.inverterW ?? 0) < (p.runningW ?? 0)
+      // A set is already the most the list can put in parallel, so the advice no longer points there.
+      if (isSet(p)) {
+        const advice = 'Trim the load, or ask an installer about a system built for it.'
+        const set = `The ${p.inverters} × ${unit} W inverters in parallel (${inverter} W)`
+        return isUnder
+          ? `${set} are smaller than the ${running} W running load and cannot carry it. ${advice}`
+          : `${set} leave ${p.headroomPct}% headroom over the ${running} W running load; this kit plans for ${p.needPct}%. ${advice}`
+      }
       const advice = 'Trim the load, or ask an installer about a larger inverter or units built to run in parallel.'
-      const [inverter, running] = [p.inverterW ?? 0, p.runningW ?? 0].map((n) => n.toLocaleString('en-US'))
-      return (p.inverterW ?? 0) < (p.runningW ?? 0)
+      return isUnder
         ? `The ${inverter} W inverter is smaller than the ${running} W running load and cannot carry it. ${advice}`
         : `The ${inverter} W inverter leaves ${p.headroomPct}% headroom over the ${running} W running load; this kit plans for ${p.needPct}%. ${advice}`
     },
-    surgeDuration: (p) => `A ${p.surgeW?.toLocaleString('en-US')} W start-up lasting ${p.seconds} s is longer than the ${p.inverterW?.toLocaleString('en-US')} W inverter's surge window; it only holds ${p.ratedW?.toLocaleString('en-US')} W that long. Choose a bigger inverter or let fewer motors start at once.`,
-    bankDischarge: (p) => `The inverter draws up to ${p.needA?.toLocaleString('en-US')} A at full load; ${p.strings} × ${p.unitLabel} allows ${p.maxA?.toLocaleString('en-US')} A continuous and its BMS would cut out. Pick a larger unit or a higher voltage.`,
+    surgeDuration: (p) => {
+      const start = `A ${p.surgeW?.toLocaleString('en-US')} W start-up lasting ${p.seconds} s is longer than`
+      return isSet(p)
+        ? `${start} the surge window of the ${p.inverters} × ${p.unitW?.toLocaleString('en-US')} W inverters; together they only hold ${p.ratedW?.toLocaleString('en-US')} W that long. Let fewer motors start at once.`
+        : `${start} the ${p.inverterW?.toLocaleString('en-US')} W inverter's surge window; it only holds ${p.ratedW?.toLocaleString('en-US')} W that long. Choose a bigger inverter or let fewer motors start at once.`
+    },
+    bankDischarge: (p) => `${isSet(p) ? `The ${p.inverters} inverters draw up to ${p.needA?.toLocaleString('en-US')} A together` : `The inverter draws up to ${p.needA?.toLocaleString('en-US')} A`} at full load; ${p.strings} × ${p.unitLabel} allows ${p.maxA?.toLocaleString('en-US')} A continuous and its BMS would cut out. Pick a larger unit or a higher voltage.`,
     bankPeak: (p) => `Start-up pulls ${p.needA?.toLocaleString('en-US')} A for ${p.seconds} s; the bank's BMS allows ${p.maxA?.toLocaleString('en-US')} A peak and may shut off. Let fewer motors start at once or add a string.`,
-    fuseAboveBank: (p) => `The ${p.fuseA} A fuse is sized for more than the ${p.maxA?.toLocaleString('en-US')} A the bank can deliver, so the BMS, not the fuse, would trip on an overload. Pick a bank that delivers more.`,
+    fuseAboveBank: (p) => `${(p.count ?? 1) > 1 ? `The ${p.count} × ${p.fuseA} A fuses are` : `The ${p.fuseA} A fuse is`} sized for more than the ${p.maxA?.toLocaleString('en-US')} A the bank can deliver, so the BMS, not ${(p.count ?? 1) > 1 ? 'a' : 'the'} fuse, would trip on an overload. Pick a bank that delivers more.`,
     fuseAboveCable: (p) => `Even ${p.count} runs of the largest cable carry only ${p.maxA?.toLocaleString('en-US')} A each, under the ${p.fuseA} A fuse they need. Raise the voltage or trim the load.`,
     fuseSurge: (p) => `Start-up pushes ${p.surgeA?.toLocaleString('en-US')} A through a ${p.fuseA} A fuse for ${p.seconds} s; it may blow on a normal start. The next size up still protects the cable.`,
     fuseInterrupt: (p) => `A shorted bank can deliver about ${p.shortCircuitA?.toLocaleString('en-US')} A, more than the fuse's ${p.aicA?.toLocaleString('en-US')} A interrupting rating. Use a fuse rated for it or fewer strings.`,
@@ -149,8 +173,8 @@ export const en: Dictionary = {
     cableAmbient: (p) => `No cable in the table is rated for ${p.ambientC} °C air. Move the run somewhere cooler.`,
     cableUndersized: (p) => `${p.gauge} for the ${CONDUCTORS[p.conductor!]} carries only ${p.maxA?.toLocaleString('en-US')} A after derating, under the ${p.needA?.toLocaleString('en-US')} A design current of each cable. ${cableRemedy(p)}`,
     missingAppliances: (p) => p.count === 1
-      ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute to include it.'
-      : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute to include them.`,
+      ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute; if it is still missing, add it again.'
+      : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute; if they are still missing, add them again.`,
     roofLimited: (p) => `Your roof holds ${p.fit} panels; ${p.need} would refill the bank in one clear day. It still refills over more days of sun.`,
   },
   parts: { inverter: 'Inverter', batteries: 'Batteries', mainCable: 'Main cable', interconnects: 'Interconnects', stringLeads: 'String leads', fuse: 'Fuse', stringFuses: 'String fuses', solarPanels: 'Solar panels', chargeController: 'Charge controller', pvCable: 'PV cable', pvDisconnect: 'PV disconnect', mounting: 'Mounting'  },
@@ -160,6 +184,10 @@ export const en: Dictionary = {
     equalLeadsOrBusbar: 'Equal cable lengths to the bus bars',
     stringFuses: 'A fuse on each string',
     bmsComms: 'BMS units linked (CAN or RS485) so they share the load',
+  },
+  inverterNotes: {
+    builtForParallel: 'Same model, built and linked to run in parallel',
+    ownRunAndFuse: 'Each on its own fused cables, of equal length, from the bus bars',
   },
   privacy: {
     title: 'Privacy',

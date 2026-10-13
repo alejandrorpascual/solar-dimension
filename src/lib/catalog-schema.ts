@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { LOAD_KINDS, SURGE_CLASSES, type ApplianceLabels, type CatalogItem, type CompressorType, type LoadKind, type SurgeClass } from './catalog'
+import { isCustomLoadId } from './custom'
 
 export const APPLIANCE_CATEGORIES = ['Kitchen', 'Living', 'Climate', 'Air conditioning', 'Work', 'Utility', 'Security', 'Personal'] as const
 export type ApplianceCategory = (typeof APPLIANCE_CATEGORIES)[number]
@@ -14,7 +15,6 @@ const MAX_CYCLES_PER_HOUR = 120
 /** How far a momentary item's stored duty may sit from the duty its bursts imply before the admin is told. */
 const MOMENTARY_DUTY_TOLERANCE = 0.25
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,47}$/
-const CUSTOM_LOAD_ID_PATTERN = /^custom\d+$/
 
 const Label = z.object({ name: z.string().trim().min(1).max(80), note: z.string().trim().max(160) }).strict()
 
@@ -23,7 +23,7 @@ export const ApplianceSchema = z
     id: z
       .string()
       .regex(ID_PATTERN, 'lowercase letters, digits and dashes')
-      .refine((id) => !CUSTOM_LOAD_ID_PATTERN.test(id), 'ids like "custom1" are reserved for custom loads'),
+      .refine((id) => !isCustomLoadId(id), 'ids like "custom1" are reserved for custom loads'),
     category: z.enum(APPLIANCE_CATEGORIES),
     watts: z.number().int().min(1).max(MAX_APPLIANCE_WATTS),
     surge: z.number().int().min(1).max(MAX_APPLIANCE_WATTS * 4),

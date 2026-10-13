@@ -3,6 +3,8 @@ import {
   CLIENTS_KEY_PREFIX, DRAFT_KEY, PENDING_KEY, REQUESTER_KEY, STORAGE_KEY, clearPendingSave, clearRequesterDraft, hasPendingSave,
   loadRequesterDraft, loadSavedClients, loadStore, markPendingSave, saveRequesterDraft, saveSavedClients, saveStore,
 } from './persistence'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
+import { compute } from './sizing'
 import { initialStore } from './store'
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -25,6 +27,25 @@ test('returns null for missing, corrupt or invalid data', () => {
   expect(loadStore(memoryStorage())).toBeNull()
   expect(loadStore(memoryStorage({ [STORAGE_KEY]: '{not json' }))).toBeNull()
   expect(loadStore(memoryStorage({ [STORAGE_KEY]: JSON.stringify({ version: 1, projects: [], currentId: 'x' }) }))).toBeNull()
+})
+
+test('a store already saved with a custom appliance the schema refuses loads again: every project is back, that appliance is not', () => {
+  // What the form used to write: a pasted product title, 93 characters, in the third project.
+  const long = { id: 'custom1', name: 'Samsung 21 cu. ft. Top Freezer Refrigerator with FlexZone and Ice Maker in Stainless RT21M6215SR', watts: 180, surge: 180, note: 'Custom · 180 W' }
+  const base = initialStore().projects[0]!
+  const broken = {
+    version: 1, currentId: 'p3',
+    projects: [base, { ...base, id: 'p2', name: 'Client kit 1' }, { ...base, id: 'p3', name: 'Client kit 2', qty: { ...base.qty, custom1: 1 }, custom: [long] }],
+  }
+  expect(long.name.length).toBeGreaterThan(80)
+  const loaded = loadStore(memoryStorage({ [STORAGE_KEY]: JSON.stringify(broken) }))
+  expect(loaded?.projects.map((p) => p.name)).toEqual([base.name, 'Client kit 1', 'Client kit 2'])
+  expect(loaded?.currentId).toBe('p3')
+  const recovered = loaded!.projects[2]!
+  expect(recovered.custom).toEqual([])
+  // Its count is still there, which is what makes the kit say one appliance could not be loaded.
+  const kit = compute({ qty: recovered.qty, custom: recovered.custom, hours: recovered.hours, volts: recovered.volts, chemistry: recovered.chemistry }, CATALOG_SNAPSHOT)
+  expect(kit.warnings.filter((w) => w.code === 'missingAppliances')).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
 })
 
 test('swallows storage errors', () => {
