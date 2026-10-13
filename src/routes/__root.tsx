@@ -5,6 +5,7 @@ import { QuoteJobsProvider } from '../hooks/useQuoteJobs'
 import { useRootData, type RootData } from '../hooks/useRootData'
 import { DEFAULT_LOCALE, getDictionary } from '../i18n'
 import { APP_NAME } from '../lib/brand'
+import { serverErrorRef } from '../lib/server-error'
 import { shouldReloadForStaleChunk } from '../lib/stale-chunk'
 import { QuoteTray } from '../components/quotes/QuoteTray'
 import { getCatalog } from '../server/catalog'
@@ -62,7 +63,8 @@ function NotFound() {
 /**
  * A chunk that failed to load usually means the tab predates the current deploy, so it reloads once instead of
  * showing an error. Anything else shows the error's message, so a report from a device we cannot inspect (a phone)
- * says what actually failed.
+ * says what actually failed. A failure on the server arrives as a reference and nothing else
+ * (src/server/error-guard.ts): the page shows the reference, and the server log has the failure under it.
  */
 function ErrorScreen({ error }: ErrorComponentProps) {
   const { t } = useLocale()
@@ -84,9 +86,16 @@ function ErrorScreen({ error }: ErrorComponentProps) {
     <main className="page">
       <h1>{t.ui.errorTitle}</h1>
       <a href="/">{t.ui.reload}</a>
-      <p className="fine muted">{error instanceof Error ? `${error.name}: ${error.message}` : String(error)}</p>
+      <p className="fine muted">{errorDetail(error, t.ui.serverError)}</p>
     </main>
   )
+}
+
+/** The small print under the error page's heading. */
+function errorDetail(error: unknown, serverErrorLabel: string): string {
+  const ref = serverErrorRef(error)
+  if (ref) return `${serverErrorLabel}: ${ref}`
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error)
 }
 
 function RootComponent() {
