@@ -1,6 +1,7 @@
 import { neon, Pool } from '@neondatabase/serverless'
 import type { ProductOrigin } from '../src/lib/product-schema'
 import { utcDay } from '../src/lib/quote-budget'
+import { deleteAccounts, fingerprintOf } from '../scripts/e2e-user-cleanup.ts'
 
 const TEST_APPLIANCE_PREFIX = 'e2e-'
 
@@ -200,19 +201,19 @@ export async function quoteRetryCount(id: string): Promise<number> {
 }
 
 /**
- * Runs `text` in a transaction of its own and keeps that transaction open until `release` rolls it back, so whatever
- * the statement locked stays locked. The HTTP driver can't keep a transaction open between calls, so this uses a
- * WebSocket connection. With `lockTimeoutMs`, a statement still waiting for its lock after that long fails
- * (isLockTimeout) and nothing is left open.
+ * Runs `text` in a transaction of its own and keeps that transaction open until `release` ends it, so whatever the
+ * statement locked stays locked. `release` rolls back unless told to commit. The HTTP driver can't keep a transaction
+ * open between calls, so this uses a WebSocket connection. With `lockTimeoutMs`, a statement still waiting for its
+ * lock after that long fails (isLockTimeout) and nothing is left open.
  */
 async function lockUntilReleased(
   text: string, params: unknown[], lockTimeoutMs?: number,
-): Promise<{ rows: Record<string, unknown>[]; release: () => Promise<void> }> {
+): Promise<{ rows: Record<string, unknown>[]; release: (ending?: 'rollback' | 'commit') => Promise<void> }> {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL })
   const client = await pool.connect()
-  const release = async (): Promise<void> => {
+  const release = async (ending: 'rollback' | 'commit' = 'rollback'): Promise<void> => {
     try {
-      await client.query('rollback')
+      await client.query(ending)
     } finally {
       client.release()
       await pool.end()
@@ -246,25 +247,61 @@ export async function holdQuoteRow(id: string): Promise<{ pid: number; release: 
     await release()
     throw new Error(`no quote ${id} to hold`)
   }
-  return { pid: rows[0].pid as number, release }
+  return { pid: rows[0].pid as number, release: () => release() }
 }
 
 /**
- * How many retry statements (the only statements with a `retried` CTE) wait behind the lock that backend `holderPid`
- * holds: on the lock itself, or in line behind a statement that does (the second retry of a quote waits for the
- * first, not for the holder). Other tests, and other runs on this database, queue retries behind locks of their own at
- * the same moment; those are not counted.
+ * Adds a quote to the project as an upload does, in a transaction left open: until `commit`, the row is there for
+ * nobody else, and the project it points at cannot be deleted. `pid` is the backend that holds it
+ * (cleanupStatementsBehind).
  */
-export async function retryStatementsBehind(holderPid: number): Promise<number> {
+export async function holdUncommittedQuote(email: string, projectId: string): Promise<{ pid: number; commit: () => Promise<void> }> {
+  const { rows, release } = await lockUntilReleased(`
+    insert into quotes (id, user_id, project_id, file_name, blob_pathname, mime, size_bytes, status, error)
+    select gen_random_uuid(), u.id, $2, 'uncommitted.pdf', 'e2e-seed/' || gen_random_uuid(), 'application/pdf', 1000, 'failed', 'seeded by e2e'
+    from "user" u where u.email = $1
+    returning pg_backend_pid() as pid`, [email, projectId])
+  if (!rows[0]) {
+    await release()
+    throw new Error(`no account ${email} to add a quote to`)
+  }
+  return { pid: rows[0].pid as number, commit: () => release('commit') }
+}
+
+/**
+ * Runs the leftover-account cleanup (scripts/delete-e2e-users.mjs) on this one account, with the fingerprint its
+ * listing would print unless another is given, and returns what it deleted.
+ */
+export async function cleanUpTestAccount(email: string, fingerprint?: string): Promise<{ users: number; projects: number }> {
+  const sql = testDb()
+  const rows = await sql`select id from "user" where email = ${email}`
+  return deleteAccounts(sql, email, fingerprint ?? fingerprintOf(rows.map((r) => r.id as string)))
+}
+
+/**
+ * How many statements whose text has `marker` wait behind the lock that backend `holderPid` holds: on the lock itself,
+ * or in line behind a statement that does. Other tests, and other runs on this database, queue statements behind
+ * locks of their own at the same moment; those are not counted.
+ */
+async function statementsBehind(holderPid: number, marker: string): Promise<number> {
   const rows = await testDb()`
     with recursive behind as (
       select a.pid, a.query from pg_stat_activity a where ${holderPid}::int = any(pg_blocking_pids(a.pid))
       union
       select a.pid, a.query from pg_stat_activity a join behind b on b.pid = any(pg_blocking_pids(a.pid))
     )
-    select count(*)::int as n from behind where query like '%retried as (%'`
+    select count(*)::int as n from behind where position(${marker} in query) > 0`
   return rows[0]!.n as number
 }
+
+/**
+ * The retry statements (the only statements with a `retried` CTE) waiting behind `holderPid`. The second retry of a
+ * quote waits for the first, not for the holder, which is why the whole line is counted.
+ */
+export const retryStatementsBehind = (holderPid: number): Promise<number> => statementsBehind(holderPid, 'retried as (')
+
+/** The account cleanups (the only statements with a `gone_users` CTE) waiting behind `holderPid`. */
+export const cleanupStatementsBehind = (holderPid: number): Promise<number> => statementsBehind(holderPid, 'gone_users as (')
 
 /**
  * How long a copy waits for its turn. A turn lasts a few seconds, so a wait this long means a long line of copies or,
