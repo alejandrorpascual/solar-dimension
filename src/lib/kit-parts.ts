@@ -1,6 +1,7 @@
-import { panelCount, tr, type Dictionary, type Locale } from '../i18n'
+import { panelCount, tr, type Dictionary, type Locale, type UiKey } from '../i18n'
 import { fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
-import { hasPanels, type CablePick, type ConductorKind, type SizingResult } from './sizing'
+import { hasPanels, type CablePick, type ConductorKind, type InverterPick, type SizingResult } from './sizing'
+import { headroomPct } from './sizing/inverter'
 import { SOLAR } from './solar'
 
 export interface Part { id: string; name: string; spec: string; note: string; qty: string; group?: 'solar' }
@@ -22,6 +23,25 @@ function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
     { id: 'pvDisconnect', group: 'solar', name: t.parts.pvDisconnect, spec: tr(t, 'pvDisconnectSpec', { amps: s.breakerA }), note: t.ui.pvDisconnectNote, qty: String(s.controllers) },
     { id: 'mounting', group: 'solar', name: t.parts.mounting, spec: tr(t, 'mountingSpec', { panels: panelCount(t, s.panels) }), note: t.ui.mountingNote, qty: '1' },
   ]
+}
+
+/**
+ * Which wording the inverter row takes. It says "covers" of the running load only when the rating has its headroom on
+ * top, and of the peak only when the surge rating for a start-up of that length holds it. Under the running load that
+ * is all the row says: an inverter that cannot run the load is not asked about its start-up.
+ */
+function inverterNoteKey(inv: InverterPick): UiKey {
+  if (!inv.runningOk) return 'inverterNoteUnder'
+  if (!inv.headroomOk) return inv.surgeOk ? 'inverterNoteTight' : 'inverterNoteTightPeak'
+  return inv.surgeOk ? 'inverterNote' : 'inverterNotePeak'
+}
+
+function inverterNote(r: SizingResult, t: Dictionary, locale: Locale): string {
+  const inv = r.inverter
+  const w = (n: number) => fmtW(n, locale)
+  // Just past the rating, kilowatts to one decimal would call a 12.0 kW inverter smaller than a "12.0 kW" load; whole watts show the gap.
+  const running = inv.runningOk ? w(r.runningW) : `${fmtInt(r.runningW, locale)} W`
+  return tr(t, inverterNoteKey(inv), { surge: w(inv.surge), running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) })
 }
 
 /**
@@ -63,7 +83,7 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
   ])
   const w = (n: number) => fmtW(n, locale)
   const base: Part[] = [
-    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: tr(t, 'inverterNote', { surge: w(r.inverter.surge), running: w(r.runningW), peak: w(r.surgeW) }), qty: '1' },
+    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: inverterNote(r, t, locale), qty: '1' },
     { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: batteriesNote, qty: String(b.count) },
     {
       id: 'mainCable' satisfies ConductorKind, name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }),

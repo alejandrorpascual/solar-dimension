@@ -1,9 +1,11 @@
 import { needsSplitPhase, SIZING, VOLTAGES, type Voltage } from '../catalog'
+import { HEADROOM_PCT, headroomPct } from './inverter'
 import type { BatteryPick, InverterPick, ParallelNote, SelectedItem, SurgeProfile, Warning } from './types'
 
 export interface WarningContext {
   items: readonly SelectedItem[]
   inverter: InverterPick
+  runningW: number
   surgeProfile: SurgeProfile
   amps: number
   volts: Voltage
@@ -38,6 +40,11 @@ export function buildWarnings(ctx: WarningContext): Warning[] {
   const heavy = ctx.items.find(needsSplitPhase)
   if (heavy) {
     w.push({ code: 'splitPhase', params: { itemId: heavy.id, itemName: heavy.name } })
+  }
+  // Only pickInverter's last resort, the largest inverter when none fits, can lack the headroom: say so instead of
+  // printing it as if it fitted. A last resort that only misses the start-up is surgeDuration's, below.
+  if (!inv.headroomOk) {
+    w.push({ code: 'inverterUndersized', params: { inverterW: inv.w, runningW: ctx.runningW, headroomPct: headroomPct(inv.w, ctx.runningW), needPct: HEADROOM_PCT } })
   }
   if (!inv.surgeOk) {
     w.push({ code: 'surgeDuration', params: { surgeW: ctx.surgeProfile.surgeW, seconds: ctx.surgeProfile.seconds, ratedW: inv.surgeRatedW, inverterW: inv.w } })
