@@ -7,6 +7,7 @@ import { auth } from '../lib/auth'
 import { googleProvider } from '../lib/auth-google'
 import { canUseQuotes } from '../lib/quote-access'
 import type { Rejection } from '../lib/quote-limits'
+import { PublicError } from '../lib/server-error'
 
 /** `canUseQuotes` is decided on the server, so the trusted-email list never reaches the browser. */
 export interface SessionUser { id: string; email: string; name: string; googleLinked: boolean; canUseQuotes: boolean }
@@ -42,7 +43,7 @@ export const getAuthFeatures = createServerFn({ method: 'GET' }).handler(async (
 
 export const requireUserId = createServerOnlyFn(async (): Promise<string> => {
   const session = await auth.api.getSession({ headers: getRequestHeaders() })
-  if (!session) throw new Error('Unauthorized')
+  if (!session) throw new PublicError('Unauthorized')
   return session.user.id
 })
 

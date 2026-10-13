@@ -72,7 +72,7 @@ export const en: Dictionary = {
     back: 'Back', next: 'Next: backup window', nextSolar: 'Next: solar panels', buildKit: 'Build my kit', startOver: 'Start over',
     continueGoogle: 'Continue with Google', orDivider: 'or', googleExists: 'This email already has an account. Sign in with your password, then connect Google from the account menu.', googleFailed: "Google sign-in didn't finish. Try again.", connectGoogle: 'Connect Google',
     signIn: 'Sign in', signUp: 'Create account', signOut: 'Sign out', email: 'Email', password: 'Password', noAccount: 'No account yet? Create one', haveAccount: 'Already have an account? Sign in', authFailed: 'That did not work. Check the email and password.', signedInAs: 'Signed in as {email}', syncing: 'Syncing your projects…', syncFailed: 'Could not save to your account. Changes are kept on this device.', language: 'Language',
-    notFound: 'Page not found', backHome: 'Back to the kit builder', errorTitle: 'Something interrupted the kit builder.', reload: 'Reload', updating: 'Loading the latest version…',
+    notFound: 'Page not found', backHome: 'Back to the kit builder', errorTitle: 'Something interrupted the kit builder.', serverError: 'Server error. Reference', reload: 'Reload', updating: 'Loading the latest version…',
     projects: 'Projects', projectsCount: 'Projects · {count}', current: 'Current', quickEdit: 'Quick edit', done: 'Done',
     projectMeta: '{volts} V · {hours} h · {count} appliances', heaviestMore: '{list} and {count} more', bank: 'Bank', inverter: 'Inverter', close: 'Close',
     appliancesCount: 'Appliances · {count}', windowLabel: 'Window', hourLess: 'One hour less', hourMore: 'One hour more', hoursShort: '{hours} h',
