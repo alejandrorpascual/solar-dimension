@@ -28,3 +28,22 @@ test('a server failure reaches the page as a reference, with nothing of what wen
     await expect(page.getByText(leak)).toHaveCount(0)
   }
 })
+
+test('a failure while the server renders the page is a reference too, in the page and in the HTML it arrived as', async ({ page }) => {
+  await signUp(page)
+
+  // A project id longer than the server function takes: it throws on its own input while the server renders the page,
+  // so no call leaves the browser for a test to step into.
+  const response = await page.goto(`/projects/${'x'.repeat(100)}/quotes`)
+  const html = (await response?.text()) ?? ''
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Something interrupted the kit builder.' })).toBeVisible()
+  // The HTML carries the error for the browser to take over the page with: the same reference, and nothing else of it.
+  const ref = /Server error \(ref ([0-9a-f]{8})\)/.exec(html)?.[1]
+  expect(ref).toBeDefined()
+  await expect(page.getByText(`Server error. Reference: ${ref}`, { exact: true })).toBeVisible()
+  for (const leak of ['too_big', 'Too big', 'ZodError']) {
+    expect(html).not.toContain(leak)
+    await expect(page.getByText(leak)).toHaveCount(0)
+  }
+})

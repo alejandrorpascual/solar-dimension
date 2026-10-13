@@ -45,10 +45,12 @@ test('a redirect and a not-found are the router\'s own and pass untouched', () =
   expect(report).not.toHaveBeenCalled()
 })
 
+// The last row is the function alone. In the app a falsy throw is never handed to it: the framework takes the call for
+// one that succeeded (src/start.ts).
 test.each([
   ['a plain Error from our own code that was not marked for the caller', new Error('BLOB_READ_WRITE_TOKEN is not set.')],
   ['something thrown that is not an Error', 'select * from secrets'],
-  ['nothing at all', undefined],
+  ['nothing at all, once it is handed over', undefined],
 ])('%s is replaced too: only what is marked gets out', (_what, thrown) => {
   const report = vi.fn()
 
