@@ -49,7 +49,8 @@ export function buildWarnings(ctx: WarningContext): Warning[] {
   if (heavy) {
     w.push({ code: 'splitPhase', params: { itemId: heavy.id, itemName: heavy.name } })
   }
-  // pickInverter falls back to the largest set the list can build when none fits: say so instead of printing it as if it did.
+  // Only pickInverter's last resort, the largest set the list can build when none fits, can lack the headroom: say so
+  // instead of printing it as if it fitted. A last resort that only misses the start-up is surgeDuration's, below.
   if (!inv.headroomOk) {
     w.push({ code: 'inverterUndersized', params: { ...set, runningW: ctx.runningW, headroomPct: headroomPct(inv.w, ctx.runningW), needPct: HEADROOM_PCT } })
   }

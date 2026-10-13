@@ -196,6 +196,8 @@ describe('toInverterPick', () => {
     expect(headroomPct(3000, 2500)).toBe(20)
     expect(headroomPct(12000, 12000)).toBe(0)
     expect(headroomPct(12000, 15000)).toBe(0)
+    // No running load, no ratio: the planned headroom stands in, so the result never reads as short.
+    expect(headroomPct(3000, 0)).toBe(25)
   })
 
   test('dcAmps divides by voltage and inverter efficiency', () => {

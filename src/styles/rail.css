@@ -208,9 +208,13 @@
 .ksheet__kicker { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
 .ksheet__title { font-size: 40px; line-height: 1.05; }
 .ksheet__sub { font-size: 15px; color: var(--muted); }
-/* Failing checks or notes exist: said once on the first page, beside the subtitle so the page gets no taller. */
+/*
+ * Failing checks or notes exist: said once on the first page, beside the subtitle. The pill is no taller than the
+ * subtitle's line (12 px text and 1 px of padding against 15 px text), so the header keeps its height. If the two ever
+ * could not share the row, the pill would wrap under the subtitle and the header would grow by that line.
+ */
 .ksheet__subrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
-.ksheet__attn { padding: 3px 10px; border-radius: 8px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-ink); font-size: 12px; font-weight: 600; }
+.ksheet__attn { padding: 1px 10px; border-radius: 8px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-ink); font-size: 12px; font-weight: 600; }
 .ksheet__figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .ksheet__figs > div { display: flex; flex-direction: column; gap: 6px; padding: 0 16px; border-left: 1px solid var(--line); }
 .ksheet__figs > div:first-child { padding-left: 0; border-left: 0; }
@@ -234,7 +238,7 @@
 .ksheet__notes { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 10px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-ink); font-size: 13px; line-height: 1.45; }
 .ksheet__notes p { margin: 0; }
 .ksheet__qty { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
-/* Under the parts: what the sheet is, in ink, then the assumptions in the quieter grey. One block, so a page break keeps them together. */
+/* What the sheet is, in ink, then the assumptions in the quieter grey. KitSheet marks the pair as one `data-pdf-block`, so no page break falls between the two. */
 .ksheet__foot { display: flex; flex-direction: column; gap: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
 .ksheet__estimate { font-size: 12px; line-height: 1.45; font-weight: 600; }
 .ksheet__fine { font-size: 11px; line-height: 1.5; color: var(--muted); }

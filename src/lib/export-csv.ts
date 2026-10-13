@@ -35,8 +35,8 @@ export function csvCell(value: string | number): string {
 const line = (cells: ReadonlyArray<string | number>) => cells.map(csvCell).join(',')
 
 /**
- * The load schedule, the parts list and whatever needs attention as one spreadsheet, a blank row between blocks. The
- * BOM makes Excel read the file as UTF-8, so "LiFePO₄" and accented names survive.
+ * The load schedule, the parts list, whatever needs attention and the closing line as one spreadsheet, a blank row
+ * between blocks. The BOM makes Excel read the file as UTF-8, so "LiFePO₄" and accented names survive.
  */
 export function buildCsv(input: CsvInput): string {
   const blocks: string[][] = []

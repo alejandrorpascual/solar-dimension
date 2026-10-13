@@ -1,4 +1,4 @@
-import type { ConductorKind } from '../lib/sizing'
+import type { ConductorKind, WarningParams } from '../lib/sizing'
 import { isInverterSet as isSet } from '../lib/sizing/warnings'
 import type { Dictionary } from './types'
 import { quoteItemsEn, quoteItemsInlineEn, quoteItemsListEn, quoteItemsShortEn, quotesEn } from './quotes-en'
@@ -6,6 +6,18 @@ import { requesterEn } from './requester-en'
 
 /** The cable rows as a warning names them mid-sentence. */
 const CONDUCTORS: Record<ConductorKind, string> = { mainCable: 'main cable', interconnects: 'interconnects', stringLeads: 'string leads' }
+
+/** What to do about a cable row that falls short: only the ways out the engine says would work for it, ending with the one that always does. */
+function cableRemedy(p: WarningParams): string {
+  const ways = [
+    ...(p.canCool ? ['move the bank somewhere cooler'] : []),
+    ...(p.canRaiseInsulation ? ['use 90 °C cable'] : []),
+    ...(p.nextVolts ? [`raise the voltage to ${p.nextVolts} V`] : []),
+    'trim the load',
+  ]
+  const list = ways.length > 1 ? `${ways.slice(0, -1).join(', ')} or ${ways[ways.length - 1]}` : ways[0]!
+  return `${list[0]!.toUpperCase()}${list.slice(1)}.`
+}
 
 export const en: Dictionary = {
   locale: 'en',
@@ -35,15 +47,16 @@ export const en: Dictionary = {
     inverterSpec: '{w} pure sine, {volts} V DC input', inverterNote: '{surge} · covers {running} running, {peak} peak',
     inverterNoteTight: '{surge} · {running} running leaves {pct}% headroom, {peak} peak', inverterNoteUnder: '{surge} · smaller than the {running} running load',
     inverterNotePeak: '{surge} · covers {running} running, not the {peak} peak',
+    inverterNoteTightPeak: '{surge} · {running} running leaves {pct}% headroom, {peak} peak not covered',
     inverterSurge: '{surge} surge', inverterSurgeSet: '{surge} surge together',
     inverterParallelNote: '{count} in parallel work as one {total} inverter, drawing up to {amps} A from the bus bars',
     batteriesNote: '{series} in series × {parallel} in parallel ({config}) · {bank} bank, {usable} usable',
     mainCableSpec: '{gauge} ({mm2} mm²) copper, {length} m each', mainCableNote: 'Battery to inverter · {amps} A design current{perRun} · {ampacity} A after derating · {drop}% drop at start-up',
     interconnectsSpec: '{gauge} jumpers, {cm} cm each',
     seriesLinksNote: 'Between batteries in series · {amps} A design current · {ampacity} A after derating',
-    seriesLinksSharedNote: 'Between batteries in series, {each} side by side per link · {amps} A design current each · {ampacity} A after derating',
+    seriesLinksSharedNote: 'Between batteries in series · {each} identical jumpers side by side at every link · {amps} A design current each · {ampacity} A after derating',
     stringLeadsSpec: '{gauge} ({mm2} mm²) copper, {cm} cm each',
-    stringLeadsNote: 'A positive and a negative from each string to the bus bars · {amps} A design current · {ampacity} A after derating',
+    stringLeadsNote: 'A positive and a negative from each string to the bus bars (bus bars not listed) · {amps} A design current · {ampacity} A after derating',
     fuseSpec: '{amps} A class {class}{perRun}', fuseNote: 'Inline on the positive lead, as close to the bank as possible', perRun: ' per run', perInverter: ' per inverter', perRunOfInverter: ' per run, {n} runs to each inverter',
     fuseAicNote: '{aic} kA interrupting rating', stringFuseSpec: '{amps} A class {class}, one per parallel string', stringFuseNote: "On each string's positive lead, so a shorted string drops out alone",
     batteriesCurrentNote: '{cont} A continuous, {peak} A peak from the bank',
@@ -109,7 +122,7 @@ export const en: Dictionary = {
     insulationLabel: 'Cable insulation', insulation75: '75 °C · THW, welding cable', insulation90: '90 °C · THHN, XHHW-2, most battery cable',
     runtimeRange: '{worst} on a hard day · {best} on a light day',
     checks: 'Checks', incChecks: 'Checks', checkPass: 'Passes', checkWarn: 'Needs attention',
-    checkSurge: 'Inverter', checkSurgeOk: '{running} running on a {inverter} inverter · {peak} for {seconds} s, within its {rating} surge rating',
+    checkSurge: 'Inverter size', checkSurgeOk: '{running} running on a {inverter} inverter · {peak} for {seconds} s, within its {rating} surge rating',
     checkSurgeOkMany: '{running} running on {count} × {unit} inverters ({inverter} together) · {peak} for {seconds} s, within their {rating} surge rating',
     checkSurgeContributors: '{running} running + {list} starting',
     checkBatteryContinuous: 'Battery continuous current', checkBatteryContinuousOk: 'Bank gives {bankA} A continuous; the inverter draws up to {needA} A',
@@ -158,7 +171,7 @@ export const en: Dictionary = {
     fuseInterrupt: (p) => `A shorted bank can deliver about ${p.shortCircuitA?.toLocaleString('en-US')} A, more than the fuse's ${p.aicA?.toLocaleString('en-US')} A interrupting rating. Use a fuse rated for it or fewer strings.`,
     startupDrop: (p) => `The cable drops ${p.dropPct}% at start-up current; the inverter may cut out when a motor starts. Shorten the run or go up a gauge.`,
     cableAmbient: (p) => `No cable in the table is rated for ${p.ambientC} °C air. Move the run somewhere cooler.`,
-    cableUndersized: (p) => `${p.gauge} for the ${CONDUCTORS[p.conductor ?? 'mainCable']} carries only ${p.maxA?.toLocaleString('en-US')} A after derating, under its ${p.needA?.toLocaleString('en-US')} A design current. Raise the voltage, trim the load or move the bank somewhere cooler.`,
+    cableUndersized: (p) => `${p.gauge} for the ${CONDUCTORS[p.conductor!]} carries only ${p.maxA?.toLocaleString('en-US')} A after derating, under the ${p.needA?.toLocaleString('en-US')} A design current of each cable. ${cableRemedy(p)}`,
     missingAppliances: (p) => p.count === 1
       ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute; if it is still missing, add it again.'
       : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute; if they are still missing, add them again.`,
@@ -168,7 +181,7 @@ export const en: Dictionary = {
   kinds: { continuous: 'Always on', cycling: 'Cycles on and off', momentary: 'Short bursts' },
   parallelNotes: {
     sameModelAge: 'Same model and age in every string',
-    equalLeadsOrBusbar: 'Equal cable lengths to a bus bar',
+    equalLeadsOrBusbar: 'Equal cable lengths to the bus bars',
     stringFuses: 'A fuse on each string',
     bmsComms: 'BMS units linked (CAN or RS485) so they share the load',
   },

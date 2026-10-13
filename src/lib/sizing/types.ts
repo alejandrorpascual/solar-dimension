@@ -68,7 +68,7 @@ export interface InverterPick {
   /** The surge rating that applies to the load's surge duration, and whether it covers the peak. */
   surgeRatedW: number
   surgeOk: boolean
-  /** Whether the continuous rating covers the running load at all, and with the engine's headroom on top. */
+  /** Whether the continuous rating covers the running load at all, and with the engine's headroom on top; the second implies the first. */
   runningOk: boolean
   headroomOk: boolean
   /** DC-side current at full continuous output and at the surge rating. */
@@ -152,26 +152,33 @@ export interface BatteryOption {
 
 export interface FusePick { a: number; class: FuseClass; aicA: number; maxVdc: number; count: number }
 
-/** A cable row the parts list prints, named by its part id so a warning can point at the row. */
+/** A battery-side cable row the parts list prints. The values are those rows' part ids, so a warning can name its row. */
 export type ConductorKind = 'mainCable' | 'interconnects' | 'stringLeads'
 
-/** The jumpers between neighbouring batteries in a string. Each place carries the whole string's current. */
+/**
+ * The jumpers between neighbouring batteries in a string. Every link passes the whole string's current. The currents
+ * are whole amps for printing; whether the row falls short is the `cableUndersized` warning's call, not theirs.
+ */
 export interface LinkCable {
-  /** Places a link goes: one between each pair of neighbours, in every string. */
+  /** Links in the bank: one between each pair of neighbours, in every string. */
   positions: number
-  /** Jumpers side by side at each place: the main cable's runs in a one-string bank, otherwise one. */
+  /** Jumpers side by side at each link: the main cable's runs in a one-string bank, otherwise one. */
   perPosition: number
   /** Jumpers to buy: positions × perPosition. */
   count: number
   gauge: string
   mm2: number
-  /** What one jumper is sized for, and what it carries after the ambient correction. */
+  /** Design current of one jumper: that of the conductor its string feeds, split over that conductor's runs. */
   designA: number
+  /** What one jumper may carry: the table column corrected for ambient, unbundled, capped at the terminations. */
   ampacity: number
   lengthM: number
 }
 
-/** The leads from one parallel string to the bus bars, and the fuse on the positive one. */
+/**
+ * The leads from one parallel string to the bus bars, and the fuse on the positive one; `fuse.count` is the number of
+ * strings. The currents are whole amps for printing, as on `LinkCable`.
+ */
 export interface StringCable {
   amps: number
   designA: number
@@ -181,11 +188,9 @@ export interface StringCable {
   lengthM: number
   dropPct: number
   fuse: FusePick
-  /** Strings in parallel, so fuses to buy. */
-  count: number
   /** Leads to buy: a positive and a negative for every string. */
   leads: number
-  /** The string fuse's own checks against one unit's limits, and the lead's against its design current. */
+  /** Everything sizing the lead warned about: its fuse, the drop, the air, and the lead against its design current. */
   warnings: Warning[]
 }
 
@@ -200,8 +205,10 @@ export interface CablePick {
   /** Ampacity of one run after the ambient and bundling corrections and the termination cap. */
   ampacity: number
   tableAmpacity: number
-  /** Current the run is sized for: continuous amps × the NEC continuous factor. */
+  /** Design current of the whole battery-to-inverter circuit, all runs together: continuous amps × the NEC continuous factor. */
   designA: number
+  /** Design current of one run, in whole amps: the figure the main cable row and the cable check print. */
+  designPerRunA: number
   insulationC: InsulationC
   ambientC: number
   ambientFactor: number
@@ -212,12 +219,14 @@ export interface CablePick {
   mainLengthM: number
   /** Series links inside each string; null when no two batteries are in series. */
   links: LinkCable | null
+  /** Metres of battery-side cable in the kit: main runs, links and string leads together, whatever their gauges. */
   totalLengthM: number
   /** The main fuse rating; the same value as `fuse.a` on the result. */
   fuseA: number
   dropPct: number
   /** Drop at the inverter's surge current. */
   startupDropPct: number
+  /** The lead pair and fuse of each parallel string; null when the bank is one string. */
   string: StringCable | null
 }
 
@@ -234,7 +243,10 @@ export interface WarningParams {
   inverters?: number
   unitW?: number
   runningW?: number
-  /** Whole percent of headroom the inverter has over the running load, and the percent the engine plans for. */
+  /**
+   * Whole percent of headroom the inverter has over the running load, and the percent the engine plans for. The first
+   * is 0 at the rating and past it alike; `inverterW` against `runningW` tells the two apart.
+   */
   headroomPct?: number
   needPct?: number
   volts?: number
@@ -261,6 +273,9 @@ export interface WarningParams {
   ambientC?: number
   conductor?: ConductorKind
   gauge?: string
+  /** Whether a short cable row would cover its design current in a cool room, and on 90 °C cable. */
+  canCool?: boolean
+  canRaiseInsulation?: boolean
   fit?: number
   need?: number
 }

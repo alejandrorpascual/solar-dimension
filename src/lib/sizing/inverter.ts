@@ -74,12 +74,14 @@ export function pickInverter(runningW: number, profile: SurgeProfile, volts: Vol
 }
 
 const PERCENT = 100
-/** The headroom the engine plans for over the running load, in whole percent. */
+/** The headroom the engine plans for over the running load, in whole percent; rounded because a factor such as 1.2 gives 19.999…. */
 export const HEADROOM_PCT = Math.round((SIZING.HEADROOM - 1) * PERCENT)
 
 /**
- * Whole percent of rating left over the running load, rounded down; 0 when the load is at or past the rating. The
- * difference is multiplied before it is divided, so whole watts give an exact 20% and not 19.999…%.
+ * The spare rating as a whole percent of the running load, the base SIZING.HEADROOM uses, rounded down; 0 when the
+ * load is at or past the rating. The difference is taken in watts before anything is divided, so an exact fraction
+ * keeps its percent: (12000 / 10000 - 1) * 100 is 19.999…, and this gives 20. With no running load there is no ratio,
+ * and HEADROOM_PCT stands in so the result never reads as short.
  */
 export const headroomPct = (inverterW: number, runningW: number): number =>
   runningW > 0 ? Math.max(0, Math.floor(((inverterW - runningW) * PERCENT) / runningW)) : HEADROOM_PCT

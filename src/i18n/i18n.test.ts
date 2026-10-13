@@ -77,10 +77,24 @@ describe('dictionaries', () => {
     const p = { gauge: '4/0 AWG', maxA: 172, needA: 174 }
     expect(en.warnings.cableUndersized({ ...p, conductor: 'mainCable' })).toContain('4/0 AWG for the main cable carries only 172 A')
     expect(en.warnings.cableUndersized({ ...p, conductor: 'interconnects' })).toContain('for the interconnects')
-    expect(en.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('under its 174 A design current')
+    expect(en.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('for the string leads carries only 172 A after derating, under the 174 A design current of each cable')
     expect(es.warnings.cableUndersized({ ...p, conductor: 'mainCable' })).toContain('El 4/0 AWG para el cable principal solo soporta 172 A')
     expect(es.warnings.cableUndersized({ ...p, conductor: 'interconnects' })).toContain('para las interconexiones')
-    expect(es.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('para los cables de rama')
+    expect(es.warnings.cableUndersized({ ...p, conductor: 'stringLeads' })).toContain('para los cables de rama solo soporta 172 A tras la corrección, menos que la corriente de diseño de 174 A de cada cable')
+  })
+  test('the undersized-cable warning lists the ways out it is given, and always ends on trimming the load', () => {
+    const p = { gauge: '4/0 AWG', maxA: 230, needA: 231.5, conductor: 'stringLeads' as const }
+    const ends = (d: typeof en, ways: object, tail: string) => expect(d.warnings.cableUndersized({ ...p, ...ways }).endsWith(` ${tail}`)).toBe(true)
+    ends(en, {}, 'Trim the load.')
+    ends(es, {}, 'Reduce la carga.')
+    ends(en, { nextVolts: null }, 'Trim the load.')
+    ends(en, { nextVolts: 24 }, 'Raise the voltage to 24 V or trim the load.')
+    ends(es, { nextVolts: 24 }, 'Sube el voltaje a 24 V o reduce la carga.')
+    ends(en, { canCool: true }, 'Move the bank somewhere cooler or trim the load.')
+    ends(en, { canCool: true, canRaiseInsulation: true }, 'Move the bank somewhere cooler, use 90 °C cable or trim the load.')
+    ends(es, { canCool: true, canRaiseInsulation: true }, 'Lleva el banco a un lugar más fresco, usa cable de 90 °C o reduce la carga.')
+    ends(en, { canCool: true, canRaiseInsulation: true, nextVolts: 36 }, 'Move the bank somewhere cooler, use 90 °C cable, raise the voltage to 36 V or trim the load.')
+    ends(es, { canCool: true, canRaiseInsulation: true, nextVolts: 36 }, 'Lleva el banco a un lugar más fresco, usa cable de 90 °C, sube el voltaje a 36 V o reduce la carga.')
   })
   test('every part the kit can list has a name in both languages', () => {
     const keys = ['inverter', 'batteries', 'mainCable', 'interconnects', 'stringLeads', 'fuse', 'stringFuses', 'solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'] as const

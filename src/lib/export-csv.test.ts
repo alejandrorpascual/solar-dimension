@@ -31,7 +31,7 @@ describe('csvCell', () => {
 })
 
 describe('buildCsv', () => {
-  test('ends with the failing checks and notes when there are any, even with every block switched off', () => {
+  test('the failing checks and notes follow the parts when there are any, even with every block switched off', () => {
     const attention = [{ name: 'Cable', text: '333 A on the DC side at 12 V is hard to wire safely.' }, { name: 'Notes for the installer', text: 'Usually runs on 240 V, so plan for it' }]
     const lines = buildCsv(input({ appliances: false, parts: true }, attention)).slice(1).split('\r\n')
     expect(lines.slice(-4)).toEqual(['', 'Needs attention,Note', 'Cable,333 A on the DC side at 12 V is hard to wire safely.', 'Notes for the installer,"Usually runs on 240 V, so plan for it"'])
@@ -39,10 +39,24 @@ describe('buildCsv', () => {
     expect(buildCsv(input({ appliances: true, parts: true }))).not.toContain('Needs attention')
   })
 
-  test('a closing line goes under everything, as a block of its own', () => {
-    const lines = buildCsv({ ...input({ appliances: false, parts: true }), footer: 'An estimate, not a design.' }).slice(1).split('\r\n')
-    expect(lines.slice(-2)).toEqual(['', '"An estimate, not a design."'])
+  test('a closing line goes under everything, the failing checks and notes included, as a block of its own', () => {
+    const attention = [{ name: 'Cable', text: 'Hard to wire safely' }]
+    const lines = buildCsv({ ...input({ appliances: false, parts: true }, attention), footer: 'An estimate, not a design.' }).slice(1).split('\r\n')
+    expect(lines.slice(-4)).toEqual(['Needs attention,Note', 'Cable,Hard to wire safely', '', '"An estimate, not a design."'])
     expect(buildCsv({ ...input({ appliances: false, parts: false }), footer: 'Estimate' }).slice(1)).toBe('Estimate')
+  })
+
+  test.each([
+    ['a quote', 'Say "estimate"', '"Say ""estimate"""'],
+    ['a line break', 'An estimate\nNot a design', '"An estimate\nNot a design"'],
+    ['an equals sign first', '=SUM(A1)', "'=SUM(A1)"],
+    ['a plus first', '+1 estimate', "'+1 estimate"],
+    ['a minus first', '-1 estimate', "'-1 estimate"],
+    ['an at sign first', '@estimate', "'@estimate"],
+    ['a tab first', '\testimate', "'\testimate"],
+    ['a carriage return first', '\restimate', `"'\restimate"`],
+  ])('a closing line with %s stays one cell of text, never a formula', (_, footer, cell) => {
+    expect(buildCsv({ ...input({ appliances: false, parts: false }), footer }).slice(1)).toBe(cell)
   })
 
   test('writes the appliance block, a blank line, then the parts block, with a BOM for Excel', () => {

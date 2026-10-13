@@ -122,7 +122,8 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
 
   const main = sizeMain(battery)
   const wiring = sizeBankWiring({ ...wires, battery, main })
-  const jumpers = (wiring.links?.count ?? 0) + (wiring.string?.leads ?? 0)
+  const linksM = wiring.links ? wiring.links.count * wiring.links.lengthM : 0
+  const leadsM = wiring.string ? wiring.string.leads * wiring.string.lengthM : 0
 
   return {
     empty: items.length === 0,
@@ -138,12 +139,12 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     cable: {
       amps: Math.round(main.amps), perRun: Math.round(main.perRun), runs: main.runs,
       gauge: main.gauge.awg, mm2: main.gauge.mm2, ampacity: Math.round(main.ampacity), tableAmpacity: ampsAt(main.gauge, cond.insulationC),
-      designA: Math.round(main.designA), insulationC: cond.insulationC, ambientC: cond.ambientC,
+      designA: Math.round(main.designA), designPerRunA: Math.round(main.designA / main.runs), insulationC: cond.insulationC, ambientC: cond.ambientC,
       ambientFactor: ambientFactor(cond.ambientC, cond.insulationC),
       bundled: cond.bundled, conductors: main.conductors, bundleFactor: bundleFactor(main.conductors),
       mainCount: 2 * main.runs, mainLengthM: cond.runLengthM,
       links: wiring.links,
-      totalLengthM: tenth(2 * main.runs * cond.runLengthM + jumpers * SIZING.LINK_LENGTH_M),
+      totalLengthM: tenth(2 * main.runs * cond.runLengthM + linksM + leadsM),
       fuseA: main.fuse.a, dropPct: tenth(main.dropPct), startupDropPct: tenth(main.startupDropPct),
       string: wiring.string,
     },
@@ -153,7 +154,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     warnings: [
       ...buildWarnings({
         items, inverter, runningW, surgeProfile: profile, amps: inverter.continuousA, volts, battery, loadWh,
-        protection: [...main.warnings, ...undersized('mainCable', main), ...wiring.warnings], missing, startupA,
+        protection: [...main.warnings, ...undersized('mainCable', main, { cond, volts }), ...wiring.warnings], missing, startupA,
       }),
       ...roofWarning,
     ],

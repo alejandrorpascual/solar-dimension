@@ -5,12 +5,11 @@
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { migrate } from 'drizzle-orm/neon-http/migrator'
-import { endpointOf, loadTestEnv } from '../e2e/test-env'
+import { loadTestEnv } from '../e2e/test-env'
 
-loadTestEnv()
+const endpoint = loadTestEnv()
 const url = process.env.DATABASE_URL
 if (!url) throw new Error('DATABASE_URL is not set after loadTestEnv()')
-const endpoint = endpointOf(url)
 console.log(`migrating ${endpoint}`)
 await migrate(drizzle({ client: neon(url) }), { migrationsFolder: './drizzle' })
 console.log(`migrated ${endpoint}`)
