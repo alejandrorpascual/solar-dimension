@@ -4,17 +4,20 @@
 //   node --env-file=<env file> scripts/delete-e2e-users.mjs                     list only (read-only)
 //   node --env-file=<env file> scripts/delete-e2e-users.mjs --yes=<fingerprint>  delete exactly the listed accounts
 //
-// <fingerprint> is printed by the listing and covers the exact set of listed account ids. The delete is one statement
-// that removes nothing when the matching accounts no longer have that fingerprint (one appeared or disappeared since
-// the listing), or when any of them has a quote: a quote's uploaded file is only removed from storage by the app's
-// own delete, so those accounts are left for it. Projects carry no foreign key to their account, which is why they
-// are deleted here by hand; sessions, sign-in methods and usage counters go with the account.
-import { createHash } from 'node:crypto'
+// <fingerprint> is printed by the listing and covers the exact set of listed account ids. The delete
+// (e2e-user-cleanup.ts) is one statement that removes nothing when the matching accounts no longer have that
+// fingerprint (one appeared or disappeared since the listing), when any of them has a quote, or when one of them is
+// written to while it runs: a quote's uploaded file is only removed from storage by the app's own delete, so those
+// accounts are left for it. Projects carry no foreign key to their account, which is why they are deleted here by
+// hand; sessions, sign-in methods and usage counters go with the account.
+//
+// Run it while no e2e run uses the database, and expect one limit. The server trusts a signed-in session for five
+// minutes without reading the database (cookieCache in src/lib/auth.ts), so a browser still signed in to an account
+// deleted here can save a project in that time. With no foreign key the save succeeds, and the project stays:
+// it belongs to no account, and no later listing finds it.
 import { neon } from '@neondatabase/serverless'
+import { deleteAccounts, E2E_EMAIL_PATTERN, FINGERPRINT_LENGTH, fingerprintOf } from './e2e-user-cleanup.ts'
 
-/** Every e2e sign-up uses this shape. example.com is reserved (RFC 2606), so no real mailbox has such an address. */
-const E2E_EMAIL_PATTERN = 'e2e-%@example.com'
-const FINGERPRINT_LENGTH = 12
 /** How many accounts the listing shows by email: the oldest verified ones and the newest of all. The summary counts every one. */
 const VERIFIED_SHOWN = 20
 const NEWEST_SHOWN = 5
@@ -27,11 +30,6 @@ function parseFingerprint(argv) {
     throw new Error('--yes needs the fingerprint the listing printed, e.g. --yes=0123456789ab')
   }
   return fingerprint
-}
-
-/** Same value as the delete's SQL check: md5 of the ids in byte order (collate "C"), joined by commas. */
-function fingerprintOf(ids) {
-  return createHash('md5').update([...ids].sort().join(',')).digest('hex').slice(0, FINGERPRINT_LENGTH)
 }
 
 /** The Neon endpoint id ("ep-…"), so the output names the target database without printing the connection string. */
@@ -79,20 +77,7 @@ async function main() {
     if (users.length > 0 && withQuotes.length === 0) console.log(`\nList only. To delete exactly these accounts and their projects: add --yes=${fingerprint}`)
     return
   }
-  const [deleted] = await sql`
-    with doomed as (select id from "user" where email like ${E2E_EMAIL_PATTERN}),
-    cleared as (
-      select 1 where
-        (select left(md5(coalesce(string_agg(id, ',' order by id collate "C"), '')), ${FINGERPRINT_LENGTH}) from doomed) = ${confirmed}
-        and not exists (select 1 from quotes q where q.user_id in (select id from doomed))
-    ),
-    gone_projects as (
-      delete from projects where user_id in (select id from doomed) and exists (select 1 from cleared) returning 1
-    ),
-    gone_users as (
-      delete from "user" where id in (select id from doomed) and exists (select 1 from cleared) returning 1
-    )
-    select (select count(*)::int from gone_users) as users, (select count(*)::int from gone_projects) as projects`
+  const deleted = await deleteAccounts(sql, E2E_EMAIL_PATTERN, confirmed)
   if (deleted.users === 0) {
     throw new Error('Nothing deleted: the matching accounts changed since that listing, or one of them has a quote. List again.')
   }

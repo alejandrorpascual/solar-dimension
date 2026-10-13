@@ -1,22 +1,14 @@
 import { expect, test, type Page } from '@playwright/test'
 import {
-  countQuoteRows, dailyReads, firstProjectId, holdQuoteRow, quoteRetryCount, quoteRetryStates, raiseDailyReadsTo, retryStatementsBehind, seedFailedQuote,
+  countQuoteRows, dailyReads, holdQuoteRow, quoteRetryCount, quoteRetryStates, raiseDailyReadsTo, retryStatementsBehind, seedFailedQuote,
   seedQuoteRows, takeTurn,
 } from './db'
-import { captureRetryCall, postRetry, quotePdf, signUp, uploadQuotes, type CapturedCall } from './quotes'
+import { captureRetryCall, postRetry, quotePdf, signUpWithProject, uploadQuotes, type CapturedCall } from './quotes'
 import { BUDGET_DAILY_READS, BUDGET_PORT } from './servers'
 
 /** The server whose daily read budget is 1 (playwright.config.ts). It shares the build, the database and the session. */
 const BUDGET_SERVER = `http://localhost:${BUDGET_PORT}`
 const PAUSED = 'Quote reading is paused for today. Try again tomorrow.'
-
-/** Signs up, waits for the default project to reach the server, and returns its id. */
-async function signUpWithProject(page: Page): Promise<{ email: string; projectId: string }> {
-  const email = await signUp(page)
-  await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
-  return { email, projectId: await firstProjectId(email) }
-}
 
 test('an admitted upload takes one of the day’s reads', async ({ page }) => {
   // Sign-up, an upload and database reads over Neon's HTTP driver can pass 30 s on a slow CI runner.
