@@ -3,7 +3,7 @@ import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import { CUSTOM_NAME_MAX, EMPTY_FORM, parseCustom, type CustomError, type CustomForm } from '../lib/custom'
 import type { Store } from '../lib/schema'
-import { addCustom, currentProject } from '../lib/store'
+import { addCustom, currentProject, removeUnreadCustom, takenLoadIds, unreadCustomCount } from '../lib/store'
 
 export function CustomApplianceForm({ store, commit }: { store: Store; commit: (s: Store) => void }) {
   const { t } = useLocale()
@@ -11,8 +11,11 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
   const [error, setError] = useState<CustomError | null>(null)
   const set = (patch: Partial<CustomForm>) => { setForm({ ...form, ...patch }); setError(null) }
 
+  const project = currentProject(store)
+  const unread = unreadCustomCount(project)
+
   function submit() {
-    const res = parseCustom(form, currentProject(store).custom.map((c) => c.id))
+    const res = parseCustom(form, takenLoadIds(project))
     if (!res.ok) { setError(res.error); return }
     commit(addCustom(store, res.item))
     setForm(EMPTY_FORM)
@@ -31,6 +34,14 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
           <button type="button" className={`seg${isVa ? ' seg--on' : ''}`} onClick={() => set({ mode: 'va' })}>{t.ui.voltsAmps}</button>
         </div>
       </div>
+      {unread > 0 && (
+        <div className="warn custom__unread" role="status">
+          <span>{tr(t, unread === 1 ? 'customUnreadOne' : 'customUnreadMany', { count: unread })}</span>
+          <button type="button" className="custom__unread-clear" onClick={() => commit(removeUnreadCustom(store))}>
+            {unread === 1 ? t.ui.customUnreadClearOne : t.ui.customUnreadClearMany}
+          </button>
+        </div>
+      )}
       <div className="custom__row">
         <label className="field field--grow"><span className="lab">{t.ui.name}</span><input className="in" type="text" maxLength={CUSTOM_NAME_MAX} value={form.name} onChange={(e) => set({ name: e.target.value })} /></label>
         {isVa ? (

@@ -1,8 +1,7 @@
 import { DEFAULT_HARDWARE, SIZING, VOLTAGES, type CatalogItem, type HardwareCatalog, type Voltage } from './catalog'
 import { ambientFactor, ampsAt, bundleFactor } from './nec'
-import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate } from './sizing/battery'
-import { maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
-import { maxInterruptAmps } from './sizing/fuse'
+import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate, type BankDemand } from './sizing/battery'
+import { canInterruptFault, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
 import { dcAmps, pickInverter, toInverterPick } from './sizing/inverter'
 import { selectItems, surgeProfile } from './sizing/loads'
 import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
@@ -93,9 +92,19 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const inverter = toInverterPick(pickInverter(runningW, profile, volts, hardware.inverters), profile, volts, runningW)
   // What flows at start-up is the load's surge, not the inverter's rating: the bank, fuse and cable see that current.
   const startupA = dcAmps(profile.surgeW, volts)
-  const demand = {
+  // Inverters in parallel share the current but not the cable: each has its own runs and fuse.
+  const sizeMain = (behind: Pick<BatteryPick, 'bankContinuousA' | 'bankShortCircuitA'> | null) =>
+    sizeMainCable(inverter.continuousA, startupA, volts, cond, hardware.gauges, hardware.fuses, {
+      surgeSeconds: profile.seconds, bankContinuousA: behind?.bankContinuousA ?? null, bankShortCircuitA: behind?.bankShortCircuitA ?? null,
+    }, { feeds: inverter.count })
+  const wires = { bankAmps: inverter.continuousA, bankSurgeAmps: startupA, volts, cond, gauges: hardware.gauges, fuses: hardware.fuses, surgeSeconds: profile.seconds }
+  // Which fuse a run gets follows from its current, not from the bank behind it: sized with no bank, the main run
+  // already has the fuse the kit will list, so every bank is read against the fuses it would really get.
+  const unbanked = sizeMain(null)
+  const demand: BankDemand = {
     continuousA: inverter.continuousA, surgeA: startupA, surgeSeconds: profile.seconds,
-    maxStringA: maxStringAmps(volts, cond, hardware.gauges, hardware.fuses), maxShortCircuitA: maxInterruptAmps(hardware.fuses, volts),
+    maxStringA: maxStringAmps(volts, cond, hardware.gauges, hardware.fuses),
+    canInterrupt: (layout) => canInterruptFault({ ...wires, main: unbanked, battery: layout }),
   }
   const candidates = batteryCandidates(chem, volts, requiredAh, demand)
   const auto = autoPick(candidates)
@@ -111,14 +120,8 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     ? [{ code: 'roofLimited', params: { fit: solar.fit, need: panelsToRefill(bankWh, solar.sunHours) } }]
     : []
 
-  // Inverters in parallel share the current but not the cable: each has its own runs and fuse.
-  const main = sizeMainCable(inverter.continuousA, startupA, volts, cond, hardware.gauges, hardware.fuses, {
-    surgeSeconds: profile.seconds, bankContinuousA: battery?.bankContinuousA ?? null, bankShortCircuitA: battery?.bankShortCircuitA ?? null,
-  }, { feeds: inverter.count })
-  const wiring = sizeBankWiring({
-    battery, main, bankAmps: inverter.continuousA, bankSurgeAmps: startupA, volts, cond,
-    gauges: hardware.gauges, fuses: hardware.fuses, surgeSeconds: profile.seconds,
-  })
+  const main = sizeMain(battery)
+  const wiring = sizeBankWiring({ ...wires, battery, main })
   const jumpers = (wiring.links?.count ?? 0) + (wiring.string?.leads ?? 0)
 
   return {

@@ -443,6 +443,65 @@ describe('bank wiring', () => {
     expect(auto.battery).toMatchObject({ unitLabel: '48 V 200 Ah LiFePO₄', config: '1S3P', leadOk: true, interruptOk: true })
   })
 
+  const cannotInterrupt = (r: ReturnType<typeof compute>): boolean => r.warnings.some((w) => w.code === 'fuseInterrupt')
+  /** The stock fuses with one rating changed: a list whose fuses do not all interrupt the same fault. */
+  const fusesWhere = (isChanged: (a: number) => boolean, aicA: number) =>
+    ({ ...DEFAULT_HARDWARE, fuses: DEFAULT_HARDWARE.fuses.map((f) => (isChanged(f.a) ? { ...f, aicA } : f)) })
+
+  test('a bank is read against the fuses its kit is given, not the best rating in the list', () => {
+    // Arrange: only the 400 A fuse interrupts 50 kA. A 6 kW kit gets 20 kA fuses, and three 280 Ah units put 21,000 A into a fault.
+    const hardware = fusesWhere((a) => a === 400, 50000)
+    const input = { ...load(6000), hours: 4, volts: 48 as const, chemistry: 'lifepo4' as const }
+
+    // Act
+    const auto = compute(input, CATALOG_SNAPSHOT, hardware)
+    const byHand = compute({ ...input, batteryUnit: '48-280' }, CATALOG_SNAPSHOT, hardware)
+
+    // Assert
+    expect(auto.fuse.aicA).toBe(20000)
+    expect(auto.batteryOptions.find((o) => o.id === '48-280')).toMatchObject({ count: 3, interruptOk: false })
+    expect(auto.battery).toMatchObject({ unitLabel: '48 V 200 Ah LiFePO₄', config: '1S4P', bankShortCircuitA: 20000, interruptOk: true })
+    expect(cannotInterrupt(auto)).toBe(false)
+    expect(byHand.battery).toMatchObject({ config: '1S3P', bankShortCircuitA: 21000, interruptOk: false })
+    expect(cannotInterrupt(byHand)).toBe(true)
+  })
+
+  test('with strings in parallel, each string\'s fuse has to interrupt one battery as well', () => {
+    // Arrange: fuses up to 150 A that interrupt 4,000 A. A 6 kW inverter gets a 175 A main fuse, two strings a 100 A fuse each.
+    const hardware = fusesWhere((a) => a <= 150, 4000)
+    const input = { ...load(4800), hours: 2, volts: 48 as const, chemistry: 'lifepo4' as const }
+
+    // Act
+    const auto = compute(input, CATALOG_SNAPSHOT, hardware)
+    const byHand = compute({ ...input, batteryUnit: '48-200' }, CATALOG_SNAPSHOT, hardware)
+
+    // Assert: the main fuse interrupts the two 200 Ah units together, but each can put 5,000 A through its own string fuse.
+    expect(byHand.fuse).toMatchObject({ a: 175, aicA: 20000 })
+    expect(byHand.cable.string?.fuse).toMatchObject({ a: 100, aicA: 4000 })
+    expect(byHand.battery).toMatchObject({ config: '1S2P', bankShortCircuitA: 10000, interruptOk: false })
+    expect(cannotInterrupt(byHand)).toBe(true)
+    // The automatic pick takes a bank whose fuses do interrupt it.
+    expect(auto.battery?.interruptOk).toBe(true)
+    expect(cannotInterrupt(auto)).toBe(false)
+  })
+
+  test('a bank is marked as one the fuses can interrupt exactly when its kit\'s fuse check agrees, whatever the fuse list', () => {
+    // The third list leaves a 6 kW inverter (4,800 W here) a main fuse that interrupts the bank and string fuses that may not.
+    const lists = [DEFAULT_HARDWARE, fusesWhere((a) => a === 400, 50000), fusesWhere((a) => a <= 150, 4000), fusesWhere((a) => a >= 250, 12000)]
+    let kits = 0
+    for (const hardware of lists) for (const volts of [12, 24, 48] as const) for (const watts of [1500, 3000, 4800, 6000, 9000, 14000]) for (const hours of [2, 8]) {
+      const input = { ...load(watts), hours, volts, chemistry: 'lifepo4' as const }
+      for (const option of compute(input, CATALOG_SNAPSHOT, hardware).batteryOptions) {
+        const kit = compute({ ...input, batteryUnit: option.id }, CATALOG_SNAPSHOT, hardware)
+        const where = `${watts} W, ${hours} h, ${volts} V, ${option.id}, list ${lists.indexOf(hardware)}`
+        expect(kit.battery?.interruptOk, where).toBe(!cannotInterrupt(kit))
+        expect(option.interruptOk, where).toBe(kit.battery?.interruptOk)
+        kits++
+      }
+    }
+    expect(kits).toBeGreaterThan(500)
+  })
+
   test('the automatic bank is the one that passes the most, before the one with the fewest batteries', () => {
     // 3 kW at 12 V for 2 h falls back to a 4 kW inverter, 370 A. Two 400 Ah units ask each lead for 185 A; three 300 Ah
     // units put 22,500 A into a fault; four 200 Ah units fit their leads and stay at the fuses' 20,000 A.

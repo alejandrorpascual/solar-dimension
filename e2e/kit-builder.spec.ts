@@ -3,6 +3,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage, switchLanguageOnLoad } from './header'
 import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showDownload, showProjects, startNewProject, startRename } from './projects'
 
+const STORAGE_KEY = 'solar-dimension.projects.v1'
+
 test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
@@ -311,6 +313,48 @@ test('the custom form questions watts typed with a thousands separator, and keep
   await expect(page.getByText('Custom · 1500 W')).toBeVisible()
   await page.reload()
   await expect(page.getByText('Custom · 1500 W')).toBeVisible()
+})
+
+test('a saved custom appliance that no longer loads stays reported until it is removed, and a new one does not take its place', async ({ page }) => {
+  // What the form used to write: a pasted product title, longer than a saved project holds. It had a count of 3 and a duty.
+  await page.addInitScript((key) => {
+    if (localStorage.getItem(key)) return
+    const lost = { id: 'custom1', name: 'Samsung 21 cu. ft. Top Freezer Refrigerator with FlexZone and Ice Maker in Stainless RT21M6215SR', watts: 180, surge: 180, note: 'Custom · 180 W' }
+    const project = {
+      id: 'p1', name: 'Garita', qty: { fridge: 1, custom1: 3 }, custom: [lost], hours: 8, volts: 48, chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1,
+      dutyOverrides: { custom1: 0.25 },
+    }
+    localStorage.setItem(key, JSON.stringify({ version: 1, projects: [project], currentId: 'p1' }))
+  }, STORAGE_KEY)
+  const saved = () => page.evaluate((key) => {
+    const { qty, dutyOverrides, custom } = JSON.parse(localStorage.getItem(key) ?? '{}').projects[0]
+    return { qty, dutyOverrides, custom: custom.map((c: { id: string }) => c.id) }
+  }, STORAGE_KEY)
+  const onForm = page.getByText('1 custom appliance in this project could not be loaded, so the kit leaves it out. Add it again below, then remove the one that did not load.')
+  const onKit = page.getByText('1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute; if it is still missing, add it again.')
+
+  await page.goto('/')
+  await expect(onForm).toBeVisible()
+  // An unrelated appliance must not take the lost one's place: not its id, its count or its duty.
+  await page.getByLabel('Name', { exact: true }).fill('Phone charger')
+  await page.getByLabel('Running W').fill('10')
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Add appliance' }).click()
+    await expect(page.getByText('Custom · 10 W')).toBeVisible({ timeout: 1000 })
+  }).toPass()
+  await expect(onForm).toBeVisible()
+  await expect.poll(saved).toEqual({ qty: { fridge: 1, custom1: 3, custom2: 1 }, dutyOverrides: { custom1: 0.25 }, custom: ['custom2'] })
+  await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+  await expect(page.getByRole('heading', { name: 'Kit for Garita' })).toBeVisible()
+  await expect(onKit).toBeVisible()
+
+  await page.getByRole('button', { name: 'Step 1: Appliances' }).click()
+  await page.getByRole('button', { name: 'Remove the one that did not load' }).click()
+  await expect(onForm).toHaveCount(0)
+  await expect.poll(saved).toEqual({ qty: { fridge: 1, custom2: 1 }, dutyOverrides: {}, custom: ['custom2'] })
+  await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+  await expect(page.getByRole('heading', { name: 'Kit for Garita' })).toBeVisible()
+  await expect(onKit).toHaveCount(0)
 })
 
 test('hours, voltage and chemistry change the sizing summary', async ({ page }) => {

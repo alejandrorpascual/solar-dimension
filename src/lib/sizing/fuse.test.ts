@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { FUSES } from '../catalog'
-import { pickFuse, type FuseContext } from './fuse'
+import { interrupts, pickFuse, type FuseContext } from './fuse'
 
 const ampacities = [50, 65, 85, 115, 130, 150, 175, 200, 230]
 const ctx = (over: Partial<FuseContext> = {}): FuseContext => ({
@@ -49,6 +49,12 @@ describe('pickFuse', () => {
   test('a bank that can short above the interrupting rating is warned about', () => {
     expect(pickFuse(ctx({ bankShortCircuitA: 21600 })).warnings).toEqual([{ code: 'fuseInterrupt', params: { shortCircuitA: 21600, aicA: 20000 } }])
     expect(pickFuse(ctx({ bankShortCircuitA: null })).warnings).toEqual([])
+  })
+
+  test('a fuse interrupts a fault up to its rating, the rating included', () => {
+    const classT = FUSES[0]!
+    expect(interrupts(classT, 20000)).toBe(true)
+    expect(interrupts(classT, 20001)).toBe(false)
   })
 
   test('skips fuses not listed for the bank voltage, and uses the largest when none is big enough', () => {

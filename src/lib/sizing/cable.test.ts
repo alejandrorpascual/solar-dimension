@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { FUSES, GAUGES } from '../catalog'
-import { conductorsFor, correctedAmpacity, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './cable'
+import { canInterruptFault, conductorsFor, correctedAmpacity, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './cable'
 import type { CableConditions } from './types'
 
 const room: CableConditions = { runLengthM: 1.5, ambientC: 30, bundled: false, insulationC: 90 }
@@ -116,6 +116,24 @@ describe('sizeMainCable', () => {
   })
 })
 
+describe('the fuse a run gets', () => {
+  test('follows from its current alone: whatever bank is behind it, the fuse, the gauge and the runs are the same', () => {
+    // Arrange
+    const sizeBehind = (bank: { bankContinuousA: number | null; bankShortCircuitA: number | null }) =>
+      sizeMainCable(370, 740, 48, room, GAUGES, FUSES, { surgeSeconds: 3, ...bank }, { feeds: 2 })
+    const unbanked = sizeBehind({ bankContinuousA: null, bankShortCircuitA: null })
+
+    // Act: a bank too weak for the fuse and far past its interrupting rating, then one with plenty of both.
+    const weak = sizeBehind({ bankContinuousA: 50, bankShortCircuitA: 90000 })
+    const strong = sizeBehind({ bankContinuousA: 1000, bankShortCircuitA: 100 })
+
+    // Assert: only the warnings differ.
+    for (const sized of [weak, strong]) expect({ fuse: sized.fuse, gauge: sized.gauge, runs: sized.runs }).toEqual({ fuse: unbanked.fuse, gauge: unbanked.gauge, runs: unbanked.runs })
+    expect(weak.warnings.map((w) => w.code)).toEqual(expect.arrayContaining(['fuseAboveBank', 'fuseInterrupt']))
+    expect(strong.warnings).toEqual(unbanked.warnings)
+  })
+})
+
 describe('undersized', () => {
   const hot = { ...room, ambientC: 50, insulationC: 75 as const }
 
@@ -150,6 +168,45 @@ describe('maxStringAmps', () => {
     const lead = (amps: number) => sizeMainCable(amps, amps, 48, { ...room, runLengthM: 0.3 }, GAUGES, FUSES, noBank, { fixedRuns: 1 })
     expect(lead(180).warnings).toEqual([])
     expect(lead(181).warnings.map((w) => w.code)).toContain('fuseAboveCable')
+  })
+})
+
+describe('canInterruptFault', () => {
+  const unit = { maxContinuousA: 200, peakA: 400, peakSeconds: 10, maxParallel: 16, bmsComms: 'none' as const, shortCircuitA: 5000 }
+  /** 180 A continuous: one run on a 225 A fuse, sized before any bank is known. */
+  const wiringFor = (fuses: typeof FUSES) => {
+    const main = sizeMainCable(180, 360, 48, room, GAUGES, fuses, noBank)
+    return { main, bankAmps: 180, bankSurgeAmps: 360, volts: 48 as const, cond: room, gauges: GAUGES, fuses, surgeSeconds: 3 }
+  }
+  const bank = (parallel: number, shortCircuitA = unit.shortCircuitA) => ({ series: 1, parallel, unit: { ...unit, shortCircuitA } })
+
+  test('the main fuse is read against every string together, up to its rating and not past it', () => {
+    const wiring = wiringFor(FUSES)
+    expect(wiring.main.fuse).toMatchObject({ a: 225, aicA: 20000 })
+    expect(canInterruptFault({ ...wiring, battery: bank(4) })).toBe(true)
+    expect(canInterruptFault({ ...wiring, battery: bank(5) })).toBe(false)
+  })
+
+  test('each string\'s fuse is read against one battery, and a single string has no fuse of its own to fail', () => {
+    // Below 225 A the list holds fuses that interrupt 4,000 A: three strings of 60 A each get one of those.
+    const wiring = wiringFor(FUSES.map((f) => (f.a < 225 ? { ...f, aicA: 4000 } : f)))
+    expect(wiring.main.fuse).toMatchObject({ a: 225, aicA: 20000 })
+    expect(canInterruptFault({ ...wiring, battery: bank(3) })).toBe(false)
+    expect(canInterruptFault({ ...wiring, battery: bank(3, 4000) })).toBe(true)
+    expect(canInterruptFault({ ...wiring, battery: bank(1) })).toBe(true)
+  })
+
+  test('says what the wiring\'s own warnings say for the same bank', () => {
+    const wiring = wiringFor(FUSES.map((f) => (f.a < 225 ? { ...f, aicA: 4000 } : f)))
+    for (const battery of [bank(1), bank(2), bank(3), bank(3, 4000), bank(4), bank(5), bank(5, 3000)]) {
+      const main = sizeMainCable(180, 360, 48, room, GAUGES, wiring.fuses, { surgeSeconds: 3, bankContinuousA: null, bankShortCircuitA: battery.parallel * battery.unit.shortCircuitA })
+      const raised = [...main.warnings, ...sizeBankWiring({ ...wiring, main, battery }).warnings].some((w) => w.code === 'fuseInterrupt')
+      expect(canInterruptFault({ ...wiring, battery }), `${battery.parallel} × ${battery.unit.shortCircuitA} A`).toBe(!raised)
+    }
+  })
+
+  test('no bank is nothing to interrupt', () => {
+    expect(canInterruptFault({ ...wiringFor(FUSES), battery: null })).toBe(true)
   })
 })
 

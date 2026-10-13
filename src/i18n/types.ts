@@ -42,6 +42,7 @@ export type UiKey =
   | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase'
   | 'customTitle' | 'customHelp' | 'watts' | 'voltsAmps' | 'name' | 'runningW' | 'volts' | 'amps' | 'surgeOptional' | 'sameAsRunning' | 'addAppliance'
   | 'errName' | 'errNameLong' | 'errVa' | 'errWatts' | 'errSurge' | 'errThousands'
+  | 'customUnreadOne' | 'customUnreadMany' | 'customUnreadClearOne' | 'customUnreadClearMany'
   | 'q2' | 'q2Help' | 'hoursLabel' | 'step2Empty' | 'step2Summary' | 'batteryVoltage' | 'batteryChemistry' | 'usableCapacity'
   | 'kitFor' | 'kitEmpty' | 'kitSummary' | 'editAppliances' | 'editWindow'
   | 'runningLoad' | 'averageDraw' | 'startupPeak' | 'batteryNeeded' | 'runtime'

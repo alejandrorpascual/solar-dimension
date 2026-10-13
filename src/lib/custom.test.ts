@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { CUSTOM_NAME_MAX, EMPTY_FORM, parseCustom, type CustomForm } from './custom'
+import { CUSTOM_NAME_MAX, EMPTY_FORM, isCustomLoadId, parseCustom, type CustomForm } from './custom'
 import { CustomLoadSchema, ProjectSchema } from './schema'
 
 describe('parseCustom', () => {
@@ -57,6 +57,18 @@ describe('parseCustom', () => {
     expect(parseCustom({ ...EMPTY_FORM, name: 'Charger', watts: '1.5' }, [])).toMatchObject({ ok: true, item: { watts: 2 } })
     // Amps are a real decimal: 1.500 A is one and a half amps.
     expect(parseCustom({ ...EMPTY_FORM, name: 'Pump', mode: 'va', volts: '230', amps: '1.500' }, [])).toMatchObject({ ok: true, item: { watts: 345 } })
+  })
+})
+
+describe('isCustomLoadId', () => {
+  test('knows the ids the form hands out from the ids a catalog appliance can have', () => {
+    expect(['custom1', 'custom12'].every(isCustomLoadId)).toBe(true)
+    expect(['custom', 'customer1', 'xcustom1', 'custom1b', 'fridge', ''].some(isCustomLoadId)).toBe(false)
+  })
+
+  test('every id parseCustom makes is one', () => {
+    const made = parseCustom({ ...EMPTY_FORM, name: 'Pump', watts: '100' }, ['custom1', 'custom2'])
+    expect(made.ok && isCustomLoadId(made.item.id)).toBe(true)
   })
 })
 

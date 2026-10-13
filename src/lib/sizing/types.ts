@@ -114,7 +114,9 @@ export interface BatteryPick {
   bankShortCircuitA: number
   /**
    * Strings each requirement alone would need: the energy, the BMS continuous and peak limits, and what one string's
-   * lead carries. Parallel is the largest unless that exceeds the unit's limit; one string has no lead to limit it.
+   * lead carries. Parallel is the largest of the first three, or the energy's when that passes the unit's limit. The
+   * lead's count raises it only when there is already more than one string (one has no lead of its own), the unit's
+   * limit allows that many and the fuses could still interrupt the bank; otherwise `leadOk` is false.
    */
   parallelFor: { energy: number; continuous: number; peak: number; lead: number }
   dischargeOk: boolean
@@ -122,7 +124,7 @@ export interface BatteryPick {
   overMaxParallel: boolean
   /** No string is asked for more than its lead carries; true for one string, which has none. */
   leadOk: boolean
-  /** The fuses can interrupt what this bank puts into a fault. */
+  /** The fuses this bank's kit gets can interrupt its fault current: the main fuse all of it, each string's fuse one battery's. */
   interruptOk: boolean
 }
 

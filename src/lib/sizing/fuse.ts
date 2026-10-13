@@ -27,8 +27,8 @@ export function fusePool(fuses: readonly Fuse[], volts: Voltage): readonly Fuse[
   return usable.length > 0 ? usable : fuses
 }
 
-/** The most fault current any fuse listed for this bank voltage can interrupt. */
-export const maxInterruptAmps = (fuses: readonly Fuse[], volts: Voltage): number => Math.max(0, ...fusePool(fuses, volts).map((f) => f.aicA))
+/** Whether a fuse can interrupt this fault current: anything up to its interrupting rating, the rating included. */
+export const interrupts = (fuse: Pick<Fuse, 'aicA'>, shortCircuitA: number): boolean => shortCircuitA <= fuse.aicA
 
 /**
  * The fuse that protects the cable: a standard rating at least the NEC continuous factor over the running current,
@@ -54,7 +54,7 @@ export function pickFuse(ctx: FuseContext): FuseSizing {
   if (ctx.surgeSeconds > 0 && (ratio > hold.factor || (ratio > 1 && ctx.surgeSeconds > hold.seconds))) {
     warnings.push({ code: 'fuseSurge', params: { fuseA: fuse.a, surgeA: Math.round(ctx.surgePerRunA), seconds: ctx.surgeSeconds } })
   }
-  if (ctx.bankShortCircuitA !== null && ctx.bankShortCircuitA > fuse.aicA) {
+  if (ctx.bankShortCircuitA !== null && !interrupts(fuse, ctx.bankShortCircuitA)) {
     warnings.push({ code: 'fuseInterrupt', params: { shortCircuitA: ctx.bankShortCircuitA, aicA: fuse.aicA } })
   }
   return { fuse: { ...fuse, count: ctx.runs }, gaugeIndex: gi, warnings }

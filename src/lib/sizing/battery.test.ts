@@ -5,6 +5,8 @@ import { autoPick, batteryCandidates, toBatteryPick, unitId } from './battery'
 const lfp = CHEMISTRIES.lifepo4
 const agm = CHEMISTRIES.agm
 const easy = { continuousA: 50, surgeA: 100, surgeSeconds: 3 }
+/** Fuses that all interrupt the same fault current, read against the whole bank. */
+const fusesRated = (aicA: number) => (bank: { parallel: number; unit: { shortCircuitA: number } }): boolean => bank.parallel * bank.unit.shortCircuitA <= aicA
 
 describe('batteryCandidates', () => {
   test('lists units the voltage divides by, bank-voltage units first then by capacity', () => {
@@ -55,7 +57,7 @@ describe('batteryCandidates', () => {
 
   test('no string is added for the leads that the fuses could not interrupt: the bank keeps its strings and says the leads are short', () => {
     // 280 Ah units can each put 7,000 A into a fault. Three pass a 20,000 A fuse rating; two stay inside it.
-    const heavy = { continuousA: 370, surgeA: 400, surgeSeconds: 3, maxStringA: 180, maxShortCircuitA: 20000 }
+    const heavy = { continuousA: 370, surgeA: 400, surgeSeconds: 3, maxStringA: 180, canInterrupt: fusesRated(20000) }
     const stiff = batteryCandidates(lfp, 48, 100, heavy).find((c) => c.id === '48-280')!
     expect(stiff.unit.shortCircuitA).toBe(7000)
     expect(stiff).toMatchObject({ parallel: 2, bankShortCircuitA: 14000, parallelFor: { lead: 3 }, leadOk: false, interruptOk: true })
@@ -63,13 +65,13 @@ describe('batteryCandidates', () => {
     const soft = batteryCandidates(lfp, 48, 100, heavy).find((c) => c.id === '48-200')!
     expect(soft).toMatchObject({ parallel: 3, bankShortCircuitA: 15000, leadOk: true, interruptOk: true })
     // Without a fuse rating stated, nothing holds the third string back.
-    const { maxShortCircuitA: _maxShortCircuitA, ...unrated } = heavy
+    const { canInterrupt: _canInterrupt, ...unrated } = heavy
     expect(batteryCandidates(lfp, 48, 100, unrated).find((c) => c.id === '48-280')).toMatchObject({ parallel: 3, leadOk: true, interruptOk: true })
   })
 
   test('a bank its energy alone takes past the fuses\' rating is still built, and marked', () => {
     // 1,500 Ah needs six 280 Ah strings: 42,000 A into a fault.
-    const big = batteryCandidates(lfp, 48, 1500, { ...easy, maxStringA: 180, maxShortCircuitA: 20000 }).find((c) => c.id === '48-280')!
+    const big = batteryCandidates(lfp, 48, 1500, { ...easy, maxStringA: 180, canInterrupt: fusesRated(20000) }).find((c) => c.id === '48-280')!
     expect(big).toMatchObject({ parallel: 6, leadOk: true, interruptOk: false })
   })
 
@@ -96,7 +98,7 @@ describe('autoPick', () => {
 
   test('among banks that can feed the inverter, one whose strings fit their leads and whose fuses can interrupt it comes first', () => {
     // Two 8 kW inverters, 370 A, a short window: two 280 Ah units are the fewest batteries but ask each lead for 185 A.
-    const heavy = { continuousA: 370, surgeA: 400, surgeSeconds: 3, maxStringA: 180, maxShortCircuitA: 20000 }
+    const heavy = { continuousA: 370, surgeA: 400, surgeSeconds: 3, maxStringA: 180, canInterrupt: fusesRated(20000) }
     const candidates = batteryCandidates(lfp, 48, 100, heavy)
     expect(candidates.find((c) => c.id === '48-280')).toMatchObject({ count: 2, leadOk: false })
     expect(autoPick(candidates)).toMatchObject({ id: '48-200', count: 3, leadOk: true, interruptOk: true })
@@ -124,7 +126,7 @@ describe('autoPick', () => {
 
   test('with no bank that can feed the inverter, the stock list keeps the fewest batteries', () => {
     // 9.6 kW on a 12 V bank: 1,111 A. Nothing feeds it; three 400 Ah units stay the pick, not eleven 100 Ah ones.
-    const demand = { continuousA: 1111, surgeA: 1111, surgeSeconds: 0, maxStringA: 180, maxShortCircuitA: 20000 }
+    const demand = { continuousA: 1111, surgeA: 1111, surgeSeconds: 0, maxStringA: 180, canInterrupt: fusesRated(20000) }
     const candidates = batteryCandidates(lfp, 12, 1000, demand)
     expect(candidates.every((c) => !(c.dischargeOk && c.peakOk && !c.overMaxParallel))).toBe(true)
     const pick = autoPick(candidates)!

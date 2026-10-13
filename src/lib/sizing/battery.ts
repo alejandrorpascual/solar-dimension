@@ -1,11 +1,18 @@
 import type { BatteryUnit, Chemistry, Voltage } from '../catalog'
+import type { BankLayout } from './cable'
 import type { BatteryLimits, BatteryPick, RuntimeScenarios } from './types'
 
 /**
  * What the inverter asks of the bank. When the wiring is being sized it also says the most one string's lead can carry
- * and the most fault current the fuses can interrupt; absent, neither limits the bank.
+ * and whether the fuses a bank would get can interrupt its fault current; absent, neither limits the bank.
  */
-export interface BankDemand { continuousA: number; surgeA: number; surgeSeconds: number; maxStringA?: number; maxShortCircuitA?: number }
+export interface BankDemand {
+  continuousA: number
+  surgeA: number
+  surgeSeconds: number
+  maxStringA?: number
+  canInterrupt?: (bank: BankLayout) => boolean
+}
 
 const ONE_STRING = 1
 
@@ -49,9 +56,9 @@ export function batteryCandidates(chem: Chemistry, volts: Voltage, requiredAh: n
       const wanted = Math.max(parallelFor.energy, parallelFor.continuous, parallelFor.peak)
       // One string has no lead of its own: it feeds the main cable, which splits into runs as it must.
       const forLeads = wanted > ONE_STRING ? Math.max(wanted, parallelFor.lead) : wanted
-      const maxShortCircuitA = demand.maxShortCircuitA ?? Infinity
+      const canInterrupt = (strings: number): boolean => demand.canInterrupt?.({ series, parallel: strings, unit }) ?? true
       // A string added for the leads' sake must not trade a short lead for a fault the fuses cannot interrupt.
-      const canTakeThem = forLeads <= unit.maxParallel && forLeads * unit.shortCircuitA <= maxShortCircuitA
+      const canTakeThem = forLeads <= unit.maxParallel && canInterrupt(forLeads)
       const needed = canTakeThem ? forLeads : wanted
       const parallel = needed <= unit.maxParallel ? needed : parallelFor.energy
       const count = series * parallel
@@ -69,7 +76,7 @@ export function batteryCandidates(chem: Chemistry, volts: Voltage, requiredAh: n
         peakOk: bankPeakA >= demand.surgeA && unit.peakSeconds >= demand.surgeSeconds,
         overMaxParallel: parallel > unit.maxParallel,
         leadOk: parallel === ONE_STRING || parallel >= parallelFor.lead,
-        interruptOk: bankShortCircuitA <= maxShortCircuitA,
+        interruptOk: canInterrupt(parallel),
       }
     })
     .sort((a, b) => b.unitV - a.unitV || a.unitAh - b.unitAh)

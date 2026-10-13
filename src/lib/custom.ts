@@ -16,6 +16,12 @@ export type CustomError = Extract<UiKey, 'errName' | 'errNameLong' | 'errVa' | '
 export type ParseResult = { ok: true; item: ParsedCustomLoad } | { ok: false; error: CustomError }
 
 const ID_PREFIX = 'custom'
+const CUSTOM_ID = new RegExp(`^${ID_PREFIX}\\d+$`)
+/**
+ * Whether an id is one this form hands out. No catalog appliance may have one, so such an id with no custom appliance
+ * behind it belongs to one that could not be read back.
+ */
+export const isCustomLoadId = (id: string): boolean => CUSTOM_ID.test(id)
 /** The longest name a custom appliance keeps. The saved-project schema holds the same limit, so the form can never write a load a reload would refuse. */
 export const CUSTOM_NAME_MAX = 80
 /**

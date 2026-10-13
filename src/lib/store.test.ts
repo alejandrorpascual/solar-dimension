@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'vitest'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
+import { EMPTY_FORM, parseCustom } from './custom'
+import { compute } from './sizing'
 import {
   addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
-  hasSameLoads, removeCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
-  renameProject, setSolarIn, withSolarPanels, withSolarRoof, withSolarSun,
+  hasSameLoads, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
+  renameProject, setSolarIn, takenLoadIds, unreadCustomCount, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
 import { SOLAR } from './solar'
-import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema, StoreSchema } from './schema'
+import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema, StoreSchema, type Project, type Store } from './schema'
 
 describe('project store', () => {
   test('starts with one Home project of essentials at 48 V for 10 h', () => {
@@ -190,6 +193,93 @@ describe('duty overrides and electrical settings', () => {
     const changed = setDutyIn(s, 'p1', 'fridge', 1)
     expect(hasSameLoads(snapshot, currentProject(changed))).toBe(false)
     expect(currentProject(restoreProject(changed, snapshot)).dutyOverrides).toEqual({})
+  })
+})
+
+describe('a custom appliance the project could not read back', () => {
+  const POOL_PUMP = { id: 'custom2', name: 'Pool pump', watts: 1035, surge: 2500, note: '' }
+  /** What a reload leaves of a saved custom appliance that no longer parses: its count and its duty, and no appliance. */
+  const recovered = (extra: Partial<Project> = {}): Store => {
+    const base = initialStore().projects[0]!
+    const unreadable = { id: 'custom1', name: 'x'.repeat(93), watts: 900, surge: 900, note: '' }
+    const saved = { ...base, qty: { fridge: 1, custom1: 3 }, dutyOverrides: { custom1: 0.25 }, ...extra, custom: [unreadable, ...(extra.custom ?? [])] }
+    return { ...initialStore(), projects: [ProjectSchema.parse(saved)] }
+  }
+  const missingNotice = (p: Project) => compute(p, CATALOG_SNAPSHOT).warnings.filter((w) => w.code === 'missingAppliances')
+  /** The form's own path: the next id is chosen from what the project already holds. */
+  const addFromForm = (store: Store, name: string): Store => {
+    const parsed = parseCustom({ ...EMPTY_FORM, name, watts: '10' }, takenLoadIds(currentProject(store)))
+    if (!parsed.ok) throw new Error(parsed.error)
+    return addCustom(store, parsed.item)
+  }
+
+  test('an appliance added afterwards takes a new id: the lost one keeps its count, its duty and the notice on the kit', () => {
+    // Arrange
+    const store = recovered()
+    expect(currentProject(store).custom).toEqual([])
+
+    // Act
+    const after = currentProject(addFromForm(store, 'Phone charger'))
+
+    // Assert
+    expect(after.custom.map((c) => c.id)).toEqual(['custom2'])
+    expect(after.qty).toMatchObject({ custom1: 3, custom2: 1 })
+    expect(after.dutyOverrides).toEqual({ custom1: 0.25 })
+    expect(missingNotice(after)).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
+  })
+
+  test('it is counted until it is removed, and removing it takes its count, its duty and the notice with it', () => {
+    // Arrange
+    const store = recovered()
+    expect(unreadCustomCount(currentProject(store))).toBe(1)
+
+    // Act
+    const cleared = currentProject(removeUnreadCustom(store))
+
+    // Assert
+    expect(cleared.qty).toEqual({ fridge: 1 })
+    expect(cleared.dutyOverrides).toEqual({})
+    expect(unreadCustomCount(cleared)).toBe(0)
+    expect(missingNotice(cleared)).toEqual([])
+  })
+
+  test('removing it leaves the custom appliances that load and anything the catalog may still bring back', () => {
+    // Arrange: one custom appliance that reads, and a catalog id this list does not have.
+    const store = recovered({
+      custom: [POOL_PUMP], qty: { fridge: 1, custom1: 3, custom2: 2, 'retired-heater': 1 }, dutyOverrides: { custom1: 0.25, custom2: 0.5, fridge: 0.4 },
+    })
+    expect(unreadCustomCount(currentProject(store))).toBe(1)
+
+    // Act
+    const cleared = currentProject(removeUnreadCustom(store))
+
+    // Assert
+    expect(cleared.custom).toEqual([POOL_PUMP])
+    expect(cleared.qty).toEqual({ fridge: 1, custom2: 2, 'retired-heater': 1 })
+    expect(cleared.dutyOverrides).toEqual({ custom2: 0.5, fridge: 0.4 })
+    expect(missingNotice(cleared)).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
+  })
+
+  test('one the kit was not counting is not reported, yet its id is still not handed out', () => {
+    // Arrange: its quantity had been set to zero before it stopped loading.
+    const store = recovered({ qty: { fridge: 1, custom1: 0 } })
+    const project = currentProject(store)
+
+    // Act
+    const after = currentProject(addFromForm(store, 'Phone charger'))
+
+    // Assert
+    expect(unreadCustomCount(project)).toBe(0)
+    expect(missingNotice(project)).toEqual([])
+    expect(after.custom.map((c) => c.id)).toEqual(['custom2'])
+    expect(after.dutyOverrides).toEqual({ custom1: 0.25 })
+    expect(currentProject(removeUnreadCustom(store)).dutyOverrides).toEqual({})
+  })
+
+  test('a project with nothing lost is returned as it is', () => {
+    const store = addCustom(initialStore(), { ...POOL_PUMP, id: 'custom1' })
+    expect(unreadCustomCount(currentProject(store))).toBe(0)
+    expect(removeUnreadCustom(store)).toBe(store)
   })
 })
 

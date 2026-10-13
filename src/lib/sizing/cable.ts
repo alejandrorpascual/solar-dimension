@@ -1,6 +1,6 @@
 import { SIZING, type Fuse, type Gauge, type Voltage } from '../catalog'
 import { ambientFactor, ampsAt, bundleFactor } from '../nec'
-import { fusePool, pickFuse } from './fuse'
+import { fusePool, interrupts, pickFuse } from './fuse'
 import { wholeUnits } from './inverter'
 import type { BatteryPick, CableConditions, ConductorKind, FusePick, LinkCable, StringCable, Warning } from './types'
 
@@ -182,6 +182,20 @@ function sizeLinks(feeds: MainCableSizing, battery: BankLayout, cond: CableCondi
     },
     warnings: undersized('interconnects', feeds, ampacity),
   }
+}
+
+/**
+ * Whether the fuses this bank would get can interrupt what it puts into a fault, as the fuse check reads it: the main
+ * fuse against every string together and, with strings in parallel, each string's fuse against one battery. Which
+ * fuse a run gets follows from its current and not from the bank behind it, so `main` can be sized before a bank is
+ * picked. No bank is nothing to interrupt.
+ */
+export function canInterruptFault(ctx: BankWiringContext): boolean {
+  const { battery, main } = ctx
+  if (!battery) return true
+  const { shortCircuitA } = battery.unit
+  if (!interrupts(main.fuse, battery.parallel * shortCircuitA)) return false
+  return battery.parallel > 1 ? interrupts(sizeStringRun(ctx, battery).fuse, shortCircuitA) : true
 }
 
 /** Everything between the battery terminals and the main run: series links, and a fused lead pair to the bus bars for each parallel string. */

@@ -1,4 +1,5 @@
 import { SIZING } from './catalog'
+import { isCustomLoadId } from './custom'
 import { DEFAULT_ELECTRICAL, HOURS_MAX, HOURS_MIN, PROJECT_NAME_MAX, type CustomLoad, type Electrical, type Project, type Solar, type Store } from './schema'
 import { SOLAR } from './solar'
 
@@ -168,6 +169,32 @@ export function removeCustom(store: Store, itemId: string): Store {
   const { [itemId]: _dropped, ...qty } = p.qty
   const { [itemId]: _duty, ...dutyOverrides } = p.dutyOverrides
   return patchCurrent(store, { custom: p.custom.filter((c) => c.id !== itemId), qty, dutyOverrides })
+}
+
+/**
+ * Every id a new custom appliance must stay clear of: the project's custom appliances, and any id its quantities or
+ * duties still hold. A saved appliance that could not be read back leaves those behind, and a new one given the same
+ * id would take over its count and its duty.
+ */
+export const takenLoadIds = (p: Project): string[] =>
+  [...new Set([...p.custom.map((c) => c.id), ...Object.keys(p.qty), ...Object.keys(p.dutyOverrides)])]
+
+/** Ids the custom form made that the project still counts or times with no appliance behind them. */
+function unreadCustomIds(p: Project): string[] {
+  const held = new Set(p.custom.map((c) => c.id))
+  return takenLoadIds(p).filter((id) => isCustomLoadId(id) && !held.has(id))
+}
+
+/** How many custom appliances the kit leaves out because their saved details could not be read back. */
+export const unreadCustomCount = (p: Project): number => unreadCustomIds(p).filter((id) => (p.qty[id] ?? 0) > 0).length
+
+/** Forget the custom appliances that could not be read back: their counts and duties go, as when one is removed by hand. */
+export function removeUnreadCustom(store: Store): Store {
+  const p = currentProject(store)
+  const gone = new Set(unreadCustomIds(p))
+  if (gone.size === 0) return store
+  const kept = <T>(byId: Record<string, T>): Record<string, T> => Object.fromEntries(Object.entries(byId).filter(([id]) => !gone.has(id)))
+  return patchCurrent(store, { qty: kept(p.qty), dutyOverrides: kept(p.dutyOverrides) })
 }
 
 const DEFAULT_SOLAR: Solar = { roofM2: DEFAULT_ROOF_M2, panels: null, sunHours: SOLAR.DEFAULT_SUN_HOURS }
