@@ -31,7 +31,7 @@ describe('csvCell', () => {
 })
 
 describe('buildCsv', () => {
-  test('ends with the failing checks and notes when there are any, even with every block switched off', () => {
+  test('the failing checks and notes follow the parts when there are any, even with every block switched off', () => {
     const attention = [{ name: 'Cable', text: '333 A on the DC side at 12 V is hard to wire safely.' }, { name: 'Notes for the installer', text: 'Usually runs on 240 V, so plan for it' }]
     const lines = buildCsv(input({ appliances: false, parts: true }, attention)).slice(1).split('\r\n')
     expect(lines.slice(-4)).toEqual(['', 'Needs attention,Note', 'Cable,333 A on the DC side at 12 V is hard to wire safely.', 'Notes for the installer,"Usually runs on 240 V, so plan for it"'])

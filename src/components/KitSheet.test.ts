@@ -101,7 +101,7 @@ describe('the spec sheet says what it is', () => {
     expect(sheetText(SOUND, 'es').split('\n')).toContain(ES)
   })
 
-  test('no Include box takes it off, and it comes before the assumptions it outranks', () => {
+  test('no Include box takes it off, and it prints after the parts list and before the assumptions', () => {
     expect(sheetText(SOUND, 'en', NOTHING).split('\n')).toContain(EN)
     expect(sheetText(SOUND, 'es', NOTHING).split('\n')).toContain(ES)
     const text = sheetText(SOUND, 'en')
