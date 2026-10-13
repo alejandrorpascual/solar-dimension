@@ -158,10 +158,21 @@ export const en: Dictionary = {
         : `The ${inverter} W inverter leaves ${p.headroomPct}% headroom over the ${running} W running load; this kit plans for ${p.needPct}%. ${advice}`
     },
     surgeDuration: (p) => {
-      const start = `A ${p.surgeW?.toLocaleString('en-US')} W start-up lasting ${p.seconds} s is longer than`
-      return isSet(p)
-        ? `${start} the surge window of the ${p.inverters} × ${p.unitW?.toLocaleString('en-US')} W inverters; together they only hold ${p.ratedW?.toLocaleString('en-US')} W that long. Let fewer motors start at once.`
-        : `${start} the ${p.inverterW?.toLocaleString('en-US')} W inverter's surge window; it only holds ${p.ratedW?.toLocaleString('en-US')} W that long. Choose a bigger inverter or let fewer motors start at once.`
+      const start = `A ${p.surgeW?.toLocaleString('en-US')} W start-up`
+      const [rated, surge] = [p.ratedW, p.inverterSurgeW].map((n) => n?.toLocaleString('en-US'))
+      // A set is already the most the list can put in parallel, so the advice no longer offers a bigger inverter.
+      if (isSet(p)) {
+        const set = `the ${p.inverters} × ${p.unitW?.toLocaleString('en-US')} W inverters`
+        const reason = p.tooLong
+          ? `${start} lasting ${p.seconds} s is longer than the surge window of ${set}; together they only hold ${rated} W that long.`
+          : `${start} is more than the ${surge} W surge rating of ${set} together.`
+        return `${reason} Let fewer motors start at once.`
+      }
+      const inverter = `the ${p.inverterW?.toLocaleString('en-US')} W inverter's`
+      const reason = p.tooLong
+        ? `${start} lasting ${p.seconds} s is longer than ${inverter} surge window; it only holds ${rated} W that long.`
+        : `${start} is more than ${inverter} ${surge} W surge rating.`
+      return `${reason} Choose a bigger inverter or let fewer motors start at once.`
     },
     bankDischarge: (p) => `${isSet(p) ? `The ${p.inverters} inverters draw up to ${p.needA?.toLocaleString('en-US')} A together` : `The inverter draws up to ${p.needA?.toLocaleString('en-US')} A`} at full load; ${p.strings} × ${p.unitLabel} allows ${p.maxA?.toLocaleString('en-US')} A continuous and its BMS would cut out. Pick a larger unit or a higher voltage.`,
     bankPeak: (p) => `Start-up pulls ${p.needA?.toLocaleString('en-US')} A for ${p.seconds} s; the bank's BMS allows ${p.maxA?.toLocaleString('en-US')} A peak and may shut off. Let fewer motors start at once or add a string.`,

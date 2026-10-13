@@ -86,8 +86,20 @@ describe('kitChecks', () => {
     expect(check.status).toBe('warn')
     expect(check.lines).toHaveLength(3)
     expect(check.lines[0]).toContain('is smaller than the 15,000 W running load and cannot carry it')
-    expect(check.lines[1]).toContain('A 30,000 W start-up')
+    expect(check.lines[1]).toContain("A 30,000 W start-up is more than the 12,000 W inverter's 24,000 W surge rating")
     expect(check.lines[2]).toBe('15.0 kW running + 15.0 kW (Workshop) starting')
+  })
+
+  test('a start-up the inverter cannot hold says why, in both languages: above its surge rating, or within it and too long', () => {
+    // 2 kW running with a 30 kW start, inside the 12 kW inverter's window: the watts are over its 24 kW surge rating.
+    const above = load(2000, {}, 30000)
+    expect(inverter(above, 'en').lines[0]).toBe("A 30,000 W start-up is more than the 12,000 W inverter's 24,000 W surge rating. Choose a bigger inverter or let fewer motors start at once.")
+    expect(inverter(above, 'es').lines[0]).toBe('Un arranque de 30,000 W supera los 24,000 W de arranque del inversor de 12,000 W. Elige un inversor mayor o deja que arranquen menos motores a la vez.')
+    // A unit that holds 4 kW for half a second: the well pump's 3 kW start is within that rating and outlasts its window.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 2000, surge: 4000, volts: [48] as const, surgeSeconds: 0.5 }] }
+    const long = compute({ qty: { well: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    expect(inverter(long, 'en').lines[0]).toBe("A 3,000 W start-up lasting 1 s is longer than the 2,000 W inverter's surge window; it only holds 2,000 W that long. Choose a bigger inverter or let fewer motors start at once.")
+    expect(inverter(long, 'es').lines[0]).toBe('Un arranque de 3,000 W durante 1 s supera la ventana de arranque del inversor de 2,000 W; solo sostiene 2,000 W ese tiempo. Elige un inversor mayor o deja que arranquen menos motores a la vez.')
   })
 
   test('an inverter sold for another voltage is a note beside the checks, and the inverter size check still passes', () => {
@@ -149,12 +161,42 @@ describe('kitChecks', () => {
     expect(warningText(es, above, [])).toBe('Los 8 fusibles de 125 A están dimensionados para más de los 550 A que el banco puede entregar, así que cortaría el BMS y no un fusible en una sobrecarga. Elige un banco que entregue más.')
     expect(warningText(en, discharge, starved.items)).toMatch(/^The 4 inverters draw up to 741 A together at full load; \d+ × 48 V 50 Ah LiFePO₄ allows [\d,]+ A continuous and its BMS would cut out\. /)
     expect(warningText(es, discharge, starved.items)).toMatch(/^Los 4 inversores toman hasta 741 A en total a plena carga; \d+ × 48 V 50 Ah LiFePO₄ permite [\d,]+ A continuos y su BMS cortaría\. /)
-    // 2 kW running fits the pair; a 30 kW start does not fit its 20 kW surge.
+    // 2 kW running fits the pair; a 30 kW start is more than the 20 kW the pair ever holds in a surge, at any length.
     const start = load(2000, 30000)
     expect(start.inverter).toMatchObject({ count: 2, headroomOk: true, surgeOk: false })
     const surge = start.warnings.find((w) => w.code === 'surgeDuration')!
-    expect(warningText(en, surge, start.items)).toBe(`A 30,000 W start-up lasting ${start.surgeSeconds} s is longer than the surge window of the 2 × 5,000 W inverters; together they only hold 20,000 W that long. Let fewer motors start at once.`)
-    expect(warningText(es, surge, start.items)).toBe(`Un arranque de 30,000 W durante ${start.surgeSeconds} s supera la ventana de arranque de los 2 inversores de 5,000 W; juntos solo sostienen 20,000 W ese tiempo. Deja que arranquen menos motores a la vez.`)
+    expect(warningText(en, surge, start.items)).toBe('A 30,000 W start-up is more than the 20,000 W surge rating of the 2 × 5,000 W inverters together. Let fewer motors start at once.')
+    expect(warningText(es, surge, start.items)).toBe('Un arranque de 30,000 W supera los 20,000 W de arranque de los 2 inversores de 5,000 W juntos. Deja que arranquen menos motores a la vez.')
+    // A pair that holds 4 kW for half a second and 2 kW after that: a 3 kW start is within the rating and only outlasts the window.
+    const brief = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 1000, surge: 3000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 1000, surge: 2000, volts: [48] as const, surgeSeconds: 0.5, maxParallel: 2 }] })
+    expect(brief.inverter).toMatchObject({ count: 2, headroomOk: true, surgeOk: false })
+    const long = brief.warnings.find((w) => w.code === 'surgeDuration')!
+    expect(long.params).toMatchObject({ inverters: 2, ratedW: 2000, inverterSurgeW: 4000, tooLong: true })
+    expect(warningText(en, long, brief.items)).toBe(`A 3,000 W start-up lasting ${brief.surgeSeconds} s is longer than the surge window of the 2 × 1,000 W inverters; together they only hold 2,000 W that long. Let fewer motors start at once.`)
+    expect(warningText(es, long, brief.items)).toBe(`Un arranque de 3,000 W durante ${brief.surgeSeconds} s supera la ventana de arranque de los 2 inversores de 1,000 W; juntos solo sostienen 2,000 W ese tiempo. Deja que arranquen menos motores a la vez.`)
+  })
+
+  test('a start-up between the two surge windows is too long up to the full surge rating, and names what the longer rating holds', () => {
+    // A pair whose units each hold 2 kW for half a second, 1.5 kW for two seconds and 1 kW after that.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 1000, surge: 2000, volts: [48] as const, surgeSeconds: 0.5, surgeLong: { w: 1500, seconds: 2 }, maxParallel: 2 }] }
+    const start = (surge: number) =>
+      compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 1000, surge, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    const warning = (r: ReturnType<typeof start>) => r.warnings.find((w) => w.code === 'surgeDuration')!
+    // 3.5 kW for 1 s is within the 4 kW the pair ever holds and over the 3 kW it holds that long.
+    const within = start(3500)
+    expect(warning(within).params).toEqual({ inverterW: 2000, inverters: 2, unitW: 1000, surgeW: 3500, seconds: 1, ratedW: 3000, inverterSurgeW: 4000, tooLong: true })
+    expect(warningText(en, warning(within), within.items)).toBe('A 3,500 W start-up lasting 1 s is longer than the surge window of the 2 × 1,000 W inverters; together they only hold 3,000 W that long. Let fewer motors start at once.')
+    expect(warningText(es, warning(within), within.items)).toBe('Un arranque de 3,500 W durante 1 s supera la ventana de arranque de los 2 inversores de 1,000 W; juntos solo sostienen 3,000 W ese tiempo. Deja que arranquen menos motores a la vez.')
+    // A start-up of exactly the surge rating is still within it: its length is the reason, not its watts.
+    const atRating = start(4000)
+    expect(warning(atRating).params).toMatchObject({ surgeW: 4000, ratedW: 3000, inverterSurgeW: 4000, tooLong: true })
+    expect(warningText(en, warning(atRating), atRating.items)).toBe('A 4,000 W start-up lasting 1 s is longer than the surge window of the 2 × 1,000 W inverters; together they only hold 3,000 W that long. Let fewer motors start at once.')
+    expect(warningText(es, warning(atRating), atRating.items)).toBe('Un arranque de 4,000 W durante 1 s supera la ventana de arranque de los 2 inversores de 1,000 W; juntos solo sostienen 3,000 W ese tiempo. Deja que arranquen menos motores a la vez.')
+    // One watt more is over the rating at any length.
+    const over = start(4001)
+    expect(warning(over).params).toMatchObject({ surgeW: 4001, inverterSurgeW: 4000, tooLong: false })
+    expect(warningText(en, warning(over), over.items)).toBe('A 4,001 W start-up is more than the 4,000 W surge rating of the 2 × 1,000 W inverters together. Let fewer motors start at once.')
+    expect(warningText(es, warning(over), over.items)).toBe('Un arranque de 4,001 W supera los 4,000 W de arranque de los 2 inversores de 1,000 W juntos. Deja que arranquen menos motores a la vez.')
   })
 
   test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {

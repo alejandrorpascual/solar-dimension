@@ -158,10 +158,21 @@ export const es: Dictionary = {
         : `El inversor de ${inverter} W deja ${p.headroomPct}% de margen sobre la carga en marcha de ${running} W; este kit prevé ${p.needPct}%. ${advice}`
     },
     surgeDuration: (p) => {
-      const start = `Un arranque de ${p.surgeW?.toLocaleString('es-419')} W durante ${p.seconds} s supera la ventana de arranque`
-      return isSet(p)
-        ? `${start} de los ${p.inverters} inversores de ${p.unitW?.toLocaleString('es-419')} W; juntos solo sostienen ${p.ratedW?.toLocaleString('es-419')} W ese tiempo. Deja que arranquen menos motores a la vez.`
-        : `${start} del inversor de ${p.inverterW?.toLocaleString('es-419')} W; solo sostiene ${p.ratedW?.toLocaleString('es-419')} W ese tiempo. Elige un inversor mayor o deja que arranquen menos motores a la vez.`
+      const start = `Un arranque de ${p.surgeW?.toLocaleString('es-419')} W`
+      const [rated, surge] = [p.ratedW, p.inverterSurgeW].map((n) => n?.toLocaleString('es-419'))
+      // A set is already the most the list can put in parallel, so the advice no longer offers a bigger inverter.
+      if (isSet(p)) {
+        const set = `de los ${p.inverters} inversores de ${p.unitW?.toLocaleString('es-419')} W`
+        const reason = p.tooLong
+          ? `${start} durante ${p.seconds} s supera la ventana de arranque ${set}; juntos solo sostienen ${rated} W ese tiempo.`
+          : `${start} supera los ${surge} W de arranque ${set} juntos.`
+        return `${reason} Deja que arranquen menos motores a la vez.`
+      }
+      const inverter = `del inversor de ${p.inverterW?.toLocaleString('es-419')} W`
+      const reason = p.tooLong
+        ? `${start} durante ${p.seconds} s supera la ventana de arranque ${inverter}; solo sostiene ${rated} W ese tiempo.`
+        : `${start} supera los ${surge} W de arranque ${inverter}.`
+      return `${reason} Elige un inversor mayor o deja que arranquen menos motores a la vez.`
     },
     bankDischarge: (p) => `${isSet(p) ? `Los ${p.inverters} inversores toman hasta ${p.needA?.toLocaleString('es-419')} A en total` : `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A`} a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.`,
     bankPeak: (p) => `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; el BMS del banco permite ${p.maxA?.toLocaleString('es-419')} A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.`,
