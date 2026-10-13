@@ -20,6 +20,12 @@ const serverEnv = (port: number, dailyReads: number) => [
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
+  // In CI a test that fails once runs again, and the run's summary names every test that needed it (the github
+  // reporter): a flaky test stays visible without failing the run. Locally a failure is a failure.
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? [['github'], ['list']] : 'list',
+  // A `test.only` left in a commit would skip the rest of the suite and still pass.
+  forbidOnly: !!process.env.CI,
   use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure' },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
