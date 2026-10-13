@@ -74,6 +74,7 @@ export const es: Dictionary = {
     incSummary: 'Cifras resumen', incAppliances: 'Lista de aparatos', incParts: 'Lista de partes', incNotes: 'Supuestos', incRequester: 'Datos del solicitante',
     downloadPdf: 'Descargar PDF', downloadPng: 'Descargar imagen', downloadCsv: 'Descargar CSV', share: 'Compartir', making: 'Preparando el archivo…', downloadReady: 'Archivo listo. Descarga iniciada.',
     exportFailed: 'No se pudo crear el archivo. Inténtalo de nuevo.',
+    sheetAttention: 'Leer antes de cotizar', sheetAttentionChecks: 'Verificaciones por resolver: {count}', sheetAttentionNotes: 'Notas: {count}', sheetNotes: 'Notas',
     sheetTitle: 'Kit de respaldo · ficha técnica', loadSchedule: 'Cuadro de cargas', appliance: 'Aparato', each: 'C/u', overHours: 'En {hours} h', total: 'Total', note: 'Nota',
     eachW: 'C/u (W)', runningWatts: 'En marcha (W)', whOver: 'Wh en {hours} h',
     q3: '¿Tienes espacio en el techo para paneles?', q3Help: 'Los paneles recargan el banco de día, así que un apagón más largo que las horas de respaldo queda cubierto. Puedes saltarte este paso y quedarte con un kit solo de baterías.',

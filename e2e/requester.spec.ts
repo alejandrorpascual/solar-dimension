@@ -303,6 +303,13 @@ test('a client with every field at its longest still leaves the parts list whole
   await page.goto('/?step=4')
   await showDownload(page)
   await expect(visibleBand(page).getByText('J-40123456-7')).toBeVisible()
+  // This kit has a note, so the header carries its "Read before quoting" line. That line shares the subtitle's row and
+  // is no taller than it, which is what leaves the header, and so page one, the height they have without it.
+  const sheet = page.locator('.ksheet').filter({ visible: true })
+  const notice = await sheet.getByText(/^Read before quoting · Notes: \d+$/).boundingBox()
+  const subtitle = await sheet.locator('.ksheet__sub').boundingBox()
+  expect(notice!.height).toBeLessThanOrEqual(subtitle!.height)
+  expect(notice!.y).toBeLessThan(subtitle!.y + subtitle!.height)
   // A parts list cut by the page edge would make three pages: parts, the rest of the parts, then the load schedule.
   const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download PDF' }).click()])
   const bytes = await readFile((await pdf.path())!)

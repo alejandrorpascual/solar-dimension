@@ -43,6 +43,11 @@ export function uncheckedWarnings(r: SizingResult): Warning[] {
   return r.warnings.filter((w) => !CHECKED_CODES.has(w.code))
 }
 
+/** Those notes in the reader's language: they travel with the kit onto the sheet, the image and the CSV. */
+export const kitNotes = (t: Dictionary, r: SizingResult): string[] => uncheckedWarnings(r).map((w) => warningText(t, w, r.items))
+
+export const isFailing = (c: KitCheck): boolean => c.status === 'warn'
+
 const NAME_KEY: Record<CheckId, 'checkSurge' | 'checkBatteryContinuous' | 'checkBatteryPeak' | 'checkParallel' | 'checkFuse' | 'checkCable'> = {
   surge: 'checkSurge', batteryContinuous: 'checkBatteryContinuous', batteryPeak: 'checkBatteryPeak', parallel: 'checkParallel', fuse: 'checkFuse', cable: 'checkCable',
 }

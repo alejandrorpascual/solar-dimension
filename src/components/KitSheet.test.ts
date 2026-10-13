@@ -1,0 +1,93 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { describe, expect, test } from 'vitest'
+import { getDictionary, type Locale } from '../i18n'
+import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
+import { buildParts } from '../lib/kit-parts'
+import { compute, type SizingInput } from '../lib/sizing'
+import { DEFAULT_QTY } from '../lib/store'
+import { KitSheet, type ExportInclude } from './KitSheet'
+
+const EVERYTHING: ExportInclude = { summary: true, appliances: true, parts: true, checks: true, notes: true, requester: true }
+const NOTHING: ExportInclude = { summary: false, appliances: false, parts: false, checks: false, notes: false, requester: false }
+
+/** The sheet as it prints, top to bottom: one line per block, tags out. */
+function sheetText(input: SizingInput, locale: Locale, include: ExportInclude = EVERYTHING): string {
+  const t = getDictionary(locale)
+  const result = compute(input, CATALOG_SNAPSHOT)
+  const html = renderToStaticMarkup(createElement(KitSheet, {
+    projectName: 'Home', result, parts: buildParts(result, t, locale), requester: null, include, date: '12 Oct 2026', t, locale,
+  }))
+  return html
+    // A check's mark is an icon with its word as the label: keep the word, as a screen reader would.
+    .replace(/<span class="cmark[^"]*"[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, '[$1] ')
+    .replace(/<svg[\s\S]*?<\/svg>/g, '')
+    .replace(/<\/(tr|h2|h3|p|div|section|header|li)>/g, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/&quot;/g, '"')
+    .split('\n').map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n')
+}
+
+/** The audit's 12 V stress project: the default home plus heaters, kettles and a 240 V water heater, 11 kW at 12 V. */
+const STRESS_12V: SizingInput = { qty: { ...DEFAULT_QTY, heater: 2, kettle: 2, wheater: 1 }, hours: 10, volts: 12, chemistry: 'lifepo4' }
+const SOUND: SizingInput = { qty: DEFAULT_QTY, hours: 10, volts: 48, chemistry: 'lifepo4' }
+
+describe('the spec sheet carries what a supplier must read', () => {
+  test('the 12 V stress project prints the split-phase and inverter-voltage notes, in English and Spanish', () => {
+    const en = sheetText(STRESS_12V, 'en')
+    expect(en.split('\n')).toContain('Notes')
+    expect(en).toContain('Electric water heater usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.')
+    expect(en).toContain('12,000 W inverters are normally built for 48 V. Change the battery voltage or trim the load.')
+    const es = sheetText(STRESS_12V, 'es')
+    expect(es.split('\n')).toContain('Notas')
+    expect(es).toContain('Calentador de agua eléctrico normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.')
+    expect(es).toContain('Los inversores de 12,000 W normalmente son de 48 V. Cambia el voltaje del banco o reduce la carga.')
+  })
+
+  test('the notes and the failing checks stay on the sheet with every Include box unticked', () => {
+    const text = sheetText(STRESS_12V, 'en', NOTHING)
+    expect(text).toContain('You need a split-phase (240 V) inverter')
+    expect(text).toContain('12,000 W inverters are normally built for 48 V')
+    // The checks that fail print; the ones that pass went with the Checks box.
+    expect(text).toContain('[Needs attention]')
+    expect(text).toContain('is hard to wire safely')
+    expect(text).not.toContain('[Passes]')
+    expect(sheetText(STRESS_12V, 'en')).toContain('[Passes]')
+  })
+
+  test('the first page says in one line that checks fail and notes exist, before anything else', () => {
+    const text = sheetText(STRESS_12V, 'en')
+    const line = 'Read before quoting · Checks to resolve: 4 · Notes: 2'
+    expect(text.split('\n')).toContain(line)
+    expect(text.indexOf(line)).toBeLessThan(text.indexOf('Parts list'))
+    expect(sheetText(STRESS_12V, 'en', NOTHING)).toContain(line)
+    // The notes and the checks print last, so page one keeps the header, the figures and the parts.
+    expect(text.indexOf('Load schedule')).toBeLessThan(text.indexOf('\nNotes\n'))
+    expect(text.indexOf('\nNotes\n')).toBeLessThan(text.indexOf('\nChecks\n'))
+    expect(sheetText(STRESS_12V, 'es')).toContain('Leer antes de cotizar · Verificaciones por resolver: 4 · Notas: 2')
+  })
+
+  test('only notes, or only failing checks, name just that in the line', () => {
+    // A 4.5 kW water heater alone at 48 V: every check passes, two notes.
+    const notesOnly = sheetText({ qty: { wheater: 1 }, hours: 2, volts: 48, chemistry: 'lifepo4' }, 'en')
+    expect(notesOnly.split('\n')).toContain('Read before quoting · Notes: 2')
+    expect(notesOnly).not.toContain('Checks to resolve')
+    // Essentials on five strings of a small 12 V unit: the parallel-strings check fails, nothing else to note.
+    const checksOnly = sheetText({ qty: DEFAULT_QTY, hours: 10, volts: 12, chemistry: 'lifepo4', batteryUnit: '12-100' }, 'en')
+    expect(checksOnly).toMatch(/Read before quoting · Checks to resolve: 1$/m)
+    expect(checksOnly.split('\n')).not.toContain('Notes')
+  })
+
+  test('a sound kit has no notice line and no notes block', () => {
+    const text = sheetText(SOUND, 'en')
+    expect(text).not.toContain('Read before quoting')
+    expect(text.split('\n')).not.toContain('Notes')
+    expect(sheetText(SOUND, 'en', NOTHING)).not.toContain('[Needs attention]')
+  })
+
+  test('appliances the catalog could not load are named as left out, so the sheet never under-reports in silence', () => {
+    const text = sheetText({ ...SOUND, qty: { ...DEFAULT_QTY, gone1: 1, gone2: 2 } }, 'en')
+    expect(text).toContain('2 appliances in this project could not be loaded, so this kit leaves them out.')
+    expect(text).toContain('Read before quoting · Notes: 1')
+  })
+})

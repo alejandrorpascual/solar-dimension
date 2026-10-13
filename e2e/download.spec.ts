@@ -124,6 +124,40 @@ test('a CSV has no printed pages, so there is no larger view to open', async ({ 
   await expect(page.getByRole('button', { name: 'View larger' })).toBeVisible()
 })
 
+test('notes and failing checks stay on the sheet and in the files with their Include boxes unticked', async ({ page }) => {
+  // A 240 V water heater on a 12 V bank: three checks fail (parallel strings, fuse, cable) and three notes apply.
+  await page.goto('/?step=1')
+  await page.getByRole('button', { name: 'Add Electric water heater' }).click()
+  await page.getByRole('button', { name: 'Step 2: Backup window' }).click()
+  await page.getByRole('button', { name: /^12 V/ }).click()
+  await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+  await showDownload(page)
+  const sheet = page.locator('.ksheet').filter({ visible: true })
+  // The preview is hidden from assistive technology, so its check marks are looked up as hidden elements.
+  const marks = (name: string) => sheet.getByRole('img', { name, includeHidden: true })
+  await expect(sheet.getByText('Read before quoting · Checks to resolve: 3 · Notes: 3')).toBeVisible()
+  await expect(marks('Passes')).toHaveCount(3)
+  await page.getByRole('checkbox', { name: 'Checks' }).uncheck()
+  await page.getByRole('checkbox', { name: 'Assumptions' }).uncheck()
+  await expect(sheet.getByText(/usually runs on 240 V\. You need a split-phase \(240 V\) inverter/)).toBeVisible()
+  // Unticking Checks takes the passing ones off the sheet; the three that fail stay.
+  await expect(marks('Passes')).toHaveCount(0)
+  await expect(marks('Needs attention')).toHaveCount(3)
+  await expect(sheet.getByText(/A on the DC side at 12 V is hard to wire safely/)).toBeVisible()
+  // Parts first, so page one keeps its layout; the notes print with the checks at the end.
+  await expect(sheet.locator('h3')).toHaveText(['Parts list', 'Load schedule', 'Notes', 'Checks'])
+  const csv = await downloadAs(page, /^Parts list \(CSV\)/, 'Download CSV')
+  const text = await readFile((await csv.path())!, 'utf8')
+  expect(text).toContain('Needs attention,Note')
+  expect(text).toMatch(/^Cable,\d+ A on the DC side at 12 V is hard to wire safely\. Consider 24 V\.\r?$/m)
+  expect(text).toMatch(/^Parallel strings,/m)
+  expect(text).toContain('Note,Electric water heater usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.')
+  // The PDF is drawn from the sheet as previewed, so it carries the same blocks: it has to come out with them on it.
+  const pdf = await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF')
+  expect((await readFile((await pdf.path())!)).subarray(0, 5).toString('latin1')).toBe('%PDF-')
+  await expect(page.getByRole('alert')).toHaveCount(0)
+})
+
 test('the checks print last on the sheet and can be left out', async ({ page }) => {
   await page.goto('/?step=4')
   await showDownload(page)
