@@ -1,8 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { slugify } from '../src/lib/catalog-schema'
 import { deleteTestAppliance, markEmailVerified } from './db'
-
-const ADMIN = { email: 'e2e-admin@example.com', password: 'correct-horse-battery-admin' }
+import { E2E_ADMIN as ADMIN } from './servers'
 
 async function signInOrUp(page: Page, email: string, password: string) {
   await page.goto('/login')
