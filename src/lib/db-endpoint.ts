@@ -7,12 +7,19 @@ export const PRODUCTION_DB_ENDPOINT = 'ep-round-sea-auutoq9o'
  */
 export const TEST_DB_ENDPOINT_ENV = 'TEST_DB_ENDPOINT'
 
-/** The first label of the URL's host, lower-cased and without `-pooler`: for a Neon URL, its endpoint id ("ep-…"), which the pooled and direct hosts share. */
+/**
+ * The first label of the URL's host, without `-pooler`: for a Neon URL, its endpoint id ("ep-…"), which the pooled and
+ * direct hosts share. The host is read as the driver reads it before it dials, as an http host: lower-cased, with `%65`
+ * decoded and look-alike letters mapped to the plain ones. A `postgresql:` URL keeps all of those as written, and a
+ * guard that read it so would not know a database the driver still reaches.
+ */
 export function endpointOf(url: string | undefined): string | undefined {
   if (!url) return undefined
   try {
-    // URL keeps the case of a postgres:// host as written, and a host reaches the same database in any case.
-    return new URL(url).hostname.toLowerCase().split('.')[0].replace(/-pooler$/, '') || undefined
+    // Without a host there is no endpoint, and as http the path would be taken for one (`postgresql:///neondb`).
+    if (!new URL(url).hostname) return undefined
+    const dialedHost = new URL(`http${url.slice(url.indexOf(':'))}`).hostname
+    return dialedHost.split('.')[0].replace(/-pooler$/, '') || undefined
   } catch {
     return undefined
   }
