@@ -8,9 +8,9 @@ import type { SizingResult } from './sizing'
 export interface CsvInclude { appliances: boolean; parts: boolean }
 
 /**
- * The kit as a spreadsheet: the load schedule by kind, then the parts list, in the user's language. Failing checks,
- * notes and the line that says this is an estimate come last and are always there, since a supplier may get this
- * file and nothing else.
+ * The kit as a spreadsheet, in the user's language: the load schedule by kind, then the parts list, each when ticked.
+ * The failing checks and the notes follow when the kit has any, whatever is ticked, and the line that says this is an
+ * estimate always closes the file, since a supplier may get this file and nothing else.
  */
 export function csvFor(result: SizingResult, parts: readonly Part[], include: CsvInclude, t: Dictionary): string {
   const failing = kitChecks(t, result, t.locale).filter(isFailing).flatMap((c) => c.lines.map((text) => ({ name: c.name, text })))

@@ -112,4 +112,23 @@ describe('the spec sheet says what it is', () => {
   test('an empty project still says it', () => {
     expect(sheetText({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4' }, 'en', NOTHING)).toContain(EN)
   })
+
+  test.each<[string, ExportInclude]>([
+    ['the parts list left out', { ...EVERYTHING, parts: false }],
+    ['only the appliance list ticked', { ...NOTHING, appliances: true }],
+    ['only the assumptions ticked', { ...NOTHING, notes: true }],
+  ])('it stays with %s, in both languages', (_, include) => {
+    expect(sheetText(SOUND, 'en', include).split('\n')).toContain(EN)
+    expect(sheetText(SOUND, 'es', include).split('\n')).toContain(ES)
+  })
+
+  test('a kit with notes and failing checks carries it as well as them, whatever is ticked', () => {
+    for (const include of [EVERYTHING, NOTHING]) {
+      const text = sheetText(STRESS_12V, 'en', include)
+      expect(text.split('\n')).toContain(EN)
+      expect(text).toContain('You need a split-phase (240 V) inverter')
+      expect(text).toContain('[Needs attention]')
+      expect(sheetText(STRESS_12V, 'es', include).split('\n')).toContain(ES)
+    }
+  })
 })

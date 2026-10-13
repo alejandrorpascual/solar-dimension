@@ -158,6 +158,45 @@ test('notes and failing checks stay on the sheet and in the files with their Inc
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
+/** Every channel under this is ink: the sheet's text on its white ground. */
+const INK_MAX_CHANNEL = 128
+/** Two lines of small type leave thousands of ink pixels in the image; a band where nothing printed leaves none. */
+const MIN_INK_PIXELS = 1000
+
+/** How many ink pixels the downloaded image has where `selector` sits on the sheet. */
+async function inkUnder(page: Page, image: Download, selector: string): Promise<number> {
+  const png = (await readFile((await image.path())!)).toString('base64')
+  return page.locator('.ksheet').filter({ visible: true }).evaluate(async (sheet, { png, selector, inkMax }) => {
+    const bitmap = await createImageBitmap(new Blob([Uint8Array.from(atob(png), (c) => c.charCodeAt(0))], { type: 'image/png' }))
+    // The preview is the sheet scaled down and the image is the same sheet at full size, so one ratio maps between them.
+    const frame = sheet.getBoundingClientRect()
+    const target = sheet.querySelector(selector)!.getBoundingClientRect()
+    const perPx = bitmap.width / frame.width
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+    const pen = canvas.getContext('2d')!
+    pen.drawImage(bitmap, 0, 0)
+    const { data } = pen.getImageData(Math.round((target.left - frame.left) * perPx), Math.round((target.top - frame.top) * perPx), Math.round(target.width * perPx), Math.round(target.height * perPx))
+    return data.reduce((ink, _, i) => (i % 4 === 0 && data[i] < inkMax && data[i + 1] < inkMax && data[i + 2] < inkMax ? ink + 1 : ink), 0)
+  }, { png, selector, inkMax: INK_MAX_CHANNEL })
+}
+
+for (const { lang, download, format, button } of [
+  { lang: 'en', download: 'Download', format: /^Summary image \(PNG\)/, button: 'Download image' },
+  { lang: 'es', download: 'Descargar', format: /^Imagen resumen \(PNG\)/, button: 'Descargar imagen' },
+] as const) {
+  test(`the downloaded image has the estimate sentence printed on it, with every Include box unticked (${lang})`, async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: 'lang', value: lang, url: baseURL! }])
+    await page.goto('/?step=4')
+    await showDownload(page, download)
+    // The PDF pages are cut from this same image, so what is printed here is printed there.
+    await page.getByRole('radio', { name: format }).check()
+    const ticked = page.getByRole('checkbox', { checked: true, disabled: false })
+    while (await ticked.count() > 0) await ticked.first().uncheck()
+    const image = await downloadAs(page, format, button)
+    expect(await inkUnder(page, image, '.ksheet__estimate')).toBeGreaterThan(MIN_INK_PIXELS)
+  })
+}
+
 test('the checks print last on the sheet and can be left out', async ({ page }) => {
   await page.goto('/?step=4')
   await showDownload(page)
