@@ -47,7 +47,7 @@ describe('compute', () => {
     expect(r.cable.gauge).toBe('1 AWG')
     expect(r.cable.fuseA).toBe(125)
     // Two strings: each gets its own short lead and fuse, and the sheet gets the parallel-bank notes.
-    expect(r.cable.string).toMatchObject({ count: 2, leads: 4, gauge: '6 AWG', lengthM: 0.3, fuse: { a: 60, count: 2 } })
+    expect(r.cable.string).toMatchObject({ leads: 4, gauge: '6 AWG', lengthM: 0.3, fuse: { a: 60, count: 2 } })
     expect(r.cable.links).toBeNull()
     expect(r.parallelNotes).toEqual(['sameModelAge', 'equalLeadsOrBusbar', 'stringFuses'])
   })
@@ -159,14 +159,14 @@ describe('battery unit choice', () => {
     expect(auto?.hoursActual).toBeCloseTo(r.battery!.hoursActual)
   })
 
-  test('a chosen unit drives the bank, interconnects, runtime and warnings', () => {
+  test('a chosen unit drives the bank, its wiring, runtime and warnings', () => {
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 12, chemistry: 'lifepo4', batteryUnit: '12-100' }, CATALOG_SNAPSHOT)
     expect(r.batteryUnit).toBe('12-100')
     expect(r.battery?.unitLabel).toBe('12 V 100 Ah LiFePO₄')
     expect(r.battery?.config).toBe('1S5P')
     expect(r.battery?.count).toBe(5)
     // Five strings to the bus bars: a lead pair each and nothing in series to link.
-    expect(r.cable.string).toMatchObject({ count: 5, leads: 10 })
+    expect(r.cable.string).toMatchObject({ leads: 10, fuse: { count: 5 } })
     expect(r.cable.links).toBeNull()
     expect(r.battery?.hoursActual).toBeGreaterThan(10)
     expect(r.warnings.map((w) => w.code)).toContain('parallelStrings')
@@ -227,7 +227,7 @@ describe('inverter against the running load', () => {
     expect(undersized(kit(12000))).toEqual([{ code: 'inverterUndersized', params: { inverterW: 12000, runningW: 12000, headroomPct: 0, needPct: 25 } }])
   })
 
-  test('past the rating the inverter cannot carry the load, which is a different warning text', () => {
+  test('past the rating the inverter cannot carry the load: runningOk is false and the headroom reads 0', () => {
     for (const watts of [12001, 15000]) {
       const r = kit(watts)
       expect(r.inverter).toMatchObject({ w: 12000, runningOk: false, headroomOk: false, surgeOk: true })
@@ -255,7 +255,9 @@ describe('inverter against the running load', () => {
   })
 
   test('an empty project warns about nothing', () => {
-    expect(compute({ qty: {}, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT).inverter).toMatchObject({ runningOk: true, headroomOk: true })
+    const r = compute({ qty: {}, hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.inverter).toMatchObject({ runningOk: true, headroomOk: true })
+    expect(r.warnings).toEqual([])
   })
 })
 
@@ -270,21 +272,31 @@ describe('bank wiring', () => {
     expect(r.cable.totalLengthM).toBe(3.9)
   })
 
-  test('when the main cable splits in two runs, each series link is two jumpers: 185 A no longer rides on one 130 A cable', () => {
+  test('when the main cable splits in two runs, each series link is two jumpers, so 185 A never rides on one 130 A cable', () => {
     const r = compute({ ...load(3000), hours: 1, volts: 24, chemistry: 'lifepo4', batteryUnit: '12-200' }, CATALOG_SNAPSHOT)
     expect(r.battery?.config).toBe('2S1P')
     expect(r.inverter.continuousA).toBeCloseTo(185.2, 1)
     expect(r.cable).toMatchObject({ runs: 2, gauge: '1 AWG', ampacity: 130 })
     expect(r.cable.links).toMatchObject({ positions: 1, perPosition: 2, count: 2, gauge: '1 AWG', designA: 116, ampacity: 130 })
+    expect(r.cable.designPerRunA).toBe(116)
     expect(r.cable.totalLengthM).toBe(6.6)
     expect(r.warnings.map((w) => w.code)).not.toContain('cableUndersized')
+  })
+
+  test('a run of the main cable and the jumper that copies it state one design current, rounded once', () => {
+    // 4,801 W at 36 V: 308.6 A over two runs is 154.3 A each. Rounding the total first and then the half would print 155.
+    const r = compute({ ...load(4801), hours: 2, volts: 36, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect([r.battery?.config, r.cable.runs]).toEqual(['3S1P', 2])
+    expect(r.cable.designA).toBe(309)
+    expect(r.cable.designPerRunA).toBe(154)
+    expect(r.cable.links?.designA).toBe(154)
   })
 
   test('with strings in parallel a link carries one string, so it takes the string lead\'s gauge, not the main cable\'s', () => {
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '12-100' }, CATALOG_SNAPSHOT)
     expect(r.battery?.config).toBe('4S2P')
     expect(r.cable.gauge).toBe('2 AWG')
-    expect(r.cable.string).toMatchObject({ gauge: '6 AWG', designA: 43, ampacity: 65, count: 2, leads: 4, fuse: { a: 60 } })
+    expect(r.cable.string).toMatchObject({ gauge: '6 AWG', designA: 43, ampacity: 65, leads: 4, fuse: { a: 60, count: 2 } })
     expect(r.cable.links).toMatchObject({ positions: 6, perPosition: 1, count: 6, gauge: '6 AWG', designA: 43, ampacity: 65 })
     // Two 1.5 m main leads, six links and four string leads of 30 cm.
     expect(r.cable.totalLengthM).toBe(6)
@@ -294,7 +306,7 @@ describe('bank wiring', () => {
     const r = compute({ ...load(2400), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 75 } }, CATALOG_SNAPSHOT)
     expect(r.battery?.config).toBe('1S2P')
     expect(r.warnings.filter((w) => w.code === 'cableUndersized')).toEqual([
-      { code: 'cableUndersized', params: { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7 } },
+      { code: 'cableUndersized', params: { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7, canCool: true, canRaiseInsulation: true, nextVolts: 24 } },
     ])
   })
 
@@ -303,7 +315,7 @@ describe('bank wiring', () => {
     const r = compute({ ...load(6400), hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 40, bundled: true } }, CATALOG_SNAPSHOT)
     expect([r.inverter.w, r.inverter.voltsOk, r.cable.runs, r.cable.gauge]).toEqual([8000, false, 6, '4/0 AWG'])
     expect(r.warnings.filter((w) => w.code === 'cableUndersized' && w.params.conductor === 'mainCable')).toEqual([
-      { code: 'cableUndersized', params: { conductor: 'mainCable', gauge: '4/0 AWG', maxA: 118.3, needA: 154.4 } },
+      { code: 'cableUndersized', params: { conductor: 'mainCable', gauge: '4/0 AWG', maxA: 118.3, needA: 154.4, canCool: false, canRaiseInsulation: false, nextVolts: 24 } },
     ])
   })
 })

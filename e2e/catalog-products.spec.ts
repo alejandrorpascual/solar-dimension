@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
 import { productKey } from '../src/lib/product-schema'
-import { catalogAuthHeader as auth } from './catalog-token'
+import { catalogAuthHeader as auth, writeHeaders } from './catalog-token'
 import { deleteTestProduct, insertUnreadableTestProduct, rawTestProduct, testProductDates } from './db'
 
 test.beforeEach(({}, info) => {
@@ -23,7 +23,8 @@ function inverter(model: string, continuousW = 6000, chargerA: ReturnType<typeof
   }
 }
 
-const post = (request: APIRequestContext, query: string, data: unknown) => request.post(`/api/catalog/products${query}`, { headers: auth, data })
+// Every POST names this run's database; the server refuses one that does not (see e2e/catalog-api.spec.ts).
+const post = (request: APIRequestContext, query: string, data: unknown) => request.post(`/api/catalog/products${query}`, { headers: writeHeaders(), data })
 const stored = async (request: APIRequestContext, key: string) =>
   ((await (await request.get('/api/catalog/products', { headers: auth })).json()).items as Array<{ key: string }>).find((i) => i.key === key)
 

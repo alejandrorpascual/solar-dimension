@@ -25,6 +25,12 @@ export async function deleteTestAppliance(id: string): Promise<void> {
   await testDb()`delete from appliances where id = ${id}`
 }
 
+/** Whether the appliance is in this run's database, read on the test's own connection: where the server really wrote. */
+export async function testApplianceExists(id: string): Promise<boolean> {
+  const rows = await testDb()`select 1 from appliances where id = ${id}`
+  return rows.length > 0
+}
+
 /** Product helpers only touch keys of the "E2E …" brand, so a wrong key never reaches a real product. */
 function assertTestProductKey(key: string): void {
   if (!/^(inverter|battery):e2e:/.test(key)) throw new Error(`refusing to touch "${key}": not an e2e product key`)
