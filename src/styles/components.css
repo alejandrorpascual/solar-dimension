@@ -137,6 +137,11 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 .seg--on { background: var(--ink); color: #FFFFFF; border-color: var(--ink); }
 .custom__submit { flex: 1 1 100%; min-height: var(--tap); }
 .error { font-size: 13px; color: var(--error); }
+/* A saved custom appliance that could not be read back: where to add it again, and the button that stops the project counting it. */
+.custom__unread { gap: 10px; }
+.custom__unread-clear { align-self: flex-start; min-height: var(--tap); padding: 0 14px; border-radius: var(--radius-sm); border: 1px solid var(--warn-border); background: var(--surface); color: var(--warn-ink); font-size: 13px; font-weight: 600; text-align: left; }
+.custom__unread-clear:hover { border-color: var(--warn-ink); }
+.custom__unread-clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1024px) {
   .toolbar { flex-direction: row; justify-content: space-between; align-items: flex-end; gap: 32px; }
@@ -324,6 +329,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .cmark { flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; border-radius: 999px; display: grid; place-items: center; }
 .cmark--pass { background: #E3F4EA; color: #1F7A45; }
 .cmark--warn { background: var(--warn-bg); color: var(--warn-ink); }
+/* What the kit is, right under the parts it qualifies: ink, not the fine print's grey, so it is read. */
+.estimate { padding: 12px 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; line-height: 1.45; font-weight: 500; }
 .fine { font-size: 11px; line-height: 1.5; }
 @media (min-width: 1024px) {
   .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -344,8 +351,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 }
 
 .stage--narrow { max-width: 440px; }
-.login__legal { display: flex; gap: 8px; align-self: center; }
-.login__legal a { color: inherit; }
+.legal { display: flex; gap: 8px; align-self: center; }
+.legal a { color: inherit; }
 /* Long-form text pages (privacy): readable measure, calm hierarchy. */
 .prose { max-width: 640px; }
 .prose h1 { font-size: 32px; }

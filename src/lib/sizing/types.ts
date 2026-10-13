@@ -53,7 +53,12 @@ export interface SurgeStarter { itemId: string; itemName: string; delta: number;
 /** The start-up the inverter must ride: which units were assumed to start together, and for how long. */
 export interface SurgeProfile { surgeW: number; seconds: number; starters: SurgeStarter[] }
 
+/** The kit's inverter: one unit, or identical units in parallel. Every rating and current is the whole set's. */
 export interface InverterPick {
+  /** Units working in parallel as one; 1 for a single inverter. */
+  count: number
+  /** One unit's continuous rating, as sold; `w` is `count` of them. */
+  unitW: number
   w: number
   surge: number
   volts: readonly Voltage[]
@@ -107,11 +112,20 @@ export interface BatteryPick {
   bankContinuousA: number
   bankPeakA: number
   bankShortCircuitA: number
-  /** Strings each requirement alone would need; parallel is the largest unless that exceeds the unit's limit. */
-  parallelFor: { energy: number; continuous: number; peak: number }
+  /**
+   * Strings each requirement alone would need: the energy, the BMS continuous and peak limits, and what one string's
+   * lead carries. Parallel is the largest of the first three, or the energy's when that passes the unit's limit. The
+   * lead's count raises it only when there is already more than one string (one has no lead of its own), the unit's
+   * limit allows that many and the fuses could still interrupt the bank; otherwise `leadOk` is false.
+   */
+  parallelFor: { energy: number; continuous: number; peak: number; lead: number }
   dischargeOk: boolean
   peakOk: boolean
   overMaxParallel: boolean
+  /** No string is asked for more than its lead carries; true for one string, which has none. */
+  leadOk: boolean
+  /** The fuses this bank's kit gets can interrupt its fault current: the main fuse all of it, each string's fuse one battery's. */
+  interruptOk: boolean
 }
 
 /** One battery unit that can build this bank, with the bank it would make. */
@@ -131,6 +145,8 @@ export interface BatteryOption {
   dischargeOk: boolean
   peakOk: boolean
   overMaxParallel: boolean
+  leadOk: boolean
+  interruptOk: boolean
   maxParallel: number
 }
 
@@ -179,8 +195,10 @@ export interface StringCable {
 }
 
 export interface CablePick {
+  /** The whole circuit's continuous current, and one run's share of it. */
   amps: number
   perRun: number
+  /** Runs in all. Inverters in parallel each get their own, so there are `runs / inverter.count` to each. */
   runs: number
   gauge: string
   mm2: number
@@ -220,7 +238,10 @@ export type WarningCode =
   | 'roofLimited'
 
 export interface WarningParams {
+  /** The inverter's rating: the whole set's when units work in parallel, with how many there are and one unit's rating. */
   inverterW?: number
+  inverters?: number
+  unitW?: number
   runningW?: number
   /**
    * Whole percent of headroom the inverter has over the running load, and the percent the engine plans for. The first
@@ -268,6 +289,8 @@ export interface Warning { code: WarningCode; params: WarningParams }
 
 /** Installation notes a bank with parallel strings needs; translated by the UI. */
 export type ParallelNote = 'sameModelAge' | 'equalLeadsOrBusbar' | 'stringFuses' | 'bmsComms'
+/** Installation notes inverters working in parallel need; translated by the UI. */
+export type InverterNote = 'builtForParallel' | 'ownRunAndFuse'
 
 export interface SizingResult {
   empty: boolean
@@ -296,6 +319,8 @@ export interface SizingResult {
   cable: CablePick
   fuse: FusePick
   parallelNotes: ParallelNote[]
+  /** Empty for a single inverter. */
+  inverterNotes: InverterNote[]
   warnings: Warning[]
   batteryOptions: BatteryOption[]
   /** The unit actually used when it came from the user's choice; null when the automatic pick is in effect. */

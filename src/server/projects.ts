@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '../db/client'
 import { projects, quoteFileTrash, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
+import { clampStamp } from '../lib/sync'
 import { emptyQuoteTrash } from './quotes/deps'
 import { lockUserQuotes } from './quotes/limits'
 import { trashQuoteFiles } from './quotes/repo'
@@ -34,12 +35,15 @@ async function listForUser(userId: string): Promise<Project[]> {
 /**
  * Last edit wins by the client's `updatedAt`, not by arrival order: a save that a reload cut off can still reach the
  * database after a newer write, so the update only applies when the incoming stamp is not older than the stored one.
+ * A stamp from a clock far ahead is stored as the server's time (clampStamp), or it would refuse every edit after it.
+ * Returns the ids it wrote: a project that is missing from them was refused as older than the stored copy.
  */
-async function upsertAll(userId: string, list: Project[]): Promise<void> {
-  if (list.length === 0) return
-  await db
+async function upsertAll(userId: string, list: Project[]): Promise<Set<string>> {
+  if (list.length === 0) return new Set()
+  const now = Date.now()
+  const written = await db
     .insert(projects)
-    .values(list.map((p) => ({ ...p, userId, updatedAt: new Date(p.updatedAt) })))
+    .values(list.map((p) => ({ ...p, userId, updatedAt: new Date(clampStamp(p.updatedAt, now)) })))
     .onConflictDoUpdate({
       target: [projects.userId, projects.id],
       set: {
@@ -58,17 +62,27 @@ async function upsertAll(userId: string, list: Project[]): Promise<void> {
       },
       setWhere: sql`excluded.updated_at >= ${projects.updatedAt}`,
     })
+    .returning({ id: projects.id })
+  return new Set(written.map((row) => row.id))
 }
 
 export const listProjects = createServerFn({ method: 'GET' }).handler(async (): Promise<Project[]> => {
   return listForUser(await requireUserId())
 })
 
+/**
+ * Saves the projects it is given and answers with `stale`: the account's copy of each one it refused as older, so the
+ * device shows what the account holds instead of an edit that was never stored.
+ */
 export const saveProjects = createServerFn({ method: 'POST' })
   .validator((d: unknown) => ProjectsInput.parse(d))
-  .handler(async ({ data }) => {
-    await upsertAll(await requireUserId(), data.projects)
-    return { ok: true }
+  .handler(async ({ data }): Promise<{ ok: true; stale: Project[] }> => {
+    const userId = await requireUserId()
+    const written = await upsertAll(userId, data.projects)
+    const refused = data.projects.filter((p) => !written.has(p.id)).map((p) => p.id)
+    if (refused.length === 0) return { ok: true, stale: [] }
+    const rows = await db.select().from(projects).where(and(eq(projects.userId, userId), inArray(projects.id, refused)))
+    return { ok: true, stale: rows.map(toProject) }
   })
 
 export const deleteProjects = createServerFn({ method: 'POST' })

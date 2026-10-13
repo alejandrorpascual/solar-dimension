@@ -1,14 +1,14 @@
 import { DEFAULT_HARDWARE, SIZING, VOLTAGES, type CatalogItem, type HardwareCatalog, type Voltage } from './catalog'
 import { ambientFactor, ampsAt, bundleFactor } from './nec'
-import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate } from './sizing/battery'
-import { sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
+import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate, type BankDemand } from './sizing/battery'
+import { canInterruptFault, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
 import { dcAmps, pickInverter, toInverterPick } from './sizing/inverter'
 import { selectItems, surgeProfile } from './sizing/loads'
 import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
 import type {
   BatteryOption, BatteryPick, CableConditions, CustomLoadLike, SelectedItem, SimultaneousStarts, SizingInput, SizingResult, Warning,
 } from './sizing/types'
-import { buildWarnings, parallelNotes } from './sizing/warnings'
+import { buildWarnings, inverterNotes, parallelNotes } from './sizing/warnings'
 import { panelsToRefill, sizeSolar, type SolarPick } from './solar'
 
 export type * from './sizing/types'
@@ -64,7 +64,7 @@ const toOption = (c: BankCandidate, ctx: RuntimeContext, autoId: string | undefi
     id: c.id, label: c.unitLabel, unitV: c.unitV, unitAh: c.unitAh,
     count: c.count, series: c.series, parallel: c.parallel, config: c.config, bankWh: c.bankWh,
     hoursActual: runtime.typical, runtime, isAuto: c.id === autoId,
-    dischargeOk: c.dischargeOk, peakOk: c.peakOk, overMaxParallel: c.overMaxParallel, maxParallel: c.unit.maxParallel,
+    dischargeOk: c.dischargeOk, peakOk: c.peakOk, overMaxParallel: c.overMaxParallel, leadOk: c.leadOk, interruptOk: c.interruptOk, maxParallel: c.unit.maxParallel,
   }
 }
 
@@ -92,7 +92,20 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const inverter = toInverterPick(pickInverter(runningW, profile, volts, hardware.inverters), profile, volts, runningW)
   // What flows at start-up is the load's surge, not the inverter's rating: the bank, fuse and cable see that current.
   const startupA = dcAmps(profile.surgeW, volts)
-  const demand = { continuousA: inverter.continuousA, surgeA: startupA, surgeSeconds: profile.seconds }
+  // Inverters in parallel share the current but not the cable: each has its own runs and fuse.
+  const sizeMain = (behind: Pick<BatteryPick, 'bankContinuousA' | 'bankShortCircuitA'> | null) =>
+    sizeMainCable(inverter.continuousA, startupA, volts, cond, hardware.gauges, hardware.fuses, {
+      surgeSeconds: profile.seconds, bankContinuousA: behind?.bankContinuousA ?? null, bankShortCircuitA: behind?.bankShortCircuitA ?? null,
+    }, { feeds: inverter.count })
+  const wires = { bankAmps: inverter.continuousA, bankSurgeAmps: startupA, volts, cond, gauges: hardware.gauges, fuses: hardware.fuses, surgeSeconds: profile.seconds }
+  // Which fuse a run gets follows from its current, not from the bank behind it: sized with no bank, the main run
+  // already has the fuse the kit will list, so every bank is read against the fuses it would really get.
+  const unbanked = sizeMain(null)
+  const demand: BankDemand = {
+    continuousA: inverter.continuousA, surgeA: startupA, surgeSeconds: profile.seconds,
+    maxStringA: maxStringAmps(volts, cond, hardware.gauges, hardware.fuses),
+    canInterrupt: (layout) => canInterruptFault({ ...wires, main: unbanked, battery: layout }),
+  }
   const candidates = batteryCandidates(chem, volts, requiredAh, demand)
   const auto = autoPick(candidates)
   const chosen = candidates.find((c) => c.id === input.batteryUnit) ?? null
@@ -107,13 +120,8 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     ? [{ code: 'roofLimited', params: { fit: solar.fit, need: panelsToRefill(bankWh, solar.sunHours) } }]
     : []
 
-  const main = sizeMainCable(inverter.continuousA, startupA, volts, cond, hardware.gauges, hardware.fuses, {
-    surgeSeconds: profile.seconds, bankContinuousA: battery?.bankContinuousA ?? null, bankShortCircuitA: battery?.bankShortCircuitA ?? null,
-  })
-  const wiring = sizeBankWiring({
-    battery, main, bankAmps: inverter.continuousA, bankSurgeAmps: startupA, volts, cond,
-    gauges: hardware.gauges, fuses: hardware.fuses, surgeSeconds: profile.seconds,
-  })
+  const main = sizeMain(battery)
+  const wiring = sizeBankWiring({ ...wires, battery, main })
   const linksM = wiring.links ? wiring.links.count * wiring.links.lengthM : 0
   const leadsM = wiring.string ? wiring.string.leads * wiring.string.lengthM : 0
 
@@ -142,9 +150,10 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     },
     fuse: main.fuse,
     parallelNotes: parallelNotes(battery),
+    inverterNotes: inverterNotes(inverter),
     warnings: [
       ...buildWarnings({
-        items, inverter, runningW, surgeProfile: profile, amps: dcAmps(inverter.w, volts), volts, battery, loadWh,
+        items, inverter, runningW, surgeProfile: profile, amps: inverter.continuousA, volts, battery, loadWh,
         protection: [...main.warnings, ...undersized('mainCable', main, { cond, volts }), ...wiring.warnings], missing, startupA,
       }),
       ...roofWarning,

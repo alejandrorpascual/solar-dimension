@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { buildCsv, csvCell, exportFileName, type CsvInput } from './export-csv'
 
-const input = (include: CsvInput['include']): CsvInput => ({
-  headers: { appliances: ['Appliance', 'Kind', 'Qty', 'Each (W)', 'Running (W)', 'Average (W)', 'Wh over 10 h'], parts: ['Part', 'Specification', 'Note', 'Qty'] },
+const input = (include: CsvInput['include'], attention: CsvInput['attention'] = []): CsvInput => ({
+  headers: { appliances: ['Appliance', 'Kind', 'Qty', 'Each (W)', 'Running (W)', 'Average (W)', 'Wh over 10 h'], parts: ['Part', 'Specification', 'Note', 'Qty'], attention: ['Needs attention', 'Note'] },
+  attention,
   appliances: [{ name: 'Refrigerator', kind: 'Cycles on and off', qty: 1, eachW: 150, runningW: 150, averageW: 53, wh: 525 }],
   parts: [{ name: 'Fuse', spec: '80 A class T', note: 'Inline, close to the bank', qty: '1' }],
   include,
@@ -30,6 +31,34 @@ describe('csvCell', () => {
 })
 
 describe('buildCsv', () => {
+  test('the failing checks and notes follow the parts when there are any, even with every block switched off', () => {
+    const attention = [{ name: 'Cable', text: '333 A on the DC side at 12 V is hard to wire safely.' }, { name: 'Notes for the installer', text: 'Usually runs on 240 V, so plan for it' }]
+    const lines = buildCsv(input({ appliances: false, parts: true }, attention)).slice(1).split('\r\n')
+    expect(lines.slice(-4)).toEqual(['', 'Needs attention,Note', 'Cable,333 A on the DC side at 12 V is hard to wire safely.', 'Notes for the installer,"Usually runs on 240 V, so plan for it"'])
+    expect(buildCsv(input({ appliances: false, parts: false }, attention)).slice(1).split('\r\n')).toHaveLength(3)
+    expect(buildCsv(input({ appliances: true, parts: true }))).not.toContain('Needs attention')
+  })
+
+  test('a closing line goes under everything, the failing checks and notes included, as a block of its own', () => {
+    const attention = [{ name: 'Cable', text: 'Hard to wire safely' }]
+    const lines = buildCsv({ ...input({ appliances: false, parts: true }, attention), footer: 'An estimate, not a design.' }).slice(1).split('\r\n')
+    expect(lines.slice(-4)).toEqual(['Needs attention,Note', 'Cable,Hard to wire safely', '', '"An estimate, not a design."'])
+    expect(buildCsv({ ...input({ appliances: false, parts: false }), footer: 'Estimate' }).slice(1)).toBe('Estimate')
+  })
+
+  test.each([
+    ['a quote', 'Say "estimate"', '"Say ""estimate"""'],
+    ['a line break', 'An estimate\nNot a design', '"An estimate\nNot a design"'],
+    ['an equals sign first', '=SUM(A1)', "'=SUM(A1)"],
+    ['a plus first', '+1 estimate', "'+1 estimate"],
+    ['a minus first', '-1 estimate', "'-1 estimate"],
+    ['an at sign first', '@estimate', "'@estimate"],
+    ['a tab first', '\testimate', "'\testimate"],
+    ['a carriage return first', '\restimate', `"'\restimate"`],
+  ])('a closing line with %s stays one cell of text, never a formula', (_, footer, cell) => {
+    expect(buildCsv({ ...input({ appliances: false, parts: false }), footer }).slice(1)).toBe(cell)
+  })
+
   test('writes the appliance block, a blank line, then the parts block, with a BOM for Excel', () => {
     const csv = buildCsv(input({ appliances: true, parts: true }))
     expect(csv.startsWith('﻿')).toBe(true)

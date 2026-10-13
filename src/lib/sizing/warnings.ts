@@ -1,12 +1,13 @@
 import { needsSplitPhase, SIZING, VOLTAGES, type Voltage } from '../catalog'
 import { HEADROOM_PCT, headroomPct } from './inverter'
-import type { BatteryPick, InverterPick, ParallelNote, SelectedItem, SurgeProfile, Warning } from './types'
+import type { BatteryPick, InverterNote, InverterPick, ParallelNote, SelectedItem, SurgeProfile, Warning, WarningParams } from './types'
 
 export interface WarningContext {
   items: readonly SelectedItem[]
   inverter: InverterPick
   runningW: number
   surgeProfile: SurgeProfile
+  /** DC current of the whole inverter set at full output. */
   amps: number
   volts: Voltage
   battery: BatteryPick | null
@@ -23,12 +24,19 @@ export function buildWarnings(ctx: WarningContext): Warning[] {
   const missing: Warning[] = ctx.missing > 0 ? [{ code: 'missingAppliances', params: { count: ctx.missing } }] : []
   if (ctx.items.length === 0) return missing
   const { inverter: inv, battery: b } = ctx
+  // The whole set's rating, with its size beside it so the wording can name "3 × 8,000 W" when there is more than one.
+  const set = { inverterW: inv.w, inverters: inv.count, unitW: inv.unitW }
   const w: Warning[] = []
   if (!inv.voltsOk) {
-    w.push({ code: 'inverterVoltage', params: { inverterW: inv.w, voltsList: inv.volts.join(' / ') } })
+    w.push({ code: 'inverterVoltage', params: { unitW: inv.unitW, voltsList: inv.volts.join(' / ') } })
   }
-  if (ctx.amps > SIZING.MAX_PRACTICAL_AMPS) {
-    w.push({ code: 'highCurrent', params: { amps: Math.round(ctx.amps), volts: ctx.volts, nextVolts: VOLTAGES.find((v) => v > ctx.volts) ?? null } })
+  const nextVolts = VOLTAGES.find((v) => v > ctx.volts) ?? null
+  // Below the top bank voltage the whole DC side counts: a higher voltage would carry it on less current. At the top
+  // there is none to suggest, so what counts is what one inverter's cables and fuse are asked for.
+  const isPerInverter = nextVolts === null
+  const amps = isPerInverter ? ctx.amps / inv.count : ctx.amps
+  if (amps > SIZING.MAX_PRACTICAL_AMPS) {
+    w.push({ code: 'highCurrent', params: { amps: Math.round(amps), volts: ctx.volts, nextVolts, ...(isPerInverter ? { inverters: inv.count } : {}) } })
   }
   if (b?.overMaxParallel) {
     w.push({ code: 'parallelStrings', params: { strings: b.parallel, maxParallel: b.unit.maxParallel, unitLabel: b.unitLabel } })
@@ -41,19 +49,19 @@ export function buildWarnings(ctx: WarningContext): Warning[] {
   if (heavy) {
     w.push({ code: 'splitPhase', params: { itemId: heavy.id, itemName: heavy.name } })
   }
-  // Only pickInverter's last resort, the largest inverter when none fits, can lack the headroom: say so instead of
-  // printing it as if it fitted. A last resort that only misses the start-up is surgeDuration's, below.
+  // Only pickInverter's last resort, the largest set the list can build when none fits, can lack the headroom: say so
+  // instead of printing it as if it fitted. A last resort that only misses the start-up is surgeDuration's, below.
   if (!inv.headroomOk) {
-    w.push({ code: 'inverterUndersized', params: { inverterW: inv.w, runningW: ctx.runningW, headroomPct: headroomPct(inv.w, ctx.runningW), needPct: HEADROOM_PCT } })
+    w.push({ code: 'inverterUndersized', params: { ...set, runningW: ctx.runningW, headroomPct: headroomPct(inv.w, ctx.runningW), needPct: HEADROOM_PCT } })
   }
   if (!inv.surgeOk) {
-    // Two ways to fail, and the text names the one that applies: the start-up is more than the inverter ever holds in a
-    // surge, or it is within that rating and only outlasts the window the rating is given for.
+    // Two ways to fail, and the text names the one that applies: the start-up is more than the inverter, or the set,
+    // ever holds in a surge, or it is within that rating and only outlasts the window the rating is given for.
     const { surgeW, seconds } = ctx.surgeProfile
-    w.push({ code: 'surgeDuration', params: { surgeW, seconds, ratedW: inv.surgeRatedW, inverterW: inv.w, inverterSurgeW: inv.surge, tooLong: inv.surge >= surgeW } })
+    w.push({ code: 'surgeDuration', params: { ...set, surgeW, seconds, ratedW: inv.surgeRatedW, inverterSurgeW: inv.surge, tooLong: inv.surge >= surgeW } })
   }
   if (b && !b.dischargeOk) {
-    w.push({ code: 'bankDischarge', params: { unitLabel: b.unitLabel, needA: Math.round(inv.continuousA), maxA: b.bankContinuousA, strings: b.parallel, maxParallel: b.unit.maxParallel } })
+    w.push({ code: 'bankDischarge', params: { unitLabel: b.unitLabel, needA: Math.round(inv.continuousA), maxA: b.bankContinuousA, strings: b.parallel, maxParallel: b.unit.maxParallel, inverters: inv.count } })
   }
   if (b && !b.peakOk) {
     w.push({ code: 'bankPeak', params: { unitLabel: b.unitLabel, needA: Math.round(ctx.startupA), maxA: b.bankPeakA, seconds: ctx.surgeProfile.seconds } })
@@ -65,4 +73,12 @@ export function buildWarnings(ctx: WarningContext): Warning[] {
 export function parallelNotes(battery: BatteryPick | null): ParallelNote[] {
   if (!battery || battery.parallel <= 1) return []
   return ['sameModelAge', 'equalLeadsOrBusbar', 'stringFuses', ...(battery.unit.bmsComms !== 'none' ? ['bmsComms' as const] : [])]
+}
+
+/** Whether a warning is about inverters working in parallel, which its wording then names as a set. */
+export const isInverterSet = (p: WarningParams): boolean => (p.inverters ?? 1) > 1
+
+/** What inverters working in parallel need on the install sheet. */
+export function inverterNotes(inverter: InverterPick): InverterNote[] {
+  return inverter.count > 1 ? ['builtForParallel', 'ownRunAndFuse'] : []
 }

@@ -1,6 +1,9 @@
+import { readFile } from 'node:fs/promises'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage, switchLanguageOnLoad } from './header'
-import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showProjects, startNewProject, startRename } from './projects'
+import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showDownload, showProjects, startNewProject, startRename } from './projects'
+
+const STORAGE_KEY = 'solar-dimension.projects.v1'
 
 test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
   await page.goto('/')
@@ -295,6 +298,65 @@ test('the custom form explains what is missing', async ({ page }) => {
   }).toPass()
 })
 
+test('the custom form questions watts typed with a thousands separator, and keeps a name to what a saved project holds', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByLabel('Name', { exact: true })).toHaveAttribute('maxlength', '80')
+  await page.getByLabel('Name', { exact: true }).fill('Water pump')
+  await page.getByLabel('Running W').fill('1.500')
+  // A click that lands before the page hydrates does nothing; the error only shows once it registers.
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Add appliance' }).click()
+    await expect(page.getByRole('alert')).toHaveText('Write watts as a whole number with no separator: 1500, not 1.500 or 1,500.', { timeout: 1000 })
+  }).toPass()
+  await page.getByLabel('Running W').fill('1500')
+  await page.getByRole('button', { name: 'Add appliance' }).click()
+  await expect(page.getByText('Custom · 1500 W')).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('Custom · 1500 W')).toBeVisible()
+})
+
+test('a saved custom appliance that no longer loads stays reported until it is removed, and a new one does not take its place', async ({ page }) => {
+  // What the form used to write: a pasted product title, longer than a saved project holds. It had a count of 3 and a duty.
+  await page.addInitScript((key) => {
+    if (localStorage.getItem(key)) return
+    const lost = { id: 'custom1', name: 'Samsung 21 cu. ft. Top Freezer Refrigerator with FlexZone and Ice Maker in Stainless RT21M6215SR', watts: 180, surge: 180, note: 'Custom · 180 W' }
+    const project = {
+      id: 'p1', name: 'Garita', qty: { fridge: 1, custom1: 3 }, custom: [lost], hours: 8, volts: 48, chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1,
+      dutyOverrides: { custom1: 0.25 },
+    }
+    localStorage.setItem(key, JSON.stringify({ version: 1, projects: [project], currentId: 'p1' }))
+  }, STORAGE_KEY)
+  const saved = () => page.evaluate((key) => {
+    const { qty, dutyOverrides, custom } = JSON.parse(localStorage.getItem(key) ?? '{}').projects[0]
+    return { qty, dutyOverrides, custom: custom.map((c: { id: string }) => c.id) }
+  }, STORAGE_KEY)
+  const onForm = page.getByText('1 custom appliance in this project could not be loaded, so the kit leaves it out. Add it again below, then remove the one that did not load.')
+  const onKit = page.getByText('1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute; if it is still missing, add it again.')
+
+  await page.goto('/')
+  await expect(onForm).toBeVisible()
+  // An unrelated appliance must not take the lost one's place: not its id, its count or its duty.
+  await page.getByLabel('Name', { exact: true }).fill('Phone charger')
+  await page.getByLabel('Running W').fill('10')
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Add appliance' }).click()
+    await expect(page.getByText('Custom · 10 W')).toBeVisible({ timeout: 1000 })
+  }).toPass()
+  await expect(onForm).toBeVisible()
+  await expect.poll(saved).toEqual({ qty: { fridge: 1, custom1: 3, custom2: 1 }, dutyOverrides: { custom1: 0.25 }, custom: ['custom2'] })
+  await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+  await expect(page.getByRole('heading', { name: 'Kit for Garita' })).toBeVisible()
+  await expect(onKit).toBeVisible()
+
+  await page.getByRole('button', { name: 'Step 1: Appliances' }).click()
+  await page.getByRole('button', { name: 'Remove the one that did not load' }).click()
+  await expect(onForm).toHaveCount(0)
+  await expect.poll(saved).toEqual({ qty: { fridge: 1, custom2: 1 }, dutyOverrides: {}, custom: ['custom2'] })
+  await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+  await expect(page.getByRole('heading', { name: 'Kit for Garita' })).toBeVisible()
+  await expect(onKit).toHaveCount(0)
+})
+
 test('hours, voltage and chemistry change the sizing summary', async ({ page }) => {
   await page.goto('/?step=2')
   await page.getByRole('button', { name: '24 h' }).click()
@@ -303,6 +365,61 @@ test('hours, voltage and chemistry change the sizing summary', async ({ page }) 
   await expect(page.getByText(/24 h at 12 V/)).toBeVisible()
   await expect(page.getByLabel('Hours without the grid')).toHaveValue('24')
 })
+
+const KIT_PAGE = {
+  English: {
+    estimate: 'An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.',
+    checks: 'Checks', empty: 'Garita has nothing selected yet.',
+  },
+  Español: {
+    estimate: 'Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada.',
+    checks: 'Verificaciones', empty: 'Garita aún no tiene nada seleccionado.',
+  },
+} as const
+
+for (const language of ['English', 'Español'] as const) {
+  const words = KIT_PAGE[language]
+
+  test(`the kit says it is an estimate between the parts list and the checks, in ${language}`, async ({ page }) => {
+    await page.goto('/?step=4')
+    if (language !== 'English') await switchLanguageOnLoad(page, language)
+    const kit = page.getByRole('main')
+    const notice = kit.getByRole('note')
+    await expect(notice).toHaveText(words.estimate)
+    await expect(notice).toBeVisible()
+    const [parts, box, checks] = await Promise.all([kit.getByRole('table'), notice, kit.getByRole('region', { name: words.checks })].map((part) => part.boundingBox()))
+    expect(box!.y).toBeGreaterThanOrEqual(parts!.y + parts!.height)
+    expect(box!.y + box!.height).toBeLessThanOrEqual(checks!.y)
+  })
+
+  test(`a kit with nothing selected has no parts to qualify, so it shows no estimate sentence, in ${language}`, async ({ page }) => {
+    await page.addInitScript(() => {
+      const key = 'solar-dimension.projects.v1'
+      if (localStorage.getItem(key)) return
+      const project = { id: 'p1', name: 'Garita', qty: {}, custom: [], hours: 8, volts: 48, chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1 }
+      localStorage.setItem(key, JSON.stringify({ version: 1, projects: [project], currentId: 'p1' }))
+    })
+    await page.goto('/?step=4')
+    if (language !== 'English') await switchLanguageOnLoad(page, language)
+    const kit = page.getByRole('main')
+    await expect(kit.getByText(words.empty)).toBeVisible()
+    await expect(kit.getByRole('table')).toHaveCount(0)
+    await expect(kit.getByRole('note')).toHaveCount(0)
+  })
+}
+
+for (const step of [1, 2, 3, 4]) {
+  test(`Privacy and Terms of use open from under step ${step}, without signing in`, async ({ page }) => {
+    await page.goto(`/?step=${step}`)
+    const legal = page.getByRole('navigation', { name: 'Legal' })
+    await legal.getByRole('link', { name: 'Terms of use' }).click()
+    await expect(page).toHaveURL(/\/terms$/)
+    await expect(page.getByRole('heading', { name: 'Estimates, not an installation plan' })).toBeVisible()
+    await page.goto(`/?step=${step}`)
+    await legal.getByRole('link', { name: 'Privacy', exact: true }).click()
+    await expect(page).toHaveURL(/\/privacy$/)
+  })
+}
 
 test('full flow: appliances → window → kit, and the project survives a reload', async ({ page }) => {
   await page.goto('/')
@@ -431,4 +548,35 @@ test('motors starting together and a hot cable run change the inverter, the chec
   await expect(page.getByText(/every motor starting at once/)).toBeVisible()
   await page.reload()
   await expect(page.getByText('5,000 W pure sine, 48 V DC input')).toBeVisible()
+})
+
+test('a load past the largest inverter gets inverters in parallel, each with its own cable runs and fuses', async ({ page }) => {
+  await page.goto('/')
+  // Three electric water heaters put 13.5 kW on top of the starting kit: more than one 12 kW inverter carries with headroom.
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Add Electric water heater' }).click()
+  await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await page.getByRole('button', { name: 'Next: solar panels' }).click()
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  const row = (name: string) => page.getByRole('row').filter({ has: page.getByRole('rowheader', { name, exact: true }) })
+  await expect(row('Inverter')).toContainText('10.0 kW pure sine, 48 V DC input')
+  await expect(row('Inverter')).toContainText('2 in parallel work as one 20.0 kW inverter')
+  await expect(row('Inverter').getByRole('cell').last()).toHaveText(/^×\s*2$/)
+  await expect(row('Fuse')).toContainText('2 runs to each inverter')
+  const checks = page.getByRole('region', { name: 'Checks' })
+  await expect(checks.getByText(/on 2 × 10\.0 kW inverters \(20\.0 kW together\)/)).toBeVisible()
+  await expect(checks.getByText(/the 2 inverters draw up to 463 A together/)).toBeVisible()
+  await expect(page.getByText(/· 2 × 10\.0 kW inverters ·/)).toBeVisible()
+  // The project's card names the set too, in its short form.
+  await showProjects(page)
+  await expect(openProjectCard(page).getByText('2 × 10.0 kW', { exact: true })).toBeVisible()
+  await hideProjects(page)
+  await page.reload()
+  await expect(row('Inverter')).toContainText('2 in parallel work as one 20.0 kW inverter')
+  // The parts list a supplier gets counts both inverters too.
+  await showDownload(page)
+  await page.getByRole('radio', { name: /^Parts list \(CSV\)/ }).check()
+  const [csv] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download CSV' }).click()])
+  const inverterLine = (await readFile((await csv.path())!, 'utf8')).split('\n').find((line) => line.startsWith('Inverter,'))
+  expect(inverterLine).toContain('"10.0 kW pure sine, 48 V DC input"')
+  expect(inverterLine?.trim()).toMatch(/,2$/)
 })

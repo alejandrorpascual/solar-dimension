@@ -58,7 +58,10 @@ describe('kitChecks', () => {
     expect(cable.lines[0]).toContain('145 A design current per run')
   })
 
-  const load = (watts: number, extra: Partial<SizingInput> = {}, surge = watts) => kit({ custom1: 1 }, { custom: [{ id: 'custom1', name: 'Workshop', watts, surge, note: '' }], ...extra })
+  // A list whose units work alone: past its largest one there is nothing to add, so the single inverter is flagged.
+  const solo = { ...DEFAULT_HARDWARE, inverters: DEFAULT_HARDWARE.inverters.map(({ maxParallel: _maxParallel, ...unit }) => unit) }
+  const load = (watts: number, extra: Partial<SizingInput> = {}, surge = watts) =>
+    compute({ qty: { custom1: 1 }, custom: [{ id: 'custom1', name: 'Workshop', watts, surge, note: '' }], hours: 10, volts: 48, chemistry: 'lifepo4', ...extra }, CATALOG_SNAPSHOT, solo)
   // The check with id `surge` is the one shown as "Inverter size".
   const inverter = (r: ReturnType<typeof kit>, locale: 'en' | 'es') => kitChecks(locale === 'en' ? en : es, r, locale).find((c) => c.id === 'surge')!
 
@@ -107,24 +110,98 @@ describe('kitChecks', () => {
     expect(uncheckedWarnings(r).map((w) => w.code)).toContain('inverterVoltage')
   })
 
+  test('inverters in parallel pass as a set: the lines name how many, what they give together and what each one draws', () => {
+    // One model, so the pick does not depend on how sets are ranked: 7 kW needs 8.75 kW, two 5 kW units.
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 5000, surge: 10000, volts: [48] as const, surgeSeconds: 5, maxParallel: 4 }] }
+    const r = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 7000, surge: 7000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    const lines = (locale: 'en' | 'es') => Object.fromEntries(kitChecks(locale === 'en' ? en : es, r, locale).map((c) => [c.id, c.lines[0]]))
+    expect(kitChecks(en, r, 'en').map((c) => c.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass'])
+    expect(lines('en').surge).toBe('7,000 W running on 2 × 5,000 W inverters (10.0 kW together) · 7,000 W for 0 s, within their 20.0 kW surge rating')
+    expect(lines('es').surge).toBe('7,000 W en marcha con 2 inversores de 5,000 W (10.0 kW en total) · 7,000 W durante 0 s, dentro de sus 20.0 kW de arranque')
+    expect(lines('en').batteryContinuous).toMatch(/^Bank gives \d+ A continuous; the 2 inverters draw up to 231 A together$/)
+    expect(lines('es').batteryContinuous).toMatch(/^El banco entrega \d+ A continuos; los 2 inversores toman hasta 231 A en total$/)
+    // The 162 A start-up is split between the two fuses.
+    expect(lines('en').fuse).toBe("150 A class T: under the cable's 150 A, 20 kA interrupting, start-up 81 A within what it holds")
+    expect(lines('en').cable).toContain('2 × 1/0 AWG carries 150 A after derating')
+    expect(lines('en').cable).toContain('for a 145 A design current per inverter')
+    expect(lines('es').cable).toContain('145 A de diseño por inversor')
+  })
+
+  test('a set that still falls short fails the inverter check and is named as a set, in both languages', () => {
+    const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 5000, surge: 10000, volts: [48] as const, surgeSeconds: 5, maxParallel: 2 }] }
+    const load = (watts: number, surge = watts) =>
+      compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts, surge, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    const inverter = (r: ReturnType<typeof load>, locale: 'en' | 'es') => kitChecks(locale === 'en' ? en : es, r, locale).find((c) => c.id === 'surge')!.lines
+    expect(inverter(load(9000), 'en')).toEqual(['The 2 × 5,000 W inverters in parallel (10,000 W) leave 11% headroom over the 9,000 W running load; this kit plans for 25%. Trim the load, or ask an installer about a system built for it.'])
+    expect(inverter(load(9000), 'es')).toEqual(['Los 2 inversores de 5,000 W en paralelo (10,000 W) dejan 11% de margen sobre la carga en marcha de 9,000 W; este kit prevé 25%. Reduce la carga o pregunta a un instalador por un sistema hecho para ella.'])
+    expect(inverter(load(12000), 'en')).toEqual(['The 2 × 5,000 W inverters in parallel (10,000 W) are smaller than the 12,000 W running load and cannot carry it. Trim the load, or ask an installer about a system built for it.'])
+    expect(inverter(load(12000), 'es')).toEqual(['Los 2 inversores de 5,000 W en paralelo (10,000 W) son menores que la carga en marcha de 12,000 W y no pueden sostenerla. Reduce la carga o pregunta a un instalador por un sistema hecho para ella.'])
+    // Two 8 kW units on a 24 V bank draw 741 A between them: a higher voltage would carry that on less, so the whole DC side is named.
+    const low = (watts: number) =>
+      compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts, surge: watts, note: '' }], hours: 2, volts: 24, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 8000, surge: 16000, volts: [24] as const, surgeSeconds: 5, maxParallel: 2 }] })
+    const high = low(9000).warnings.find((w) => w.code === 'highCurrent')!
+    expect(high.params).toEqual({ amps: 741, volts: 24, nextVolts: 36 })
+    expect(warningText(en, high, [])).toBe('741 A on the DC side at 24 V is hard to wire safely. Consider 36 V.')
+    expect(warningText(es, high, [])).toBe('741 A en el lado de CC a 24 V es difícil de cablear con seguridad. Considera 36 V.')
+    expect(warningText(en, low(5000).warnings.find((w) => w.code === 'highCurrent')!, [])).toBe('370 A on the DC side at 24 V is hard to wire safely. Consider 36 V.')
+    // At 48 V there is no higher voltage to suggest: the note is about what one inverter's cables are asked for.
+    const top = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 20000, surge: 20000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 15000, surge: 30000, volts: [48] as const, surgeSeconds: 5, maxParallel: 2 }] })
+    const each = top.warnings.find((w) => w.code === 'highCurrent')!
+    expect(each.params).toEqual({ amps: 347, volts: 48, nextVolts: null, inverters: 2 })
+    expect(warningText(en, each, [])).toBe('347 A to each inverter at 48 V is hard to wire safely.')
+    expect(warningText(es, each, [])).toBe('347 A hacia cada inversor a 48 V es difícil de cablear con seguridad.')
+    // Four 8 kW units draw 741 A; an hour of it takes eleven 50 A units, 550 A, so the bank is named as short for the set.
+    const starved = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 20000, surge: 20000, note: '' }], hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-50' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 8000, surge: 16000, volts: [48] as const, surgeSeconds: 5, maxParallel: 4 }] })
+    const discharge = starved.warnings.find((w) => w.code === 'bankDischarge')!
+    expect(discharge.params).toMatchObject({ inverters: 4, needA: 741, maxA: 550, strings: 11 })
+    // Its eight fuses are judged against the bank's share for each, and the note counts them.
+    const above = starved.warnings.find((w) => w.code === 'fuseAboveBank')!
+    expect(above.params).toEqual({ fuseA: 125, maxA: 550, count: 8 })
+    expect(warningText(en, above, [])).toBe('The 8 × 125 A fuses are sized for more than the 550 A the bank can deliver, so the BMS, not a fuse, would trip on an overload. Pick a bank that delivers more.')
+    expect(warningText(es, above, [])).toBe('Los 8 fusibles de 125 A están dimensionados para más de los 550 A que el banco puede entregar, así que cortaría el BMS y no un fusible en una sobrecarga. Elige un banco que entregue más.')
+    expect(warningText(en, discharge, starved.items)).toMatch(/^The 4 inverters draw up to 741 A together at full load; \d+ × 48 V 50 Ah LiFePO₄ allows [\d,]+ A continuous and its BMS would cut out\. /)
+    expect(warningText(es, discharge, starved.items)).toMatch(/^Los 4 inversores toman hasta 741 A en total a plena carga; \d+ × 48 V 50 Ah LiFePO₄ permite [\d,]+ A continuos y su BMS cortaría\. /)
+    // 2 kW running fits the pair; a 30 kW start is more than the 20 kW the pair ever holds in a surge, at any length.
+    const start = load(2000, 30000)
+    expect(start.inverter).toMatchObject({ count: 2, headroomOk: true, surgeOk: false })
+    const surge = start.warnings.find((w) => w.code === 'surgeDuration')!
+    expect(warningText(en, surge, start.items)).toBe('A 30,000 W start-up is more than the 20,000 W surge rating of the 2 × 5,000 W inverters together. Let fewer motors start at once.')
+    expect(warningText(es, surge, start.items)).toBe('Un arranque de 30,000 W supera los 20,000 W de arranque de los 2 inversores de 5,000 W juntos. Deja que arranquen menos motores a la vez.')
+    // A pair that holds 4 kW for half a second and 2 kW after that: a 3 kW start is within the rating and only outlasts the window.
+    const brief = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 1000, surge: 3000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 1000, surge: 2000, volts: [48] as const, surgeSeconds: 0.5, maxParallel: 2 }] })
+    expect(brief.inverter).toMatchObject({ count: 2, headroomOk: true, surgeOk: false })
+    const long = brief.warnings.find((w) => w.code === 'surgeDuration')!
+    expect(long.params).toMatchObject({ inverters: 2, ratedW: 2000, inverterSurgeW: 4000, tooLong: true })
+    expect(warningText(en, long, brief.items)).toBe(`A 3,000 W start-up lasting ${brief.surgeSeconds} s is longer than the surge window of the 2 × 1,000 W inverters; together they only hold 2,000 W that long. Let fewer motors start at once.`)
+    expect(warningText(es, long, brief.items)).toBe(`Un arranque de 3,000 W durante ${brief.surgeSeconds} s supera la ventana de arranque de los 2 inversores de 1,000 W; juntos solo sostienen 2,000 W ese tiempo. Deja que arranquen menos motores a la vez.`)
+  })
+
   test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {
-    // 3 kW at 12 V on two strings in 50 °C air on 75 °C cable: 139 A a string needs 174 A, and 4/0 carries 172.5 A there.
-    const custom = [{ id: 'custom1', name: 'Workshop', watts: 2400, surge: 2400, note: '' }]
+    // 6 kW at 12 V in 50 °C air on 75 °C cable: the maker's four strings are not enough, so three carry 185 A each
+    // and need 231.5 A of cable, where 4/0 carries 172.5 A.
+    const custom = [{ id: 'custom1', name: 'Workshop', watts: 4800, surge: 4800, note: '' }]
     const r = kit({ custom1: 1 }, { custom, hours: 1, volts: 12, cable: { ambientC: 50, insulationC: 75 } })
     const cable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
     expect(cable.status).toBe('warn')
-    expect(cable.lines).toEqual(['4/0 AWG for the string leads carries only 172.5 A after derating, under the 173.7 A design current of each cable. Move the bank somewhere cooler, use 90 °C cable, raise the voltage to 24 V or trim the load.'])
-    expect(kitChecks(es, r, 'es').find((c) => c.id === 'cable')!.lines).toEqual(['El 4/0 AWG para los cables de rama solo soporta 172.5 A tras la corrección, menos que la corriente de diseño de 173.7 A de cada cable. Lleva el banco a un lugar más fresco, usa cable de 90 °C, sube el voltaje a 24 V o reduce la carga.'])
+    expect(cable.lines).toContain('4/0 AWG for the string leads carries only 172.5 A after derating, under the 231.5 A design current of each cable. Raise the voltage to 24 V or trim the load.')
+    expect(kitChecks(es, r, 'es').find((c) => c.id === 'cable')!.lines).toContain('El 4/0 AWG para los cables de rama solo soporta 172.5 A tras la corrección, menos que la corriente de diseño de 231.5 A de cada cable. Sube el voltaje a 24 V o reduce la carga.')
   })
 
   test('the short-cable line offers only what would work: no higher voltage at 48 V, no cooler spot in a cool room', () => {
-    // 8.1 kW at 48 V on two strings in 50 °C air on 75 °C cable: there is no bank voltage above 48 V to go to.
+    // 8.1 kW at 48 V in 50 °C air on 75 °C cable, on 314 Ah units picked by hand: a third string would put more into a
+    // fault than the fuses interrupt, so two carry 138.9 A each. There is no bank voltage above 48 V to go to.
     const big = [{ id: 'custom1', name: 'Workshop', watts: 8100, surge: 8100, note: '' }]
-    const hot = kit({ custom1: 1 }, { custom: big, hours: 1, volts: 48, cable: { ambientC: 50, insulationC: 75 } })
+    const hot = kit({ custom1: 1 }, { custom: big, hours: 1, volts: 48, batteryUnit: '48-314', cable: { ambientC: 50, insulationC: 75 } })
     expect(hot.battery!.config).toBe('1S2P')
-    expect(kitChecks(en, hot, 'en').find((c) => c.id === 'cable')!.lines).toEqual(['4/0 AWG for the string leads carries only 172.5 A after derating, under the 173.7 A design current of each cable. Move the bank somewhere cooler, use 90 °C cable or trim the load.'])
-    // A heater and a microwave at 12 V in a cool room: 4/0 is at its terminations, so only a higher voltage or less load helps.
-    const cool = kit({ heater: 1, micro: 1 }, { hours: 4, volts: 12 })
+    expect(kitChecks(en, hot, 'en').find((c) => c.id === 'cable')!.lines).toContain('4/0 AWG for the string leads carries only 172.5 A after derating, under the 173.7 A design current of each cable. Move the bank somewhere cooler, use 90 °C cable or trim the load.')
+    // The same bank layout at 24 V, on 12 V 400 Ah units in series: every way out is open, and the next voltage is 36 V.
+    const lower = kit({ custom1: 1 }, { custom: [{ ...big[0]!, watts: 4800, surge: 4800 }], hours: 1, volts: 24, batteryUnit: '12-400', cable: { ambientC: 50, insulationC: 75 } })
+    expect(lower.battery!.config).toBe('2S2P')
+    expect(kitChecks(en, lower, 'en').find((c) => c.id === 'cable')!.lines).toContain('4/0 AWG for the string leads carries only 172.5 A after derating, under the 173.7 A design current of each cable. Move the bank somewhere cooler, use 90 °C cable, raise the voltage to 36 V or trim the load.')
+    // A heater and a microwave at 12 V in a cool room, on two 400 Ah units picked by hand: 4/0 is at its terminations, so
+    // only a higher voltage or less load helps. (Left to itself the bank takes a third string and the lead fits.)
+    const cool = kit({ heater: 1, micro: 1 }, { hours: 2, volts: 12, batteryUnit: '12-400' })
+    expect(cool.battery!.config).toBe('1S2P')
     const line = '4/0 AWG for the string leads carries only 230 A after derating, under the 231.5 A design current of each cable. Raise the voltage to 24 V or trim the load.'
     expect(kitChecks(en, cool, 'en').find((c) => c.id === 'cable')!.lines).toContain(line)
     expect(kitChecks(es, cool, 'es').find((c) => c.id === 'cable')!.lines).toContain('El 4/0 AWG para los cables de rama solo soporta 230 A tras la corrección, menos que la corriente de diseño de 231.5 A de cada cable. Sube el voltaje a 24 V o reduce la carga.')

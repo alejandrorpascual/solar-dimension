@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { FUSES } from '../catalog'
-import { pickFuse, type FuseContext } from './fuse'
+import { interrupts, pickFuse, type FuseContext } from './fuse'
 
 const ampacities = [50, 65, 85, 115, 130, 150, 175, 200, 230]
 const ctx = (over: Partial<FuseContext> = {}): FuseContext => ({
@@ -26,7 +26,9 @@ describe('pickFuse', () => {
   test('one fuse per run; the bank is the weak link when it would only justify a smaller fuse', () => {
     const r = pickFuse(ctx({ runs: 3, bankContinuousA: 150 }))
     expect(r.fuse.count).toBe(3)
-    expect(r.warnings).toEqual([{ code: 'fuseAboveBank', params: { fuseA: 100, maxA: 150 } }])
+    // The three fuses are counted, so the note can say they pass 300 A between them where the bank gives 150 A.
+    expect(r.warnings).toEqual([{ code: 'fuseAboveBank', params: { fuseA: 100, maxA: 150, count: 3 } }])
+    expect(pickFuse(ctx({ runs: 1, bankContinuousA: 50 })).warnings).toEqual([{ code: 'fuseAboveBank', params: { fuseA: 100, maxA: 50 } }])
     // 250 A over three runs justifies a 125 A fuse per run, so a 100 A fuse is not above it.
     expect(pickFuse(ctx({ runs: 3, bankContinuousA: 250 })).warnings).toEqual([])
     expect(pickFuse(ctx({ runs: 3, bankContinuousA: null })).warnings).toEqual([])
@@ -47,6 +49,12 @@ describe('pickFuse', () => {
   test('a bank that can short above the interrupting rating is warned about', () => {
     expect(pickFuse(ctx({ bankShortCircuitA: 21600 })).warnings).toEqual([{ code: 'fuseInterrupt', params: { shortCircuitA: 21600, aicA: 20000 } }])
     expect(pickFuse(ctx({ bankShortCircuitA: null })).warnings).toEqual([])
+  })
+
+  test('a fuse interrupts a fault up to its rating, the rating included', () => {
+    const classT = FUSES[0]!
+    expect(interrupts(classT, 20000)).toBe(true)
+    expect(interrupts(classT, 20001)).toBe(false)
   })
 
   test('skips fuses not listed for the bank voltage, and uses the largest when none is big enough', () => {

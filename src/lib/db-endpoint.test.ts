@@ -33,6 +33,14 @@ test('reads a host written in upper case as the same database', () => {
   expect(endpointOf(pooledUrl(TEST_ENDPOINT).replace(`${TEST_ENDPOINT}-pooler`, `${TEST_ENDPOINT.toUpperCase()}-POOLER`))).toBe(TEST_ENDPOINT)
 })
 
+test('reads a host as the driver dials it: a letter written as %65, as a look-alike or around a soft hyphen is the same database', () => {
+  const written = (first: string) => pooledUrl(TEST_ENDPOINT).replace(`@${TEST_ENDPOINT}`, `@${first}${TEST_ENDPOINT.slice(1)}`)
+
+  expect(endpointOf(written('%65'))).toBe(TEST_ENDPOINT)
+  expect(endpointOf(written('ｅ'))).toBe(TEST_ENDPOINT)
+  expect(endpointOf(written('e­'))).toBe(TEST_ENDPOINT)
+})
+
 test('reads the host of a URL pasted with an @ in its password or a trailing newline', () => {
   const host = `${TEST_ENDPOINT}-pooler.c-2.us-east-1.aws.neon.tech`
 
@@ -57,6 +65,12 @@ test('names the production database as production, through either host and in an
   expect(databaseTarget(pooledUrl(PRODUCTION_DB_ENDPOINT), undefined)).toEqual({ endpoint: PRODUCTION_DB_ENDPOINT, environment: 'production' })
   expect(databaseTarget(directUrl(PRODUCTION_DB_ENDPOINT), undefined)?.environment).toBe('production')
   expect(databaseTarget(upperCase, undefined)?.environment).toBe('production')
+})
+
+test('names the production database as production when its host is written so that only the driver would know it', () => {
+  const escaped = pooledUrl(PRODUCTION_DB_ENDPOINT).replace(`@${PRODUCTION_DB_ENDPOINT}`, `@%65${PRODUCTION_DB_ENDPOINT.slice(1)}`)
+
+  expect(databaseTarget(escaped, undefined)).toEqual({ endpoint: PRODUCTION_DB_ENDPOINT, environment: 'production' })
 })
 
 test('production stays production even when something vouches for it as a test database', () => {

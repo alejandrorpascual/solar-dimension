@@ -1,6 +1,6 @@
 import type { Category, ChemistryId, LoadKind, Voltage } from '../lib/catalog'
 import type { ItemId } from '../lib/quote-items'
-import type { ParallelNote, WarningCode, WarningParams } from '../lib/sizing'
+import type { InverterNote, ParallelNote, WarningCode, WarningParams } from '../lib/sizing'
 import type { quotesEn } from './quotes-en'
 import type { requesterEn } from './requester-en'
 
@@ -18,6 +18,7 @@ export interface Dictionary {
   kinds: Record<LoadKind, string>
   /** Installation notes a bank with parallel strings carries. */
   parallelNotes: Record<ParallelNote, string>
+  inverterNotes: Record<InverterNote, string>
   privacy: LegalPage
   terms: LegalPage
   quotes: Record<QuoteKey, string>
@@ -40,15 +41,16 @@ export type UiKey =
   | 'search' | 'nothingMatches' | 'sectionAdded' | 'add' | 'addOne' | 'qtyOf' | 'removeOne' | 'remove'
   | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase'
   | 'customTitle' | 'customHelp' | 'watts' | 'voltsAmps' | 'name' | 'runningW' | 'volts' | 'amps' | 'surgeOptional' | 'sameAsRunning' | 'addAppliance'
-  | 'errName' | 'errVa' | 'errWatts' | 'errSurge'
+  | 'errName' | 'errNameLong' | 'errVa' | 'errWatts' | 'errSurge' | 'errThousands'
+  | 'customUnreadOne' | 'customUnreadMany' | 'customUnreadClearOne' | 'customUnreadClearMany'
   | 'q2' | 'q2Help' | 'hoursLabel' | 'step2Empty' | 'step2Summary' | 'batteryVoltage' | 'batteryChemistry' | 'usableCapacity'
   | 'kitFor' | 'kitEmpty' | 'kitSummary' | 'editAppliances' | 'editWindow'
   | 'runningLoad' | 'averageDraw' | 'startupPeak' | 'batteryNeeded' | 'runtime'
   | 'part' | 'specification' | 'quantity' | 'nothingSelected'
-  | 'inverterSpec' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteTightPeak' | 'inverterNoteUnder' | 'inverterNotePeak' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun'
-  | 'fine'
+  | 'inverterSpec' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteTightPeak' | 'inverterNoteUnder' | 'inverterNotePeak' | 'inverterSurge' | 'inverterSurgeSet' | 'inverterParallelNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun' | 'perInverter' | 'perRunOfInverter'
+  | 'legal' | 'estimateNotice' | 'fine'
   | 'batterySize' | 'batterySizeHelp' | 'batteryAuto' | 'batteryRecommended' | 'batteryGroup' | 'batteryInSeries' | 'manyStrings'
-  | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany'
+  | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany' | 'inverterSizeOne' | 'inverterSizeMany'
   | 'footer1' | 'footer2' | 'footer3' | 'footerEmpty'
   | 'back' | 'next' | 'buildKit' | 'startOver'
   | 'continueGoogle' | 'orDivider' | 'googleExists' | 'googleFailed' | 'connectGoogle'
@@ -61,6 +63,7 @@ export type UiKey =
   | 'fmtPdf' | 'fmtPdfHint' | 'fmtPng' | 'fmtPngHint' | 'fmtCsv' | 'fmtCsvHint'
   | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'
   | 'downloadPdf' | 'downloadPng' | 'downloadCsv' | 'share' | 'making' | 'downloadReady' | 'exportFailed'
+  | 'sheetAttention' | 'sheetAttentionChecks' | 'sheetAttentionNotes' | 'sheetNotes'
   | 'sheetTitle' | 'loadSchedule' | 'appliance' | 'each' | 'overHours' | 'total' | 'note' | 'eachW' | 'runningWatts' | 'whOver'
   | 'q3' | 'q3Help' | 'solarNo' | 'solarNoHelp' | 'solarYes' | 'solarYesHelp' | 'solarSkipped'
   | 'roofSpace' | 'roofLess' | 'roofMore' | 'roofFitsOne' | 'roofFitsMany' | 'roofHint' | 'plannerLabel' | 'plannerTile' | 'addPanel' | 'removePanel'
@@ -79,7 +82,7 @@ export type UiKey =
   | 'bundledLabel' | 'bundledHelp' | 'insulationLabel' | 'insulation75' | 'insulation90'
   | 'runtimeRange'
   | 'checks' | 'incChecks' | 'checkPass' | 'checkWarn'
-  | 'checkSurge' | 'checkSurgeOk' | 'checkSurgeContributors' | 'checkBatteryContinuous' | 'checkBatteryContinuousOk'
+  | 'checkSurge' | 'checkSurgeOk' | 'checkSurgeOkMany' | 'checkSurgeContributors' | 'checkBatteryContinuous' | 'checkBatteryContinuousOk' | 'checkBatteryContinuousOkMany'
   | 'checkBatteryPeak' | 'checkBatteryPeakOk' | 'checkParallel' | 'checkParallelOk' | 'checkParallelSingle'
   | 'checkFuse' | 'checkFuseOk' | 'checkCable' | 'checkCableOk'
   | 'fuseAicNote' | 'stringFuseSpec' | 'stringFuseNote' | 'batteriesCurrentNote'

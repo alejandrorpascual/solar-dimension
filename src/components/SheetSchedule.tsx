@@ -7,7 +7,7 @@ interface Props {
   result: SizingResult
   t: Dictionary
   locale: Locale
-  /** Start a new PDF page here (when the parts list is on the sheet, the schedule gets a page of its own). */
+  /** Ask for a PDF page break before the schedule, so it does not start under the parts list on page one. */
   breakBefore: boolean
 }
 
