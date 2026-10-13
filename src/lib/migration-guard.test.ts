@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterAll, expect, test } from 'vitest'
@@ -72,6 +72,33 @@ test('a URL that names the production endpoint behind another host is production
   expect(migrationPlan({ DATABASE_URL: proxied.toUpperCase().replace('POSTGRESQL', 'postgresql'), VERCEL_ENV: 'preview' }).action).toBe('skip')
 })
 
+// The driver decodes a URL before it connects, so each of these reaches production without spelling its endpoint out.
+const ESCAPED = PRODUCTION_DB_ENDPOINT.replace('e', '%65')
+const LOOK_ALIKE = PRODUCTION_DB_ENDPOINT.replace('e', 'ｅ')
+test.each([
+  ['its host has a letter written as %65', urlOf(ESCAPED)],
+  ['its host has a look-alike letter', urlOf(LOOK_ALIKE)],
+  ['a host parameter names it over the host, escaped', `${BRANCH_URL}&host=${ESCAPED}-pooler.db.invalid`],
+  ['a host parameter names it over the host, with a look-alike letter', `${BRANCH_URL}&host=${LOOK_ALIKE}-pooler.db.invalid`],
+  ['the endpoint option behind another host is escaped', `postgresql://owner:not-a-real-password@proxy.db.invalid/neondb?options=endpoint%3D${ESCAPED}`],
+])('the production database is production still when %s', (_how, url) => {
+  expect(migrationPlan({ DATABASE_URL: url }).action).toBe('refuse')
+  expect(migrationPlan({ DATABASE_URL: url, VERCEL_ENV: 'preview' }).action).toBe('skip')
+})
+
+test('a database whose URL only mentions the production endpoint is held back too, and the reason names its host', () => {
+  const mentions = `${BRANCH_URL}&application_name=${PRODUCTION_DB_ENDPOINT}`
+
+  const onLaptop = migrationPlan({ DATABASE_URL: mentions })
+  const inPreview = migrationPlan({ DATABASE_URL: mentions, VERCEL_ENV: 'preview' })
+
+  expect(onLaptop).toMatchObject({ action: 'refuse', reason: expect.stringContaining(`host is ${BRANCH_ENDPOINT}`) })
+  expect(inPreview).toMatchObject({ action: 'skip', reason: expect.stringContaining(`host is ${BRANCH_ENDPOINT}`) })
+  // Production itself gets no such note.
+  expect(reasonOf({ DATABASE_URL: PRODUCTION_URL })).not.toContain('host is')
+  expect(reasonOf({ DATABASE_URL: PRODUCTION_URL, VERCEL_ENV: 'preview' })).not.toContain('host is')
+})
+
 test('a refusal says what VERCEL_ENV was, so a production build that was refused can be told from its log', () => {
   expect(migrationPlan({ DATABASE_URL: PRODUCTION_URL })).toMatchObject({ reason: expect.stringContaining('VERCEL_ENV is not set') })
   expect(migrationPlan({ DATABASE_URL: PRODUCTION_URL, VERCEL_ENV: 'development' })).toMatchObject({ reason: expect.stringContaining('VERCEL_ENV is "development"') })
@@ -82,6 +109,8 @@ test('no message carries the password', () => {
     migrationPlan({ DATABASE_URL: PRODUCTION_URL }),
     migrationPlan({ DATABASE_URL: PRODUCTION_URL, VERCEL_ENV: 'preview' }),
     migrationPlan({ DATABASE_URL: PRODUCTION_URL, VERCEL_ENV: 'production' }),
+    migrationPlan({ DATABASE_URL: `${BRANCH_URL}&application_name=${PRODUCTION_DB_ENDPOINT}` }),
+    migrationPlan({ DATABASE_URL: `${BRANCH_URL}&application_name=${PRODUCTION_DB_ENDPOINT}`, VERCEL_ENV: 'preview' }),
   ]
 
   expect(JSON.stringify(plans)).not.toContain('not-a-real-password')
@@ -94,12 +123,18 @@ const SCRIPT = resolve('scripts/migrate.ts')
 const emptyFolders: string[] = []
 afterAll(() => { for (const folder of emptyFolders) rmSync(folder, { recursive: true, force: true }) })
 
-function runMigrateScript(env: Record<string, string>, envFile?: string) {
+function runMigrateScript(env: Record<string, string>, files: { envFile?: string; drizzleKit?: string } = {}) {
   const cwd = mkdtempSync(join(tmpdir(), 'migrate-guard-'))
   emptyFolders.push(cwd)
-  if (envFile !== undefined) writeFileSync(join(cwd, '.env.local'), envFile)
+  if (files.envFile !== undefined) writeFileSync(join(cwd, '.env.local'), files.envFile)
+  if (files.drizzleKit !== undefined) {
+    mkdirSync(join(cwd, 'node_modules/drizzle-kit'), { recursive: true })
+    writeFileSync(join(cwd, 'node_modules/drizzle-kit/bin.cjs'), files.drizzleKit)
+  }
   return spawnSync(process.execPath, [SCRIPT], { cwd, env: { PATH: process.env.PATH ?? '', ...env }, encoding: 'utf8' })
 }
+// A stand-in for drizzle-kit, put where the script looks for it: it says what it was asked to do and ends as told.
+const standInDrizzleKit = (ending: string) => `console.log('stand-in drizzle-kit: ' + process.argv.slice(2).join(' '))\n${ending}\n`
 const reasonOf = (env: Parameters<typeof migrationPlan>[0]): string => {
   const plan = migrationPlan(env)
   if (plan.action === 'migrate') throw new Error('this plan has no reason: it migrates')
@@ -127,12 +162,42 @@ test('the migrate script lets a preview build on the production database go on, 
   expect(run.stderr).not.toContain('not-a-real-password')
 })
 
-test('an env file cannot say this is the production build: only the build\'s own environment can', () => {
-  const run = runMigrateScript({}, `DATABASE_URL="${PRODUCTION_URL}"\nVERCEL_ENV="production"\n`)
+test('the migrate script refuses the production database written so that only the driver would know it', () => {
+  const run = runMigrateScript({ DATABASE_URL: urlOf(ESCAPED) })
 
   expect(run.status).toBe(1)
   expect(run.stderr).toContain('db:migrate refused: DATABASE_URL is the production database')
   expect(run.stdout).toBe('')
+})
+
+test('an env file cannot say this is the production build: only the environment the script was started in can', () => {
+  const run = runMigrateScript({}, { envFile: `DATABASE_URL="${PRODUCTION_URL}"\nVERCEL_ENV="production"\n` })
+
+  expect(run.status).toBe(1)
+  expect(run.stderr).toContain('db:migrate refused: DATABASE_URL is the production database')
+  expect(run.stdout).toBe('')
+})
+
+test('when the migration succeeds the script exits 0, so the build goes on', () => {
+  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.exit(0)') })
+
+  expect(run.stdout).toContain(`db:migrate: migrating ${BRANCH_ENDPOINT}`)
+  expect(run.stdout).toContain('stand-in drizzle-kit: migrate')
+  expect(run.status).toBe(0)
+})
+
+test('when the migration fails the script exits with drizzle-kit\'s own code, so the build stops', () => {
+  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.exit(3)') })
+
+  expect(run.stdout).toContain('stand-in drizzle-kit: migrate')
+  expect(run.status).toBe(3)
+})
+
+test('when drizzle-kit is killed before it ends the script fails all the same', () => {
+  const run = runMigrateScript({ DATABASE_URL: BRANCH_URL }, { drizzleKit: standInDrizzleKit('process.kill(process.pid, \'SIGKILL\')') })
+
+  expect(run.stdout).toContain('stand-in drizzle-kit: migrate')
+  expect(run.status).toBe(1)
 })
 
 test('the production build\'s own VERCEL_ENV gets past the guard, to the migration itself', () => {

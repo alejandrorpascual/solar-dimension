@@ -5,7 +5,8 @@ import { spawnSync } from 'node:child_process'
 import { config as loadEnv } from 'dotenv'
 import { migrationPlan } from '../src/lib/migration-guard.ts'
 
-// Read before the env file is: only the build's own environment may say this is the production build.
+// Read before the env file is, so the file that holds the production URL cannot also say this is the production
+// build. Whatever started this process still can: VERCEL_ENV is taken as given, the way Vercel sets it for a build.
 const buildEnv = process.env.VERCEL_ENV
 // As drizzle.config.ts does, and never over a variable that is already set: the plan is made for the URL drizzle-kit
 // will use.
