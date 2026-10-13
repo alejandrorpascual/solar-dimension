@@ -35,9 +35,10 @@ interface Props {
  * `data-pdf-break` starts a new page there.
  *
  * Two things are on the sheet whatever is ticked, because the person pricing the kit may see nothing else: the notes
- * no check owns, and every check that fails. They print last, so page one keeps its layout, and the header says in
- * one line, beside the subtitle, when either exists. The sentence that says this is an estimate is fixed too: it
- * sits under the parts it qualifies, above the assumptions, and no Include box removes it.
+ * no check owns, and every check that fails. They print last, so page one keeps its layout, and when either exists
+ * the header says so beside the subtitle, in a pill that adds no height there (see `.ksheet__attn`). The sentence
+ * that says this is an estimate is fixed too: it sits under the parts it qualifies, above the assumptions, and no
+ * Include box removes it.
  */
 export function KitSheet({ projectName, result: r, parts, requester, include, date, t, locale, ref }: Props) {
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)

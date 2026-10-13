@@ -15,7 +15,7 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(parts.every(p => Number(p.qty) > 0)).toBe(true)
   })
 
-  test('a series-only bank lists one link per joint, at the gauge and design current of the cable it feeds', () => {
+  test('a series-only bank lists one jumper per link, at the gauge and design current of the cable it feeds', () => {
     const parts = buildParts(result('12-200'), t, locale)
     const part = parts.find(p => p.id === 'interconnects')!
     expect(part.qty).toBe('3')
@@ -33,8 +33,8 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(leads.qty).toBe('6')
     expect(leads.spec).toBe(locale === 'es' ? '6 AWG (13.3 mm²) de cobre, 30 cm cada uno' : '6 AWG (13.3 mm²) copper, 30 cm each')
     expect(leads.note).toBe(locale === 'es'
-      ? 'Un positivo y un negativo de cada rama a las barras colectoras · 29 A de corriente de diseño · 65 A tras la corrección'
-      : 'A positive and a negative from each string to the bus bars · 29 A design current · 65 A after derating')
+      ? 'Un positivo y un negativo de cada rama a las barras colectoras (barras no incluidas) · 29 A de corriente de diseño · 65 A tras la corrección'
+      : 'A positive and a negative from each string to the bus bars (bus bars not listed) · 29 A design current · 65 A after derating')
     const strings = parts.find(p => p.id === 'stringFuses')!
     expect(strings.qty).toBe('3')
     expect(strings.spec).toContain(locale === 'es' ? 'clase T, uno por rama' : 'class T, one per parallel string')
@@ -61,8 +61,19 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(links.qty).toBe('2')
     expect(links.spec).toBe(locale === 'es' ? 'Puentes 1 AWG, 30 cm cada uno' : '1 AWG jumpers, 30 cm each')
     expect(links.note).toBe(locale === 'es'
-      ? 'Entre baterías en serie, 2 puentes juntos por enlace · 116 A de corriente de diseño cada uno · 130 A tras la corrección'
-      : 'Between batteries in series, 2 side by side per link · 116 A design current each · 130 A after derating')
+      ? 'Entre baterías en serie · 2 puentes idénticos lado a lado en cada enlace · 116 A de corriente de diseño cada uno · 130 A tras la corrección'
+      : 'Between batteries in series · 2 identical jumpers side by side at every link · 116 A design current each · 130 A after derating')
+  })
+
+  test('three in series on two main runs: four jumpers, two at each link, at the same design current the main cable row states', () => {
+    const custom = [{ id: 'x', name: 'Load', watts: 4801, surge: 4801, note: '' }]
+    const parts = buildParts(compute({ qty: { x: 1 }, custom, hours: 2, volts: 36, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT), t, locale)
+    const links = parts.find(p => p.id === 'interconnects')!
+    expect(links.qty).toBe('4')
+    expect(links.note).toContain(locale === 'es'
+      ? '2 puentes idénticos lado a lado en cada enlace · 154 A de corriente de diseño cada uno'
+      : '2 identical jumpers side by side at every link · 154 A design current each')
+    expect(parts.find(p => p.id === 'mainCable')!.note).toContain(locale === 'es' ? '154 A de corriente de diseño por tramo' : '154 A design current per run')
   })
 
   test('the fuse keeps its class in the spec and states its interrupting rating', () => {
@@ -81,19 +92,25 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(row(9601).note).toBe(es ? '24.0 kW de arranque · 9,601 W en marcha dejan 24% de margen, 9,601 W pico' : '24.0 kW surge · 9,601 W running leaves 24% headroom, 9,601 W peak')
     // An exact fifth of headroom reads as 20%, not 19%.
     expect(row(10000).note).toContain(es ? '10.0 kW en marcha dejan 20% de margen' : '10.0 kW running leaves 20% headroom')
-    // One watt over the rating: exact watts, so the row does not read "12.0 kW under 12.0 kW".
+    // A load equal to the rating is carried, with nothing to spare.
+    expect(row(12000).note).toBe(es ? '24.0 kW de arranque · 12.0 kW en marcha dejan 0% de margen, 12.0 kW pico' : '24.0 kW surge · 12.0 kW running leaves 0% headroom, 12.0 kW peak')
+    // One watt over the rating: exact watts, so a 12.0 kW inverter is not called smaller than a "12.0 kW" load.
     expect(row(12001).note).toBe(es ? '24.0 kW de arranque · menor que la carga en marcha de 12,001 W' : '24.0 kW surge · smaller than the 12,001 W running load')
     expect(row(15000).note).toBe(es ? '24.0 kW de arranque · menor que la carga en marcha de 15,000 W' : '24.0 kW surge · smaller than the 15,000 W running load')
     // 2 kW running with a 30 kW start: no stock inverter holds that peak, and the row must not say it does.
     expect(row(2000, 30000).note).toBe(es ? '24.0 kW de arranque · cubre 2,000 W en marcha, no el pico de 30.0 kW' : '24.0 kW surge · covers 2,000 W running, not the 30.0 kW peak')
+    // Short of the headroom and of the peak at once: the row says both and "covers" of neither.
+    expect(row(10000, 30000).note).toBe(es ? '24.0 kW de arranque · 10.0 kW en marcha dejan 20% de margen, pico de 30.0 kW no cubierto' : '24.0 kW surge · 10.0 kW running leaves 20% headroom, 30.0 kW peak not covered')
+    // Under the running load that is all the row says, whether or not the peak would be held.
+    expect(row(15000, 30000).note).toBe(es ? '24.0 kW de arranque · menor que la carga en marcha de 15,000 W' : '24.0 kW surge · smaller than the 15,000 W running load')
   })
 
   test('the batteries note states the bank currents, and the parallel notes only with parallel strings', () => {
     const single = buildParts(result('48-300'), t, locale).find(p => p.id === 'batteries')!
     expect(single.note).toContain(locale === 'es' ? '200 A continuos, 400 A pico' : '200 A continuous, 400 A peak')
-    expect(single.note).not.toContain(locale === 'es' ? 'barra colectora' : 'bus bar')
+    expect(single.note).not.toContain(locale === 'es' ? 'barras colectoras' : 'bus bars')
     const parallel = buildParts(result('48-50'), t, locale).find(p => p.id === 'batteries')!
-    expect(parallel.note).toContain(locale === 'es' ? 'barra colectora' : 'bus bar')
+    expect(parallel.note).toContain(locale === 'es' ? 'barras colectoras' : 'bus bars')
     expect(parallel.note).toContain('RS485')
   })
 

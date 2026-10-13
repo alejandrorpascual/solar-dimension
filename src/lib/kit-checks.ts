@@ -6,7 +6,11 @@ import type { SelectedItem, SizingResult, Warning, WarningCode } from './sizing'
 export type CheckId = 'surge' | 'batteryContinuous' | 'batteryPeak' | 'parallel' | 'fuse' | 'cable'
 export const CHECK_IDS: readonly CheckId[] = ['surge', 'batteryContinuous', 'batteryPeak', 'parallel', 'fuse', 'cable']
 
-/** Which warnings fail each check; a warning not listed here is a general note, shown apart from the checks. */
+/**
+ * Which warnings fail each check; a warning not listed here is a general note, shown apart from the checks. `surge` is
+ * the check shown as "Inverter size": it owns the running-load warning as well as the start-up one. Whether the
+ * inverter is sold for the bank voltage, or has to be split-phase, stays a note.
+ */
 export const CHECK_WARNINGS: Record<CheckId, readonly WarningCode[]> = {
   surge: ['inverterUndersized', 'surgeDuration'],
   batteryContinuous: ['bankDischarge'],
@@ -30,8 +34,9 @@ export function warningText(t: Dictionary, w: Warning, items: readonly SelectedI
   return t.warnings[w.code]({ ...w.params, itemName })
 }
 
-/** A key that tells two warnings of the same code apart (two split-phase appliances, say). */
-export const warningKey = (w: Warning): string => `${w.code}:${w.params.itemId ?? ''}:${w.params.strings ?? ''}:${w.params.fuseA ?? ''}`
+/** A key that tells two warnings of the same code apart (two split-phase appliances, or two cable rows, say). */
+export const warningKey = (w: Warning): string =>
+  `${w.code}:${w.params.itemId ?? ''}:${w.params.strings ?? ''}:${w.params.fuseA ?? ''}:${w.params.conductor ?? ''}`
 
 /** Warnings no check owns: voltage fit, a dominant load, split phase, appliances the catalog could not load. */
 export function uncheckedWarnings(r: SizingResult): Warning[] {
@@ -67,12 +72,12 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
-        designA: a(c.designA / c.runs), perRun: c.runs > 1 ? t.ui.perRun : '', drop: c.startupDropPct,
+        designA: a(c.designPerRunA), perRun: c.runs > 1 ? t.ui.perRun : '', drop: c.startupDropPct,
       })
   }
 }
 
-/** Which units were assumed to start together, as one line under the surge check. */
+/** Which units were assumed to start together, as one line under the inverter size check (id `surge`). */
 function contributorsLine(t: Dictionary, r: SizingResult, locale: Locale): string | null {
   const starters = r.surgeProfile.starters
   if (starters.length === 0) return null

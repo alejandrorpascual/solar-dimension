@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { parseWriteFlags } from '../../../lib/api-flags'
 import { diffAppliances } from '../../../lib/catalog-diff'
 import type { ApplianceRecord } from '../../../lib/catalog-schema'
 import { parseItems } from '../../../lib/catalog-schema'
@@ -27,11 +28,14 @@ export const Route = createFileRoute('/api/catalog/appliances')({
       POST: async ({ request }) => {
         const denied = authorize(request)
         if (denied) return denied
+        // Before the body is read: a mistyped flag must never fall through to a real write.
+        const query = parseWriteFlags(new URL(request.url).searchParams, ['dryRun'])
+        if (!query.ok) return json({ error: query.error }, 400)
         const body = await request.json().catch(() => undefined)
         const parsed = parseItems(body)
         if (!parsed.ok) return json({ errors: parsed.errors }, 422)
         const ids = parsed.items.map((i) => i.id)
-        if (new URL(request.url).searchParams.get('dryRun') === 'true') {
+        if (query.flags.dryRun) {
           const records = await readCatalog({ ids })
           return records instanceof Response ? records : json({ changes: diffAppliances(records, parsed.items) })
         }

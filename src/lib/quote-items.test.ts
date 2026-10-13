@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { CHEMISTRIES } from './catalog'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
-import { checkItems, DEFAULT_MUSTS, gaugeMm2, resolveMusts, setOverride, type ItemCheck, type ItemId } from './quote-items'
+import { checkItems, DEFAULT_MUSTS, gaugeMm2, kitNeeds, resolveMusts, setOverride, type ItemCheck, type ItemId } from './quote-items'
 import type { QuoteExtraction } from './quote-schema'
+import { compute } from './sizing'
 
 const item = (x: QuoteExtraction, id: ItemId, overrides = {}): ItemCheck => checkItems(x, KIT, overrides).find((c) => c.id === id)!
 
@@ -109,6 +111,22 @@ describe('cables and fuse', () => {
   test('cables thicker than the kit are ok, thinner are short', () => {
     expect(item(SAMPLE_QUOTES.solartec, 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
     expect(item(SAMPLE_QUOTES.enerhogar, 'cables')).toMatchObject({ status: 'short', facts: { gauge: '8 AWG' } })
+  })
+  test('the kit asks a quote for its thickest battery-side cable, which can be a string lead and not the main cable', () => {
+    // 2 kW at 12 V on two strings, bundled in 50 °C air: three main runs of 2/0, but each string's lead carries half the bank on 3/0.
+    const custom = [{ id: 'x', name: 'Load', watts: 2000, surge: 2000, note: '' }]
+    const r = compute({ qty: { x: 1 }, custom, hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 50, insulationC: 90, bundled: true } }, CATALOG_SNAPSHOT)
+    expect([r.battery?.config, r.cable.runs, r.cable.gauge, r.cable.string?.gauge]).toEqual(['1S2P', 3, '2/0 AWG', '3/0 AWG'])
+    const kit = kitNeeds(r)
+    expect(kit).toMatchObject({ cableGauge: '3/0 AWG', cableMm2: 85 })
+    const cables = (awg: string) => checkItems(extraction([line('wiring', 1, { specs: { awg } })]), kit, {}).find((c) => c.id === 'cables')!
+    expect(cables('2/0').status).toBe('short')
+    expect(cables('3/0').status).toBe('ok')
+  })
+  test('a kit with one string asks for its main cable', () => {
+    const r = compute({ qty: { fridge: 1, lights: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.cable.string).toBeNull()
+    expect(kitNeeds(r)).toMatchObject({ cableGauge: r.cable.gauge, cableMm2: r.cable.mm2 })
   })
   test('mm² counts when there is no AWG, within 5%', () => {
     expect(item(extraction([line('wiring', 1, { specs: { mm2: 70 } })]), 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '70 mm²' } })

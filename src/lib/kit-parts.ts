@@ -1,6 +1,6 @@
-import { panelCount, tr, type Dictionary, type Locale } from '../i18n'
+import { panelCount, tr, type Dictionary, type Locale, type UiKey } from '../i18n'
 import { fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
-import { hasPanels, type CablePick, type SizingResult } from './sizing'
+import { hasPanels, type CablePick, type ConductorKind, type InverterPick, type SizingResult } from './sizing'
 import { headroomPct } from './sizing/inverter'
 import { SOLAR } from './solar'
 
@@ -25,19 +25,29 @@ function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
   ]
 }
 
-/** What the inverter does for this load: "covers" only what its rating and surge window really cover. */
+/**
+ * Which wording the inverter row takes. It says "covers" of the running load only when the rating has its headroom on
+ * top, and of the peak only when the surge rating for a start-up of that length holds it. Under the running load that
+ * is all the row says: an inverter that cannot run the load is not asked about its start-up.
+ */
+function inverterNoteKey(inv: InverterPick): UiKey {
+  if (!inv.runningOk) return 'inverterNoteUnder'
+  if (!inv.headroomOk) return inv.surgeOk ? 'inverterNoteTight' : 'inverterNoteTightPeak'
+  return inv.surgeOk ? 'inverterNote' : 'inverterNotePeak'
+}
+
 function inverterNote(r: SizingResult, t: Dictionary, locale: Locale): string {
   const inv = r.inverter
-  const key = !inv.runningOk ? 'inverterNoteUnder' : !inv.headroomOk ? 'inverterNoteTight' : !inv.surgeOk ? 'inverterNotePeak' : 'inverterNote'
   const w = (n: number) => fmtW(n, locale)
-  // Under the load the gap can be a few watts, which kilowatts to one decimal would print as "12.0 kW under 12.0 kW".
+  // Just past the rating, kilowatts to one decimal would call a 12.0 kW inverter smaller than a "12.0 kW" load; whole watts show the gap.
   const running = inv.runningOk ? w(r.runningW) : `${fmtInt(r.runningW, locale)} W`
-  return tr(t, key, { surge: w(inv.surge), running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) })
+  return tr(t, inverterNoteKey(inv), { surge: w(inv.surge), running, peak: w(r.surgeW), pct: headroomPct(inv.w, r.runningW) })
 }
 
 /**
- * Series links and, for parallel strings, the lead pair from each string to the bus bars. Each row states its own
- * gauge, sized from the current it carries; neither borrows the main cable's.
+ * Series links and, for parallel strings, the lead pair from each string to the bus bars. Each row prints the gauge,
+ * design current and ampacity the engine put on `links` and `string`; in a one-string bank that is the main cable's
+ * gauge, one jumper per main run.
  */
 function bankWiringParts(c: CablePick, t: Dictionary, locale: Locale): Part[] {
   const a = (n: number) => fmtInt(n, locale)
@@ -46,14 +56,14 @@ function bankWiringParts(c: CablePick, t: Dictionary, locale: Locale): Part[] {
   return [
     ...(links
       ? [{
-        id: 'interconnects', name: t.parts.interconnects, spec: tr(t, 'interconnectsSpec', { gauge: links.gauge, cm: cm(links.lengthM) }),
+        id: 'interconnects' satisfies ConductorKind, name: t.parts.interconnects, spec: tr(t, 'interconnectsSpec', { gauge: links.gauge, cm: cm(links.lengthM) }),
         note: tr(t, links.perPosition > 1 ? 'seriesLinksSharedNote' : 'seriesLinksNote', { each: links.perPosition, amps: a(links.designA), ampacity: a(links.ampacity) }),
         qty: String(links.count),
       }]
       : []),
     ...(string
       ? [{
-        id: 'stringLeads', name: t.parts.stringLeads, spec: tr(t, 'stringLeadsSpec', { gauge: string.gauge, mm2: string.mm2, cm: cm(string.lengthM) }),
+        id: 'stringLeads' satisfies ConductorKind, name: t.parts.stringLeads, spec: tr(t, 'stringLeadsSpec', { gauge: string.gauge, mm2: string.mm2, cm: cm(string.lengthM) }),
         note: tr(t, 'stringLeadsNote', { amps: a(string.designA), ampacity: a(string.ampacity) }), qty: String(string.leads),
       }]
       : []),
@@ -76,8 +86,8 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
     { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.w), volts: r.volts }), note: inverterNote(r, t, locale), qty: '1' },
     { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: batteriesNote, qty: String(b.count) },
     {
-      id: 'mainCable', name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }),
-      note: tr(t, 'mainCableNote', { amps: fmtInt(Math.round(c.designA / c.runs), locale), perRun: c.runs > 1 ? t.ui.perRun : '', ampacity: fmtInt(c.ampacity, locale), drop: c.startupDropPct }), qty: String(c.mainCount),
+      id: 'mainCable' satisfies ConductorKind, name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }),
+      note: tr(t, 'mainCableNote', { amps: fmtInt(c.designPerRunA, locale), perRun: c.runs > 1 ? t.ui.perRun : '', ampacity: fmtInt(c.ampacity, locale), drop: c.startupDropPct }), qty: String(c.mainCount),
     },
     ...bankWiringParts(c, t, locale),
     {
@@ -87,7 +97,7 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
     ...(c.string
       ? [{
         id: 'stringFuses', name: t.parts.stringFuses, spec: tr(t, 'stringFuseSpec', { amps: c.string.fuse.a, class: c.string.fuse.class }),
-        note: t.ui.stringFuseNote, qty: String(c.string.count),
+        note: t.ui.stringFuseNote, qty: String(c.string.fuse.count),
       }]
       : []),
   ]
