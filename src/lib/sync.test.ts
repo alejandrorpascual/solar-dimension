@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { addProject, currentProject, initialStore, patchCurrent } from './store'
-import { adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing, unsentOf } from './sync'
+import { adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, isForAccount, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing, unsentOf } from './sync'
 
 test('reports new and changed projects as upserts and missing ones as deletes', () => {
   const a = initialStore()
@@ -133,4 +133,12 @@ test('an import stores a never-edited first project only for an account that has
   expect(importable([untouched, edited], false)).toEqual([untouched, edited])
   expect(importable([untouched, edited], true)).toEqual([edited])
   expect(importable([untouched], true)).toEqual([])
+})
+
+test('a request acts on the signed-in account only from a page that was loaded for it', () => {
+  expect(isForAccount('user-ana', 'user-ana')).toBe(true)
+  // A tab left open for Ana, sending with the cookie of Bea, who signed in after her.
+  expect(isForAccount('user-ana', 'user-bea')).toBe(false)
+  // A page built before requests said which account they were for.
+  expect(isForAccount(undefined, 'user-bea')).toBe(true)
 })

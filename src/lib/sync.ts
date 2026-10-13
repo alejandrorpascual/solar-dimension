@@ -82,6 +82,15 @@ export function newestById(projects: readonly Project[]): Project[] {
 }
 
 /**
+ * Whether a request may act on the signed-in account. `claimed` is the account its page was loaded for: a tab left
+ * open across a sign-out and another account's sign-in still sends the first account's with the second one's cookie.
+ * A page built before requests carried the claim sends none and is let through.
+ */
+export function isForAccount(claimed: string | undefined, signedIn: string): boolean {
+  return claimed === undefined || claimed === signedIn
+}
+
+/**
  * What an import writes. Every browser starts with the same first project, stamped 0 until it is edited. One that was
  * never edited is nobody's work: it is stored only for an account that has no project yet, so a new account still
  * gets its first project. Sent to an account that has projects, it would add an empty one at every sign-in.

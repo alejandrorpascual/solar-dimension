@@ -285,11 +285,49 @@ test('when storage is too full to set the unsent projects aside, they still leav
   logged.mockRestore()
 })
 
-test('a removal that storage refuses does not stop the others', () => {
+/** `storage`, refusing to remove `stuck`. */
+const refusingToRemove = (storage: ReturnType<typeof removableStorage>, stuck: string) =>
+  ({ ...storage, removeItem: (key: string) => { if (key === stuck) throw new Error('blocked'); storage.removeItem(key) } })
+
+test('projects that storage refuses to remove keep their owner, so the next page load releases them again', () => {
   const storage = anaBrowser({ [PENDING_KEY]: '1' })
-  const stubborn = { ...storage, removeItem: (key: string) => { if (key === STORAGE_KEY) throw new Error('blocked'); storage.removeItem(key) } }
+  const stubborn = refusingToRemove(storage, STORAGE_KEY)
 
   expect(() => releaseAccountCopy(stubborn)).not.toThrow()
 
-  expect(OWNER_KEY in storage.data || PENDING_KEY in storage.data).toBe(false)
+  // Without the marker they would read as work done signed out: shown to the next person, and sent to their account.
+  expect(loadOwner(stubborn)).toBe(ANA)
+  expect(hasPendingSave(stubborn)).toBe(true)
+})
+
+test('a marker that storage refuses to remove does not keep the projects, or the other marker', () => {
+  const storage = anaBrowser({ [PENDING_KEY]: '1' })
+
+  releaseAccountCopy(refusingToRemove(storage, OWNER_KEY))
+
+  expect(STORAGE_KEY in storage.data || PENDING_KEY in storage.data).toBe(false)
+})
+
+test('a marker left by an earlier release names the copy\'s account even when storage is too full to take it over', () => {
+  const storage = removableStorage({ [STORAGE_KEY]: JSON.stringify(anaStore()), [LEGACY_SYNCED_KEY]: ANA })
+  const full = { ...storage, setItem: () => { throw new Error('QuotaExceededError') } }
+
+  // Read as nobody's, the copy would be shown signed out and sent to the next account that signs in.
+  expect(loadOwner(full)).toBe(ANA)
+  expect(loadOwner(full)).toBe(ANA)
+
+  releaseAccountCopy(full)
+
+  expect(Object.keys(storage.data)).toEqual([])
+})
+
+test('what was set aside and cannot be read is not cleared: it was never sent', () => {
+  const unreadable = JSON.stringify({ version: 1, projects: [{ id: 'x' }], currentId: 'x' })
+  const storage = removableStorage({ [`${UNSENT_KEY_PREFIX}${ANA}`]: unreadable, [`${UNSENT_KEY_PREFIX}${BEA}`]: '{not json' })
+
+  clearUnsent(ANA, storage)
+  clearUnsent(BEA, storage)
+
+  expect(storage.data[`${UNSENT_KEY_PREFIX}${ANA}`]).toBe(unreadable)
+  expect(storage.data[`${UNSENT_KEY_PREFIX}${BEA}`]).toBe('{not json')
 })

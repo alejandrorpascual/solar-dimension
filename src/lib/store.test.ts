@@ -4,8 +4,8 @@ import { EMPTY_FORM, parseCustom } from './custom'
 import { compute } from './sizing'
 import {
   addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
-  hasSameLoads, rekeyEditedSeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
-  renameProject, setSolarIn, takenLoadIds, unreadCustomCount, withSolarPanels, withSolarRoof, withSolarSun,
+  hasSameLoads, rekeySeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
+  renameProject, setSolarIn, takenLoadIds, unreadCustomCount, withSetAside, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
 import { SOLAR } from './solar'
 import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema, StoreSchema, type Project, type Store } from './schema'
@@ -429,11 +429,11 @@ describe('renameProject', () => {
   })
 })
 
-describe('work done signed out, on its way into an account', () => {
+describe('a copy that is not an account\'s, on its way into one', () => {
   test('an edited first project takes a new id and stays the open one', () => {
     const edited = patchCurrent(initialStore(), { hours: 24 })
 
-    const rekeyed = rekeyEditedSeed(edited)
+    const rekeyed = rekeySeed(edited)
 
     expect(rekeyed.projects).toHaveLength(1)
     expect(rekeyed.projects[0]!.id).not.toBe('p1')
@@ -442,10 +442,18 @@ describe('work done signed out, on its way into an account', () => {
     expect(StoreSchema.safeParse(rekeyed).success).toBe(true)
   })
 
-  test('a first project that was never edited keeps its id and its stamp of 0', () => {
+  test('a first project that was never edited takes a new id too, and keeps its stamp of 0', () => {
+    // Under the id every browser starts with, an edit made before the account's list is read would be saved over
+    // the account's own first project.
     const untouched = addProject(initialStore(), 'Office')
 
-    expect(rekeyEditedSeed(untouched)).toBe(untouched)
+    const rekeyed = rekeySeed(untouched)
+
+    expect(rekeyed.projects.map((p) => p.name)).toEqual(['Home', 'Office'])
+    expect(rekeyed.projects[0]!.id).not.toBe('p1')
+    expect(rekeyed.projects[0]!.updatedAt).toBe(0)
+    expect(rekeyed.projects[1]).toBe(untouched.projects[1])
+    expect(rekeySeed(initialStore()).projects[0]!.id).not.toBe(rekeySeed(initialStore()).projects[0]!.id)
   })
 
   test('another project being open stays open, and the others keep their ids', () => {
@@ -453,7 +461,7 @@ describe('work done signed out, on its way into an account', () => {
     const office = currentProject(withOffice)
     const edited = selectProject(patchProject(withOffice, 'p1', { hours: 24 }), office.id)
 
-    const rekeyed = rekeyEditedSeed(edited)
+    const rekeyed = rekeySeed(edited)
 
     expect(rekeyed.currentId).toBe(office.id)
     expect(rekeyed.projects.map((p) => p.name)).toEqual(['Home', 'Office'])
@@ -464,6 +472,44 @@ describe('work done signed out, on its way into an account', () => {
   test('a store without the first project is returned as it is', () => {
     const onlyOffice = deleteProject(selectProject(addProject(initialStore(), 'Office'), 'p1'))
 
-    expect(rekeyEditedSeed(onlyOffice)).toBe(onlyOffice)
+    expect(rekeySeed(onlyOffice)).toBe(onlyOffice)
+  })
+})
+
+describe('work that was set aside, coming back to its account', () => {
+  const clinic = { ...initialStore().projects[0]!, id: 'c1', name: 'Clinic', updatedAt: 5 }
+
+  test('nothing set aside leaves the copy as it is', () => {
+    const fresh = rekeySeed(initialStore())
+
+    expect(withSetAside(fresh, [], false)).toBe(fresh)
+  })
+
+  test('on a copy that is not the account\'s, a first project nobody edited is left out and the open project is one that stays', () => {
+    const fresh = rekeySeed(initialStore())
+
+    const merged = withSetAside(fresh, [clinic], false)
+
+    expect(merged.projects).toEqual([clinic])
+    expect(merged.currentId).toBe('c1')
+    expect(StoreSchema.safeParse(merged).success).toBe(true)
+  })
+
+  test('on a copy that is not the account\'s, work done signed out is kept beside what was set aside', () => {
+    const signedOut = addProject(rekeySeed(patchCurrent(initialStore(), { name: 'Trial' })), 'Office')
+
+    const merged = withSetAside(signedOut, [clinic], false)
+
+    expect(merged.projects.map((p) => p.name)).toEqual(['Clinic', 'Trial', 'Office'])
+    expect(merged.currentId).toBe(signedOut.currentId)
+  })
+
+  test('on the account\'s own copy every project stays, and of two copies of one the newer does', () => {
+    const own = { version: 1 as const, currentId: 'c1', projects: [{ ...clinic, hours: 30, updatedAt: 9 }, { ...clinic, id: 'h1', name: 'Home', updatedAt: 0 }] }
+
+    const merged = withSetAside(own, [{ ...clinic, hours: 24 }], true)
+
+    expect(merged.projects.map((p) => [p.name, p.hours])).toEqual([['Clinic', 30], ['Home', 10]])
+    expect(withSetAside({ ...own, projects: [{ ...clinic, hours: 30, updatedAt: 1 }] }, [{ ...clinic, hours: 24 }], true).projects[0]!.hours).toBe(24)
   })
 })

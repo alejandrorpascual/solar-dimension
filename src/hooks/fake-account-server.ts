@@ -5,7 +5,7 @@
 // session throws as requireUserId does, and one from a page loaded for another account as requireAccount does.
 import { z } from 'zod'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { clampStamp, importable } from '../lib/sync'
+import { clampStamp, importable, isForAccount } from '../lib/sync'
 
 const ProjectsInput = z.object({ account: z.string().min(1).optional(), projects: z.array(ProjectSchema).max(200) })
 type Call = 'list' | 'save' | 'import' | 'delete'
@@ -20,6 +20,8 @@ export const session: { user: User | null } = { user: null }
 export const tab: { user?: User | null } = {}
 export const pageUser = (): User | null => ('user' in tab ? tab.user ?? null : session.user)
 export const accounts = new Map<string, Project[]>()
+/** What `user`'s account holds. */
+export const account = (user: User): Project[] => accounts.get(user.id) ?? []
 /**
  * The connection. `offline` makes every call reject as fetch does without one, and `failing` only the calls it names.
  * A call made while `gate` is set answers once that promise resolves, so a test can leave a request in flight.
@@ -55,7 +57,7 @@ function accountId(): string {
   return id
 }
 function requireAccount(claimed: string | undefined): void {
-  if (claimed !== undefined && claimed !== accountId()) throw new Error('This page was loaded for another account')
+  if (!isForAccount(claimed, accountId())) throw new Error('This page was loaded for another account')
 }
 const rows = (): Project[] => accounts.get(accountId()) ?? []
 
@@ -72,8 +74,9 @@ function upsertAll(list: Project[]): Set<string> {
   return new Set(accepted.map((p) => p.id))
 }
 
-export async function listProjects(): Promise<Project[]> {
+export async function listProjects(input?: { data?: { account?: string } }): Promise<Project[]> {
   await reach('list')
+  requireAccount(input?.data?.account)
   return structuredClone(rows())
 }
 

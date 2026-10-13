@@ -92,12 +92,21 @@ export function loadOwner(storage: (Reader & Writer & Remover) | null = browserS
     if (owner) return owner
     const legacy = storage.getItem(LEGACY_SYNCED_KEY)
     if (!legacy) return null
-    storage.setItem(OWNER_KEY, legacy)
-    storage.setItem(PENDING_KEY, '1')
-    storage.removeItem(LEGACY_SYNCED_KEY)
+    takeOverLegacyMarker(legacy, storage)
     return legacy
   } catch {
     return null
+  }
+}
+
+function takeOverLegacyMarker(legacy: string, storage: Writer & Remover): void {
+  try {
+    storage.setItem(OWNER_KEY, legacy)
+    storage.setItem(PENDING_KEY, '1')
+    storage.removeItem(LEGACY_SYNCED_KEY)
+  } catch {
+    // Storage that is full refuses the write. The marker is still there and still names the copy's account, so the
+    // copy never reads as work done signed out; which of it is unsent can no longer be recorded.
   }
 }
 
@@ -129,6 +138,8 @@ function setAsideUnsent(owner: string, storage: Reader & Writer): void {
  *
  * The removal does not wait on the setting aside: if storage is full, what was unsent is lost and the projects still
  * leave. The caller must not read the projects back afterwards either way, since blocked storage can refuse a removal.
+ * Projects that storage would not let go keep their owner's marker, so the next page load takes them off the screen
+ * again instead of showing them as work done signed out.
  */
 export function releaseAccountCopy(storage: (Reader & Writer & Remover) | null = browserStorage()): void {
   if (!storage) return
@@ -139,12 +150,17 @@ export function releaseAccountCopy(storage: (Reader & Writer & Remover) | null =
   } catch (error) {
     console.error('[projects] unsent projects could not be set aside and are lost', { error })
   }
-  for (const key of [STORAGE_KEY, OWNER_KEY, PENDING_KEY]) {
-    try {
-      storage.removeItem(key)
-    } catch {
-      // Blocked storage: nothing more can be done for this key, and the caller does not read it back.
-    }
+  if (!isRemoved(STORAGE_KEY, storage)) return
+  for (const key of [OWNER_KEY, PENDING_KEY, LEGACY_SYNCED_KEY]) isRemoved(key, storage)
+}
+
+/** Removes `key` and says whether it is gone: blocked storage can refuse a removal. */
+function isRemoved(key: string, storage: Reader & Remover): boolean {
+  try {
+    storage.removeItem(key)
+    return storage.getItem(key) === null
+  } catch {
+    return false
   }
 }
 
@@ -161,10 +177,15 @@ export function loadUnsent(owner: string, storage: Reader | null = browserStorag
   }
 }
 
-/** Once the account holds them. */
-export function clearUnsent(owner: string, storage: Remover | null = browserStorage()): void {
+/**
+ * Once the account holds them. An entry that cannot be read was never sent, so it is not the account's yet: it stays
+ * where setAsideUnsent kept it, for a release that can read it.
+ */
+export function clearUnsent(owner: string, storage: (Reader & Remover) | null = browserStorage()): void {
   if (!storage) return
   try {
+    const raw = storage.getItem(unsentKey(owner))
+    if (raw === null || !StoreSchema.safeParse(JSON.parse(raw)).success) return
     storage.removeItem(unsentKey(owner))
   } catch {
     // ignore

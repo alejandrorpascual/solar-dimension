@@ -6,6 +6,7 @@ import { useConnectGoogle } from '../hooks/useConnectGoogle'
 import { tr } from '../i18n'
 import { signOut } from '../lib/auth-client'
 import { releaseAccountCopy } from '../lib/persistence'
+import { signOutOfBrowser } from '../lib/sign-out'
 import type { SessionUser } from '../server/session'
 
 interface Props {
@@ -36,15 +37,7 @@ export function AccountMenu({ user, busy = false }: Props) {
   async function act(key: Key) {
     if (key === 'google') return google.connect()
     if (key === 'signout') {
-      const { error } = await signOut()
-      if (error) {
-        // Still signed in: the projects stay where they are.
-        console.error('[auth] signing out failed', { error })
-        return
-      }
-      // On a shared computer the next person must not find this account's projects, or have them added to theirs.
-      releaseAccountCopy()
-      await router.invalidate({ sync: true })
+      await signOutOfBrowser({ signOut: () => signOut(), release: releaseAccountCopy, reload: () => router.invalidate({ sync: true }) })
     }
   }
   return (

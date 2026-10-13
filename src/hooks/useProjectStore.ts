@@ -4,8 +4,8 @@ import {
   clearPendingSave, clearUnsent, hasPendingSave, loadOwner, loadStore, loadUnsent, markPendingSave, releaseAccountCopy, saveOwner, saveStore,
 } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
-import { currentProject, initialStore, rekeyEditedSeed } from '../lib/store'
-import { adoptStale, applyChanges, diffProjects, hasUnsent, newestById, NOTHING_UNSENT, outgoing, unsentOf, type Unsent } from '../lib/sync'
+import { currentProject, initialStore, rekeySeed, withSetAside } from '../lib/store'
+import { adoptStale, applyChanges, diffProjects, hasUnsent, NOTHING_UNSENT, outgoing, unsentOf, type Unsent } from '../lib/sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
 import { useRootData } from './useRootData'
 
@@ -23,6 +23,10 @@ function fromServer(list: Project[], prev: Store): Store {
  * done signed out becomes the account's, and so does what a session's end set aside for it; either way the copy is
  * marked as the account's with all of it still to send, so a load that fails does not leave it behind as work done
  * signed out for the next account to take.
+ *
+ * Until the account's list is read, the screen shows this copy, and the account's own first project is not in it:
+ * the first project of a copy that is not the account's takes an id of its own, so nothing done to it meanwhile
+ * reaches the account's.
  */
 function startingCopy(account: string | null): { local: Store; mustPush: boolean } {
   // The owner first: reading it takes over a marker left by an earlier release, which sets the pending marker.
@@ -34,8 +38,7 @@ function startingCopy(account: string | null): { local: Store; mustPush: boolean
   if (!account) return { local: stored, mustPush: false }
   const isOwn = plan === 'pull' || plan === 'push'
   const setAside = loadUnsent(account)
-  const mine = isOwn ? stored : rekeyEditedSeed(stored)
-  const local = setAside.length ? { ...mine, projects: newestById([...setAside, ...mine.projects]) } : mine
+  const local = withSetAside(isOwn ? stored : rekeySeed(stored), setAside, isOwn)
   const mustPush = plan !== 'pull' || setAside.length > 0
   if (mustPush) {
     saveStore(local)
@@ -100,7 +103,7 @@ export function useProjectStore() {
     let cancelled = false
     setSyncing(true)
     // Unless something here still has to reach the account, the server copy is the source of truth.
-    enqueue(() => (mustPush ? importProjects({ data: { account, projects: local.projects } }) : listProjects()))
+    enqueue(() => (mustPush ? importProjects({ data: { account, projects: local.projects } }) : listProjects({ data: { account } })))
       .then((list) => {
         if (cancelled) return
         loaded.current = true

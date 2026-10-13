@@ -2,6 +2,7 @@ import { SIZING } from './catalog'
 import { isCustomLoadId } from './custom'
 import { DEFAULT_ELECTRICAL, HOURS_MAX, HOURS_MIN, PROJECT_NAME_MAX, type CustomLoad, type Electrical, type Project, type Solar, type Store } from './schema'
 import { SOLAR } from './solar'
+import { newestById } from './sync'
 
 export const DEFAULT_QTY: Record<string, number> = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
 const DEFAULT_HOURS = 10
@@ -36,19 +37,34 @@ export function initialStore(): Store {
 }
 
 /**
- * Work done signed out, on its way into an account. Every browser's first project has the same id, so an edited one
- * would replace the account's own first project when it is saved there; it takes a new id and is added beside it. One
- * that was never edited keeps its id and its stamp of 0, which no saved copy is older than.
+ * A copy that is not an account's, on its way into one: work done signed out, or the first project a browser shows
+ * while the account's list is read. Every browser's first project has the same id, so under that id an edit to it
+ * would be saved over the account's own first project, and removing it would remove the account's. It takes an id of
+ * its own and is added beside it. One that was never edited keeps its stamp of 0, by which an import leaves it out of
+ * an account that has projects.
  */
-export function rekeyEditedSeed(store: Store): Store {
+export function rekeySeed(store: Store): Store {
   const seed = store.projects.find((p) => p.id === SEED_ID)
-  if (!seed || seed.updatedAt === 0) return store
+  if (!seed) return store
   const id = nextId(store.projects)
   return {
     ...store,
     projects: store.projects.map((p) => (p === seed ? { ...p, id } : p)),
     currentId: store.currentId === SEED_ID ? id : store.currentId,
   }
+}
+
+/**
+ * `store` with the projects that were set aside for its account, the newer copy of each. `isOwn` says whether `store`
+ * is that account's own copy. When it is not, a first project nobody edited is left out: the account's projects are in
+ * what was set aside, and it would only add an empty one beside them.
+ */
+export function withSetAside(store: Store, setAside: readonly Project[], isOwn: boolean): Store {
+  if (setAside.length === 0) return store
+  const here = isOwn ? store.projects : store.projects.filter((p) => p.updatedAt > 0)
+  const projects = newestById([...setAside, ...here])
+  const currentId = projects.some((p) => p.id === store.currentId) ? store.currentId : projects[0]!.id
+  return { ...store, projects, currentId }
 }
 
 export function currentProject(store: Store): Project {

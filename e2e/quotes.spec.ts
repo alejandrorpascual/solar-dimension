@@ -279,17 +279,17 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
 
   const other = await browser.newContext()
   const stranger = await other.newPage()
-  await signUp(stranger)
+  const strangerEmail = await signUp(stranger)
   expect((await stranger.request.get(href!)).status()).toBe(404)
-  // Both accounts have a default project with the same id, so the same address shows the stranger their own, empty
-  // verdict: none of the owner's quotes. A project that exists only for the owner is a real 404.
+  // The project exists only for the owner: a real 404.
+  await stranger.goto(verdictUrl)
+  await expect(stranger.getByRole('heading', { name: 'Page not found' })).toBeVisible()
+  // Accounts made before first projects took ids of their own all have one under the same id. For two of those the
+  // same address shows the stranger their own, empty verdict: none of the owner's quotes.
+  await cloneProject(strangerEmail, await firstProjectId(email))
   await stranger.goto(verdictUrl)
   await expect(stranger.getByRole('heading', { name: 'No quotes yet' })).toBeVisible()
   await expect(stranger.getByText('SolarTec')).toHaveCount(0)
-  const privateId = `e2e-private-${Date.now()}`
-  await cloneProject(email, privateId)
-  await stranger.goto(`/projects/${privateId}/quotes`)
-  await expect(stranger.getByRole('heading', { name: 'Page not found' })).toBeVisible()
   await other.close()
 })
 
