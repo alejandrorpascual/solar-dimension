@@ -267,8 +267,8 @@ export async function retryStatementsBehind(holderPid: number): Promise<number> 
 }
 
 /**
- * How long a copy waits for its turn. A turn lasts a few seconds, so only a copy that stalled while holding one (a
- * paused debugger, a laptop asleep) keeps the others waiting this long.
+ * How long a copy waits for its turn. A turn lasts a few seconds, so a wait this long means a long line of copies or,
+ * more likely, one that stalled while holding the turn (a paused debugger, a laptop asleep).
  */
 const TURN_WAIT_MS = 30_000
 
@@ -276,8 +276,9 @@ const TURN_WAIT_MS = 30_000
  * Waits for the turn named `name`, then holds it until `release`: a transaction-scoped advisory lock, so copies of a
  * test that run at the same moment (the desktop and phone projects, another checkout, CI: all on this database) go one
  * after the other. A copy that dies drops its connection, which ends its turn. One that stalls keeps it, so after
- * TURN_WAIT_MS the caller goes ahead without the turn: a turn keeps other copies out of a test's readings, and a test
- * must still be right without one. The two-key form shares nothing with the app's one-key locks (lockUserQuotes).
+ * TURN_WAIT_MS the caller goes ahead without the turn. Use a turn only where going without one can make the test fail
+ * when it should pass, never pass when it should fail: another copy's reads can hide the single read the race looks
+ * for, not fake it. The two-key form shares nothing with the app's one-key locks (lockUserQuotes).
  */
 export async function takeTurn(name: string): Promise<{ release: () => Promise<void> }> {
   try {
