@@ -100,6 +100,19 @@ describe('what is not ranked', () => {
     expect(v.unranked).toMatchObject([{ reason: 'reading' }])
     expect(v.readCount).toBe(1)
   })
+  test('a typed total ranks a reading only when its total was what failed (AI-11)', () => {
+    const lineOff = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, unitPrice: 1 } : l)) }
+    const typed = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { status: 'needs_review', extraction: lineOff, totalOverride: 6480 })])
+    expect(typed.ranked).toEqual([])
+    expect(typed.unranked).toMatchObject([{ reason: 'misread' }])
+    const totalOff = { ...SAMPLE_QUOTES.solartec, total: 648 }
+    expect(compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { status: 'needs_review', extraction: totalOff })]).unranked).toMatchObject([{ reason: 'needs_review' }])
+    expect(compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { status: 'needs_review', extraction: totalOff, totalOverride: 6480 })]).best?.total).toBe(6480)
+  })
+  test('a quote with options whose reading needs review still waits to be read again, as before', () => {
+    const lineOff = { ...SAMPLE_QUOTES.suna, lines: SAMPLE_QUOTES.suna.lines.map((l, i) => (i === 0 ? { ...l, unitPrice: 1 } : l)) }
+    expect(compareQuotes(KIT, DEFAULT_MUSTS, [view('suna', { status: 'needs_review', extraction: lineOff })]).unranked).toMatchObject([{ reason: 'no_total', optionCount: 2 }])
+  })
   test('needs_review waits for a corrected total, then ranks with it', () => {
     const waiting = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { status: 'needs_review' })])
     expect(waiting.unranked).toMatchObject([{ reason: 'needs_review' }])

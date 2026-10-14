@@ -1,3 +1,4 @@
+import { isFixedByTotal } from './quote-checks'
 import { compareQuotes, type QuoteView } from './quote-compare'
 import type { KitNeeds, Musts } from './quote-items'
 import { FINISHED, isPending, type QuoteStatus } from './quote-schema'
@@ -32,7 +33,8 @@ export function summarizeProject(projectId: string, projectName: string, quotes:
     done: quotes.length - pending,
     pending,
     failed: quotes.filter((q) => q.status === 'failed').length,
-    needsReview: quotes.filter((q) => q.status === 'needs_review' && q.totalOverride === null).length,
+    // A typed total settles a reading only when its total was what failed.
+    needsReview: quotes.filter((q) => q.status === 'needs_review' && (q.totalOverride === null || (q.extraction !== null && !isFixedByTotal(q.extraction)))).length,
     kitEmpty,
     unseen: !kitEmpty && quotes.some((q) => FINISHED.includes(q.status) && q.status !== 'failed' && q.seenAt === null),
     best,

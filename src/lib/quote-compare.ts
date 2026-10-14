@@ -1,4 +1,4 @@
-import { hasTotal, optionPrices } from './quote-checks'
+import { hasTotal, isFixedByTotal, optionPrices } from './quote-checks'
 import { checkItems, ITEM_IDS, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
 import { hasOptions, optionExtraction } from './quote-options'
 import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
@@ -18,10 +18,12 @@ export interface RankedQuote extends EntryOption {
   unknownMusts: ItemId[]; failedMusts: ItemId[]; niceMet: number; usableWh: number
 }
 /**
- * needs_review: the amounts don't add up; no_total: the quote was read but states no total. Both wait for the user's
- * total. no_price: an option of a quote that offers several states no price for it.
+ * needs_review: the total doesn't add up with the lines; no_total: the quote was read but states no total. Both wait for
+ * the user's total. misread: a single-system reading whose line amounts, quantities or currency don't hold, which a
+ * typed total wouldn't fix: it waits to be read again. no_price: an option of a quote that offers several states no
+ * price for it.
  */
-export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'no_price' | 'failed' | 'other_currency'
+export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'misread' | 'no_price' | 'failed' | 'other_currency'
 export interface UnrankedQuote extends EntryOption { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
 export interface Verdict {
   currency: string | null
@@ -86,11 +88,12 @@ const optionOf = (e: Entry): EntryOption => ({ optionId: e.optionId, optionLabel
 
 /**
  * Read, and with a positive price. A total of 0 (what the model writes when a quote states none), negative or not a
- * number never ranks: the quote waits for the user's total, like one whose amounts don't add up.
+ * number never ranks: the quote waits for the user's total, like one whose amounts don't add up. A reading that needs
+ * review ranks on the user's total only when the total was all that failed.
  */
 const isRankable = (e: Entry): boolean =>
   e.extraction !== null && hasTotal(e.total) &&
-  (e.quote.status === 'ready' || (e.quote.status === 'needs_review' && e.quote.totalOverride !== null))
+  (e.quote.status === 'ready' || (e.quote.status === 'needs_review' && e.quote.totalOverride !== null && isFixedByTotal(e.extraction)))
 
 /** The currency most rankable quotes use, counting each file once; a tie goes to the earliest quote's currency. */
 function mainCurrency(entries: readonly Entry[]): string | null {
@@ -111,8 +114,10 @@ function unrankedReason(e: Entry): UnrankedReason {
   if (isPending(e.quote.status)) return 'reading'
   if (isRankable(e)) return 'other_currency'
   if (e.optionId !== null) return 'no_price'
-  if (e.extraction !== null && (e.quote.status === 'needs_review' || e.quote.status === 'ready')) return hasTotal(e.total) ? 'needs_review' : 'no_total'
-  return 'failed'
+  if (e.extraction === null || (e.quote.status !== 'needs_review' && e.quote.status !== 'ready')) return 'failed'
+  // A quote with options has no total form either way: it is read again.
+  if (e.quote.status === 'needs_review' && e.optionCount === 0 && !isFixedByTotal(e.extraction)) return 'misread'
+  return hasTotal(e.total) ? 'needs_review' : 'no_total'
 }
 
 function score(e: Entry, kit: KitNeeds, musts: Musts, currency: string): Scored {

@@ -132,6 +132,20 @@ export async function setQuoteTotalOverride(email: string, projectId: string, to
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/** Turns every quote of a project into a reading that needs review because its total was read as `total`. */
+export async function misreadQuoteTotal(email: string, projectId: string, total: number): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review', extraction = jsonb_set(q.extraction, '{total}', to_jsonb(${total}::numeric))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
+/** Same, because its first line's unit price was read as `unitPrice`, which that line's amount doesn't match. */
+export async function misreadQuoteLine(email: string, projectId: string, unitPrice: number): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review', extraction = jsonb_set(q.extraction, '{lines,0,unitPrice}', to_jsonb(${unitPrice}::numeric))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
 /** The status and retries of every quote of a project, oldest first. */
 export async function quoteRetryStates(email: string, projectId: string): Promise<{ status: string; retries: number }[]> {
   const rows = await testDb()`

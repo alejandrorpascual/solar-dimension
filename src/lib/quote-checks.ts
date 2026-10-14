@@ -17,6 +17,9 @@ export const hasTotal = (n: number | null | undefined): n is number => typeof n 
 
 const includedSum = (lines: readonly QuoteLine[]): number => lines.filter((l) => !l.optional).reduce((a, l) => a + l.lineTotal, 0)
 
+/** What a single-system quote's included lines and stated tax add up to: the figure its total is checked against. */
+export const linesWithTax = (x: QuoteExtraction): number => includedSum(x.lines) + (x.tax ?? 0)
+
 /**
  * Each option's price: the total the document writes for it, else its own included lines plus the shared ones, plus
  * the tax written for that option, so an option stated as "subtotal + tax" ranks at what it costs. The document's own
@@ -98,9 +101,26 @@ export function checkExtraction(x: QuoteExtraction): CheckFailure[] {
   // Alternatives don't add up to anything, so a quote with options skips the total check; each line is still checked,
   // and so is each option's own written total.
   if (isMulti && hasOptionTotalMismatch(x)) failures.push('option_total_mismatch')
-  if (!isMulti && (x.subtotal !== null || x.tax !== null)) {
-    const sum = includedSum(x.lines) + (x.tax ?? 0)
-    if (!near(sum, x.total, TOTAL_TOLERANCE)) failures.push('total_mismatch')
-  }
+  if (!isMulti && hasTotalMismatch(x)) failures.push('total_mismatch')
   return failures
 }
+
+/**
+ * With a subtotal or tax stated, the lines plus tax must make the total. With neither, the total may be above the lines
+ * (tax or freight the quote doesn't itemise), never below them: that is a misread total, a dropped digit or a decimal
+ * point read as a thousands one, and as the lowest price it would win.
+ */
+function hasTotalMismatch(x: QuoteExtraction): boolean {
+  const sum = linesWithTax(x)
+  if (x.subtotal !== null || x.tax !== null) return !near(sum, x.total, TOTAL_TOLERANCE)
+  return hasTotal(x.total) && x.total < sum && !near(sum, x.total, TOTAL_TOLERANCE)
+}
+
+/** The failures a total the user types settles: the total itself was missing or disagreed with the lines. */
+const TOTAL_FAILURES: ReadonlySet<CheckFailure> = new Set(['no_total', 'total_mismatch'])
+
+/**
+ * Whether a reading that failed its checks can be ranked once the user types its total. A wrong line amount, quantity,
+ * currency or option is a reading to redo: a typed total would rank it with that error in it.
+ */
+export const isFixedByTotal = (x: QuoteExtraction): boolean => checkExtraction(x).every((f) => TOTAL_FAILURES.has(f))

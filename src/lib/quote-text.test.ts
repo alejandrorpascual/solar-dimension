@@ -9,8 +9,8 @@ import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import {
-  askText, coverageLines, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, money, oversizeTip,
-  projectLine, questionText, ratioLabel, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
+  askText, coverageLines, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, money, oversizeTip,
+  projectLine, questionText, ratioLabel, readTotalText, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
 
@@ -70,6 +70,18 @@ describe('totalHelp', () => {
   test('a quote with no total asks for it, in both languages', () => {
     expect(totalHelp(en, 'no_total')).toBe("We didn't find the total. Enter it to compare this quote.")
     expect(totalHelp(es, 'no_total')).toBe('No encontramos el total. Escríbelo para comparar esta cotización.')
+  })
+  test('beside the empty field: the total read, and what the lines and tax add up to when it failed (AI-11)', () => {
+    const misread = { ...SAMPLE_QUOTES.solartec, total: 648 }
+    expect(readTotalText(en, misread, true)).toBe('We read $648, but its lines and tax add up to $6,480.')
+    expect(readTotalText(es, misread, true)).toBe(`Leímos ${money(es, 648, 'USD')}, pero sus líneas e impuestos suman ${money(es, 6480, 'USD')}.`)
+    expect(readTotalText(en, SAMPLE_QUOTES.solartec, false)).toBe('We read $6,480.')
+    expect(readTotalText(en, { ...SAMPLE_QUOTES.solartec, total: 0 }, false)).toBeNull()
+  })
+  test('a ranked card says when its total was typed', () => {
+    const typed = compareQuotes(KIT, DEFAULT_MUSTS, [{ ...view('solartec', 0), status: 'needs_review', totalOverride: 6000 }]).best!
+    expect(isTotalTyped(typed)).toBe(true)
+    expect(isTotalTyped(solartec)).toBe(false)
   })
   test('a quote whose amounts do not add up keeps its text', () => {
     expect(totalHelp(en, 'needs_review')).toBe("Some amounts don't add up. Correct the total to compare this quote.")

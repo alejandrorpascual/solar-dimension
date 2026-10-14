@@ -4,7 +4,7 @@ import { useLocale } from '../../hooks/useLocale'
 import { entryName, type RankedQuote } from '../../lib/quote-compare'
 import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
 import { quoteSizing, SIZED_IDS } from '../../lib/quote-sizing'
-import { coverageLines, entrySubtitle, gaugeLegend, money, oversizeTip, type CoverageKind } from '../../lib/quote-text'
+import { coverageLines, entrySubtitle, gaugeLegend, isTotalTyped, money, oversizeTip, type CoverageKind } from '../../lib/quote-text'
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
 import { QuoteActions } from './QuoteActions'
@@ -45,6 +45,7 @@ export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelet
         </div>
         <p className="qbest__total num">{money(t, best.total, best.currency)}</p>
       </div>
+      {isTotalTyped(best) && <p className="qmeta">{t.quotes.totalTyped}</p>}
       {gauges.length > 0 && (
         <div className="qbest__gauges">
           {gauges.map(({ id, s }) => <SizingGauge key={id} id={id} s={s} />)}

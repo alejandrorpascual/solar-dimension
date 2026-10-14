@@ -1,10 +1,9 @@
 import { useId, useState, type FormEvent } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { trq } from '../../i18n'
-import { hasTotal } from '../../lib/quote-checks'
 import { type UnrankedQuote } from '../../lib/quote-compare'
 import { parseTotal } from '../../lib/quote-guards'
-import { entrySubtitle, fileStatusText, totalHelp } from '../../lib/quote-text'
+import { entrySubtitle, fileStatusText, readTotalText, totalHelp } from '../../lib/quote-text'
 import { QuoteActions } from './QuoteActions'
 
 interface Props {
@@ -15,17 +14,16 @@ interface Props {
 }
 
 /**
- * A read quote that can't be ranked yet: it needs a corrected total, has no price for an option, or is in another
- * currency. Quotes still reading or that couldn't be read are ProgressCards.
+ * A read quote that can't be ranked yet: it needs a corrected total, needs reading again, has no price for an option, or
+ * is in another currency. Quotes still reading or that couldn't be read are ProgressCards.
  */
 export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Props) {
   const { t } = useLocale()
   const nameId = useId()
   const inputId = useId()
   const errorId = useId()
-  // A total of 0 is the model's way of saying the quote states none: the field starts empty rather than at 0.
-  const read = u.quote.extraction?.total
-  const [total, setTotal] = useState(hasTotal(read) ? String(read) : '')
+  // The field starts empty, beside the total that was read: saving the figure that failed the check takes typing it.
+  const [total, setTotal] = useState('')
   const [isInvalid, setInvalid] = useState(false)
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -34,6 +32,8 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
     if (n !== null) onTotal(n)
   }
   const waitsForTotal = u.reason === 'needs_review' || u.reason === 'no_total'
+  const extraction = u.quote.extraction
+  const readText = extraction === null ? null : readTotalText(t, extraction, u.reason === 'needs_review')
   // A typed total would belong to neither of a quote's systems, so a quote with options gets Read again instead of the form.
   const hasTotalForm = waitsForTotal && u.optionCount === 0
   const canReadAgain = u.quote.status === 'needs_review' && retry === 'retry'
@@ -55,6 +55,7 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
       {hasTotalForm && (
         <form className="qrow__form" onSubmit={submit}>
           <p className="qmeta" style={{ flexBasis: '100%' }}>{totalHelp(t, u.reason === 'no_total' ? 'no_total' : 'needs_review')}</p>
+          {readText && <p className="qmeta num" style={{ flexBasis: '100%' }}>{readText}</p>}
           <label htmlFor={inputId}>{t.quotes.totalInQuote}
             <input id={inputId} className="in num" inputMode="decimal" value={total} aria-invalid={isInvalid || undefined}
               aria-describedby={isInvalid ? errorId : undefined}
@@ -68,6 +69,7 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
         </form>
       )}
       {waitsForTotal && u.optionCount > 0 && <p className="qmeta">{trq(t, canReadAgain ? 'optionsReviewHelp' : 'optionsReviewHelpNoRetry', { count: u.optionCount })}</p>}
+      {u.reason === 'misread' && <p className="qmeta">{canReadAgain ? t.quotes.misreadHelp : t.quotes.misreadHelpNoRetry}</p>}
       <div className="qrow__actions">
         {canReadAgain && <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button>}
         <QuoteActions quoteId={u.quote.id} optionCount={u.optionCount} onDelete={onDelete} />

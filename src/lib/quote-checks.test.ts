@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { checkExtraction, optionPrices } from './quote-checks'
+import { checkExtraction, isFixedByTotal, linesWithTax, optionPrices } from './quote-checks'
 import { optionLines } from './quote-options'
 import { extraction, line, SAMPLE_QUOTES, warranty } from './quote-fixtures'
 import { UNLISTED_OPTION, type QuoteExtraction } from './quote-schema'
@@ -33,8 +33,33 @@ describe('checkExtraction', () => {
     }
     expect(checkExtraction(extraction([line('inverter', 1000)], { total: 1000 }))).not.toContain('no_total')
   })
-  test('skips the total check when the quote has neither subtotal nor tax', () => {
+  test('with neither subtotal nor tax, a total above the lines passes: tax or freight may be left out of them', () => {
     expect(checkExtraction(extraction([line('inverter', 1000)], { total: 5000 }))).toEqual([])
+  })
+  test('with neither subtotal nor tax, a total below the lines is a misread total (AI-07)', () => {
+    // The audit's probe E7: lines of 6,340 and a total read as 634, a dropped digit, which would win as the cheapest.
+    const lines = [line('inverter', 2000), line('battery', 3000), line('wiring', 250), line('fuse', 90), line('labor', 1000)]
+    expect(checkExtraction(extraction(lines, { total: 634 }))).toEqual(['total_mismatch'])
+    expect(checkExtraction(extraction(lines, { total: 6340 * 0.99 }))).toEqual([])
+    // An optional extra is not in the total, so it is not in the sum either.
+    expect(checkExtraction(extraction([line('inverter', 1000), line('monitoring', 500, { optional: true })], { total: 1000 }))).toEqual([])
+  })
+  test('a quote with no total is flagged once, as no total, whatever its lines add up to', () => {
+    expect(checkExtraction(extraction([line('inverter', 1000)], { total: 0 }))).toEqual(['no_total'])
+  })
+})
+
+describe('isFixedByTotal and linesWithTax', () => {
+  test('a typed total settles a missing or mismatched total, nothing else', () => {
+    expect(isFixedByTotal(extraction([line('inverter', 1000)], { total: 0 }))).toBe(true)
+    expect(isFixedByTotal(extraction([line('inverter', 1000)], { total: 100 }))).toBe(true)
+    expect(isFixedByTotal(SAMPLE_QUOTES.solartec)).toBe(true)
+    expect(isFixedByTotal(extraction([line('battery', 300, { qty: 2, unitPrice: 100 })]))).toBe(false)
+    expect(isFixedByTotal(extraction([line('other', 10, { qty: 0 })]))).toBe(false)
+    expect(isFixedByTotal(extraction([line('other', 10)], { currency: 'RD$' }))).toBe(false)
+  })
+  test('lines with tax counts the included lines and the stated tax', () => {
+    expect(linesWithTax(extraction([line('inverter', 1000), line('monitoring', 120, { optional: true })], { tax: 180 }))).toBe(1180)
   })
 })
 
