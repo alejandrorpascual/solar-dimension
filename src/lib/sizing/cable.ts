@@ -13,7 +13,7 @@ const TENTHS = 10
 /** `undersized` compares and rounds currents as whole micro-amps, so float noise in a table factor (230 × 0.58 = 133.39999999999998) changes neither its verdict nor the printed tenth. */
 const MICRO_PER_AMP = 1_000_000
 const MICRO_PER_TENTH = MICRO_PER_AMP / TENTHS
-const microAmps = (amps: number): number => Math.round(amps * MICRO_PER_AMP)
+export const microAmps = (amps: number): number => Math.round(amps * MICRO_PER_AMP)
 /** The better of the two insulation classes the cable table has. */
 const HOTTEST_INSULATION_C: InsulationC = 90
 

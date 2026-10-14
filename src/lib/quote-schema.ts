@@ -99,7 +99,9 @@ export function withOptionDefaults(x: StoredExtraction): QuoteExtraction {
   }
 }
 
-const TEXT = { short: 120, code: 12, date: 10, description: 300, source: 160, note: 300, optionLabel: 60 } as const
+/** The longest a code-like spec (a gauge, a fuse class) is kept: a longer one is cut, maybe mid-word. */
+export const CODE_LENGTH = 12
+const TEXT = { short: 120, code: CODE_LENGTH, date: 10, description: 300, source: 160, note: 300, optionLabel: 60 } as const
 const LIST = { lines: 80, warranties: 10, notes: 20 } as const
 /** The most options one quote keeps; a sixth system and its lines are dropped. */
 export const MAX_OPTIONS = 5

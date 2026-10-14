@@ -59,6 +59,14 @@ describe('quoteSizing', () => {
     const s = quoteSizing(checkItems(extraction([line('inverter', 1000), line('battery', 2000)]), KIT), KIT)
     expect(s).toEqual({ inverter: null, battery: null })
   })
+  test('is null for a bank whose usable energy depends on a chemistry it does not name: no one figure is the quote', () => {
+    // 4 × 12 V 200 Ah: 4.8 kWh as AGM, 8.16 kWh as LiFePO₄, either side of the 8 kWh kit. The checks show both.
+    const s = quoteSizing(checkItems(extraction([line('battery', 1, { qty: 4, specs: { batteryVolts: 12, ah: 200 } })]), KIT), KIT)
+    expect(s.battery).toBeNull()
+    // Past the kit at the lowest depth too, it has its figure, the one it is judged on.
+    const sure = quoteSizing(checkItems(extraction([line('battery', 1, { qty: 4, specs: { batteryVolts: 12, ah: 400 } })]), KIT), KIT)
+    expect(sure.battery).toMatchObject({ have: 9600 })
+  })
   test('ignores a component the user marked not included', () => {
     const s = quoteSizing(checkItems(SAMPLE_QUOTES.solartec, KIT, { inverter: 'not_included' }), KIT)
     expect(s.inverter).toBeNull()

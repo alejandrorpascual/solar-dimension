@@ -146,7 +146,7 @@ describe('itemText', () => {
 describe('items a quote mentions without enough to judge them', () => {
   const judged = (lines: Parameters<typeof extraction>[0], id: string, kit: KitNeeds = KIT) => checkItems(extraction(lines), kit).find((c) => c.id === id)!
   const wiring = (awg: string | null, qty = 1) => line('wiring', 1, { qty, specs: { awg } })
-  const fuse = (fuseAmps: number | null, qty = 1, fuseClass: string | null = null) => line('fuse', 1, { qty, specs: { fuseAmps, fuseClass } })
+  const fuse = (fuseAmps: number | null, qty = 1, fuseClass: string | null = 'T') => line('fuse', 1, { qty, specs: { fuseAmps, fuseClass } })
   test('cables and a fuse with no stated size are included, with the size to confirm, and their icon says so', () => {
     const cables = judged([wiring(null)], 'cables')
     expect(itemText(en, cables, KIT, 'USD')).toEqual({ label: 'Included', detail: 'Size not stated' })
@@ -160,11 +160,15 @@ describe('items a quote mentions without enough to judge them', () => {
     expect(itemText(es, judged([wiring('1')], 'cables', kit), kit, 'USD').detail).toBe('Hacen falta 2 tramos de esta medida; la cotización no dice cuántos')
   })
   test('a fuse of another class, one that needs parallel runs, and too few fuses each say what is open', () => {
-    expect(itemText(en, judged([wiring('2/0'), fuse(200, 1, 'ANL')], 'fuse'), KIT, 'USD')).toEqual({ label: '200 A', detail: 'ANL fuse; your kit asks for class T' })
-    expect(itemText(es, judged([wiring('2/0'), fuse(200, 1, 'ANL')], 'fuse'), KIT, 'USD').detail).toBe('Fusible ANL; tu kit pide clase T')
+    expect(itemText(en, judged([wiring('2/0'), fuse(175, 1, 'ANL')], 'fuse'), KIT, 'USD')).toEqual({ label: '175 A', detail: 'ANL fuse; your kit asks for class T' })
+    expect(itemText(es, judged([wiring('2/0'), fuse(175, 1, 'ANL')], 'fuse'), KIT, 'USD').detail).toBe('Fusible ANL; tu kit pide clase T')
     expect(itemText(en, judged([wiring('4/0'), fuse(450)], 'fuse'), KIT, 'USD').detail).toBe("Needs 2 runs of 4/0 AWG in parallel; the quote doesn't say how many")
     const two: KitNeeds = { ...KIT, fuseCount: 2 }
-    expect(itemText(en, judged([wiring('4/0'), fuse(200)], 'fuse', two), two, 'USD').detail).toBe('Your kit lists 2 × 200 A; the quote, 1')
+    expect(itemText(en, judged([wiring('4/0'), fuse(200)], 'fuse', two), two, 'USD').detail).toBe('Your kit lists 2 × 175 A; the quote, 1')
+  })
+  test("a fuse that states no class asks for the kit's", () => {
+    expect(itemText(en, judged([wiring('2/0'), fuse(175, 1, null)], 'fuse'), KIT, 'USD')).toEqual({ label: '175 A', detail: 'Class not stated; your kit asks for class T' })
+    expect(itemText(es, judged([wiring('2/0'), fuse(175, 1, null)], 'fuse'), KIT, 'USD').detail).toBe('No indica la clase; tu kit pide clase T')
   })
   test('a fuse too big for its thin cable is short, and the gap names both', () => {
     const kit: KitNeeds = { ...KIT, fuseA: 125, cableMm2: 42.4, cableGauge: '1 AWG' }
@@ -200,10 +204,10 @@ describe('items a quote mentions without enough to judge them', () => {
     ])
   })
   describe('reason, ask and question', () => {
-    const good = [line('inverter', 2000, { specs: { watts: 5000, surgeWatts: 10000 } }), line('battery', 3000, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }), fuse(200, 1, 'T'), line('labor', 1000)]
-    const rank = (lines: Parameters<typeof extraction>[0]) => {
+    const good = [line('inverter', 2000, { specs: { watts: 5000, surgeWatts: 10000 } }), line('battery', 3000, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }), fuse(175, 1, 'T'), line('labor', 1000)]
+    const rank = (lines: Parameters<typeof extraction>[0], kit: KitNeeds = KIT) => {
       const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: 'Luz', status: 'ready', extraction: extraction(lines), overrides: {}, totalOverride: null, createdAt: 0 }
-      const verdict = compareQuotes(KIT, DEFAULT_MUSTS, [quote])
+      const verdict = compareQuotes(kit, DEFAULT_MUSTS, [quote])
       return { r: verdict.ranked[0]!, verdict }
     }
     test('a quote that leaves something out and something open says both', () => {
@@ -223,7 +227,10 @@ describe('items a quote mentions without enough to judge them', () => {
       const ask = (lines: Parameters<typeof extraction>[0]) => questionText(en, rank(lines).r)
       const noCharger = good.map((l) => (l.kind === 'inverter' ? { ...l, specs: { ...l.specs, hasCharger: true } } : l))
       const withFuse = (f: ReturnType<typeof fuse>, w = wiring('2/0')) => [...noCharger.filter((l) => l.kind !== 'fuse'), f, w]
-      expect(ask(withFuse(fuse(200, 1, 'ANL')))).toBe('Hi Luz, could you confirm a class T fuse instead of ANL?')
+      expect(ask(withFuse(fuse(175, 1, 'ANL')))).toBe('Hi Luz, could you confirm a class T fuse instead of ANL?')
+      expect(questionText(en, rank(withFuse(fuse(175, 1, 'T')), { ...KIT, fuseClass: 'ANL' }).r)).toBe('Hi Luz, could you confirm a class ANL fuse instead of T?')
+      expect(ask(withFuse(fuse(175, 1, null)))).toBe('Hi Luz, could you confirm that the fuse is class T?')
+      expect(questionText(es, rank(withFuse(fuse(175, 1, null))).r)).toBe('Hola, Luz: ¿podría confirmar que el fusible es clase T?')
       expect(ask(withFuse(fuse(450), wiring('4/0')))).toBe('Hi Luz, could you confirm that the 450 A fuse protects 2 runs of 4/0 AWG in parallel?')
       expect(ask(withFuse(fuse(null)))).toBe('Hi Luz, could you confirm the rating of the fuse?')
       const unsure = noCharger.map((l) => (l.kind === 'battery' ? { ...l, qty: 4, specs: { ...l.specs, kWh: null, batteryVolts: 12, ah: 200, chemistry: null } } : l))

@@ -50,7 +50,11 @@ function sizing(c: ItemCheck | undefined, have: number | undefined, need: number
   return { have, need, ratio, zone: sizingZone(ratio), pos: gaugePos(ratio) }
 }
 
-/** The inverter's running watts and the battery's usable energy against the kit. A component that isn't stated, or isn't included, is null. */
+/**
+ * The inverter's running watts and the battery's usable energy against the kit. A component that isn't stated, or
+ * isn't included, is null. So is a bank whose verdict rests on a chemistry it doesn't name: its usable energy is a
+ * range, which its checks show, and any one figure on the bar would claim a size the quote doesn't state.
+ */
 export function quoteSizing(items: readonly ItemCheck[], kit: KitNeeds): QuoteSizing {
   const inverter = items.find((c) => c.id === 'inverter')
   const battery = items.find((c) => c.id === 'battery')

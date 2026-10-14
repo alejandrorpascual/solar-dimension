@@ -1,8 +1,8 @@
 import { CHEMISTRIES, GAUGES, SIZING, type ChemistryId, type FuseClass } from './catalog'
 import { lineSize, MM2_TOLERANCE, tableGauge, type CableSize } from './quote-gauge'
-import type { LineKind, QuoteExtraction, QuoteLine } from './quote-schema'
+import { CODE_LENGTH, type LineKind, type QuoteExtraction, type QuoteLine } from './quote-schema'
 import type { SizingResult } from './sizing'
-import { correctedAmpacity } from './sizing/cable'
+import { correctedAmpacity, microAmps } from './sizing/cable'
 
 export const ITEM_IDS = ['inverter', 'battery', 'charger', 'wifi', 'cables', 'fuse', 'installation', 'warranty'] as const
 export type ItemId = (typeof ITEM_IDS)[number]
@@ -37,8 +37,8 @@ export function setOverride(o: Overrides, item: ItemId, value: Override | null):
 export interface KitNeeds {
   runningW: number; surgeW: number; usableWh: number; chemistry: ChemistryId
   cableMm2: number; cableGauge: string; fuseA: number
-  /** The main cable's runs, and the design current they carry together (continuous × the NEC factor). */
-  cableRuns: number; designA: number
+  /** The main cable: its runs, the area of one, and the design current they carry together (continuous × the NEC factor). */
+  cableRuns: number; mainMm2: number; designA: number
   /** What one run of each table gauge may carry at this kit's site, by the engine's own correction: keyed by `Gauge.awg`. */
   ampacityByGauge: Readonly<Record<string, number>>
   /** How many main fuses the kit lists, each of `fuseA`, and their class. */
@@ -55,7 +55,7 @@ export function kitNeeds(r: SizingResult): KitNeeds {
   return {
     runningW: r.runningW, surgeW: r.surgeW, usableWh: r.loadWh / SIZING.INVERTER_EFF, chemistry: r.chemistry,
     cableMm2: cable.mm2, cableGauge: cable.gauge, fuseA: r.cable.fuseA,
-    cableRuns: r.cable.runs, designA: r.cable.designA,
+    cableRuns: r.cable.runs, mainMm2: r.cable.mm2, designA: r.cable.designA,
     ampacityByGauge: Object.fromEntries(GAUGES.map((g) => [g.awg, correctedAmpacity(g, r.cable, r.cable.conductors)])),
     fuseCount: r.fuse.count, fuseClass: r.fuse.class,
   }
@@ -77,8 +77,8 @@ export interface ItemFacts {
   runs?: number; runsUnstated?: boolean
   /** A fuse rated above what its cable carries (`maxA`, one run at this site). */
   maxA?: number
-  /** The fuse class the quote states, when it isn't the kit's. */
-  fuseClass?: string
+  /** The fuse class the quote states when it isn't the kit's, or `classUnstated` when it states none: `kitClass` is to confirm. */
+  fuseClass?: string; classUnstated?: boolean; kitClass?: FuseClass
   /** How many main fuses the quote lists, when together they carry less than the kit's. */
   fuses?: number
   optionalPrice?: number
@@ -89,6 +89,13 @@ export interface ItemCheck { id: ItemId; status: ItemStatus; facts: ItemFacts; s
 
 /** A DC run is a positive and a negative lead: what a wiring line's quantity is counted in. */
 const LEADS_PER_RUN = 2
+/**
+ * A length written on a wiring line ("10 m", "12 mtrs", "50 ft", "precio por metro"): its quantity is then metres or
+ * feet, not leads. Pesos written "M.N." or "m/n" are no length.
+ */
+const LENGTH = /\d\s*(?:m(?![./]\p{L})|mts?|mtrs?|ml|metros?|meters?|metres?|ft|feet|pies?)(?!\p{L})|(?<!\p{L})(?:metros?|meters?|metres?|mtrs?)(?!\p{L})/iu
+/** Wiring lines that are no cable, or not the main one: lugs, connectors, conduit, the ground. */
+const FITTINGS = /terminal|conector|connector|zapata|\blugs?\b|mc4|conduit|tubo|canaleta|ducto|tierra|ground/i
 /** NEC 310.10(G): only conductors of 1/0 and larger may run in parallel, so only they can share one fuse. */
 const PARALLEL_MIN_AWG = '1/0 AWG'
 const PARALLEL_MIN_MM2 = GAUGES.find((g) => g.awg === PARALLEL_MIN_AWG)!.mm2
@@ -215,53 +222,86 @@ function thickest(lines: readonly QuoteLine[]): { line: QuoteLine; size: CableSi
   }, null)
 }
 
+const lineText = (l: QuoteLine): string => `${l.description} ${l.source.text}`
+/** A wiring line with no readable size that could be the main cable: not a lug, a connector, conduit or the ground. */
+const isOpenCable = (l: QuoteLine): boolean => lineSize(l.specs) === null && !FITTINGS.test(lineText(l))
+
+/**
+ * The cable a quote's verdict reads: its thickest wiring line whose size can be read. A cable without a readable size
+ * could be the main one, so while one is left a thinner size beside it (a solar or AC cable) is no main cable: null.
+ */
+function mainCable(lines: readonly QuoteLine[], kit: KitNeeds): { line: QuoteLine; size: CableSize } | null {
+  const top = thickest(lines)
+  if (top === null || top.size.mm2 >= kit.cableMm2 * MM2_TOLERANCE) return top
+  return lines.some(isOpenCable) ? null : top
+}
+
 /** What one run of a quoted size carries at the kit's site, from the table gauge it matches; null below the table. */
 function runAmpacity(mm2: number, kit: KitNeeds): number | null {
   const g = tableGauge(mm2)
   return g === null ? null : kit.ampacityByGauge[g.awg] ?? null
 }
 
-/** Runs of a cable that carries `ampacity` that `amps` needs: one when one run carries it all. */
-const runsFor = (amps: number, ampacity: number): number => Math.max(1, Math.ceil(amps / ampacity))
+/**
+ * Runs of a cable that carries `ampacity` that `amps` needs: one when one run carries it all. Compared in whole
+ * micro-amps, as the engine does, so float noise in a table factor (85 × 0.7 = 59.49999999999999) asks for no extra run.
+ */
+const runsFor = (amps: number, ampacity: number): number => Math.max(1, Math.ceil(microAmps(amps) / microAmps(ampacity)))
 
-/** Whether the wiring lines of at least this size add up to the leads of `runs` runs. One run needs no count. */
-function hasLeads(lines: readonly QuoteLine[], mm2: number, runs: number): boolean {
-  if (runs <= 1) return true
-  const leads = sum(lines.filter((l) => (lineSize(l.specs)?.mm2 ?? 0) >= mm2 * MM2_TOLERANCE), (l) => l.qty)
-  return leads >= runs * LEADS_PER_RUN
+/** A wiring line's quantity counts its leads only when it is a whole number and the line writes no length. */
+const isLeadCount = (l: QuoteLine): boolean => Number.isInteger(l.qty) && !LENGTH.test(lineText(l))
+
+/** The runs the counted leads of at least this size make. */
+function runsOf(lines: readonly QuoteLine[], mm2: number): number {
+  const counted = lines.filter((l) => isLeadCount(l) && (lineSize(l.specs)?.mm2 ?? 0) >= mm2 * MM2_TOLERANCE)
+  return Math.floor(sum(counted, (l) => l.qty) / LEADS_PER_RUN)
 }
 
 /**
  * Thinner than the kit's is short, and no readable size leaves it to confirm. A size that the kit's current needs more
- * than one run of passes only when the quote's quantity reaches their leads: a wiring line's quantity may be pieces,
- * metres or one lot, so a count never fails a quote, it leaves it to confirm.
+ * than one run of passes only when the quote counts their leads, or the leads of the kit's own main cable in its own
+ * runs beside string leads thicker than it. A wiring line's quantity may be pieces, metres or one lot, so a count never
+ * fails a quote, it leaves it to confirm, and a quantity that may be a length counts no leads.
  */
 function checkCables(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const lines = ofKind(x, 'wiring', false)
   if (lines.length === 0) return absent('cables', x, 'wiring')
-  const top = thickest(lines)
-  if (top === null) return check('cables', 'unknown', { sizeUnknown: true }, sourceOf(lines))
+  const top = mainCable(lines, kit)
+  if (top === null) return check('cables', 'unknown', { sizeUnknown: true }, sourceOf([...lines.filter(isOpenCable), ...lines]))
   const gauge = top.size.label
   if (top.size.mm2 < kit.cableMm2 * MM2_TOLERANCE) return check('cables', 'short', { gauge }, top.line.source)
   const ampacity = runAmpacity(top.size.mm2, kit)
   const runs = ampacity === null ? 1 : runsFor(kit.designA, ampacity)
   if (runs === 1) return check('cables', 'ok', { gauge }, top.line.source)
-  const isCounted = hasLeads(lines, top.size.mm2, runs)
+  const isCounted = runsOf(lines, top.size.mm2) >= runs || runsOf(lines, kit.mainMm2) >= kit.cableRuns
   return check('cables', isCounted ? 'ok' : 'unknown', { gauge, runs, ...(isCounted ? {} : { runsUnstated: true }) }, top.line.source)
 }
 
-/** The class letters a quote writes ("T", "Clase T", "class-T"), upper-cased, without the word for class. */
-function fuseClassOf(written: string | null): string | null {
-  if (written === null) return null
-  const letters = written.toUpperCase().replace(/\b(CLASS|CLASE|TIPO|TYPE)\b/g, '').replace(/[^A-Z0-9]/g, '')
-  return letters === '' ? null : letters
+/** "T" in "Clase T", "class-T" or "clase tipo T". */
+const CLASS_WORD = /\bCLAS[SE]\b(?:\W+(?:TIPO|TYPE)\b)?\W*([A-Z0-9]+)/
+/** "ANL" in "Tipo ANL": only in the class field, since a line's words use "tipo" for any kind ("tipo cartucho"). */
+const TYPE_WORD = /\b(?:TIPO|TYPE)\b(?:\W+CLAS[SE]\b)?\W*([A-Z0-9]+)/
+/** Words a class field may carry that name no class. */
+const NO_CLASS = /\b(?:CLASS|CLASE|TIPO|TYPE|FUSIBLES?|FUSES?)\b/g
+
+/**
+ * The class a quote states for a fuse, upper-cased: named in its class field ("Clase T", "Tipo ANL") or in its line's
+ * words ("Fusible clase T 200 A"), else the field's own letters ("T", "ANL", "T (JLLN)"). The field is cut to
+ * CODE_LENGTH characters, so a field that long may end in a word cut short ("Fusible clas"), which is dropped.
+ */
+function fuseClassOf(l: QuoteLine): string | null {
+  const field = (l.specs.fuseClass ?? '').toUpperCase()
+  const named = CLASS_WORD.exec(field)?.[1] ?? TYPE_WORD.exec(field)?.[1] ?? CLASS_WORD.exec(lineText(l).toUpperCase())?.[1]
+  if (named !== undefined) return named
+  const words = field.replace(NO_CLASS, ' ').match(/[A-Z0-9]+/g) ?? []
+  return (field.length >= CODE_LENGTH ? words.slice(0, -1) : words)[0] ?? null
 }
 
 /**
  * Below the kit's rating is short. So is a fuse above what its cable carries (the engine's own rule) when that cable
- * is too thin to run in parallel; on a cable that may, the cable must be enough runs. A class other than the kit's, or
- * fewer fuses than the kit's carry together, leaves it to confirm. Fuses rated under the kit's protect something else,
- * a charge controller or a string, so they are not counted.
+ * is too thin to run in parallel; on a cable that may, the cable must be enough runs. A class other than the kit's, no
+ * class stated, or fewer fuses than the kit's carry together, leaves it to confirm. Fuses rated under the kit's protect
+ * something else, a charge controller or a string, so they are not counted.
  */
 function checkFuse(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const lines = ofKind(x, 'fuse', false)
@@ -272,18 +312,20 @@ function checkFuse(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const amps = top.specs.fuseAmps ?? 0
   if (amps < kit.fuseA) return check('fuse', 'short', { amps }, top.source)
   const wiring = ofKind(x, 'wiring', false)
-  const cable = thickest(wiring)
+  const cable = mainCable(wiring, kit)
   const ampacity = cable === null ? null : runAmpacity(cable.size.mm2, kit)
   // A fuse no larger than the kit's own never fails for its size, even where the kit's own cable falls short of it.
   if (cable !== null && ampacity !== null && amps > Math.max(ampacity, kit.fuseA)) {
     const gauge = cable.size.label
     if (cable.size.mm2 < PARALLEL_MIN_MM2 * MM2_TOLERANCE) return check('fuse', 'short', { amps, gauge, maxA: Math.round(ampacity) }, top.source)
     const runs = runsFor(amps, ampacity)
-    if (!hasLeads(wiring, cable.size.mm2, runs)) return check('fuse', 'unknown', { amps, gauge, runs, runsUnstated: true }, top.source)
+    if (runsOf(wiring, cable.size.mm2) < runs) return check('fuse', 'unknown', { amps, gauge, runs, runsUnstated: true }, top.source)
   }
   const main = rated.filter((l) => (l.specs.fuseAmps ?? 0) >= kit.fuseA)
-  const otherClass = main.map((l) => fuseClassOf(l.specs.fuseClass)).find((c): c is string => c !== null && c !== kit.fuseClass)
-  if (otherClass !== undefined) return check('fuse', 'unknown', { amps, fuseClass: otherClass }, top.source)
+  const classes = main.map(fuseClassOf)
+  const otherClass = classes.find((c): c is string => c !== null && c !== kit.fuseClass)
+  if (otherClass !== undefined) return check('fuse', 'unknown', { amps, fuseClass: otherClass, kitClass: kit.fuseClass }, top.source)
+  if (classes.includes(null)) return check('fuse', 'unknown', { amps, classUnstated: true, kitClass: kit.fuseClass }, top.source)
   const carriesA = sum(main, (l) => (l.specs.fuseAmps ?? 0) * l.qty)
   if (carriesA < kit.fuseA * kit.fuseCount) return check('fuse', 'unknown', { amps, fuses: sum(main, (l) => l.qty) }, top.source)
   return check('fuse', 'ok', { amps }, top.source)

@@ -82,7 +82,8 @@ function unknownGroups(r: RankedQuote): { unmentioned: ItemId[]; unclear: ItemCh
 /** What is left open about a fuse the quote mentions, as a phrase to confirm. */
 function fuseConfirm(t: Dictionary, f: ItemFacts): string {
   if (f.sizeUnknown) return t.quotes.confirmFuseRating
-  if (f.fuseClass !== undefined) return trq(t, 'confirmFuseClass', { class: f.fuseClass })
+  if (f.fuseClass !== undefined) return trq(t, 'confirmFuseClass', { class: f.fuseClass, kitClass: f.kitClass ?? '' })
+  if (f.classUnstated) return trq(t, 'confirmFuseClassUnstated', { kitClass: f.kitClass ?? '' })
   if (f.runsUnstated) return trq(t, 'confirmFuseRuns', { amps: f.amps ?? 0, runs: f.runs ?? 0, gauge: f.gauge ?? '' })
   return trq(t, 'confirmFuseCount', { amps: f.amps ?? 0 })
 }
@@ -231,6 +232,7 @@ function batteryOpen(t: Dictionary, f: ItemFacts): string {
 function fuseOpen(t: Dictionary, f: ItemFacts, kit: KitNeeds): string {
   if (f.sizeUnknown) return t.quotes.sizeNotStated
   if (f.fuseClass !== undefined) return trq(t, 'fuseOtherClass', { class: f.fuseClass, kitClass: kit.fuseClass })
+  if (f.classUnstated) return trq(t, 'fuseClassNotStated', { kitClass: kit.fuseClass })
   if (f.runsUnstated) return trq(t, 'fuseNeedsRuns', { runs: f.runs ?? 0, gauge: f.gauge ?? '' })
   return trq(t, 'kitListsFuses', { count: kit.fuseCount, amps: kit.fuseA, fuses: f.fuses ?? 0 })
 }
