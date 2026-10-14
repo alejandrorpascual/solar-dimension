@@ -149,6 +149,23 @@ describe('createQuotePoller', () => {
     expect(state.outcomes).toEqual([])
   })
 
+  test('loads and marks for the user it was set to, so the server can refuse a page loaded for another account', async () => {
+    const { poller, deps, loads, marks } = setup()
+    poller.setUser('user-ana')
+    const polled = poller.refresh()
+    const marking = poller.markSeen('p1')
+    expect(deps.load).toHaveBeenLastCalledWith('user-ana')
+    expect(deps.markSeen).toHaveBeenLastCalledWith('p1', 'user-ana')
+    loads[0]!.resolve([])
+    marks[0]!.resolve({ ok: true })
+    await flush()
+    poller.setUser('user-bea')
+    const next = poller.refresh()
+    expect(deps.load).toHaveBeenLastCalledWith('user-bea')
+    for (const load of loads) load.resolve([])
+    await Promise.all([polled, marking, next])
+  })
+
   test('setting the same user again keeps the poll in flight', async () => {
     const { poller, loads, state } = setup()
     poller.setUser('u1')

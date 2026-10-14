@@ -15,7 +15,7 @@ import type { Project } from '../../lib/schema'
 import { PublicError } from '../../lib/server-error'
 import { loadCatalog } from '../catalog'
 import { toProject } from '../projects'
-import { requireQuoteUser, requireUserId } from '../session'
+import { AccountClaim, requireAccount, requireQuoteUser } from '../session'
 import { defaultStorage, emptyQuoteTrash } from './deps'
 import { kickQuotes } from './kick'
 import { dailyBudget, insertWithinLimits, quoteCounts, retryWithinBudget } from './limits'
@@ -34,6 +34,18 @@ function toJobQuote(r: QuoteRow): JobQuote {
     retries: r.retries,
   }
 }
+
+/**
+ * Every call names the account its page was loaded for (`account`, see requireAccount), so a tab left open across a
+ * sign-out and another account's sign-in can neither read nor change the quotes of the account now signed in.
+ */
+const claiming = { account: AccountClaim }
+const ListInput = z.object(claiming).optional()
+const ProjectInput = z.object({ ...claiming, projectId: ProjectId })
+const QuoteInput = z.object({ ...claiming, quoteId: QuoteId })
+const OverrideClaim = OverrideInput.extend(claiming)
+const TotalClaim = TotalInput.extend(claiming)
+const MustClaim = MustInput.extend(claiming)
 
 const ownProject = (userId: string, projectId: string) => and(eq(projects.userId, userId), eq(projects.id, projectId))
 const ownQuote = (userId: string, quoteId: string) => and(eq(quotes.id, quoteId), eq(quotes.userId, userId))
@@ -54,10 +66,10 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     if (!(d instanceof FormData)) throw new Error('Expected FormData')
     const file = d.get('file')
     if (!(file instanceof File)) throw new Error('Expected a file')
-    return { projectId: ProjectId.parse(d.get('projectId')), file }
+    return { account: AccountClaim.parse(d.get('account') ?? undefined), projectId: ProjectId.parse(d.get('projectId')), file }
   })
   .handler(async ({ data }): Promise<UploadResult> => {
-    const access = await requireQuoteUser()
+    const access = await requireQuoteUser(data.account)
     if (!access.ok) return reject(access.rejection)
     const { userId } = access
     const basic = checkBasics(data.file)
@@ -96,30 +108,32 @@ export const uploadQuote = createServerFn({ method: 'POST' })
   })
 
 /** Every project of the user that has quotes, for the tray and the cards. Also re-kicks jobs that went quiet. */
-export const getQuoteJobs = createServerFn({ method: 'GET' }).handler(async (): Promise<ProjectJobs[]> => {
-  const userId = await requireUserId()
-  const stale = await recoverStaleQuotes(userId)
-  if (stale.length) kickQuotes(stale)
-  const rows = await db.select().from(quotes).where(eq(quotes.userId, userId)).orderBy(quotes.createdAt)
-  if (rows.length === 0) return []
-  const ids = [...new Set(rows.map((r) => r.projectId))]
-  const [projectRows, settingRows, catalog] = await Promise.all([
-    db.select().from(projects).where(and(eq(projects.userId, userId), inArray(projects.id, ids))),
-    db.select().from(quoteSettings).where(and(eq(quoteSettings.userId, userId), inArray(quoteSettings.projectId, ids))),
-    loadCatalog(),
-  ])
-  return projectRows.map((p) => {
-    const result = computeProject(toProject(p), catalog)
-    const musts = resolveMusts(settingRows.find((s) => s.projectId === p.id)?.musts)
-    const own = rows.filter((q) => q.projectId === p.id).map(toJobQuote)
-    return summarizeProject(p.id, p.name, own, result.empty ? null : kitNeeds(result), musts)
+export const getQuoteJobs = createServerFn({ method: 'GET' })
+  .validator((d: unknown) => ListInput.parse(d))
+  .handler(async ({ data }): Promise<ProjectJobs[]> => {
+    const userId = await requireAccount(data?.account)
+    const stale = await recoverStaleQuotes(userId)
+    if (stale.length) kickQuotes(stale)
+    const rows = await db.select().from(quotes).where(eq(quotes.userId, userId)).orderBy(quotes.createdAt)
+    if (rows.length === 0) return []
+    const ids = [...new Set(rows.map((r) => r.projectId))]
+    const [projectRows, settingRows, catalog] = await Promise.all([
+      db.select().from(projects).where(and(eq(projects.userId, userId), inArray(projects.id, ids))),
+      db.select().from(quoteSettings).where(and(eq(quoteSettings.userId, userId), inArray(quoteSettings.projectId, ids))),
+      loadCatalog(),
+    ])
+    return projectRows.map((p) => {
+      const result = computeProject(toProject(p), catalog)
+      const musts = resolveMusts(settingRows.find((s) => s.projectId === p.id)?.musts)
+      const own = rows.filter((q) => q.projectId === p.id).map(toJobQuote)
+      return summarizeProject(p.id, p.name, own, result.empty ? null : kitNeeds(result), musts)
+    })
   })
-})
 
 export const getProjectQuotes = createServerFn({ method: 'GET' })
-  .validator((d: unknown) => z.object({ projectId: ProjectId }).parse(d))
+  .validator((d: unknown) => ProjectInput.parse(d))
   .handler(async ({ data }): Promise<ProjectQuotes> => {
-    const userId = await requireUserId()
+    const userId = await requireAccount(data.account)
     const [p] = await db.select().from(projects).where(ownProject(userId, data.projectId)).limit(1)
     if (!p) throw notFound()
     const [rows, settings] = await Promise.all([
@@ -137,9 +151,9 @@ async function updateOwn(userId: string, quoteId: string, set: PgUpdateSetSource
 }
 
 export const setQuoteOverride = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => OverrideInput.parse(d))
+  .validator((d: unknown) => OverrideClaim.parse(d))
   .handler(async ({ data }) => {
-    const userId = await requireUserId()
+    const userId = await requireAccount(data.account)
     const overrides = data.value === null
       ? sql`${quotes.overrides} - ${data.item}::text`
       : sql`${quotes.overrides} || jsonb_build_object(${data.item}::text, ${data.value}::text)`
@@ -148,9 +162,9 @@ export const setQuoteOverride = createServerFn({ method: 'POST' })
   })
 
 export const setQuoteTotal = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => TotalInput.parse(d))
+  .validator((d: unknown) => TotalClaim.parse(d))
   .handler(async ({ data }) => {
-    await updateOwn(await requireUserId(), data.quoteId, { totalOverride: data.total })
+    await updateOwn(await requireAccount(data.account), data.quoteId, { totalOverride: data.total })
     return { ok: true as const }
   })
 
@@ -159,9 +173,9 @@ export const setQuoteTotal = createServerFn({ method: 'POST' })
  * each other whatever order they land in. A first save starts from the defaults.
  */
 export const setQuoteMust = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => MustInput.parse(d))
+  .validator((d: unknown) => MustClaim.parse(d))
   .handler(async ({ data }) => {
-    const userId = await requireUserId()
+    const userId = await requireAccount(data.account)
     const [p] = await db.select({ id: projects.id }).from(projects).where(ownProject(userId, data.projectId)).limit(1)
     if (!p) throw new PublicError('Not found')
     const merged = sql`coalesce(${quoteSettings.musts}, '{}'::jsonb) || jsonb_build_object(${data.item}::text, ${data.value}::boolean)`
@@ -172,9 +186,9 @@ export const setQuoteMust = createServerFn({ method: 'POST' })
   })
 
 export const markQuotesSeen = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => z.object({ projectId: ProjectId }).parse(d))
+  .validator((d: unknown) => ProjectInput.parse(d))
   .handler(async ({ data }) => {
-    const userId = await requireUserId()
+    const userId = await requireAccount(data.account)
     await db.update(quotes).set({ seenAt: new Date() }).where(and(
       eq(quotes.userId, userId), eq(quotes.projectId, data.projectId), isNull(quotes.seenAt), inArray(quotes.status, [...FINISHED]),
     ))
@@ -182,9 +196,9 @@ export const markQuotesSeen = createServerFn({ method: 'POST' })
   })
 
 export const retryQuote = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => z.object({ quoteId: QuoteId }).parse(d))
+  .validator((d: unknown) => QuoteInput.parse(d))
   .handler(async ({ data }): Promise<RetryResult> => {
-    const access = await requireQuoteUser()
+    const access = await requireQuoteUser(data.account)
     if (!access.ok) return access
     // Retries are free against the monthly limit, so the cap is checked in the update itself: parallel calls can't pass it.
     // Each one takes a read from the daily budget in the same statement, and a spent budget leaves the quote as it was.
@@ -196,9 +210,9 @@ export const retryQuote = createServerFn({ method: 'POST' })
   })
 
 export const deleteQuote = createServerFn({ method: 'POST' })
-  .validator((d: unknown) => z.object({ quoteId: QuoteId }).parse(d))
+  .validator((d: unknown) => QuoteInput.parse(d))
   .handler(async ({ data }) => {
-    const userId = await requireUserId()
+    const userId = await requireAccount(data.account)
     const own = ownQuote(userId, data.quoteId)
     // The file is trashed with the row, in one transaction, so a storage failure below leaves it for the sweep.
     const [, rows] = await db.batch([trashQuoteFiles(own), db.delete(quotes).where(own).returning({ path: quotes.blobPathname })])

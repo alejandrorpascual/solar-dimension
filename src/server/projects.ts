@@ -4,34 +4,17 @@ import { z } from 'zod'
 import { db } from '../db/client'
 import { projects, quoteFileTrash, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { clampStamp, importable, isForAccount } from '../lib/sync'
+import { clampStamp, importable } from '../lib/sync'
 import { emptyQuoteTrash } from './quotes/deps'
 import { lockUserQuotes } from './quotes/limits'
 import { trashQuoteFiles } from './quotes/repo'
-import { requireUserId } from './session'
+import { AccountClaim, requireAccount } from './session'
 
 const MAX_BATCH = 200
 
-/**
- * `account` is the account the page that sends the request was loaded for. A page built before this field existed
- * does not send it.
- */
-const Account = z.string().min(1).optional()
-const ProjectsInput = z.object({ account: Account, projects: z.array(ProjectSchema).max(MAX_BATCH) })
-const IdsInput = z.object({ account: Account, ids: z.array(z.string().min(1)).max(MAX_BATCH) })
-const ListInput = z.object({ account: Account }).optional()
-
-/**
- * The signed-in account, refused when it is not the one the page was loaded for. A tab left open across a sign-out
- * and another account's sign-in still shows the first account's projects and sends its edits with the second
- * account's cookie: without this they would be saved into the second account, over its own. Reading is refused as
- * well: that tab would show the second account's list and keep it in the browser as the first account's.
- */
-async function requireAccount(claimed: string | undefined): Promise<string> {
-  const userId = await requireUserId()
-  if (!isForAccount(claimed, userId)) throw new Error('This page was loaded for another account')
-  return userId
-}
+const ProjectsInput = z.object({ account: AccountClaim, projects: z.array(ProjectSchema).max(MAX_BATCH) })
+const IdsInput = z.object({ account: AccountClaim, ids: z.array(z.string().min(1)).max(MAX_BATCH) })
+const ListInput = z.object({ account: AccountClaim }).optional()
 
 export function toProject(row: typeof projects.$inferSelect): Project {
   return ProjectSchema.parse({

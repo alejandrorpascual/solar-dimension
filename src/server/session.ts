@@ -1,6 +1,7 @@
 import { createServerFn, createServerOnlyFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { and, eq } from 'drizzle-orm'
+import { z } from 'zod'
 import { account as accountTable, user as userTable } from '../db/auth-schema'
 import { db } from '../db/client'
 import { auth } from '../lib/auth'
@@ -8,6 +9,7 @@ import { googleProvider } from '../lib/auth-google'
 import { canUseQuotes } from '../lib/quote-access'
 import type { Rejection } from '../lib/quote-limits'
 import { PublicError } from '../lib/server-error'
+import { isForAccount } from '../lib/sync'
 
 /** `canUseQuotes` is decided on the server, so the trusted-email list never reaches the browser. */
 export interface SessionUser { id: string; email: string; name: string; googleLinked: boolean; canUseQuotes: boolean }
@@ -47,13 +49,34 @@ export const requireUserId = createServerOnlyFn(async (): Promise<string> => {
   return session.user.id
 })
 
+/**
+ * The account the page that sends a request was loaded for, its `account` field. A page built before requests carried
+ * it does not send it.
+ */
+export const AccountClaim = z.string().min(1).optional()
+
+/**
+ * The signed-in account, refused when it is not the one the page was loaded for. A tab left open across a sign-out
+ * and another account's sign-in still shows the first account's projects and quotes, and sends its requests with the
+ * second account's cookie: without this its edits and uploads would land in the second account, on any project whose
+ * id both hold (every account made before projects took ids of their own has a "p1"). Reading is refused as well: that
+ * tab would show the second account's data as the first account's. The refusal is an answer, not a failure: such a tab
+ * keeps polling until it is reloaded.
+ */
+export const requireAccount = createServerOnlyFn(async (claimed: string | undefined): Promise<string> => {
+  const userId = await requireUserId()
+  if (!isForAccount(claimed, userId)) throw new PublicError('This page was loaded for another account')
+  return userId
+})
+
 export type QuoteUser = { ok: true; userId: string } | { ok: false; rejection: Rejection }
 
 /**
- * The signed-in user, for the calls that start model reads (upload, retry). Throws when signed out, like
- * requireUserId; an account that may not start reads gets a refusal the client shows, as other upload limits are.
+ * The signed-in account, for the calls that start model reads (upload, retry). Throws when signed out or when the page
+ * was loaded for another account, like requireAccount; an account that may not start reads gets a refusal the client
+ * shows, as other upload limits are.
  */
-export const requireQuoteUser = createServerOnlyFn(async (): Promise<QuoteUser> => {
-  const userId = await requireUserId()
+export const requireQuoteUser = createServerOnlyFn(async (claimed: string | undefined): Promise<QuoteUser> => {
+  const userId = await requireAccount(claimed)
   return (await quotesAllowed(userId)) ? { ok: true, userId } : { ok: false, rejection: { code: 'unverified' } }
 })

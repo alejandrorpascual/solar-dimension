@@ -4,6 +4,7 @@ import { checkBasics, type Rejection } from '../lib/quote-limits'
 import { createSingleFlight } from '../lib/single-flight'
 import { uploadQuote } from '../server/quotes/api'
 import { useQuoteJobs } from './useQuoteJobs'
+import { useRootData } from './useRootData'
 
 export interface UploadItem {
   key: string; name: string
@@ -12,11 +13,13 @@ export interface UploadItem {
 }
 type Outcome = Pick<UploadItem, 'state' | 'id' | 'rejection'>
 
-async function uploadOne(projectId: string, raw: File): Promise<Outcome> {
+/** `account` is the account the page was loaded for (see requireAccount); undefined only when nobody is signed in. */
+async function uploadOne(account: string | undefined, projectId: string, raw: File): Promise<Outcome> {
   const file = await prepareQuoteFile(raw)
   const basic = checkBasics(file)
   if (basic) return { state: 'rejected', id: null, rejection: basic }
   const form = new FormData()
+  if (account) form.set('account', account)
   form.set('projectId', projectId)
   form.set('file', file)
   try {
@@ -34,6 +37,7 @@ async function uploadOne(projectId: string, raw: File): Promise<Outcome> {
  */
 export function useQuoteUpload(projectId: string) {
   const { refresh } = useQuoteJobs()
+  const account = useRootData().user?.id
   const [items, setItems] = useState<UploadItem[]>([])
   const [isOpen, setOpen] = useState(false)
   const [isUploading, setUploading] = useState(false)
@@ -44,12 +48,12 @@ export function useQuoteUpload(projectId: string) {
     setItems(initial)
     setOpen(true)
     for (const [i, file] of files.entries()) {
-      const outcome = await uploadOne(projectId, file)
+      const outcome = await uploadOne(account, projectId, file)
       const key = initial[i]?.key
       setItems((prev) => prev.map((it) => (it.key === key ? { ...it, ...outcome } : it)))
       if (outcome.state === 'accepted') await refresh()
     }
-  }, [projectId, refresh])
+  }, [account, projectId, refresh])
   const start = useCallback(async (files: readonly File[]) => {
     if (!gate.current.tryEnter()) return
     setUploading(true)

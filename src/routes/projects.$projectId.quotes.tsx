@@ -20,9 +20,14 @@ export const Route = createFileRoute('/projects/$projectId/quotes')({
     if (!(await getSession())) throw redirect({ to: '/login' })
   },
   // The tick orders this read against the page's saves. Data read on the server predates every edit on the page: 0.
-  loader: async ({ params }): Promise<VerdictData> => {
-    const readAt = typeof window === 'undefined' ? 0 : verdictClock.tick()
-    return { ...(await getProjectQuotes({ data: { projectId: params.projectId } })), readAt }
+  // In the browser the account is the root's, cached since the page loaded: the one the header shows, which the server
+  // checks the session against, so a tab left open after another account signed in never shows that account's quotes.
+  // On the server both loaders read the same request's session, so the read does not wait for the root's.
+  loader: async ({ params, parentMatchPromise }): Promise<VerdictData> => {
+    const isServer = typeof window === 'undefined'
+    const readAt = isServer ? 0 : verdictClock.tick()
+    const account = isServer ? undefined : (await parentMatchPromise).loaderData?.user?.id
+    return { ...(await getProjectQuotes({ data: { account, projectId: params.projectId } })), readAt }
   },
   head: ({ loaderData }) => ({ meta: [{ title: loaderData ? `${loaderData.project.name} · ${APP_NAME}` : APP_NAME }] }),
   component: VerdictPage,

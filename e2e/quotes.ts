@@ -46,6 +46,13 @@ export async function uploadQuotes(
   page: Page, files: { name: string; mimeType: string; buffer: Buffer }[], label = 'Upload quotes', origin = '',
 ): Promise<void> {
   await page.goto(`${origin}/?step=4`)
+  await pickQuoteFiles(page, files, label)
+}
+
+/** Picks the files through the Upload button of the page as it is, without loading it again. */
+export async function pickQuoteFiles(
+  page: Page, files: { name: string; mimeType: string; buffer: Buffer }[], label = 'Upload quotes',
+): Promise<void> {
   const button = page.getByRole('button', { name: label })
   await expect(button).toBeEnabled({ timeout: 15_000 })
   // The server-rendered button is enabled before the page hydrates, and a click before then opens nothing: click again
