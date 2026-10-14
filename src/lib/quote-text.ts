@@ -1,7 +1,7 @@
 import { trq, type Dictionary, type QuoteKey } from '../i18n'
 import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtW } from '../i18n/format'
 import { entryKey, entryName, nothingRead, quoteSubtitle, type EntryOption, type QuoteView, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
-import { STRIP_ITEMS, type ItemCheck, type ItemId, type ItemStatus, type KitNeeds } from './quote-items'
+import { HIGHEST_DOD_CHEMISTRY, LOWEST_DOD_CHEMISTRY, STRIP_ITEMS, type ItemCheck, type ItemFacts, type ItemId, type ItemStatus, type KitNeeds } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
 import type { QuoteStatus } from './quote-schema'
@@ -58,27 +58,86 @@ export function gapText(t: Dictionary, r: RankedQuote, kit: KitNeeds): string {
   }
   if (id === 'battery') return trq(t, 'gapBattery', { kwh: fmtKwh(c.facts.shortWh ?? 0, t.locale) })
   if (id === 'cables') return trq(t, 'gapCables', { gauge: kit.cableGauge })
-  if (id === 'fuse') return trq(t, 'gapFuse', { amps: kit.fuseA })
+  if (id === 'fuse') {
+    return c.facts.maxA !== undefined
+      ? trq(t, 'gapFuseCable', { amps: c.facts.amps ?? 0, gauge: c.facts.gauge ?? '' })
+      : trq(t, 'gapFuse', { amps: kit.fuseA })
+  }
   return trq(t, 'gapMissing', { item: t.quoteItemsInline[id] })
 }
+
+/**
+ * An unknown item the quote does mention, without enough to judge it: a size, a class, a count or a chemistry. The
+ * others it doesn't mention at all. The two read differently: "doesn't mention a battery charger", "doesn't confirm the
+ * size and number of the main cables".
+ */
+export const isUnclear = (c: ItemCheck): boolean => c.status === 'unknown' && c.source !== null
+
+/** A quote's unknown must-haves, split into those it doesn't mention and those it leaves to confirm. */
+function unknownGroups(r: RankedQuote): { unmentioned: ItemId[]; unclear: ItemCheck[] } {
+  const unclear = r.items.filter((c) => isUnclear(c) && r.unknownMusts.includes(c.id))
+  return { unmentioned: r.unknownMusts.filter((id) => !unclear.some((c) => c.id === id)), unclear }
+}
+
+/** What is left open about a fuse the quote mentions, as a phrase to confirm. */
+function fuseConfirm(t: Dictionary, f: ItemFacts): string {
+  if (f.sizeUnknown) return t.quotes.confirmFuseRating
+  if (f.fuseClass !== undefined) return trq(t, 'confirmFuseClass', { class: f.fuseClass })
+  if (f.runsUnstated) return trq(t, 'confirmFuseRuns', { amps: f.amps ?? 0, runs: f.runs ?? 0, gauge: f.gauge ?? '' })
+  return trq(t, 'confirmFuseCount', { amps: f.amps ?? 0 })
+}
+
+/** What is left open about an item the quote mentions, as a phrase: "the size of the main cables". */
+function confirmPhrase(t: Dictionary, c: ItemCheck): string {
+  const q = t.quotes
+  const f = c.facts
+  switch (c.id) {
+    case 'inverter': return f.watts === undefined ? q.confirmInverterPower : q.confirmInverterSurge
+    case 'battery':
+      if (f.capacityPartial) return q.confirmBatteryAll
+      return f.usableLowWh === undefined ? q.confirmBatteryCapacity : q.confirmBatteryChemistry
+    case 'cables': return f.runsUnstated ? trq(t, 'confirmCableRuns', { runs: f.runs ?? 0, gauge: f.gauge ?? '' }) : q.confirmCableSize
+    case 'fuse': return fuseConfirm(t, f)
+    default: return t.quoteItemsInline[c.id]
+  }
+}
+const confirmList = (t: Dictionary, items: readonly ItemCheck[]): string => fmtList(items.map((c) => confirmPhrase(t, c)), t.locale)
 
 export function reasonLine(t: Dictionary, r: RankedQuote, v: Verdict, kit: KitNeeds): string {
   if (isBest(r, v)) return t.quotes.reasonBest
   if (r.fit === 'fits') return trq(t, 'reasonFits', { delta: money(t, r.delta ?? 0, r.currency) })
-  if (r.fit === 'unclear') return trq(t, 'reasonUnclear', { items: inlineList(t, r.unknownMusts) })
+  if (r.fit === 'unclear') {
+    const { unmentioned, unclear } = unknownGroups(r)
+    return [
+      ...(unmentioned.length > 0 ? [trq(t, 'reasonUnclear', { items: inlineList(t, unmentioned) })] : []),
+      ...(unclear.length > 0 ? [trq(t, 'reasonToConfirm', { items: confirmList(t, unclear) })] : []),
+    ].join(' ')
+  }
   return trq(t, 'reasonShort', { gap: gapText(t, r, kit) })
 }
 
-export function askText(t: Dictionary, r: RankedQuote, v: Verdict): string {
-  const items = inlineList(t, r.unknownMusts)
-  return v.best
-    ? trq(t, 'askCheaper', { name: entryName(r), saving: money(t, v.best.total - r.total, r.currency), items })
-    : trq(t, 'askNoBest', { name: entryName(r), items })
+/** What keeps an unclear quote from fitting, as one clause: "doesn't mention a battery charger and doesn't confirm …". */
+function gapsClause(t: Dictionary, r: RankedQuote): string {
+  const { unmentioned, unclear } = unknownGroups(r)
+  return fmtList([
+    ...(unmentioned.length > 0 ? [trq(t, 'gapsMention', { items: inlineList(t, unmentioned) })] : []),
+    ...(unclear.length > 0 ? [trq(t, 'gapsConfirm', { items: confirmList(t, unclear) })] : []),
+  ], t.locale)
 }
 
-/** A question the user can paste into a message to the installer. */
+export function askText(t: Dictionary, r: RankedQuote, v: Verdict): string {
+  const gaps = gapsClause(t, r)
+  return v.best
+    ? trq(t, 'askCheaper', { name: entryName(r), saving: money(t, v.best.total - r.total, r.currency), gaps })
+    : trq(t, 'askNoBest', { name: entryName(r), gaps })
+}
+
+/** A question the user can paste into a message to the installer: what the quote leaves out, then what it leaves open. */
 export function questionText(t: Dictionary, r: RankedQuote): string {
-  return trq(t, 'question', { name: r.name, items: inlineList(t, r.unknownMusts) })
+  const { unmentioned, unclear } = unknownGroups(r)
+  if (unmentioned.length === 0) return trq(t, 'questionConfirm', { name: r.name, items: confirmList(t, unclear) })
+  const ask = trq(t, 'question', { name: r.name, items: inlineList(t, unmentioned) })
+  return unclear.length > 0 ? `${ask} ${trq(t, 'questionAlso', { items: confirmList(t, unclear) })}` : ask
 }
 
 export function fitLabel(t: Dictionary, r: RankedQuote, v: Verdict): string {
@@ -100,6 +159,7 @@ const isSurgeUnstated = (c: ItemCheck): boolean => c.status === 'unknown' && c.i
 export function markLabel(t: Dictionary, c: ItemCheck): string {
   const q = t.quotes
   if (isSurgeUnstated(c)) return q.surgeNotStated
+  if (isUnclear(c)) return q.markUnclear
   return { ok: q.markOk, short: q.markShort, missing: q.notIncluded, unknown: q.notMentioned }[c.status]
 }
 
@@ -110,6 +170,7 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
   const L = t.locale
   const confirmed = f.confirmed ? q.confirmedByYou : null
   if (isSurgeUnstated(c)) return { label: fmtW(f.watts ?? 0, L), detail: q.surgeNotStated }
+  if (isUnclear(c)) return unclearText(t, c, kit)
   if (c.status === 'unknown') return { label: q.notMentioned, detail: null }
   if (c.status === 'missing') {
     const optional = f.optionalPrice !== undefined ? trq(t, 'optionalPrice', { price: money(t, f.optionalPrice, currency) }) : null
@@ -126,24 +187,65 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
     case 'battery':
       return {
         label: f.usableWh !== undefined ? trq(t, 'usable', { kwh: fmtKwh(f.usableWh, L) }) : q.included,
-        detail: short ? trq(t, 'shortKwh', { kwh: fmtKwh(f.shortWh ?? 0, L) }) : confirmed,
+        detail: short ? trq(t, 'shortKwh', { kwh: fmtKwh(f.shortWh ?? 0, L) }) : confirmed ?? batteryMath(t, f),
       }
     case 'charger':
     case 'wifi':
       return { label: q.included, detail: f.builtIn ? q.builtIn : f.amps !== undefined ? trq(t, 'amps', { amps: f.amps }) : confirmed }
     case 'cables':
-      return { label: f.gauge ?? q.included, detail: short ? trq(t, 'needsGauge', { gauge: kit.cableGauge }) : f.sizeUnknown ? q.sizeNotStated : confirmed }
+      return { label: f.gauge ?? q.included, detail: short ? trq(t, 'needsGauge', { gauge: kit.cableGauge }) : confirmed }
     case 'fuse':
-      return {
-        label: f.amps !== undefined ? trq(t, 'amps', { amps: f.amps }) : q.included,
-        detail: short ? trq(t, 'needsAmps', { amps: kit.fuseA }) : f.sizeUnknown ? q.sizeNotStated : confirmed,
-      }
+      return { label: f.amps !== undefined ? trq(t, 'amps', { amps: f.amps }) : q.included, detail: short ? fuseShortText(t, f, kit) : confirmed }
     case 'installation':
       return { label: q.included, detail: confirmed }
     case 'warranty': {
       const years = (n: number | undefined) => (n === undefined ? '—' : trq(t, 'years', { n }))
       return { label: trq(t, 'warrantyYears', { battery: years(f.batteryYears), inverter: years(f.inverterYears) }), detail: confirmed }
     }
+  }
+}
+
+/** How a bank's usable energy was counted: "9.6 kWh × 85% depth of discharge"; null when its lines mix depths. */
+function batteryMath(t: Dictionary, f: ItemFacts): string | null {
+  if (f.nominalWh === undefined || f.dod === undefined) return null
+  const params = { nominal: fmtKwh(f.nominalWh, t.locale), pct: Math.round(f.dod * PERCENT) }
+  return trq(t, f.dodAssumed ? 'batteryMathAssumed' : 'batteryMath', params)
+}
+
+function fuseShortText(t: Dictionary, f: ItemFacts, kit: KitNeeds): string {
+  return f.maxA !== undefined ? trq(t, 'fuseAboveCable', { gauge: f.gauge ?? '', maxA: f.maxA }) : trq(t, 'needsAmps', { amps: kit.fuseA })
+}
+
+/** What a bank the quote mentions leaves open: its capacity, part of it, or its chemistry. */
+function batteryOpen(t: Dictionary, f: ItemFacts): string {
+  const kwh = (wh: number | undefined) => fmtKwh(wh ?? 0, t.locale)
+  if (f.capacityPartial) return trq(t, 'capacityPartial', { kwh: kwh(f.usableLowWh) })
+  if (f.usableLowWh === undefined) return t.quotes.capacityNotStated
+  return trq(t, 'chemistryRange', {
+    low: kwh(f.usableLowWh), high: kwh(f.usableHighWh),
+    lowName: t.chemistries[LOWEST_DOD_CHEMISTRY], highName: t.chemistries[HIGHEST_DOD_CHEMISTRY],
+  })
+}
+
+/** What a fuse the quote mentions leaves open: its rating, its class, the runs it needs, or how many fuses there are. */
+function fuseOpen(t: Dictionary, f: ItemFacts, kit: KitNeeds): string {
+  if (f.sizeUnknown) return t.quotes.sizeNotStated
+  if (f.fuseClass !== undefined) return trq(t, 'fuseOtherClass', { class: f.fuseClass, kitClass: kit.fuseClass })
+  if (f.runsUnstated) return trq(t, 'fuseNeedsRuns', { runs: f.runs ?? 0, gauge: f.gauge ?? '' })
+  return trq(t, 'kitListsFuses', { count: kit.fuseCount, amps: kit.fuseA, fuses: f.fuses ?? 0 })
+}
+
+/** An item the quote mentions without enough to judge it: what it says, and what is left to confirm. */
+function unclearText(t: Dictionary, c: ItemCheck, kit: KitNeeds): { label: string; detail: string } {
+  const q = t.quotes
+  const f = c.facts
+  switch (c.id) {
+    case 'inverter': return { label: q.included, detail: q.powerNotStated }
+    case 'battery': return { label: q.included, detail: batteryOpen(t, f) }
+    case 'cables':
+      return f.runsUnstated ? { label: f.gauge ?? q.included, detail: trq(t, 'needsRuns', { runs: f.runs ?? 0 }) } : { label: q.included, detail: q.sizeNotStated }
+    case 'fuse': return { label: f.amps !== undefined ? trq(t, 'amps', { amps: f.amps }) : q.included, detail: fuseOpen(t, f, kit) }
+    default: return { label: q.included, detail: q.markUnclear }
   }
 }
 
@@ -263,18 +365,19 @@ export function sizingSentence(t: Dictionary, sizing: QuoteSizing): string {
   }).join(' ')
 }
 
-/** ok, short, missing, unknown: one coverage line per item status. */
-export type CoverageKind = ItemStatus
+/** ok, short, missing, unknown: one coverage line per item status, with unknowns the quote mentions as their own line. */
+export type CoverageKind = ItemStatus | 'unclear'
 const COVERAGE: readonly { kind: CoverageKind; key: QuoteKey }[] = [
   { kind: 'ok', key: 'coverIncludes' }, { kind: 'short', key: 'coverShort' },
-  { kind: 'missing', key: 'coverMissing' }, { kind: 'unknown', key: 'coverUnknown' },
+  { kind: 'missing', key: 'coverMissing' }, { kind: 'unclear', key: 'coverUnclear' }, { kind: 'unknown', key: 'coverUnknown' },
 ]
+const coverageKind = (c: ItemCheck): CoverageKind => (isUnclear(c) ? 'unclear' : c.status)
 
 /** What a quote says about the five strip items, one line per status, empty groups left out. */
 export function coverageLines(t: Dictionary, items: readonly ItemCheck[]): { kind: CoverageKind; text: string }[] {
   const strip = items.filter((c) => STRIP_ITEMS.includes(c.id))
   return COVERAGE.flatMap(({ kind, key }) => {
-    const ids: ItemId[] = strip.filter((c) => c.status === kind).map((c) => c.id)
+    const ids: ItemId[] = strip.filter((c) => coverageKind(c) === kind).map((c) => c.id)
     if (ids.length === 0) return []
     return [{ kind, text: trq(t, key, { items: fmtList(ids.map((id) => t.quoteItemsList[id]), t.locale) }) }]
   })

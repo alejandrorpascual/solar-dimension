@@ -11,7 +11,7 @@ import { QuoteActions } from './QuoteActions'
 import { SizingGauge } from './SizingGauge'
 
 /** The words carry the meaning; the mark only repeats it at a glance. */
-const MARK: Record<CoverageKind, string> = { ok: '✓', short: '!', missing: '!', unknown: '?' }
+const MARK: Record<CoverageKind, string> = { ok: '✓', short: '!', missing: '!', unclear: '?', unknown: '?' }
 
 interface Props {
   best: RankedQuote; kit: KitNeeds; error: string | null

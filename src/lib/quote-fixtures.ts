@@ -1,3 +1,4 @@
+import { GAUGES } from './catalog'
 import type { LineKind, LineSpecs, QuoteExtraction, QuoteLine, QuoteWarranty } from './quote-schema'
 
 const NO_SPECS: LineSpecs = {
@@ -29,11 +30,15 @@ export function extraction(lines: QuoteLine[], over: Partial<QuoteExtraction> = 
 }
 
 /**
- * The kit the unit tests judge quotes against: 3.9 kW running, 9.4 kW at start-up, 8 kWh of battery, 2/0 cable and a
- * 200 A fuse. Typed structurally, so it is a `KitNeeds` (quote-items.ts) without importing the type.
+ * The kit the unit tests judge quotes against: 3.9 kW running, 9.4 kW at start-up, 8 kWh of battery, one run of 2/0
+ * cable carrying 175 A and one 200 A class T fuse. Its site is the engine's default (open air, 30 °C), where a run
+ * carries the 75 °C column of the table. Typed structurally, so it is a `KitNeeds` (quote-items.ts) without importing
+ * the type.
  */
 export const SAMPLE_KIT = {
   runningW: 3860, surgeW: 9400, usableWh: 8000, chemistry: 'lifepo4', cableMm2: 67.4, cableGauge: '2/0 AWG', fuseA: 200,
+  cableRuns: 1, designA: 175, ampacityByGauge: Object.fromEntries(GAUGES.map((g) => [g.awg, g.amps75])),
+  fuseCount: 1, fuseClass: 'T',
 } as const
 
 const said = (page: number, text: string) => ({ description: text, source: { page, text } })
@@ -48,7 +53,7 @@ export const SAMPLE_QUOTES = {
       battery(8, 2760),
       line('monitoring', 85, said(1, 'Módulo WiFi de monitoreo')),
       line('wiring', 160, { ...said(1, 'Cable 4/0 AWG, 2 tramos'), specs: { awg: '4/0' } }),
-      line('fuse', 90, { ...said(1, 'Fusible clase T 450 A'), specs: { fuseAmps: 450, fuseClass: 'T' } }),
+      line('fuse', 90, { qty: 2, ...said(1, 'Fusible clase T 225 A, uno por tramo'), specs: { fuseAmps: 225, fuseClass: 'T' } }),
       line('labor', 1495, said(2, 'Instalación y puesta en marcha')),
     ],
     { vendor: { name: 'SolarTec Caribe', contact: null }, warranties: [warranty('battery', 10), warranty('inverter', 5)] },
@@ -59,7 +64,7 @@ export const SAMPLE_QUOTES = {
       battery(12, 3300),
       line('monitoring', 90, said(2, 'Monitoreo por app (WiFi)')),
       line('wiring', 180, { ...said(2, 'Cable 4/0 AWG'), specs: { awg: '4/0' } }),
-      line('fuse', 95, { ...said(2, 'Fusible clase T 450 A'), specs: { fuseAmps: 450 } }),
+      line('fuse', 95, { ...said(2, 'Fusible clase T 225 A'), specs: { fuseAmps: 225 } }),
       line('labor', 1485, said(2, 'Instalación, 2 días')),
     ],
     { vendor: { name: 'Voltia Instalaciones', contact: null }, warranties: [warranty('battery', 10), warranty('inverter', 5)] },
@@ -83,6 +88,20 @@ export const SAMPLE_QUOTES = {
       line('labor', 1400, said(1, 'Instalación')),
     ],
     { vendor: { name: 'EnerHogar', contact: null }, warranties: [warranty('battery', 5), warranty('inverter', 2)] },
+  ),
+  /**
+   * Cheaper than SolarTec, and leaves three things to confirm: a bank whose chemistry it doesn't name (as lead-acid it
+   * is too small for the default project, as lithium it is enough), cables with no size, and a fuse of another class.
+   */
+  lumen: extraction(
+    [
+      line('inverter', 1350, { ...said(1, 'Inversor/cargador 3 kW onda pura'), specs: { watts: 3000, surgeWatts: 6000, hasCharger: true } }),
+      line('battery', 2200, { qty: 4, ...said(1, 'Batería 12 V 150 Ah ciclo profundo × 4'), specs: { batteryVolts: 12, ah: 150 } }),
+      line('wiring', 140, said(1, 'Cableado de baterías e inversor')),
+      line('fuse', 60, { ...said(1, 'Fusible ANL 150 A con base'), specs: { fuseAmps: 150, fuseClass: 'ANL' } }),
+      line('labor', 1450, said(1, 'Instalación')),
+    ],
+    { vendor: { name: 'Lumen Energía', contact: null }, warranties: [warranty('battery', 2), warranty('inverter', 2)] },
   ),
   /**
    * The user's SUNA M.P. quote: two alternative kits, each priced on its own, and a blank total. Each kit's batteries

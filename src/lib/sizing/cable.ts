@@ -18,7 +18,7 @@ const microAmps = (amps: number): number => Math.round(amps * MICRO_PER_AMP)
 const HOTTEST_INSULATION_C: InsulationC = 90
 
 /** Ampacity of one run of this gauge here: the table column, corrected for air and bundling, capped at the lugs' rating. */
-export function correctedAmpacity(g: Gauge, cond: CableConditions, conductors: number): number {
+export function correctedAmpacity(g: Gauge, cond: Pick<CableConditions, 'insulationC' | 'ambientC'>, conductors: number): number {
   const corrected = ampsAt(g, cond.insulationC) * ambientFactor(cond.ambientC, cond.insulationC) * bundleFactor(conductors)
   return Math.min(corrected, ampsAt(g, SIZING.TERMINATION_C))
 }

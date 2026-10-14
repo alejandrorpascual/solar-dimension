@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
+import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
 import {
   cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth,
@@ -43,6 +44,33 @@ test('quotes upload, are read in the background, and end in a verdict', async ({
   await expect(rows.nth(0)).toContainText('$820 more than the best')
   await expect(rows.nth(1)).toContainText('$330 less than the best')
   await expect(tray(page)).toBeHidden()
+})
+
+test('a cheaper quote that leaves a chemistry, a size and a fuse class open is worth asking, not the best fit', async ({ page }) => {
+  await signUp(page)
+  await uploadQuotes(page, await Promise.all(['solartec', 'lumen'].map(quotePdf)))
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  const lumen = page.getByRole('article').filter({ hasText: 'Lumen Energía' })
+  await expect(lumen).toContainText('3 unclear')
+  await expect(lumen).toContainText("Doesn't confirm the battery chemistry, the size of the main cables, and a class T fuse instead of ANL.")
+  await expect(lumen).toContainText('To confirm: cables and fuse')
+  await expect(lumen).toContainText('Worth asking')
+  await lumen.getByRole('button', { name: 'Show checks for Lumen Energía', exact: true }).click()
+  const check = (name: string) => lumen.getByRole('listitem').filter({ hasText: name })
+  await expect(check('Battery bank')).toContainText(`Chemistry not stated: ${fmtKwh(3600, 'en')} usable if AGM lead-acid, ${fmtKwh(6120, 'en')} if LiFePO₄ lithium`)
+  await expect(check('Main cables')).toContainText('Size not stated')
+  await expect(check('Class T fuse')).toContainText('ANL fuse; your kit asks for class T')
+
+  // Confirming the three with the installer makes it the best fit.
+  for (const name of ['Battery bank', 'Main cables', 'Class T fuse']) {
+    const save = saved(page, 'item')
+    await lumen.getByRole('group', { name, exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
+    await save
+  }
+  await expect(verdictHeading(page)).toHaveText('Lumen Energía fits your kit for the least')
 })
 
 test('must-haves and confirmations change the winner, and stick', async ({ page }) => {
