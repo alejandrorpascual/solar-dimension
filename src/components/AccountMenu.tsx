@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { ChevronDown, Link2, LogIn, LogOut } from 'lucide-react'
 import { Button, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, type Key } from 'react-aria-components'
+import type { ConnectGoogle } from '../hooks/useConnectGoogle'
 import { useLocale } from '../hooks/useLocale'
-import { useConnectGoogle } from '../hooks/useConnectGoogle'
 import { tr } from '../i18n'
 import type { SessionUser } from '../server/session'
 
@@ -12,6 +12,8 @@ interface Props {
   busy?: boolean
   /** From useSignOut: the page that holds the menu says when signing out failed, since the header has no room. */
   onSignOut: () => Promise<void>
+  /** From useConnectGoogle: the page says when connecting failed too, under the header for the same reason. */
+  google: Pick<ConnectGoogle, 'canConnect' | 'connect'>
 }
 
 /** One letter for the avatar: the name's first letter, else the email's. */
@@ -19,9 +21,8 @@ function initialOf(user: SessionUser): string {
   return (user.name.trim() || user.email).charAt(0).toUpperCase()
 }
 
-export function AccountMenu({ user, busy = false, onSignOut }: Props) {
+export function AccountMenu({ user, busy = false, onSignOut, google }: Props) {
   const { t } = useLocale()
-  const google = useConnectGoogle(user)
   if (!user) {
     return (
       <Link to="/login" className="chip">
