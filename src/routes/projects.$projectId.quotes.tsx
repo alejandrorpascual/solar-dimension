@@ -5,6 +5,7 @@ import { HeaderBar } from '../components/HeaderBar'
 import { AddQuoteButton } from '../components/quotes/AddQuoteButton'
 import { verdictClock } from '../components/quotes/verdict-clock'
 import { VerdictView, type VerdictData } from '../components/quotes/VerdictView'
+import { useConnectGoogle } from '../hooks/useConnectGoogle'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectJobs, useQuoteJobs } from '../hooks/useQuoteJobs'
 import { useRootData } from '../hooks/useRootData'
@@ -33,6 +34,7 @@ function VerdictPage() {
   const { user } = useRootData()
   const { t } = useLocale()
   const { signOut, hasFailed: hasSignOutFailed } = useSignOut(user)
+  const google = useConnectGoogle(user)
   const router = useRouter()
   const jobs = useProjectJobs(projectId)
   const { markSeen } = useQuoteJobs()
@@ -51,8 +53,10 @@ function VerdictPage() {
   }, [doneKey, projectId, markSeen, reload])
   return (
     <main className="page">
-      <HeaderBar account={<AccountMenu user={user} busy={false} onSignOut={signOut} />} />
+      <HeaderBar account={<AccountMenu user={user} busy={false} onSignOut={signOut} google={google} />} />
       {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
+      {/* Only the menu's failure: the Connect Google button in the verdict says its own beside it. */}
+      {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
       {/* The router keeps this component when only the project changes; the key starts the verdict afresh, so edits
           still saving for one project never show on another's. */}
       <VerdictView key={projectId} data={data} progress={jobs ? { done: jobs.done, total: jobs.total } : null} onReload={reload}

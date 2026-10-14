@@ -13,6 +13,7 @@ import { RailSheet, SideRail, type RailTab } from '../components/SideRail'
 import { SolarStep } from '../components/solar/SolarStep'
 import { WizardFooter } from '../components/WizardFooter'
 import { useCatalog } from '../hooks/useCatalog'
+import { useConnectGoogle } from '../hooks/useConnectGoogle'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
 import { useRootData } from '../hooks/useRootData'
@@ -68,6 +69,7 @@ function KitBuilderPage() {
   const appliances = useCatalog()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
   const { signOut, hasFailed: hasSignOutFailed } = useSignOut(user)
+  const google = useConnectGoogle(user)
   const result = computeProject(project, appliances)
   const go = (next: Step) => navigate({ search: { step: next } })
   // The rail sits beside the page on wide screens; narrower ones open the same content in a sheet.
@@ -82,8 +84,9 @@ function KitBuilderPage() {
   return (
     <div className="workspace">
       <main className="page">
-        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} onSignOut={signOut} />} />
+        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} onSignOut={signOut} google={google} />} />
         {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
+        {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
         <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
         {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
         {syncing && <div className="muted">{t.ui.syncing}</div>}

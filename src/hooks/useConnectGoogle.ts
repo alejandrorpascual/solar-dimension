@@ -7,13 +7,15 @@ import { useRootData } from './useRootData'
 export interface ConnectGoogle {
   canConnect: boolean
   connect: () => Promise<void>
-  /** True after the last attempt failed before leaving for Google, until the next attempt. */
+  /** True after the last attempt failed before leaving for Google, until the next attempt, while it is still offered. */
   hasFailed: boolean
 }
 
 /**
  * Attaching Google to the signed-in account. Linking needs the current session, so only the account's owner can do
  * it; Google returns to the page it started from. Offered when this deployment has Google and the account lacks it.
+ * Each caller has its own attempt: the account menu's failure shows under the page's header, the quotes button's
+ * beside the button, so one failure is said once.
  */
 export function useConnectGoogle(user: SessionUser | null): ConnectGoogle {
   const { googleEnabled } = useRootData()
@@ -30,5 +32,7 @@ export function useConnectGoogle(user: SessionUser | null): ConnectGoogle {
     }
     setFailed(true)
   }
-  return { canConnect: googleEnabled && user !== null && !user.googleLinked, connect, hasFailed }
+  const canConnect = googleEnabled && user !== null && !user.googleLinked
+  // The page that holds the menu outlives a sign-out: a failure from before it must not show to nobody.
+  return { canConnect, connect, hasFailed: hasFailed && canConnect }
 }
