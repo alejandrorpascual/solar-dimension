@@ -1,0 +1,36 @@
+{
+  "title": "Optional extra, exclusion, discount, freight, tax",
+  "spec": "A8 case 10",
+  "document": {
+    "source": "generated",
+    "file": "10-extras-discount-freight.pdf",
+    "uploadName": "cotizacion.pdf"
+  },
+  "status": "ready",
+  "expectedNull": [
+    "lines[0].specs.hasWifi",
+    "lines[5].unitPrice"
+  ],
+  "unscored": [],
+  "notesMention": [
+    [
+      "breaker"
+    ],
+    [
+      "obra civil"
+    ]
+  ],
+  "pending": [
+    {
+      "path": "lines[5]",
+      "today": "an optional labor line at 0 for 'Instalación no incluida': its kind, qty, lineTotal and optional are scored",
+      "after": "the same, by a written rule",
+      "change": "A8 case 10 proposes the rule, so the item reads 'not included' instead of 'not mentioned'; today's prompt sets optional only for an extra"
+    }
+  ],
+  "notes": [
+    "Freight is an 'other' line at 150 and the discount an 'other' line at -197.50.",
+    "The Wi-Fi module is a monitoring line, optional, at 120, outside the total.",
+    "date is expected as YYYY-MM-DD, as A8 writes it for case 1; today's prompt sets no date format, so a miss there may be the format alone."
+  ]
+}

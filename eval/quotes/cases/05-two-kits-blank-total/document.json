@@ -1,0 +1,62 @@
+{
+  "pages": [
+    [
+      {
+        "h": "Kilovia Energía"
+      },
+      "Cotización · Fecha: 25/09/2026",
+      "",
+      {
+        "cells": [
+          "Descripción",
+          "Cant.",
+          "Precio unit.",
+          "Importe"
+        ],
+        "bold": true
+      },
+      {
+        "cells": [
+          "Inversor de corriente 3 kW, incluye 2 baterías de litio 5.12 kWh, transfer y flete",
+          "",
+          "",
+          "USD 2,600.00"
+        ]
+      },
+      {
+        "cells": [
+          "Inversor de corriente 10 kW, incluye baterías de litio 200 Ah, controlador solar 80 A/48 V",
+          "",
+          "",
+          "USD 6,200.00"
+        ]
+      },
+      "",
+      {
+        "cells": [
+          "",
+          "",
+          "Base imponible",
+          ""
+        ]
+      },
+      {
+        "cells": [
+          "",
+          "",
+          "ITBIS",
+          ""
+        ]
+      },
+      {
+        "cells": [
+          "",
+          "",
+          "Total",
+          ""
+        ],
+        "bold": true
+      }
+    ]
+  ]
+}

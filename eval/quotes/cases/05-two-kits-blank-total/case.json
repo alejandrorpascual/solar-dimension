@@ -1,0 +1,40 @@
+{
+  "title": "Two alternative kits, blank total",
+  "spec": "A8 case 5 (the SUNA pattern of the options spec; expected as SAMPLE_QUOTES.suna)",
+  "document": {
+    "source": "generated",
+    "file": "05-two-kits-blank-total.pdf",
+    "uploadName": "cotizacion.pdf"
+  },
+  "status": "ready",
+  "expectedNull": [
+    "options[0].total",
+    "options[1].total",
+    "lines[3].specs.batteryVolts",
+    "lines[3].specs.kWh"
+  ],
+  "unscored": [
+    "lines[4].specs.batteryVolts"
+  ],
+  "notesMention": [],
+  "pending": [
+    {
+      "path": "total",
+      "today": "0",
+      "after": "null",
+      "change": "A8's '6.5': nullable total and currency (A9 item 3, AI-09)"
+    },
+    {
+      "path": "lines[4].specs.batteryVolts",
+      "today": "recorded, not scored",
+      "after": "null",
+      "change": "A8 case 3: the owner must set the rule; A8 proposes battery voltage on battery lines only. The 48 V of the second kit belongs to its controller."
+    }
+  ],
+  "notes": [
+    "The vendor is renamed: SAMPLE_QUOTES.suna is a real quote, and the golden set uses invented names only.",
+    "chemistry is 'other' for 'baterías de litio', as A8 has it for 'litio' in cases 4 and 8; SAMPLE_QUOTES.suna has lifepo4, which the prompt's 'never infer' does not allow.",
+    "'transfer y flete' stay in the first kit's description, as in SAMPLE_QUOTES.suna; a line for either shows as an extra line.",
+    "date is expected as YYYY-MM-DD, as A8 writes it for case 1; today's prompt sets no date format, so a miss there may be the format alone."
+  ]
+}

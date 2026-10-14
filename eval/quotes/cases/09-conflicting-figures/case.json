@@ -1,0 +1,51 @@
+{
+  "title": "Conflicting figures",
+  "spec": "A8 case 9",
+  "document": {
+    "source": "generated",
+    "file": "09-conflicting-figures.pdf",
+    "uploadName": "cotizacion.pdf"
+  },
+  "status": null,
+  "expectedNull": [
+    "lines[0].specs.surgeWatts",
+    "subtotal",
+    "tax"
+  ],
+  "unscored": [
+    "lines[0].specs.batteryVolts"
+  ],
+  "notesMention": [
+    [
+      "3600",
+      "3,600",
+      "3.600",
+      "5 kW"
+    ],
+    [
+      "4580",
+      "4,580",
+      "4.580",
+      "cuatro mil quinientos ochenta"
+    ]
+  ],
+  "pending": [
+    {
+      "path": "status",
+      "today": "recorded, not scored: today, measure whether notes is filled at all",
+      "after": "needs_review, with the reason shown",
+      "change": "A8's '6.6': conflicts into notes and the failure reason kept and shown (A9 items 5 and 6, AI-09, AI-10)"
+    },
+    {
+      "path": "lines[0].specs.batteryVolts",
+      "today": "recorded, not scored",
+      "after": "null",
+      "change": "A8 case 3: the owner must set the rule; A8 proposes battery voltage on battery lines only. The inverter line writes 24 V."
+    }
+  ],
+  "notes": [
+    "watts is 3000, the priced line as written; total is 4850, the figures. The notes should name both conflicts: the power (3000 W against the 5 kW title and the datasheet's 3600 W) and the total (4,850 in figures against 4,580 in words).",
+    "A8 gives only the inverter line and the totals; the battery, cable and installation lines are added so the lines add up to the total in figures.",
+    "date is expected as YYYY-MM-DD, as A8 writes it for case 1; today's prompt sets no date format, so a miss there may be the format alone."
+  ]
+}

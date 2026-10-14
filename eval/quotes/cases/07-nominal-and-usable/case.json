@@ -1,0 +1,21 @@
+{
+  "title": "Nominal and usable both written, plus a bank total",
+  "spec": "A8 case 7",
+  "document": {
+    "source": "generated",
+    "file": "07-nominal-and-usable.pdf",
+    "uploadName": "cotizacion.pdf"
+  },
+  "status": "ready",
+  "expectedNull": [
+    "subtotal",
+    "tax"
+  ],
+  "unscored": [],
+  "notesMention": [],
+  "pending": [],
+  "notes": [
+    "One battery line, qty 3, kWh 4.8 per unit: not the usable 4.3 and not the bank total 14.4. A second battery line for the bank total shows as an extra line.",
+    "date is expected as YYYY-MM-DD, as A8 writes it for case 1; today's prompt sets no date format, so a miss there may be the format alone."
+  ]
+}

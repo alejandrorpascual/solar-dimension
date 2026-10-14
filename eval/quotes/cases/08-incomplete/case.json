@@ -1,0 +1,36 @@
+{
+  "title": "Incomplete quote",
+  "spec": "A8 case 8",
+  "document": {
+    "source": "generated",
+    "file": "08-incomplete.pdf",
+    "uploadName": "cotizacion.pdf"
+  },
+  "status": "needs_review",
+  "expectedNull": [
+    "lines[0].specs.watts",
+    "lines[0].specs.surgeWatts",
+    "lines[0].specs.hasCharger",
+    "lines[0].specs.hasWifi",
+    "lines[1].unitPrice",
+    "lines[1].specs.batteryVolts",
+    "lines[1].specs.kWh",
+    "date",
+    "vendor.contact"
+  ],
+  "unscored": [],
+  "notesMention": [],
+  "pending": [
+    {
+      "path": "total",
+      "today": "0, and in no case 2700 (the sum of the lines)",
+      "after": "null",
+      "change": "A8's '6.5': nullable total and currency (A9 item 3, AI-09)"
+    }
+  ],
+  "notes": [
+    "needs_review for no total.",
+    "The battery line writes no unit price, so unitPrice is null: 900 would be a division the document does not write.",
+    "No total, tax, warranty, date or contact is written."
+  ]
+}

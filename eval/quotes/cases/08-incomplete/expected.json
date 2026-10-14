@@ -1,0 +1,113 @@
+{
+  "vendor": {
+    "name": "Ondasur Instalaciones",
+    "contact": null
+  },
+  "date": null,
+  "validUntil": null,
+  "currency": "USD",
+  "options": [],
+  "lines": [
+    {
+      "kind": "inverter",
+      "description": "Inversor híbrido Growatt",
+      "brand": "Growatt",
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 900,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor híbrido Growatt"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Batería de litio 100 Ah",
+      "brand": null,
+      "model": null,
+      "qty": 2,
+      "unitPrice": null,
+      "lineTotal": 1800,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Batería de litio 100 Ah"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": 100,
+        "kWh": null,
+        "chemistry": "other",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "labor",
+      "description": "Instalación incluida",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 0,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Instalación incluida"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    }
+  ],
+  "subtotal": null,
+  "tax": null,
+  "total": 0,
+  "warranties": [],
+  "notes": []
+}

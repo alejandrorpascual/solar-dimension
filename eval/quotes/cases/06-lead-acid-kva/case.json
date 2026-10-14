@@ -1,0 +1,40 @@
+{
+  "title": "Lead-acid, kVA rating, surge in VA",
+  "spec": "A8 case 6",
+  "document": {
+    "source": "generated",
+    "file": "06-lead-acid-kva.pdf",
+    "uploadName": "cotizacion.pdf"
+  },
+  "status": "ready",
+  "expectedNull": [
+    "lines[1].specs.kWh",
+    "subtotal",
+    "tax"
+  ],
+  "unscored": [],
+  "notesMention": [
+    [
+      "VA"
+    ]
+  ],
+  "pending": [
+    {
+      "path": "lines[1].specs.chemistry",
+      "today": "other",
+      "after": "gel",
+      "change": "A8's '6.3': gel and flooded chemistries (A9 item 2, AI-06)"
+    },
+    {
+      "path": "lines[0].specs.surgeWatts",
+      "today": "12000, with a note that it is in VA",
+      "after": "the same, by a written rule",
+      "change": "A8 case 6 proposes the rule: when W and VA are both written, W wins; when only VA is, copy the number and note it (AI-09)"
+    }
+  ],
+  "notes": [
+    "watts is 4000, not 5000.",
+    "For the comparison, not scored here: usable energy is 4 x 2.4 kWh x 0.5 = 4.8 kWh; today the app computes 8.16 kWh on a LiFePO4 kit (AI-06).",
+    "date is expected as YYYY-MM-DD, as A8 writes it for case 1; today's prompt sets no date format, so a miss there may be the format alone."
+  ]
+}

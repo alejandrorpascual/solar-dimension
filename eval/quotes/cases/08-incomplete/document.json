@@ -1,0 +1,45 @@
+{
+  "pages": [
+    [
+      {
+        "h": "Ondasur Instalaciones"
+      },
+      "Presupuesto",
+      "Precios en US$.",
+      "",
+      {
+        "cells": [
+          "Descripción",
+          "Cant.",
+          "Precio unit.",
+          "Importe"
+        ],
+        "bold": true
+      },
+      {
+        "cells": [
+          "Inversor híbrido Growatt",
+          "1",
+          "",
+          "900.00"
+        ]
+      },
+      {
+        "cells": [
+          "Batería de litio 100 Ah",
+          "2",
+          "",
+          "1,800.00"
+        ]
+      },
+      {
+        "cells": [
+          "Instalación incluida",
+          "",
+          "",
+          ""
+        ]
+      }
+    ]
+  ]
+}

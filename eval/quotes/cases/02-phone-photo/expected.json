@@ -1,0 +1,188 @@
+{
+  "vendor": {
+    "name": "Heliandro Energía S.R.L.",
+    "contact": "Tel. 809-555-0142 · ventas@heliandro.example"
+  },
+  "date": "2026-09-15",
+  "validUntil": "2026-10-15",
+  "currency": "USD",
+  "options": [],
+  "lines": [
+    {
+      "kind": "inverter",
+      "description": "Inversor híbrido 5 kW 48 V, pico 10 kW (5 s), cargador 80 A, WiFi integrado",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": 1150,
+      "lineTotal": 1150,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor híbrido 5 kW 48 V, pico 10 kW (5 s), cargador 80 A, WiFi integrado"
+      },
+      "specs": {
+        "watts": 5000,
+        "surgeWatts": 10000,
+        "hasCharger": true,
+        "hasWifi": true,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": 80,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Batería LiFePO4 51.2 V 100 Ah (5.12 kWh)",
+      "brand": null,
+      "model": null,
+      "qty": 2,
+      "unitPrice": 1290,
+      "lineTotal": 2580,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Batería LiFePO4 51.2 V 100 Ah (5.12 kWh)"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": 51.2,
+        "ah": 100,
+        "kWh": 5.12,
+        "chemistry": "lifepo4",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "wiring",
+      "description": "Cable de batería 2/0 AWG, 2 tramos",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 85,
+      "optional": false,
+      "option": null,
+      "role": "battery",
+      "source": {
+        "page": 1,
+        "text": "Cable de batería 2/0 AWG, 2 tramos"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": "2/0",
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "fuse",
+      "description": "Fusible clase T 200 A con base",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 95,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Fusible clase T 200 A con base"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": 200,
+        "fuseClass": "T"
+      }
+    },
+    {
+      "kind": "labor",
+      "description": "Instalación y puesta en marcha",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 600,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Instalación y puesta en marcha"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    }
+  ],
+  "subtotal": 4510,
+  "tax": 811.8,
+  "total": 5321.8,
+  "warranties": [
+    {
+      "kind": "battery",
+      "years": 10,
+      "option": null
+    },
+    {
+      "kind": "inverter",
+      "years": 5,
+      "option": null
+    }
+  ],
+  "notes": []
+}

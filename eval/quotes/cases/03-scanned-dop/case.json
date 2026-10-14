@@ -1,0 +1,36 @@
+{
+  "title": "Scanned PDF, three pages, no text layer, Dominican pesos",
+  "spec": "A8 case 3",
+  "document": {
+    "source": "supplied",
+    "file": "03-scanned-dop.pdf",
+    "uploadName": "cotizacion.pdf",
+    "howTo": "Run build-documents.ts, print 03-scanned-dop.print.pdf (three pages) and scan it into one PDF with no text layer: the scanner's plain PDF, not a searchable or OCR one, at 200 to 300 dpi and under 4 MB. Save it as eval/quotes/documents/03-scanned-dop.pdf."
+  },
+  "status": "ready",
+  "expectedNull": [
+    "lines[0].specs.surgeWatts",
+    "lines[1].specs.kWh",
+    "lines[2].specs.awg",
+    "lines[2].specs.mm2",
+    "validUntil"
+  ],
+  "unscored": [
+    "lines[0].specs.batteryVolts"
+  ],
+  "notesMention": [],
+  "pending": [
+    {
+      "path": "lines[0].specs.batteryVolts",
+      "today": "recorded, not scored",
+      "after": "null",
+      "change": "A8 case 3: the owner must set the rule; A8 proposes battery voltage on battery lines only. The inverter line writes 24 V."
+    }
+  ],
+  "notes": [
+    "Page 1 is a cover letter, page 2 the items, page 3 the totals and conditions; every line carries page 2.",
+    "'Cableado y protecciones' is one wiring line, as A8 lists it. The prompt's bundle rule would allow a second line at 0 for the protections, which shows as an extra line.",
+    "'Precios sujetos a cambio ... después de 15 días' writes no date: a validUntil worked out from it is a hallucination.",
+    "date is expected as YYYY-MM-DD, as A8 writes it for case 1; today's prompt sets no date format, so a miss there may be the format alone."
+  ]
+}

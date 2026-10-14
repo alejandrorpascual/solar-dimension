@@ -1,0 +1,35 @@
+{
+  "title": "Two currencies, in English",
+  "spec": "A8 case 12",
+  "document": {
+    "source": "generated",
+    "file": "12-two-currencies-english.pdf",
+    "uploadName": "quote.pdf"
+  },
+  "status": null,
+  "expectedNull": [
+    "lines[2].unitPrice",
+    "subtotal",
+    "tax"
+  ],
+  "unscored": [],
+  "notesMention": [
+    [
+      "35,000",
+      "35000",
+      "35.000"
+    ]
+  ],
+  "pending": [
+    {
+      "path": "status",
+      "today": "recorded, not scored: today, record what happens",
+      "after": "needs_review: one currency cannot hold this quote",
+      "change": "A flag for a second currency (A8 case 12); A9 proposes none yet"
+    }
+  ],
+  "notes": [
+    "currency USD and total 4300, the US dollar part; the installation is a labor line at 0, with the peso amount in notes.",
+    "date is expected as YYYY-MM-DD, as A8 writes it for case 1; today's prompt sets no date format, so a miss there may be the format alone."
+  ]
+}

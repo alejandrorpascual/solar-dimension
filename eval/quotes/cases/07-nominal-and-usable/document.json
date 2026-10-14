@@ -1,0 +1,49 @@
+{
+  "pages": [
+    [
+      {
+        "h": "Lumentra Solar"
+      },
+      "info@lumentra.example · Fecha: 23/09/2026",
+      "Precios en US$.",
+      "",
+      {
+        "cells": [
+          "Descripción",
+          "Cant.",
+          "Precio unit.",
+          "Importe"
+        ],
+        "bold": true
+      },
+      {
+        "cells": [
+          "Inversor 6 kW (12 kW pico)",
+          "1",
+          "",
+          "1,400.00"
+        ]
+      },
+      {
+        "cells": [
+          "Batería LiFePO4 48 V 100 Ah, 4.8 kWh nominal, 4.3 kWh utilizables (90 % DoD)",
+          "3",
+          "1,150.00",
+          "3,450.00"
+        ]
+      },
+      "",
+      "Banco total: 14.4 kWh",
+      "",
+      {
+        "cells": [
+          "",
+          "",
+          "Total US$",
+          "4,850.00"
+        ],
+        "bold": true
+      }
+    ]
+  ]
+}

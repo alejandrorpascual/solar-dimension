@@ -1,0 +1,33 @@
+{
+  "title": "Clean itemised PDF, Spanish, explicit US dollars, tax",
+  "spec": "A8 case 1",
+  "document": {
+    "source": "generated",
+    "file": "01-clean-itemised-usd.pdf",
+    "uploadName": "cotizacion.pdf"
+  },
+  "status": "ready",
+  "expectedNull": [
+    "lines[2].unitPrice",
+    "lines[2].specs.mm2",
+    "lines[3].unitPrice",
+    "lines[4].unitPrice"
+  ],
+  "unscored": [
+    "lines[0].specs.batteryVolts"
+  ],
+  "notesMention": [],
+  "pending": [
+    {
+      "path": "lines[0].specs.batteryVolts",
+      "today": "recorded, not scored",
+      "after": "null",
+      "change": "A8 case 3: the owner must set the rule; A8 proposes battery voltage on battery lines only. The inverter line writes 48 V."
+    }
+  ],
+  "notes": [
+    "Five lines, and no line for the subtotal, ITBIS or total rows: such a line shows as an extra line.",
+    "The cable row writes only an amount, with '2 tramos' in its description, so qty is 1 and unitPrice null, as in SAMPLE_QUOTES.solartec.",
+    "date and validUntil are expected as YYYY-MM-DD, as A8 writes them; today's prompt sets no date format, so a miss there may be the format alone."
+  ]
+}

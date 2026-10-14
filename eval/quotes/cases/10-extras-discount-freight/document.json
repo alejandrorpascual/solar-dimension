@@ -1,0 +1,82 @@
+{
+  "pages": [
+    [
+      {
+        "h": "Watiara Sistemas"
+      },
+      "Tel. 809-555-0175 · watiara.example · Fecha: 26/09/2026",
+      "Moneda: US$",
+      "",
+      {
+        "cells": [
+          "Descripción",
+          "Cant.",
+          "Precio unit.",
+          "Importe"
+        ],
+        "bold": true
+      },
+      {
+        "cells": [
+          "Inversor 5 kW",
+          "1",
+          "",
+          "1,200.00"
+        ]
+      },
+      {
+        "cells": [
+          "Batería LiFePO4 5.12 kWh",
+          "2",
+          "1,300.00",
+          "2,600.00"
+        ]
+      },
+      {
+        "cells": [
+          "Flete a Santiago",
+          "",
+          "",
+          "150.00"
+        ]
+      },
+      {
+        "cells": [
+          "Descuento cliente 5 %",
+          "",
+          "",
+          "-197.50"
+        ]
+      },
+      "",
+      {
+        "cells": [
+          "",
+          "",
+          "Subtotal",
+          "3,752.50"
+        ]
+      },
+      {
+        "cells": [
+          "",
+          "",
+          "ITBIS 18 %",
+          "675.45"
+        ]
+      },
+      {
+        "cells": [
+          "",
+          "",
+          "Total US$",
+          "4,427.95"
+        ],
+        "bold": true
+      },
+      "",
+      "Opcional, no incluido en el total: módulo WiFi 120.00",
+      "Instalación no incluida. No incluye breaker principal ni obra civil."
+    ]
+  ]
+}

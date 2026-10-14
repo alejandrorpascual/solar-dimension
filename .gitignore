@@ -19,3 +19,6 @@ coverage/
 .claude/super-board/migrations/
 .claude/super-board/upgrade.json
 .claude/super-board/github-halt-*.json
+# The golden-set PDFs are rebuilt on demand, a supplied file may be private, and results are per run (eval/quotes/README.md).
+eval/quotes/documents/
+eval/quotes/results/

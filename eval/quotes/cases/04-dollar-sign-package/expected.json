@@ -1,0 +1,113 @@
+{
+  "vendor": {
+    "name": "Ampervía Soluciones",
+    "contact": null
+  },
+  "date": "2026-09-18",
+  "validUntil": null,
+  "currency": "XXX",
+  "options": [],
+  "lines": [
+    {
+      "kind": "inverter",
+      "description": "Sistema de respaldo 5 kW con 10 kWh de litio, instalado: $ 148,000.00",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 148000,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Sistema de respaldo 5 kW con 10 kWh de litio, instalado: $ 148,000.00"
+      },
+      "specs": {
+        "watts": 5000,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Sistema de respaldo 5 kW con 10 kWh de litio, instalado: $ 148,000.00",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 0,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Sistema de respaldo 5 kW con 10 kWh de litio, instalado: $ 148,000.00"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": 10,
+        "chemistry": "other",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "labor",
+      "description": "Sistema de respaldo 5 kW con 10 kWh de litio, instalado: $ 148,000.00",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 0,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Sistema de respaldo 5 kW con 10 kWh de litio, instalado: $ 148,000.00"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    }
+  ],
+  "subtotal": null,
+  "tax": null,
+  "total": 148000,
+  "warranties": [],
+  "notes": []
+}

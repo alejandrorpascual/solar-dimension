@@ -1,0 +1,148 @@
+{
+  "vendor": {
+    "name": "Fotelia Energía",
+    "contact": "Tel. 809-555-0129"
+  },
+  "date": "2026-09-24",
+  "validUntil": null,
+  "currency": "USD",
+  "options": [],
+  "lines": [
+    {
+      "kind": "inverter",
+      "description": "Inversor 3000 W 24 V",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 650,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor 3000 W 24 V"
+      },
+      "specs": {
+        "watts": 3000,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Batería LiFePO4 24 V 100 Ah",
+      "brand": null,
+      "model": null,
+      "qty": 2,
+      "unitPrice": 1450,
+      "lineTotal": 2900,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Batería LiFePO4 24 V 100 Ah"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": 24,
+        "ah": 100,
+        "kWh": null,
+        "chemistry": "lifepo4",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "wiring",
+      "description": "Cableado de baterías",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 300,
+      "optional": false,
+      "option": null,
+      "role": "battery",
+      "source": {
+        "page": 1,
+        "text": "Cableado de baterías"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "labor",
+      "description": "Instalación",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 1000,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Instalación"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    }
+  ],
+  "subtotal": null,
+  "tax": null,
+  "total": 4850,
+  "warranties": [],
+  "notes": [
+    "El título dice 5 kW y la ficha técnica 3600 W, pero la línea del inversor dice 3000 W.",
+    "El total en cifras es US$ 4,850.00, pero en letras dice cuatro mil quinientos ochenta dólares."
+  ]
+}
