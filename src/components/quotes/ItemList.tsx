@@ -1,5 +1,6 @@
 import { useLocale } from '../../hooks/useLocale'
 import { trq } from '../../i18n'
+import { confirmsSize } from '../../lib/quote-caveats'
 import { OVERRIDES, type ItemCheck, type ItemId, type KitNeeds, type Override } from '../../lib/quote-items'
 import { itemText, markLabel } from '../../lib/quote-text'
 import { ItemMark } from './ItemMark'
@@ -11,7 +12,10 @@ interface Props {
   onOverride: (item: ItemId, value: Override | null) => void
 }
 
-/** Every check of one quote, with what the quote said. Items the quote doesn't mention get Included / Not included. */
+/**
+ * Every check of one quote, with what the quote said. An unknown item gets two buttons: Included / Not included when the
+ * quote leaves it out, or Installer confirmed / ruled out when what is open is a size, a class or a count.
+ */
 export function ItemList({ items, kit, currency, onOverride }: Props) {
   const { t } = useLocale()
   return (
@@ -20,6 +24,9 @@ export function ItemList({ items, kit, currency, onOverride }: Props) {
         const { label, detail } = itemText(t, c, kit, currency)
         const current: Override | null = c.facts.confirmed ? (c.status === 'ok' ? 'included' : 'not_included') : null
         const canSet = c.status === 'unknown' || current !== null
+        const labels = confirmsSize(c)
+          ? { included: t.quotes.overrideConfirmed, not_included: t.quotes.overrideRuledOut }
+          : { included: t.quotes.included, not_included: t.quotes.notIncluded }
         return (
           <li key={c.id} className="qitem">
             <ItemMark status={c.status} label={markLabel(t, c)} />
@@ -39,7 +46,7 @@ export function ItemList({ items, kit, currency, onOverride }: Props) {
                   {OVERRIDES.map((v) => (
                     <button key={v} type="button" className="qseg__b" aria-pressed={current === v}
                       onClick={() => onOverride(c.id, current === v ? null : v)}>
-                      {v === 'included' ? t.quotes.included : t.quotes.notIncluded}
+                      {labels[v]}
                     </button>
                   ))}
                 </div>

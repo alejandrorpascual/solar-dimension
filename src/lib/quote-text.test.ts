@@ -388,9 +388,10 @@ describe('a quote that offers two systems', () => {
     const alone = compareQuotes(KIT, { ...DEFAULT_MUSTS, battery: false, charger: false, cables: false, fuse: false, installation: false }, [suna])
     const [first, second] = alone.ranked as [RankedQuote, RankedQuote]
     expect(entryKey(alone.best!)).toBe('suna:o2')
-    expect(fitLabel(en, first, alone)).toBe(en.quotes.bestFit)
-    expect(fitLabel(en, second, alone)).not.toBe(en.quotes.bestFit)
-    expect(verdictHeading(en, alone)).toBe('SUNA M.P. · Inversor 10 kW fits your kit for the least')
+    // Its 10 kW inverter passes on its running power alone: the quote states no start-up power, so it is one thing to confirm.
+    expect(fitLabel(en, first, alone)).toBe(en.quotes.bestFitToConfirm)
+    expect(fitLabel(en, second, alone)).not.toBe(en.quotes.bestFitToConfirm)
+    expect(verdictHeading(en, alone)).toBe('SUNA M.P. · Inversor 10 kW is the cheapest that fits: confirm 1 thing first')
   })
   test('the delete confirmation counts the options it removes', () => {
     expect(deleteConfirmText(en, 0)).toBe('Delete this quote and its file?')

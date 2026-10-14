@@ -1,4 +1,5 @@
-import { hasTotal, isFixedByTotal, optionPrices } from './quote-checks'
+import { caveatsOf, type Caveat } from './quote-caveats'
+import { hasTotal, isFixedByTotal, optionPrices, statesTax } from './quote-checks'
 import { checkItems, includedArrayW, itemsFor, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
 import { hasOptions, optionExtraction } from './quote-options'
 import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
@@ -23,6 +24,8 @@ export interface RankedQuote extends EntryOption {
    * its panels states no wattage, so the sum would fall short.
    */
   panelsW: number | null
+  /** What it leaves to confirm though it meets every must-have; see quote-caveats.ts. */
+  caveats: Caveat[]
 }
 /**
  * needs_review: the total doesn't add up with the lines, or a reading read again still doesn't hold; no_total: the quote
@@ -42,6 +45,8 @@ export interface Verdict {
   worthAsking: RankedQuote[]
   /** When nothing fits: the short quote with the fewest failed must-haves. */
   closest: RankedQuote | null
+  /** When the best fit has something to confirm: the cheapest quote that fits with nothing to confirm, if any. */
+  cleanFit: RankedQuote | null
   mustCount: number
   /** Quotes that produced a reading: finished, and not failed. */
   readCount: number
@@ -135,7 +140,7 @@ function unrankedReason(e: Entry): UnrankedReason {
   return hasTotal(e.total) ? 'needs_review' : 'no_total'
 }
 
-function score(e: Entry, kit: KitNeeds, musts: Musts, currency: string): Scored {
+function score(e: Entry, kit: KitNeeds, musts: Musts, currency: string, taxElsewhere: boolean): Scored {
   const items = checkItems(e.extraction!, kit, e.quote.overrides)
   const mustItems = items.filter((c) => musts[c.id])
   const failedMusts = mustItems.filter((c) => c.status === 'short' || c.status === 'missing').map((c) => c.id)
@@ -148,11 +153,14 @@ function score(e: Entry, kit: KitNeeds, musts: Musts, currency: string): Scored 
     niceMet: items.filter((c) => !musts[c.id] && c.status === 'ok').length,
     usableWh: items.find((c) => c.id === 'battery')?.facts.usableWh ?? 0,
     panelsW: includedArrayW(e.extraction!),
+    caveats: caveatsOf({ items, extraction: e.extraction!, quote: e.quote, optionId: e.optionId }, kit, musts, taxElsewhere),
   }
 }
 
 const byTotal = (a: Scored, b: Scored) => a.total - b.total
-const byFitsOrder = (a: Scored, b: Scored) => a.total - b.total || b.niceMet - a.niceMet || b.usableWh - a.usableWh
+/** Price decides; at the same price, fewer things to confirm, then more nice-to-haves, then more usable energy. */
+const byFitsOrder = (a: Scored, b: Scored) =>
+  a.total - b.total || a.caveats.length - b.caveats.length || b.niceMet - a.niceMet || b.usableWh - a.usableWh
 
 /** Ranks the read quotes against the kit. Pure; recomputed on every render. */
 export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly QuoteView[]): Verdict {
@@ -164,7 +172,10 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
     .filter((e) => !inCurrency.includes(e))
     .map((e) => ({ quote: e.quote, name: quoteName(e.quote), ...optionOf(e), reason: unrankedReason(e), currency: e.extraction?.currency ?? null }))
 
-  const scored = currency === null ? [] : inCurrency.map((e) => score(e, kit, musts, currency))
+  // Whether another quote ranked beside an entry states tax: then one that states none may be priced without it.
+  const taxed = new Set(inCurrency.filter((e) => statesTax(e.quote.extraction!)).map((e) => e.quote.id))
+  const taxElsewhere = (e: Entry): boolean => [...taxed].some((id) => id !== e.quote.id)
+  const scored = currency === null ? [] : inCurrency.map((e) => score(e, kit, musts, currency, taxElsewhere(e)))
   const fits = scored.filter((s) => s.fit === 'fits').sort(byFitsOrder)
   const unclear = scored.filter((s) => s.fit === 'unclear').sort(byTotal)
   const short = scored.filter((s) => s.fit === 'short').sort(byTotal)
@@ -180,8 +191,10 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
     ? null
     : [...ranked.filter((r) => r.fit === 'short')].sort((a, b) => a.failedMusts.length - b.failedMusts.length || a.total - b.total)[0] ?? null
 
+  const cleanFit = best !== null && best.caveats.length > 0 ? ranked.find((r) => r.fit === 'fits' && r.caveats.length === 0) ?? null : null
+
   return {
-    currency, ranked, unranked, best, nextFit, worthAsking, closest,
+    currency, ranked, unranked, best, nextFit, worthAsking, closest, cleanFit,
     mustCount: itemsFor(kit).filter((id) => musts[id]).length,
     readCount: quotes.filter((q) => !isPending(q.status) && q.status !== 'failed').length,
     failedCount: quotes.filter((q) => q.status === 'failed').length,

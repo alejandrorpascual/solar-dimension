@@ -43,8 +43,11 @@ export function optionPrices(x: QuoteExtraction): { id: string; total: number | 
   })
 }
 
-/** Words a tax line is written with ("IVA", "I.V.A.", "VAT", "sales tax", "impuesto"), once accents and dots are dropped. */
-const TAX_WORDS = /\b(iva|vat|tax(es)?|impuestos?)\b/
+/**
+ * Words a tax line is written with ("IVA", "I.V.A.", "ITBIS", the Dominican sales tax, "VAT", "sales tax", "impuesto"),
+ * once accents and dots are dropped.
+ */
+const TAX_WORDS = /\b(iva|itbis|vat|tax(es)?|impuestos?)\b/
 const DIACRITICS = /\p{Diacritic}/gu
 const namesTax = (text: string): boolean => TAX_WORDS.test(text.normalize('NFD').replace(DIACRITICS, '').replace(/\./g, '').toLowerCase())
 
@@ -56,6 +59,11 @@ const namesTax = (text: string): boolean => TAX_WORDS.test(text.normalize('NFD')
 const isTaxListed = (lines: readonly QuoteLine[], tax: number): boolean =>
   lines.some((l) =>
     !l.optional && l.kind === 'other' && near(l.lineTotal, tax, LINE_TOLERANCE) && (namesTax(l.description) || namesTax(l.source.text)))
+
+/** Whether a quote says anything about tax: an amount for it or one of its options, or an included line that names one. */
+export const statesTax = (x: QuoteExtraction): boolean =>
+  hasTotal(x.tax) || x.options.some((o) => hasTotal(o.tax)) ||
+  x.lines.some((l) => !l.optional && l.kind === 'other' && (namesTax(l.description) || namesTax(l.source.text)))
 
 /**
  * The totals an option priced at `base` may be written as: the base itself, with the tax written for that option, or

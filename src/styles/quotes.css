@@ -247,6 +247,9 @@
 .qseg__b[aria-pressed='true'] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(18, 22, 28, 0.12); }
 .qask { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 14px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-ink); font-size: 14px; line-height: 1.45; }
 .qask__body { display: flex; flex-direction: column; gap: 8px; }
+.qcaveats { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.qfacts { margin: 12px 0 0; display: grid; gap: 4px; }
+.qfacts__notes { margin: 0; padding-left: 18px; }
 .qask__copy { align-self: flex-start; border: 0; background: transparent; padding: 4px 0; font-size: 13px; font-weight: 700; color: var(--warn-ink); text-decoration: underline; }
 .qask__question { font-weight: 600; user-select: all; }
 .qmusts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

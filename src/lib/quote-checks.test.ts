@@ -117,7 +117,7 @@ describe('optionPrices', () => {
       expect(optionPrices(x)).toEqual([{ id: 'a', total: 1320 }, { id: 'b', total: 1100 }])
     })
     test('a tax line in English, or written without accents or dots, is recognised too', () => {
-      for (const text of ['VAT 16%', 'Sales tax', 'Impuesto al valor agregado', 'IVA']) {
+      for (const text of ['VAT 16%', 'Sales tax', 'Impuesto al valor agregado', 'IVA', 'ITBIS 18%']) {
         const lines = [line('inverter', 1000, { option: 'a' }), line('other', 160, { option: 'a', description: text, source: { page: 1, text } })]
         const x = extraction(lines, { options: [{ id: 'a', label: 'A', total: null, tax: 160 }, { id: 'b', label: 'B', total: 900, tax: null }] })
         expect(optionPrices(x)[0], text).toEqual({ id: 'a', total: 1160 })

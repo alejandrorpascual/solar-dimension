@@ -30,15 +30,16 @@ export function extraction(lines: QuoteLine[], over: Partial<QuoteExtraction> = 
 }
 
 /**
- * The kit the unit tests judge quotes against: 3.9 kW running, 9.4 kW at start-up, 8 kWh of battery, no solar array,
- * one run of 2/0 cable carrying 175 A and the 175 A class T fuse the engine picks for it. Its site is the engine's
- * default (open air, 30 °C), where a run carries the 75 °C column of the table. Typed structurally, so it is a
- * `KitNeeds` (quote-items.ts) without importing the type.
+ * The kit the unit tests judge quotes against: 48 V for 8 hours, 3.9 kW running on a 5 kW inverter, 9.4 kW at start-up,
+ * 8 kWh of battery, no solar array, one run of 2/0 cable carrying 175 A and the 175 A class T fuse the engine picks for
+ * it. Its site is the engine's default (open air, 30 °C), where a run carries the 75 °C column of the table. Typed
+ * structurally, so it is a `KitNeeds` (quote-items.ts) without importing the type.
  */
 export const SAMPLE_KIT = {
   runningW: 3860, surgeW: 9400, usableWh: 8000, chemistry: 'lifepo4', cableMm2: 67.4, cableGauge: '2/0 AWG', fuseA: 175,
   cableRuns: 1, mainMm2: 67.4, designA: 175, ampacityByGauge: Object.fromEntries(GAUGES.map((g) => [g.awg, g.amps75])),
   fuseCount: 1, fuseClass: 'T', arrayW: 0,
+  volts: 48, hours: 8, sheetInverter: { count: 1, unitW: 5000 },
 } as const
 
 const said = (page: number, text: string) => ({ description: text, source: { page, text } })

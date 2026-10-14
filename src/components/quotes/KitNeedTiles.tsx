@@ -1,8 +1,11 @@
 import { useLocale } from '../../hooks/useLocale'
-import { fmtKwh, fmtW } from '../../i18n/format'
+import { fmtInverter, fmtKwh, fmtW } from '../../i18n/format'
 import type { KitNeeds } from '../../lib/quote-items'
 
-/** What every quote is measured against: the kit's running load, the usable energy it needs when it stores any, and its solar array. */
+/**
+ * What every quote is measured against: the kit's running load and the inverter its sheet lists for it, the usable
+ * energy it needs when it stores any, and its solar array.
+ */
 export function KitNeedTiles({ kit }: { kit: KitNeeds }) {
   const { t } = useLocale()
   return (
@@ -10,6 +13,10 @@ export function KitNeedTiles({ kit }: { kit: KitNeeds }) {
       <div className="qneed">
         <span className="qmeta">{t.quotes.needInverter}</span>
         <span className="qneed__value num">{fmtW(kit.runningW, t.locale)}</span>
+      </div>
+      <div className="qneed">
+        <span className="qmeta">{t.quotes.needSheetInverter}</span>
+        <span className="qneed__value num">{fmtInverter(kit.sheetInverter, t.locale)}</span>
       </div>
       {kit.usableWh > 0 && (
         <div className="qneed">
