@@ -93,3 +93,9 @@ export const storedStore = (storage: FakeStorage): Store | null => {
   return raw ? (JSON.parse(raw) as Store) : null
 }
 export const names = (list: readonly { name: string }[]): string[] => list.map((p) => p.name)
+export function byName<T extends { name: string }>(list: readonly T[], name: string): T {
+  const found = list.find((p) => p.name === name)
+  if (!found) throw new Error(`no project named ${name}`)
+  return found
+}
+export const home = <T extends { name: string }>(list: readonly T[]): T => byName(list, 'Home')

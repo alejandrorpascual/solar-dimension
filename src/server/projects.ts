@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db } from '../db/client'
 import { projects, quoteFileTrash, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { clampStamp } from '../lib/sync'
+import { clampStamp, importable, isForAccount } from '../lib/sync'
 import { emptyQuoteTrash } from './quotes/deps'
 import { lockUserQuotes } from './quotes/limits'
 import { trashQuoteFiles } from './quotes/repo'
@@ -12,8 +12,26 @@ import { requireUserId } from './session'
 
 const MAX_BATCH = 200
 
-const ProjectsInput = z.object({ projects: z.array(ProjectSchema).max(MAX_BATCH) })
-const IdsInput = z.object({ ids: z.array(z.string().min(1)).max(MAX_BATCH) })
+/**
+ * `account` is the account the page that sends the request was loaded for. A page built before this field existed
+ * does not send it.
+ */
+const Account = z.string().min(1).optional()
+const ProjectsInput = z.object({ account: Account, projects: z.array(ProjectSchema).max(MAX_BATCH) })
+const IdsInput = z.object({ account: Account, ids: z.array(z.string().min(1)).max(MAX_BATCH) })
+const ListInput = z.object({ account: Account }).optional()
+
+/**
+ * The signed-in account, refused when it is not the one the page was loaded for. A tab left open across a sign-out
+ * and another account's sign-in still shows the first account's projects and sends its edits with the second
+ * account's cookie: without this they would be saved into the second account, over its own. Reading is refused as
+ * well: that tab would show the second account's list and keep it in the browser as the first account's.
+ */
+async function requireAccount(claimed: string | undefined): Promise<string> {
+  const userId = await requireUserId()
+  if (!isForAccount(claimed, userId)) throw new Error('This page was loaded for another account')
+  return userId
+}
 
 export function toProject(row: typeof projects.$inferSelect): Project {
   return ProjectSchema.parse({
@@ -66,9 +84,9 @@ async function upsertAll(userId: string, list: Project[]): Promise<Set<string>> 
   return new Set(written.map((row) => row.id))
 }
 
-export const listProjects = createServerFn({ method: 'GET' }).handler(async (): Promise<Project[]> => {
-  return listForUser(await requireUserId())
-})
+export const listProjects = createServerFn({ method: 'GET' })
+  .validator((d: unknown) => ListInput.parse(d))
+  .handler(async ({ data }): Promise<Project[]> => listForUser(await requireAccount(data?.account)))
 
 /**
  * Saves the projects it is given and answers with `stale`: the account's copy of each one it refused as older, so the
@@ -77,7 +95,7 @@ export const listProjects = createServerFn({ method: 'GET' }).handler(async (): 
 export const saveProjects = createServerFn({ method: 'POST' })
   .validator((d: unknown) => ProjectsInput.parse(d))
   .handler(async ({ data }): Promise<{ ok: true; stale: Project[] }> => {
-    const userId = await requireUserId()
+    const userId = await requireAccount(data.account)
     const written = await upsertAll(userId, data.projects)
     const refused = data.projects.filter((p) => !written.has(p.id)).map((p) => p.id)
     if (refused.length === 0) return { ok: true, stale: [] }
@@ -88,7 +106,7 @@ export const saveProjects = createServerFn({ method: 'POST' })
 export const deleteProjects = createServerFn({ method: 'POST' })
   .validator((d: unknown) => IdsInput.parse(d))
   .handler(async ({ data }) => {
-    const userId = await requireUserId()
+    const userId = await requireAccount(data.account)
     if (data.ids.length === 0) return { ok: true }
     // Quote rows go with the project (foreign key cascade); their files are trashed in the same transaction. The upload
     // lock orders this against the user's uploads: one that stored its row before is trashed here, and one after fails
@@ -106,7 +124,8 @@ export const deleteProjects = createServerFn({ method: 'POST' })
 export const importProjects = createServerFn({ method: 'POST' })
   .validator((d: unknown) => ProjectsInput.parse(d))
   .handler(async ({ data }): Promise<Project[]> => {
-    const userId = await requireUserId()
-    await upsertAll(userId, data.projects)
+    const userId = await requireAccount(data.account)
+    const [existing] = await db.select({ id: projects.id }).from(projects).where(eq(projects.userId, userId)).limit(1)
+    await upsertAll(userId, importable(data.projects, existing !== undefined))
     return listForUser(userId)
   })

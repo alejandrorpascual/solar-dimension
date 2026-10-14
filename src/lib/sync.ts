@@ -70,3 +70,31 @@ export function outgoing(next: readonly Project[], change: { upserts: readonly P
 export function unsentOf(sent: Outgoing): Unsent {
   return { upserts: new Set(sent.upserts.map((p) => p.id)), deletes: new Set(sent.deletes) }
 }
+
+/** One copy per project id, the one stamped latest (the later in the list on a tie), in the order ids first appear. */
+export function newestById(projects: readonly Project[]): Project[] {
+  const newest = new Map<string, Project>()
+  for (const p of projects) {
+    const seen = newest.get(p.id)
+    if (!seen || p.updatedAt >= seen.updatedAt) newest.set(p.id, p)
+  }
+  return [...newest.values()]
+}
+
+/**
+ * Whether a request may act on the signed-in account. `claimed` is the account its page was loaded for: a tab left
+ * open across a sign-out and another account's sign-in still sends the first account's with the second one's cookie.
+ * A page built before requests carried the claim sends none and is let through.
+ */
+export function isForAccount(claimed: string | undefined, signedIn: string): boolean {
+  return claimed === undefined || claimed === signedIn
+}
+
+/**
+ * What an import writes. Every browser starts with the same first project, stamped 0 until it is edited. One that was
+ * never edited is nobody's work: it is stored only for an account that has no project yet, so a new account still
+ * gets its first project. Sent to an account that has projects, it would add an empty one at every sign-in.
+ */
+export function importable(incoming: readonly Project[], accountHasProjects: boolean): Project[] {
+  return accountHasProjects ? incoming.filter((p) => p.updatedAt > 0) : [...incoming]
+}

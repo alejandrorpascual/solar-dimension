@@ -1,14 +1,15 @@
 import { afterAll, afterEach, beforeEach, expect, test, vi, type MockInstance } from 'vitest'
 import { PENDING_KEY } from '../lib/persistence'
-import type { Project } from '../lib/schema'
 import { addProject, deleteProject, patchCurrent, selectProject, setQty } from '../lib/store'
-import { accounts, clock, net, resetServer, session } from './fake-account-server'
-import { edit, fakeStorage, mount, names, openBrowser, storedStore, unmount, type FakeStorage } from './project-store-harness'
+import { account, accounts, clock, net, resetServer, session } from './fake-account-server'
+import { byName, edit, fakeStorage, home, mount, names, openBrowser, storedStore, unmount, type FakeStorage } from './project-store-harness'
 
+// What happens to an account's projects when its session ends or another account signs in is in
+// useProjectStore.accounts.test.ts.
 vi.mock('../server/projects', () => import('./fake-account-server'))
 vi.mock('./useRootData', async () => {
   const server = await import('./fake-account-server')
-  return { useRootData: () => ({ user: server.session.user }) }
+  return { useRootData: () => ({ user: server.pageUser() }) }
 })
 
 const ANA = { id: 'user-ana' }
@@ -28,13 +29,6 @@ beforeEach(async () => {
 afterEach(() => { vi.restoreAllMocks() })
 afterAll(async () => { await unmount() })
 
-const account = (user: { id: string }): Project[] => accounts.get(user.id) ?? []
-const byName = (list: readonly Project[], name: string): Project => {
-  const found = list.find((p) => p.name === name)
-  if (!found) throw new Error(`no project named ${name}`)
-  return found
-}
-const home = (list: readonly Project[]): Project => byName(list, 'Home')
 /** The errors the hook logged under `message`. */
 const logs = (message: string) => logged.mock.calls.filter((call) => call[0] === message)
 
@@ -71,7 +65,7 @@ test('the next save carries what failed before it, and only then does the error 
   expect(failed.syncError).toBe(true)
 
   net.offline = false
-  const saved = await edit((h) => h.commit(setQty(selectProject(h.store, 'p1'), 'tv', 3)))
+  const saved = await edit((h) => h.commit(setQty(selectProject(h.store, home(h.store.projects).id), 'tv', 3)))
 
   expect(byName(account(ANA), 'Second').hours).toBe(24)
   expect(home(account(ANA)).qty.tv).toBe(3)
@@ -135,7 +129,7 @@ test('after a load that failed, a save that works does not pass for a clean stat
   expect(logs('[projects] load failed')).toHaveLength(1)
 
   net.offline = false
-  const saved = await edit((h) => h.commit(setQty(selectProject(h.store, 'p1'), 'tv', 3)))
+  const saved = await edit((h) => h.commit(setQty(selectProject(h.store, home(h.store.projects).id), 'tv', 3)))
 
   // Home's edit is saved, but Second's never went: the load that would have sent it failed.
   expect(home(account(ANA)).qty.tv).toBe(3)
