@@ -212,9 +212,11 @@ test("a tab left open for the last account cannot upload a quote into the accoun
   // Ana's tab still shows her project, and now sends with Bea's session, for a project id Bea holds too.
   const answered = page.waitForResponse(isUpload)
   await pickQuoteFiles(page, [await quotePdf('solartec')])
-  await answered
+  const response = await answered
 
   expect(await countQuoteRows(bea, projectId)).toBe(0)
+  // A refusal written for the caller, not an unexpected failure the server logs and hides behind a reference.
+  expect(await response.text()).toContain('This page was loaded for another account')
   await expect(page.getByText("Couldn't upload it. Try again.")).toBeVisible()
 })
 
