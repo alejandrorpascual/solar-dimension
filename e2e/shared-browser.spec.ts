@@ -1,6 +1,8 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type Response } from '@playwright/test'
+import { cloneProject, countQuoteRows, firstProjectId, markEmailVerified, seedFailedQuote } from './db'
 import { accountAction } from './header'
 import { acceptNewProjectName, hideProjects, showProjects, startNewProject } from './projects'
+import { isProjectRead, pickQuoteFiles, quotePdf } from './quotes'
 
 const PASSWORD = 'correct-horse-battery'
 const CLIENT_PROJECT = 'Clinica Lopez'
@@ -120,15 +122,20 @@ async function signOutOnLoad(page: Page): Promise<void> {
   await item.click()
 }
 
-/** Ana's page stays open in one tab while, in another tab of the same browser, she signs out and Bea signs in. */
-async function anasTabLeftOpenAfterBeaSignsIn(page: Page): Promise<{ bea: string; beasTab: Page }> {
-  const { bea } = await beaThenAnaOnOneBrowser(page)
+/** In another tab of the same browser, Ana signs out and Bea signs in. Ana's tab stays open as it was. */
+async function beaSignsInInAnotherTab(page: Page, bea: string): Promise<Page> {
   const beasTab = await page.context().newPage()
   await beasTab.goto('/')
   await signOutOnLoad(beasTab)
   await expect(beasTab.getByRole('link', { name: 'Sign in' })).toBeVisible()
   await signIn(beasTab, bea)
-  return { bea, beasTab }
+  return beasTab
+}
+
+/** Ana's page stays open in one tab while, in another tab of the same browser, she signs out and Bea signs in. */
+async function anasTabLeftOpenAfterBeaSignsIn(page: Page): Promise<{ bea: string; beasTab: Page }> {
+  const { bea } = await beaThenAnaOnOneBrowser(page)
+  return { bea, beasTab: await beaSignsInInAnotherTab(page, bea) }
 }
 
 async function expectBeaHasOnlyHerOwn(beasTab: Page, bea: string): Promise<void> {
@@ -166,6 +173,66 @@ test("a tab left open for the last account cannot read the projects of the accou
   await expect(page.getByText(SAVE_REFUSED)).toBeVisible()
   await expect(page.getByLabel(BEAS_FREEZER)).toHaveCount(0)
   await expectBeaHasOnlyHerOwn(beasTab, bea)
+})
+
+/**
+ * Bea, then Ana on the same browser, both allowed to start quote reads, and Bea holds a project under the id of Ana's
+ * first one, as every account made before projects took ids of their own held "p1".
+ */
+async function anaAndBeaShareAProjectId(page: Page): Promise<{ ana: string; bea: string; projectId: string }> {
+  const bea = newEmail('bea')
+  await signUp(page, bea)
+  await markEmailVerified(bea)
+  await accountAction(page, 'Sign out')
+  await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
+  const ana = newEmail('ana')
+  await signUp(page, ana)
+  await markEmailVerified(ana)
+  const projectId = await firstProjectId(ana)
+  await cloneProject(bea, projectId)
+  return { ana, bea, projectId }
+}
+
+/** Ana's page loads again on the step that uploads quotes, so it knows she may upload. */
+async function openQuotesStep(page: Page): Promise<void> {
+  await page.goto('/?step=4')
+  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
+}
+
+const isUpload = (r: Response) => r.url().includes('/_serverFn/') && (r.request().headers()['content-type'] ?? '').includes('multipart/form-data')
+
+test("a tab left open for the last account cannot upload a quote into the account that signed in after it", async ({ page }) => {
+  const { bea, projectId } = await anaAndBeaShareAProjectId(page)
+  await openQuotesStep(page)
+  await beaSignsInInAnotherTab(page, bea)
+
+  // Ana's tab still shows her project, and now sends with Bea's session, for a project id Bea holds too.
+  const answered = page.waitForResponse(isUpload)
+  await pickQuoteFiles(page, [await quotePdf('solartec')])
+  await answered
+
+  expect(await countQuoteRows(bea, projectId)).toBe(0)
+  await expect(page.getByText("Couldn't upload it. Try again.")).toBeVisible()
+})
+
+test("a tab left open for the last account cannot read the quotes of the account that signed in after it", async ({ page }) => {
+  const { ana, bea, projectId } = await anaAndBeaShareAProjectId(page)
+  // Each holds one quote that could not be read, so Ana's page offers her verdict without waiting on a reading.
+  await seedFailedQuote(ana, projectId, 'anas-quote.pdf')
+  await seedFailedQuote(bea, projectId, 'beas-quote.pdf')
+  await openQuotesStep(page)
+  // The link shows once Ana's quotes have loaded, which must happen before Bea signs in: after, they are refused.
+  const verdictLink = page.getByRole('link', { name: 'See verdict' }).first()
+  await expect(verdictLink).toBeVisible()
+  await beaSignsInInAnotherTab(page, bea)
+
+  // A move within the page, so it still believes it is Ana's, to the verdict of the project id Bea holds too.
+  const read = page.waitForResponse((r) => isProjectRead(r.url()))
+  await verdictLink.click()
+  await read
+
+  await expect(page.getByRole('heading', { name: 'Something interrupted the kit builder.' })).toBeVisible()
+  await expect(page.getByText('beas-quote.pdf')).toHaveCount(0)
 })
 
 test("signing out from a project's quotes page, where the kit builder is not open, takes the projects off the browser too", async ({ page }) => {

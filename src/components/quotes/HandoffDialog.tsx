@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { useLocale } from '../../hooks/useLocale'
 import { useProjectJobs, useQuoteJobs } from '../../hooks/useQuoteJobs'
+import { useRootData } from '../../hooks/useRootData'
 import type { UploadItem } from '../../hooks/useQuoteUpload'
 import { trq } from '../../i18n'
 import { SECONDS_PER_QUOTE } from '../../lib/quote-jobs'
@@ -19,6 +20,7 @@ export function HandoffDialog({ isOpen, onOpenChange, items, projectId, projectN
   const { t } = useLocale()
   const jobs = useProjectJobs(projectId)
   const { refresh } = useQuoteJobs()
+  const account = useRootData().user?.id
   // Files deleted from here: the upload still lists them, but they are gone.
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set())
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({})
@@ -37,7 +39,7 @@ export function HandoffDialog({ isOpen, onOpenChange, items, projectId, projectN
     if (it.id === null) return
     setError(it.key, null)
     try {
-      const res = await retryQuote({ data: { quoteId: it.id } })
+      const res = await retryQuote({ data: { account, quoteId: it.id } })
       if (!res.ok) setError(it.key, rejectionText(t, res.rejection))
       await refresh()
     } catch (e) {
@@ -49,7 +51,7 @@ export function HandoffDialog({ isOpen, onOpenChange, items, projectId, projectN
     if (it.id === null) return
     setError(it.key, null)
     try {
-      await deleteQuote({ data: { quoteId: it.id } })
+      await deleteQuote({ data: { account, quoteId: it.id } })
       setRemoved((r) => new Set([...r, it.key]))
       await refresh()
     } catch (e) {

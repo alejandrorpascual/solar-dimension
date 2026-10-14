@@ -2,8 +2,9 @@ import { createLatest } from './latest-only'
 import type { ProjectJobs } from './quote-jobs'
 
 export interface PollerDeps {
-  load: () => Promise<ProjectJobs[]>
-  markSeen: (projectId: string) => Promise<unknown>
+  /** Loads the jobs of `userId`, the user the poller was set to. The server refuses it while another account is signed in. */
+  load: (userId: string) => Promise<ProjectJobs[]>
+  markSeen: (projectId: string, userId: string) => Promise<unknown>
   /** Applies a change to the list the tray shows. */
   update: (change: (jobs: ProjectJobs[]) => ProjectJobs[]) => void
   /** How a poll went: true when it loaded, false when it failed. */
@@ -50,7 +51,7 @@ export function createQuotePoller(deps: PollerDeps): QuotePoller {
     if (userId === null) return
     const isCurrent = latest.begin()
     try {
-      const next = await deps.load()
+      const next = await deps.load(userId)
       if (!isCurrent()) return
       deps.update(() => hideVerdicts(next, marking))
       deps.settle(true)
@@ -63,13 +64,14 @@ export function createQuotePoller(deps: PollerDeps): QuotePoller {
 
   const markSeen = async (projectId: string) => {
     if (userId === null) return
+    const user = userId
     const mine = session
     // A poll in flight may predate the mark and would bring "Verdict ready" back, so it is dropped.
     latest.invalidate()
     marking = [...marking, projectId]
     deps.update((list) => hideVerdicts(list, [projectId]))
     try {
-      await deps.markSeen(projectId)
+      await deps.markSeen(projectId, user)
     } catch (error) {
       console.error('[quotes] marking a verdict as seen failed', { projectId, error })
     } finally {

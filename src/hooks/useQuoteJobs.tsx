@@ -21,8 +21,8 @@ export function QuoteJobsProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<ProjectJobs[]>([])
   const [failures, setFailures] = useState(0)
   const [poller] = useState(() => createQuotePoller({
-    load: () => getQuoteJobs(),
-    markSeen: (projectId) => markQuotesSeen({ data: { projectId } }),
+    load: (account) => getQuoteJobs({ data: { account } }),
+    markSeen: (projectId, account) => markQuotesSeen({ data: { account, projectId } }),
     update: setJobs,
     settle: (ok) => setFailures((n) => (ok ? 0 : n + 1)),
   }))

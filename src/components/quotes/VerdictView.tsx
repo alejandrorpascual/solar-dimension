@@ -47,6 +47,8 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   const catalog = useCatalog()
   const { refresh } = useQuoteJobs()
   const { user } = useRootData()
+  // Every save names the account this page was loaded for, so a tab left open after another account signs in is refused.
+  const account = user?.id
   const [musts, setMusts] = useState<Musts>(data.musts)
   const [overrides, setOverrides] = useState(() => overridesById(data))
   const [error, setError] = useState<SaveError>(null)
@@ -101,7 +103,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
     pending.current = addPendingOverride(pending.current, quoteId, item, value, seq)
     setOverrides((o) => ({ ...o, [quoteId]: setOverride(o[quoteId] ?? {}, item, value) }))
     try {
-      await setQuoteOverride({ data: { quoteId, item, value } })
+      await setQuoteOverride({ data: { account, quoteId, item, value } })
       settle((p) => settlePendingOverride(p, quoteId, item, seq, value, verdictClock.tick()))
     } catch (e) {
       console.error('[quotes] saving an override failed', { quoteId, item, e })
@@ -119,7 +121,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
     pending.current = addPendingMust(pending.current, item, value, seq)
     setMusts((m) => ({ ...m, [item]: value }))
     try {
-      await setQuoteMust({ data: { projectId: data.project.id, item, value } })
+      await setQuoteMust({ data: { account, projectId: data.project.id, item, value } })
       settle((p) => settlePendingMust(p, item, seq, value, verdictClock.tick()))
     } catch (e) {
       console.error('[quotes] saving a must-have failed', { item, e })
@@ -142,7 +144,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       failed(key)
     }
   }
-  const remove = (quoteId: string, key: string) => run(key, () => deleteQuote({ data: { quoteId } }))
+  const remove = (quoteId: string, key: string) => run(key, () => deleteQuote({ data: { account, quoteId } }))
   const retryFor = (quoteId: string) => {
     const q = data.quotes.find((x) => x.id === quoteId)
     return q === undefined ? 'none' : retryOffer(q, user?.canUseQuotes === true)
@@ -157,7 +159,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       <div className="qlist__rows">
         {others.map((r) => (
           <QuoteRow key={entryKey(r)} r={r} verdict={verdict} kit={kit} error={errorFor(entryKey(r))}
-            retry={retryFor(r.quote.id)} onRetry={run(entryKey(r), () => retryQuote({ data: { quoteId: r.quote.id } }))}
+            retry={retryFor(r.quote.id)} onRetry={run(entryKey(r), () => retryQuote({ data: { account, quoteId: r.quote.id } }))}
             onOverride={onOverride(r.quote.id, entryKey(r))} onDelete={remove(r.quote.id, entryKey(r))} />
         ))}
       </div>
@@ -172,7 +174,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       {verdict.best ? (
         <div className="qv__grid">
           <BestCard best={verdict.best} kit={kit} error={errorFor(entryKey(verdict.best))}
-            retry={retryFor(verdict.best.quote.id)} onRetry={run(entryKey(verdict.best), () => retryQuote({ data: { quoteId: verdict.best!.quote.id } }))}
+            retry={retryFor(verdict.best.quote.id)} onRetry={run(entryKey(verdict.best), () => retryQuote({ data: { account, quoteId: verdict.best!.quote.id } }))}
             onOverride={onOverride(verdict.best.quote.id, entryKey(verdict.best))} onDelete={remove(verdict.best.quote.id, entryKey(verdict.best))} />
           {ranked}
         </div>
@@ -183,7 +185,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
           <div className="qunranked__grid">
             {verdict.unranked.map((u) => {
               const key = entryKey(u)
-              const onRetry = run(key, () => retryQuote({ data: { quoteId: u.quote.id } }))
+              const onRetry = run(key, () => retryQuote({ data: { account, quoteId: u.quote.id } }))
               // Reading and failed quotes show the steps they have been through; the rest wait on the user.
               return u.reason === 'reading' || u.reason === 'failed' ? (
                 <ProgressCard key={key} u={u} retries={retriesOf(u.quote.id)} retry={retryFor(u.quote.id)} error={errorFor(key)}
@@ -191,7 +193,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
               ) : (
                 <UnrankedRow key={key} u={u} error={errorFor(key)} retry={retryFor(u.quote.id)}
                   onRetry={onRetry} onDelete={remove(u.quote.id, key)}
-                  onTotal={(total) => void run(key, () => setQuoteTotal({ data: { quoteId: u.quote.id, total } }))()} />
+                  onTotal={(total) => void run(key, () => setQuoteTotal({ data: { account, quoteId: u.quote.id, total } }))()} />
               )
             })}
           </div>
