@@ -58,6 +58,7 @@ export function gapText(t: Dictionary, r: RankedQuote, kit: KitNeeds): string {
     return c.facts.shortW ? trq(t, 'gapInverter', { w: fmtW(c.facts.shortW, t.locale) }) : trq(t, 'gapSurge', { w: fmtW(kit.surgeW, t.locale) })
   }
   if (id === 'battery') return trq(t, 'gapBattery', { kwh: fmtKwh(c.facts.shortWh ?? 0, t.locale) })
+  if (id === 'panels') return trq(t, 'gapPanels', { w: fmtW(c.facts.shortArrayW ?? 0, t.locale) })
   if (id === 'cables') return trq(t, 'gapCables', { gauge: kit.cableGauge })
   if (id === 'fuse') {
     return c.facts.maxA !== undefined
@@ -98,6 +99,7 @@ function confirmPhrase(t: Dictionary, c: ItemCheck): string {
     case 'battery':
       if (f.capacityPartial) return q.confirmBatteryAll
       return f.usableLowWh === undefined ? q.confirmBatteryCapacity : q.confirmBatteryChemistry
+    case 'panels': return q.confirmPanelSize
     case 'cables': return f.runsUnstated ? trq(t, 'confirmCableRuns', { runs: f.runs ?? 0, gauge: f.gauge ?? '' }) : q.confirmCableSize
     case 'fuse': return fuseConfirm(t, f)
     default: return t.quoteItemsInline[c.id]
@@ -152,6 +154,11 @@ export function fitLabel(t: Dictionary, r: RankedQuote, v: Verdict): string {
 /** A ranked quote priced by the total the user typed, not the one read: its card says so. */
 export const isTotalTyped = (r: RankedQuote): boolean => r.optionId === null && r.quote.totalOverride !== null
 
+/** A battery-only kit isn't checked for panels, so a quote that includes them says so: it explains the price. */
+export function extraPanelsText(t: Dictionary, r: RankedQuote, kit: KitNeeds): string | null {
+  return kit.arrayW === 0 && r.panelsW > 0 ? trq(t, 'alsoPanels', { w: fmtW(r.panelsW, t.locale) }) : null
+}
+
 export function deltaText(t: Dictionary, r: RankedQuote): string {
   if (r.delta === null || r.delta === 0) return ''
   return trq(t, r.delta > 0 ? 'moreThanBest' : 'lessThanBest', { amount: money(t, Math.abs(r.delta), r.currency) })
@@ -194,6 +201,8 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
         label: f.usableWh !== undefined ? trq(t, 'usable', { kwh: fmtKwh(f.usableWh, L) }) : q.included,
         detail: short ? trq(t, 'shortKwh', { kwh: fmtKwh(f.shortWh ?? 0, L) }) : confirmed ?? batteryMath(t, f),
       }
+    case 'panels':
+      return { label: f.arrayW !== undefined ? fmtW(f.arrayW, L) : q.included, detail: short ? trq(t, 'needsW', { w: fmtW(kit.arrayW, L) }) : confirmed }
     case 'charger':
     case 'wifi':
       return { label: q.included, detail: f.builtIn ? q.builtIn : f.amps !== undefined ? trq(t, 'amps', { amps: f.amps }) : confirmed }
@@ -248,6 +257,7 @@ function unclearText(t: Dictionary, c: ItemCheck, kit: KitNeeds): { label: strin
   switch (c.id) {
     case 'inverter': return { label: q.included, detail: q.powerNotStated }
     case 'battery': return { label: q.included, detail: batteryOpen(t, f) }
+    case 'panels': return { label: f.arrayW ? fmtW(f.arrayW, t.locale) : q.included, detail: q.sizeNotStated }
     case 'cables':
       return f.runsUnstated ? { label: f.gauge ?? q.included, detail: trq(t, 'needsRuns', { runs: f.runs ?? 0 }) } : { label: q.included, detail: q.sizeNotStated }
     case 'fuse': return { label: f.amps !== undefined ? trq(t, 'amps', { amps: f.amps }) : q.included, detail: fuseOpen(t, f, kit) }

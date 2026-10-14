@@ -94,6 +94,24 @@ describe('a quote with no total', () => {
   })
 })
 
+describe('solar panels in the comparison (AI-05)', () => {
+  // The audit's probe E12: the same kit with and without an 8-panel array, one quote that quotes it and one that doesn't.
+  const withPanels = { ...SAMPLE_QUOTES.solartec, lines: [...SAMPLE_QUOTES.solartec.lines, line('panel', 2400, { qty: 8, specs: { panelWatts: 550 } })], total: 6480 + 2400 }
+  const quotes = [view('nopanels', { extraction: SAMPLE_QUOTES.solartec }), view('panels', { extraction: withPanels, createdAt: 2 })]
+  test('for a kit with an array, a quote that leaves the panels out is not the best fit, however cheap', () => {
+    const v = compareQuotes({ ...KIT, arrayW: 4400 }, DEFAULT_MUSTS, quotes)
+    expect(v.mustCount).toBe(7)
+    expect(v.best?.quote.id).toBe('panels')
+    expect(v.ranked.find((r) => r.quote.id === 'nopanels')).toMatchObject({ fit: 'unclear', unknownMusts: ['panels'] })
+  })
+  test('for a battery-only kit, panels are not checked, and the cheaper quote wins with the array counted on the other', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, quotes)
+    expect(v.mustCount).toBe(6)
+    expect(v.best?.quote.id).toBe('nopanels')
+    expect(v.ranked.map((r) => r.panelsW)).toEqual([0, 4400])
+  })
+})
+
 describe('what is not ranked', () => {
   test('queued and processing quotes are reading and not counted as read', () => {
     const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec'), view('x', { status: 'processing', extraction: null })])

@@ -97,6 +97,8 @@ export const quotesEs: Record<QuoteKey, string> = {
   kitNeedsTitle: 'Lo que necesita tu kit',
   needInverter: 'Inversor, tu kit',
   needBattery: 'Batería útil, tu kit',
+  needArray: 'Paneles solares, tu kit',
+  alsoPanels: 'También incluye {w} de paneles solares',
   gaugeInverter: 'Inversor {w}',
   gaugeBattery: 'Batería {kwh} útiles',
   gaugeLabel: '{item}: {have} frente a {need} necesarios, {zone}',
@@ -135,6 +137,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   confirmBatteryCapacity: 'la capacidad de la batería',
   confirmBatteryAll: 'la capacidad de cada batería',
   confirmBatteryChemistry: 'la química de la batería',
+  confirmPanelSize: 'la potencia de los paneles solares',
   confirmCableSize: 'la medida de los cables principales',
   confirmCableRuns: 'que los cables principales son {runs} tramos de {gauge}',
   confirmFuseRating: 'la capacidad del fusible',
@@ -188,6 +191,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   gapInverter: 'al inversor le faltan {w}',
   gapSurge: 'el inversor no puede arrancar {w} a la vez',
   gapBattery: 'a la batería le faltan {kwh}',
+  gapPanels: 'a los paneles les faltan {w}',
   gapCables: 'los cables son más delgados que {gauge}',
   gapFuse: 'el fusible es menor de {amps} A',
   gapFuseCable: 'su fusible de {amps} A es demasiado grande para su cable {gauge}',
@@ -228,18 +232,18 @@ export const quotesEs: Record<QuoteKey, string> = {
 }
 
 export const quoteItemsEs: Record<ItemId, string> = {
-  inverter: 'Inversor', battery: 'Banco de baterías', charger: 'Cargador de baterías', wifi: 'Monitoreo por Wi-Fi',
+  inverter: 'Inversor', battery: 'Banco de baterías', panels: 'Paneles solares', charger: 'Cargador de baterías', wifi: 'Monitoreo por Wi-Fi',
   cables: 'Cables principales', fuse: 'Fusible clase T', installation: 'Instalación', warranty: 'Garantía',
 }
 export const quoteItemsInlineEs: Record<ItemId, string> = {
-  inverter: 'un inversor suficiente', battery: 'una batería suficiente', charger: 'un cargador de baterías', wifi: 'monitoreo por Wi-Fi',
+  inverter: 'un inversor suficiente', battery: 'una batería suficiente', panels: 'paneles solares', charger: 'un cargador de baterías', wifi: 'monitoreo por Wi-Fi',
   cables: 'los cables principales', fuse: 'un fusible clase T', installation: 'la instalación', warranty: 'garantía',
 }
 export const quoteItemsShortEs: Record<ItemId, string> = {
-  inverter: 'Inversor', battery: 'Batería', charger: 'Cargador', wifi: 'Wi-Fi',
+  inverter: 'Inversor', battery: 'Batería', panels: 'Paneles', charger: 'Cargador', wifi: 'Wi-Fi',
   cables: 'Cables', fuse: 'Fusible', installation: 'Instalación', warranty: 'Garantía',
 }
 export const quoteItemsListEs: Record<ItemId, string> = {
-  inverter: 'inversor', battery: 'batería', charger: 'cargador', wifi: 'Wi-Fi',
+  inverter: 'inversor', battery: 'batería', panels: 'paneles', charger: 'cargador', wifi: 'Wi-Fi',
   cables: 'cables', fuse: 'fusible', installation: 'instalación', warranty: 'garantía',
 }

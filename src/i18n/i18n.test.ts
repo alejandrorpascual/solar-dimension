@@ -4,6 +4,7 @@ import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
 import { en } from './en'
 import { es } from './es'
 import { applianceName, applianceNote, batteryCount, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
+import { ITEM_IDS } from '../lib/quote-items'
 
 describe('dictionaries', () => {
   test('es has every ui key that en has, and nothing extra', () => {
@@ -204,7 +205,7 @@ describe('quote dictionaries', () => {
   test('every item has a name, an inline phrase and a short label in both languages', () => {
     for (const d of [en, es]) {
       for (const map of [d.quoteItems, d.quoteItemsInline, d.quoteItemsShort, d.quoteItemsList]) {
-        expect(Object.keys(map).sort()).toEqual(['battery', 'cables', 'charger', 'fuse', 'installation', 'inverter', 'warranty', 'wifi'])
+        expect(Object.keys(map).sort()).toEqual([...ITEM_IDS].sort())
       }
     }
   })

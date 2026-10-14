@@ -9,7 +9,7 @@ import { trq } from '../../i18n'
 import { computeProject } from '../../lib/project-summary'
 import { compareQuotes, entryKey } from '../../lib/quote-compare'
 import { retryOffer } from '../../lib/quote-guards'
-import { kitNeeds, setOverride, type ItemId, type Musts, type Override, type Overrides } from '../../lib/quote-items'
+import { itemsFor, kitNeeds, setOverride, type ItemId, type Musts, type Override, type Overrides } from '../../lib/quote-items'
 import type { Rejection } from '../../lib/quote-limits'
 import {
   addPendingMust, addPendingOverride, NO_PENDING, overlayPending, prunePending, settlePendingMust, settlePendingOverride,
@@ -206,7 +206,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
           {footerExtra}
         </div>
       </footer>
-      <MustsSheet isOpen={isMustsOpen} onOpenChange={setMustsOpen} musts={musts} onChange={(i, v) => void onMust(i, v)} error={errorFor('musts')} />
+      <MustsSheet isOpen={isMustsOpen} onOpenChange={setMustsOpen} items={itemsFor(kit)} musts={musts} onChange={(i, v) => void onMust(i, v)} error={errorFor('musts')} />
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { useLocale } from '../../hooks/useLocale'
 import { entryKey, entryName, type RankedQuote, type Verdict } from '../../lib/quote-compare'
 import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
 import { quoteSizing } from '../../lib/quote-sizing'
-import { coverageMeta, deltaText, entrySubtitle, fitLabel, isTotalTyped, money, reasonLine } from '../../lib/quote-text'
+import { coverageMeta, deltaText, entrySubtitle, extraPanelsText, fitLabel, isTotalTyped, money, reasonLine } from '../../lib/quote-text'
 import { AskBox } from './AskBox'
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
@@ -30,6 +30,7 @@ export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, o
   const delta = deltaText(t, r)
   const subtitle = entrySubtitle(t, r)
   const coverage = coverageMeta(t, r.items)
+  const panels = extraPanelsText(t, r, kit)
   // A quote with a typed total ranks even while its reading needs a check, so the way to read it again is on the card.
   const canReadAgain = r.quote.status === 'needs_review' && retry === 'retry'
   return (
@@ -49,6 +50,7 @@ export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, o
       <p className="qrow__reason">{reasonLine(t, r, verdict, kit)}</p>
       <SizingBars sizing={quoteSizing(r.items, kit)} />
       {coverage && <p className="qmeta">{coverage}</p>}
+      {panels && <p className="qmeta">{panels}</p>}
       {canReadAgain && <div className="qrow__actions"><button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button></div>}
       {isAsking && <AskBox r={r} verdict={verdict} />}
       <ChecksToggle name={entryName(r)} isOpen={isOpen} controls={bodyId} onToggle={() => setOpen(!isOpen)} variant="link" />

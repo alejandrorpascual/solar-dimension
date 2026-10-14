@@ -1,5 +1,5 @@
 import { hasTotal, isFixedByTotal, optionPrices } from './quote-checks'
-import { checkItems, ITEM_IDS, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
+import { checkItems, itemsFor, quotedArrayW, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
 import { hasOptions, optionExtraction } from './quote-options'
 import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
 
@@ -18,6 +18,8 @@ export interface RankedQuote extends EntryOption {
   quote: QuoteView; name: string; items: ItemCheck[]; fit: Fit
   total: number; currency: string; rank: number; delta: number | null
   unknownMusts: ItemId[]; failedMusts: ItemId[]; niceMet: number; usableWh: number
+  /** The solar array the quote (or this option) includes, in W, whether or not the kit asks for one. */
+  panelsW: number
 }
 /**
  * needs_review: the total doesn't add up with the lines, or a reading read again still doesn't hold; no_total: the quote
@@ -142,6 +144,7 @@ function score(e: Entry, kit: KitNeeds, musts: Musts, currency: string): Scored 
     failedMusts, unknownMusts,
     niceMet: items.filter((c) => !musts[c.id] && c.status === 'ok').length,
     usableWh: items.find((c) => c.id === 'battery')?.facts.usableWh ?? 0,
+    panelsW: quotedArrayW(e.extraction!),
   }
 }
 
@@ -176,7 +179,7 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
 
   return {
     currency, ranked, unranked, best, nextFit, worthAsking, closest,
-    mustCount: ITEM_IDS.filter((id) => musts[id]).length,
+    mustCount: itemsFor(kit).filter((id) => musts[id]).length,
     readCount: quotes.filter((q) => !isPending(q.status) && q.status !== 'failed').length,
     failedCount: quotes.filter((q) => q.status === 'failed').length,
   }
