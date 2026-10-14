@@ -1,6 +1,6 @@
 import { expect, type FileChooser, type Page } from '@playwright/test'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
-import { markEmailVerified } from './db'
+import { firstProjectId, markEmailVerified } from './db'
 
 /** How long one click waits for the file picker before the next try. */
 const CHOOSER_WAIT_MS = 3_000
@@ -28,6 +28,14 @@ export async function signUp(page: Page, { verified = true }: { verified?: boole
   await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
   if (verified) await markEmailVerified(email)
   return email
+}
+
+/** Signs up, waits for the default project to reach the server, and returns its id. */
+export async function signUpWithProject(page: Page): Promise<{ email: string; projectId: string }> {
+  const email = await signUp(page)
+  await page.goto('/?step=4')
+  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
+  return { email, projectId: await firstProjectId(email) }
 }
 
 /**

@@ -8,6 +8,7 @@ import { auth } from '../lib/auth'
 import { googleProvider } from '../lib/auth-google'
 import { canUseQuotes } from '../lib/quote-access'
 import type { Rejection } from '../lib/quote-limits'
+import { PublicError } from '../lib/server-error'
 import { isForAccount } from '../lib/sync'
 
 /** `canUseQuotes` is decided on the server, so the trusted-email list never reaches the browser. */
@@ -44,7 +45,7 @@ export const getAuthFeatures = createServerFn({ method: 'GET' }).handler(async (
 
 export const requireUserId = createServerOnlyFn(async (): Promise<string> => {
   const session = await auth.api.getSession({ headers: getRequestHeaders() })
-  if (!session) throw new Error('Unauthorized')
+  if (!session) throw new PublicError('Unauthorized')
   return session.user.id
 })
 
@@ -59,11 +60,12 @@ export const AccountClaim = z.string().min(1).optional()
  * and another account's sign-in still shows the first account's projects and quotes, and sends its requests with the
  * second account's cookie: without this its edits and uploads would land in the second account, on any project whose
  * id both hold (every account made before projects took ids of their own has a "p1"). Reading is refused as well: that
- * tab would show the second account's data as the first account's.
+ * tab would show the second account's data as the first account's. The refusal is an answer, not a failure: such a tab
+ * keeps polling until it is reloaded.
  */
 export const requireAccount = createServerOnlyFn(async (claimed: string | undefined): Promise<string> => {
   const userId = await requireUserId()
-  if (!isForAccount(claimed, userId)) throw new Error('This page was loaded for another account')
+  if (!isForAccount(claimed, userId)) throw new PublicError('This page was loaded for another account')
   return userId
 })
 

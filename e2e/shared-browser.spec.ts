@@ -45,6 +45,9 @@ async function everythingSaved(page: Page): Promise<void> {
   await expect(page.getByRole('menu')).toHaveCount(0)
 }
 
+/** The id of the project open on this browser, which the quotes page's address needs. */
+const currentProjectId = (page: Page) => page.evaluate(() => (JSON.parse(localStorage.getItem('solar-dimension.projects.v1') ?? '{}') as { currentId?: string }).currentId)
+
 /** Everything the browser stores for this site, as one string. */
 const everythingStored = (page: Page) => page.evaluate(() => Object.entries(localStorage).map(([key, value]) => `${key}=${value}`).join('\n'))
 
@@ -237,8 +240,7 @@ test("a tab left open for the last account cannot read the quotes of the account
 
 test("signing out from a project's quotes page, where the kit builder is not open, takes the projects off the browser too", async ({ page }) => {
   await beaThenAnaOnOneBrowser(page)
-  const projectId = await page.evaluate(() => (JSON.parse(localStorage.getItem('solar-dimension.projects.v1') ?? '{}') as { currentId?: string }).currentId)
-  await page.goto(`/projects/${projectId}/quotes`)
+  await page.goto(`/projects/${await currentProjectId(page)}/quotes`)
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 
   await signOutOnLoad(page)
@@ -271,4 +273,38 @@ test("signing back in adds no empty first project beside the one the account alr
   await showProjects(page)
   await expect(page.getByRole('article')).toHaveCount(1)
   await hideProjects(page)
+})
+
+const SIGN_OUT_FAILED = 'Could not sign out. You are still signed in. Try again.'
+
+test('a sign-out that never reaches the server says so, and the account stays signed in until one does', async ({ page }) => {
+  const email = newEmail('offline')
+  await signUp(page, email)
+
+  await page.context().setOffline(true)
+  await accountAction(page, 'Sign out')
+
+  await expect(page.getByRole('alert').filter({ hasText: SIGN_OUT_FAILED })).toBeVisible()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+
+  await page.context().setOffline(false)
+  await accountAction(page, 'Sign out')
+
+  await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
+  await expect(page.getByText(SIGN_OUT_FAILED)).toHaveCount(0)
+})
+
+test("a sign-out from a project's quotes page that never reaches the server says so there too", async ({ page }) => {
+  const email = newEmail('offline-quotes')
+  await signUp(page, email)
+  await addAndSave(page, 'Chest freezer')
+  await page.goto(`/projects/${await currentProjectId(page)}/quotes`)
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+  await page.context().setOffline(true)
+  await signOutOnLoad(page)
+
+  await expect(page.getByRole('alert').filter({ hasText: SIGN_OUT_FAILED })).toBeVisible()
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  await expect(page).toHaveURL(/\/quotes$/)
 })

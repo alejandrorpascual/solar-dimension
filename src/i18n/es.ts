@@ -71,8 +71,9 @@ export const es: Dictionary = {
     footer1: '{name} · {count} aparatos · {running} en marcha · {peak} pico', footer2: '{hours} h a {volts} V · {load} de carga', footer3: '{batteries} · {inverter} · {gauge}', footerEmpty: 'Nada seleccionado todavía',
     back: 'Atrás', next: 'Siguiente: horas de respaldo', nextSolar: 'Siguiente: paneles solares', buildKit: 'Armar mi kit', startOver: 'Empezar de nuevo',
     continueGoogle: 'Continuar con Google', orDivider: 'o', googleExists: 'Este correo ya tiene una cuenta. Inicia sesión con tu contraseña y luego conecta Google desde el menú de tu cuenta.', googleFailed: 'No se completó el inicio con Google. Inténtalo de nuevo.', connectGoogle: 'Conectar Google',
+    signOutFailed: 'No se pudo cerrar sesión. Sigues con la sesión iniciada. Inténtalo de nuevo.',
     signIn: 'Iniciar sesión', signUp: 'Crear cuenta', signOut: 'Cerrar sesión', email: 'Correo', password: 'Contraseña', noAccount: '¿No tienes cuenta? Crea una', haveAccount: '¿Ya tienes cuenta? Inicia sesión', authFailed: 'No funcionó. Revisa el correo y la contraseña.', signedInAs: 'Sesión iniciada como {email}', syncing: 'Sincronizando tus proyectos…', syncFailed: 'No se pudo guardar en tu cuenta. Los cambios quedan en este dispositivo.', language: 'Idioma',
-    notFound: 'Página no encontrada', backHome: 'Volver al kit', errorTitle: 'Algo interrumpió el armado del kit.', reload: 'Recargar', updating: 'Cargando la versión más reciente…',
+    notFound: 'Página no encontrada', backHome: 'Volver al kit', errorTitle: 'Algo interrumpió el armado del kit.', serverError: 'Error del servidor. Referencia', reload: 'Recargar', updating: 'Cargando la versión más reciente…',
     projects: 'Proyectos', projectsCount: 'Proyectos · {count}', current: 'Actual', quickEdit: 'Edición rápida', done: 'Listo',
     projectMeta: '{volts} V · {hours} h · {count} aparatos', heaviestMore: '{list} y {count} más', bank: 'Banco', inverter: 'Inversor', close: 'Cerrar',
     appliancesCount: 'Aparatos · {count}', windowLabel: 'Horas', hourLess: 'Una hora menos', hourMore: 'Una hora más', hoursShort: '{hours} h',
@@ -158,10 +159,21 @@ export const es: Dictionary = {
         : `El inversor de ${inverter} W deja ${p.headroomPct}% de margen sobre la carga en marcha de ${running} W; este kit prevé ${p.needPct}%. ${advice}`
     },
     surgeDuration: (p) => {
-      const start = `Un arranque de ${p.surgeW?.toLocaleString('es-419')} W durante ${p.seconds} s supera la ventana de arranque`
-      return isSet(p)
-        ? `${start} de los ${p.inverters} inversores de ${p.unitW?.toLocaleString('es-419')} W; juntos solo sostienen ${p.ratedW?.toLocaleString('es-419')} W ese tiempo. Deja que arranquen menos motores a la vez.`
-        : `${start} del inversor de ${p.inverterW?.toLocaleString('es-419')} W; solo sostiene ${p.ratedW?.toLocaleString('es-419')} W ese tiempo. Elige un inversor mayor o deja que arranquen menos motores a la vez.`
+      const start = `Un arranque de ${p.surgeW?.toLocaleString('es-419')} W`
+      const [rated, surge] = [p.ratedW, p.inverterSurgeW].map((n) => n?.toLocaleString('es-419'))
+      // A set is already the most the list can put in parallel, so the advice no longer offers a bigger inverter.
+      if (isSet(p)) {
+        const set = `de los ${p.inverters} inversores de ${p.unitW?.toLocaleString('es-419')} W`
+        const reason = p.tooLong
+          ? `${start} durante ${p.seconds} s supera la ventana de arranque ${set}; juntos solo sostienen ${rated} W ese tiempo.`
+          : `${start} supera los ${surge} W de arranque ${set} juntos.`
+        return `${reason} Deja que arranquen menos motores a la vez.`
+      }
+      const inverter = `del inversor de ${p.inverterW?.toLocaleString('es-419')} W`
+      const reason = p.tooLong
+        ? `${start} durante ${p.seconds} s supera la ventana de arranque ${inverter}; solo sostiene ${rated} W ese tiempo.`
+        : `${start} supera los ${surge} W de arranque ${inverter}.`
+      return `${reason} Elige un inversor mayor o deja que arranquen menos motores a la vez.`
     },
     bankDischarge: (p) => `${isSet(p) ? `Los ${p.inverters} inversores toman hasta ${p.needA?.toLocaleString('es-419')} A en total` : `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A`} a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.`,
     bankPeak: (p) => `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; el BMS del banco permite ${p.maxA?.toLocaleString('es-419')} A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.`,

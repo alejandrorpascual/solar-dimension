@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { isAdmin } from '../lib/admin'
 import { auth } from '../lib/auth'
 import { ApplianceSchema, type ApplianceRecord } from '../lib/catalog-schema'
+import { PublicError } from '../lib/server-error'
 import { applianceExists, listRecords, setRetired, upsertAppliances } from './catalog-repo'
 
 async function adminUser() {
@@ -14,7 +15,7 @@ async function adminUser() {
 /** Throws a plain "Not found" so a non-admin cannot tell the admin tools exist. */
 const requireAdmin = createServerOnlyFn(async () => {
   const user = await adminUser()
-  if (!user) throw new Error('Not found')
+  if (!user) throw new PublicError('Not found')
   return user
 })
 
@@ -34,10 +35,10 @@ export const adminSaveAppliance = createServerFn({ method: 'POST' })
     const { mode, item } = SaveApplianceInput.parse(data)
     if (mode === 'create') {
       if (await applianceExists(item.id)) {
-        throw new Error(`The id "${item.id}" is already used by another appliance. Change the English name.`)
+        throw new PublicError(`The id "${item.id}" is already used by another appliance. Change the English name.`)
       }
     } else if (!(await applianceExists(item.id))) {
-      throw new Error('Not found')
+      throw new PublicError('Not found')
     }
     return upsertAppliances([item], user.id)
   })
@@ -49,6 +50,6 @@ export const adminSetRetired = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const user = await requireAdmin()
     const { id, retired } = SetRetiredInput.parse(data)
-    if (!(await setRetired(id, retired, user.id))) throw new Error('Not found')
+    if (!(await setRetired(id, retired, user.id))) throw new PublicError('Not found')
     return { ok: true as const }
   })
