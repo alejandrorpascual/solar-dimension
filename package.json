@@ -6,7 +6,7 @@
     "dev": "vite dev --port 3000",
     "build": "vite build",
     "preview": "vite preview --port 3000",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p e2e",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts",
     "test": "vitest run",
     "start": "node --env-file-if-exists=.env.local .output/server/index.mjs",
     "test:coverage": "vitest run --coverage",
