@@ -16,6 +16,7 @@ import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
 import { useRootData } from '../hooks/useRootData'
+import { useSignOut } from '../hooks/useSignOut'
 import { batteryCount, inverterSize, panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { computeProject } from '../lib/project-summary'
@@ -66,6 +67,7 @@ function KitBuilderPage() {
   const { user } = useRootData()
   const appliances = useCatalog()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
+  const { signOut, hasFailed: hasSignOutFailed } = useSignOut(user)
   const result = computeProject(project, appliances)
   const go = (next: Step) => navigate({ search: { step: next } })
   // The rail sits beside the page on wide screens; narrower ones open the same content in a sheet.
@@ -80,7 +82,8 @@ function KitBuilderPage() {
   return (
     <div className="workspace">
       <main className="page">
-        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} />} />
+        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} onSignOut={signOut} />} />
+        {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
         <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
         {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
         {syncing && <div className="muted">{t.ui.syncing}</div>}

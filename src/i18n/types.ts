@@ -53,7 +53,7 @@ export type UiKey =
   | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany' | 'inverterSizeOne' | 'inverterSizeMany'
   | 'footer1' | 'footer2' | 'footer3' | 'footerEmpty'
   | 'back' | 'next' | 'buildKit' | 'startOver'
-  | 'continueGoogle' | 'orDivider' | 'googleExists' | 'googleFailed' | 'connectGoogle'
+  | 'continueGoogle' | 'orDivider' | 'googleExists' | 'googleFailed' | 'connectGoogle' | 'signOutFailed'
   | 'signIn' | 'signUp' | 'signOut' | 'email' | 'password' | 'noAccount' | 'haveAccount' | 'authFailed' | 'signedInAs' | 'syncing' | 'syncFailed' | 'language'
   | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating'
   | 'projects' | 'projectsCount' | 'current' | 'quickEdit' | 'done' | 'projectMeta' | 'heaviestMore' | 'bank' | 'inverter' | 'close'
