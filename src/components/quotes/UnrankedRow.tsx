@@ -3,7 +3,7 @@ import { useLocale } from '../../hooks/useLocale'
 import { trq } from '../../i18n'
 import { type UnrankedQuote } from '../../lib/quote-compare'
 import { parseTotal } from '../../lib/quote-guards'
-import { entrySubtitle, fileStatusText, readTotalText, totalHelp } from '../../lib/quote-text'
+import { entrySubtitle, fileStatusText, misreadText, readTotalText, totalHelp } from '../../lib/quote-text'
 import { QuoteActions } from './QuoteActions'
 
 interface Props {
@@ -33,7 +33,7 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
   }
   const waitsForTotal = u.reason === 'needs_review' || u.reason === 'no_total'
   const extraction = u.quote.extraction
-  const readText = extraction === null ? null : readTotalText(t, extraction, u.reason === 'needs_review')
+  const readText = extraction === null ? null : readTotalText(t, extraction)
   // A typed total would belong to neither of a quote's systems, so a quote with options gets Read again instead of the form.
   const hasTotalForm = waitsForTotal && u.optionCount === 0
   const canReadAgain = u.quote.status === 'needs_review' && retry === 'retry'
@@ -54,7 +54,7 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
       </div>
       {hasTotalForm && (
         <form className="qrow__form" onSubmit={submit}>
-          <p className="qmeta" style={{ flexBasis: '100%' }}>{totalHelp(t, u.reason === 'no_total' ? 'no_total' : 'needs_review')}</p>
+          <p className="qmeta" style={{ flexBasis: '100%' }}>{totalHelp(t, u)}</p>
           {readText && <p className="qmeta num" style={{ flexBasis: '100%' }}>{readText}</p>}
           <label htmlFor={inputId}>{t.quotes.totalInQuote}
             <input id={inputId} className="in num" inputMode="decimal" value={total} aria-invalid={isInvalid || undefined}
@@ -69,7 +69,7 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
         </form>
       )}
       {waitsForTotal && u.optionCount > 0 && <p className="qmeta">{trq(t, canReadAgain ? 'optionsReviewHelp' : 'optionsReviewHelpNoRetry', { count: u.optionCount })}</p>}
-      {u.reason === 'misread' && <p className="qmeta">{canReadAgain ? t.quotes.misreadHelp : t.quotes.misreadHelpNoRetry}</p>}
+      {u.reason === 'misread' && extraction !== null && <p className="qmeta">{misreadText(t, extraction, canReadAgain)}</p>}
       <div className="qrow__actions">
         {canReadAgain && <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button>}
         <QuoteActions quoteId={u.quote.id} optionCount={u.optionCount} onDelete={onDelete} />

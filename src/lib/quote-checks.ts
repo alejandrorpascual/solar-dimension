@@ -17,8 +17,14 @@ export const hasTotal = (n: number | null | undefined): n is number => typeof n 
 
 const includedSum = (lines: readonly QuoteLine[]): number => lines.filter((l) => !l.optional).reduce((a, l) => a + l.lineTotal, 0)
 
-/** What a single-system quote's included lines and stated tax add up to: the figure its total is checked against. */
-export const linesWithTax = (x: QuoteExtraction): number => includedSum(x.lines) + (x.tax ?? 0)
+/**
+ * What a single-system quote's included lines and stated tax add up to: the figure its total is checked against, and the
+ * one shown beside the total field. A tax the quote also lists as a line (isTaxListed) is counted once.
+ */
+export function linesWithTax(x: QuoteExtraction): number {
+  const tax = x.tax ?? 0
+  return includedSum(x.lines) + (isTaxListed(x.lines, tax) ? 0 : tax)
+}
 
 /**
  * Each option's price: the total the document writes for it, else its own included lines plus the shared ones, plus

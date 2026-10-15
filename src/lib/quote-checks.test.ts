@@ -61,6 +61,13 @@ describe('isFixedByTotal and linesWithTax', () => {
   test('lines with tax counts the included lines and the stated tax', () => {
     expect(linesWithTax(extraction([line('inverter', 1000), line('monitoring', 120, { optional: true })], { tax: 180 }))).toBe(1180)
   })
+  test('a tax the quote also lists as one of its lines is counted once', () => {
+    // Read both as a line and as the quote's tax, "IVA 16%" added twice would fail a total that is right, and the empty
+    // total field would then say its lines and tax add up to 1,320.
+    const vat = extraction([line('battery', 1000), line('other', 160, { description: 'IVA 16%' })], { tax: 160, total: 1160 })
+    expect(linesWithTax(vat)).toBe(1160)
+    expect(checkExtraction(vat)).toEqual([])
+  })
 })
 
 describe('optionPrices', () => {

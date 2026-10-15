@@ -9,13 +9,13 @@ import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import {
-  askText, coverageLines, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, money, oversizeTip,
+  askText, coverageLines, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, misreadText, money, oversizeTip,
   projectLine, questionText, ratioLabel, readTotalText, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
 
 const view = (id: SampleQuoteId, i: number): QuoteView => ({
-  id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES[id], overrides: {}, totalOverride: null, createdAt: i,
+  id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES[id], overrides: {}, totalOverride: null, createdAt: i, retries: 0,
 })
 const v = compareQuotes(KIT, DEFAULT_MUSTS, (['solartec', 'voltia', 'grupoluz', 'enerhogar'] as const).map(view))
 const [solartec, voltia, grupoluz, enerhogar] = v.ranked as [RankedQuote, RankedQuote, RankedQuote, RankedQuote]
@@ -67,16 +67,25 @@ describe('when every quote failed', () => {
 })
 
 describe('totalHelp', () => {
+  /** The quote as its unranked row gets it: a single-system SolarTec reading that needs review. */
+  const unranked = (over: Partial<QuoteView>): UnrankedQuote =>
+    compareQuotes(KIT, DEFAULT_MUSTS, [{ ...view('solartec', 0), status: 'needs_review', ...over }]).unranked[0]!
+  const lineOff = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, unitPrice: 1 } : l)) }
+  const noLines = extraction([], { total: 5000 })
+
   test('a quote with no total asks for it, in both languages', () => {
-    expect(totalHelp(en, 'no_total')).toBe("We didn't find the total. Enter it to compare this quote.")
-    expect(totalHelp(es, 'no_total')).toBe('No encontramos el total. Escríbelo para comparar esta cotización.')
+    const u = unranked({ extraction: { ...SAMPLE_QUOTES.solartec, total: 0 } })
+    expect(totalHelp(en, u)).toBe("We didn't find the total. Enter it to compare this quote.")
+    expect(totalHelp(es, u)).toBe('No encontramos el total. Escríbelo para comparar esta cotización.')
   })
-  test('beside the empty field: the total read, and what the lines and tax add up to when it failed (AI-11)', () => {
+  test('beside the empty field: the total read, and what the lines and tax add up to when the two disagree (AI-11)', () => {
     const misread = { ...SAMPLE_QUOTES.solartec, total: 648 }
-    expect(readTotalText(en, misread, true)).toBe('We read $648, but its lines and tax add up to $6,480.')
-    expect(readTotalText(es, misread, true)).toBe(`Leímos ${money(es, 648, 'USD')}, pero sus líneas e impuestos suman ${money(es, 6480, 'USD')}.`)
-    expect(readTotalText(en, SAMPLE_QUOTES.solartec, false)).toBe('We read $6,480.')
-    expect(readTotalText(en, { ...SAMPLE_QUOTES.solartec, total: 0 }, false)).toBeNull()
+    expect(readTotalText(en, misread)).toBe('We read $648, but its lines and tax add up to $6,480.')
+    expect(readTotalText(es, misread)).toBe(`Leímos ${money(es, 648, 'USD')}, pero sus líneas e impuestos suman ${money(es, 6480, 'USD')}.`)
+    expect(readTotalText(en, SAMPLE_QUOTES.solartec)).toBe('We read $6,480.')
+    expect(readTotalText(en, { ...SAMPLE_QUOTES.solartec, total: 0 })).toBeNull()
+    // A line that doesn't hold leaves a total that does: no sum to set against it.
+    expect(readTotalText(en, lineOff)).toBe('We read $6,480.')
   })
   test('a ranked card says when its total was typed', () => {
     const typed = compareQuotes(KIT, DEFAULT_MUSTS, [{ ...view('solartec', 0), status: 'needs_review', totalOverride: 6000 }]).best!
@@ -84,7 +93,19 @@ describe('totalHelp', () => {
     expect(isTotalTyped(solartec)).toBe(false)
   })
   test('a quote whose amounts do not add up keeps its text', () => {
-    expect(totalHelp(en, 'needs_review')).toBe("Some amounts don't add up. Correct the total to compare this quote.")
+    expect(totalHelp(en, unranked({ extraction: { ...SAMPLE_QUOTES.solartec, total: 648 } }))).toBe(
+      "Some amounts don't add up. Correct the total to compare this quote.",
+    )
+  })
+  test('read again and still not holding, a reading asks for the total as the quote writes it', () => {
+    expect(totalHelp(en, unranked({ extraction: lineOff, retries: 1 }))).toBe(en.quotes.misreadTotalHelp)
+    expect(totalHelp(es, unranked({ extraction: noLines, retries: 1 }))).toBe(es.quotes.noLinesTotalHelp)
+  })
+  test('before it is read again, a reading with no lines says so rather than blaming its line amounts', () => {
+    expect(misreadText(en, lineOff, true)).toBe(en.quotes.misreadHelp)
+    expect(misreadText(en, lineOff, false)).toBe(en.quotes.misreadHelpNoRetry)
+    expect(misreadText(en, noLines, true)).toBe("We couldn't read any lines in this quote, so a total alone wouldn't say what it includes. Read it again, or upload a clearer copy.")
+    expect(misreadText(es, noLines, false)).toBe(es.quotes.noLinesHelpNoRetry)
   })
 })
 
@@ -185,7 +206,7 @@ describe('items a quote mentions without enough to judge them', () => {
   test('a fuse too big for its thin cable is short, and the gap names both', () => {
     const kit: KitNeeds = { ...KIT, fuseA: 125, cableMm2: 42.4, cableGauge: '1 AWG' }
     const x = extraction([line('inverter', 1, { specs: { watts: 5000, surgeWatts: 10000, hasCharger: true } }), line('battery', 1, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }), wiring('1'), fuse(250), line('labor', 1)])
-    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: 0 }
+    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: 0, retries: 0 }
     const r = compareQuotes(kit, DEFAULT_MUSTS, [quote]).ranked[0]!
     const c = r.items.find((i) => i.id === 'fuse')!
     expect(itemText(en, c, kit, 'USD')).toEqual({ label: '250 A', detail: 'Too big for 1 AWG, which carries 130 A' })
@@ -218,7 +239,7 @@ describe('items a quote mentions without enough to judge them', () => {
   describe('reason, ask and question', () => {
     const good = [line('inverter', 2000, { specs: { watts: 5000, surgeWatts: 10000 } }), line('battery', 3000, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }), fuse(175, 1, 'T'), line('labor', 1000)]
     const rank = (lines: Parameters<typeof extraction>[0], kit: KitNeeds = KIT) => {
-      const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: 'Luz', status: 'ready', extraction: extraction(lines), overrides: {}, totalOverride: null, createdAt: 0 }
+      const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: 'Luz', status: 'ready', extraction: extraction(lines), overrides: {}, totalOverride: null, createdAt: 0, retries: 0 }
       const verdict = compareQuotes(kit, DEFAULT_MUSTS, [quote])
       return { r: verdict.ranked[0]!, verdict }
     }

@@ -1,12 +1,9 @@
-import { isFixedByTotal } from './quote-checks'
-import { compareQuotes, type QuoteView } from './quote-compare'
+import { compareQuotes, takesTypedTotal, type QuoteView } from './quote-compare'
 import type { KitNeeds, Musts } from './quote-items'
 import { FINISHED, isPending, type QuoteStatus } from './quote-schema'
 
 export interface JobQuote extends QuoteView {
   seenAt: number | null
-  /** Retries used; the verdict hides Retry at MAX_RETRIES. */
-  retries: number
 }
 export interface JobFile { id: string; name: string; status: QuoteStatus; retries: number }
 export interface ProjectJobs {
@@ -33,8 +30,8 @@ export function summarizeProject(projectId: string, projectName: string, quotes:
     done: quotes.length - pending,
     pending,
     failed: quotes.filter((q) => q.status === 'failed').length,
-    // A typed total settles a reading only when its total was what failed.
-    needsReview: quotes.filter((q) => q.status === 'needs_review' && (q.totalOverride === null || (q.extraction !== null && !isFixedByTotal(q.extraction)))).length,
+    // A typed total settles a reading only when its total was what failed, or once it has been read again: the verdict's rule.
+    needsReview: quotes.filter((q) => q.status === 'needs_review' && (q.totalOverride === null || !takesTypedTotal(q))).length,
     kitEmpty,
     unseen: !kitEmpty && quotes.some((q) => FINISHED.includes(q.status) && q.status !== 'failed' && q.seenAt === null),
     best,

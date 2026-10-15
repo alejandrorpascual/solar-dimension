@@ -19,10 +19,11 @@ describe('summarizeProject', () => {
     expect(s).toMatchObject({ total: 4, done: 3, pending: 1, failed: 1, needsReview: 1 })
     expect(s.files.map((f) => f.status)).toEqual(['ready', 'processing', 'failed', 'needs_review'])
   })
-  test('a reading a typed total cannot fix still needs review', () => {
+  test('a reading a typed total cannot fix still needs review, until it has been read again', () => {
     const lineOff = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, unitPrice: 1 } : l)) }
     const s = summarizeProject('p', 'Home', [
       jq('a', { status: 'needs_review', totalOverride: 6000 }), jq('b', { status: 'needs_review', extraction: lineOff, totalOverride: 6000 }),
+      jq('c', { status: 'needs_review', extraction: lineOff, totalOverride: 6000, retries: 1 }),
     ], KIT, DEFAULT_MUSTS)
     expect(s.needsReview).toBe(1)
   })

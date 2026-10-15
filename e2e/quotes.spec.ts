@@ -657,7 +657,7 @@ test('a quote read before options can be read again, and then shows a card per o
   expect(await quoteRetryStates(email, projectId)).toEqual([{ status: 'ready', retries: 1 }])
 })
 
-test('a total that failed its check is asked for in an empty field; a misread line is read again, not typed over', async ({ page }) => {
+test('a total that failed its check is asked for in an empty field; a misread line is read again before its total can be typed', async ({ page }) => {
   const email = await signUp(page)
   await uploadQuotes(page, [await quotePdf('solartec')])
   await page.getByRole('button', { name: 'Ok, got it' }).click()
@@ -686,6 +686,17 @@ test('a total that failed its check is asked for in an empty field; a misread li
   await expect(row).toContainText(quotesEn.misreadHelp)
   await expect(row.getByRole('textbox')).toHaveCount(0)
   await expect(row.getByRole('button', { name: quotesEn.readAgain })).toBeVisible()
+
+  // Read again and still the same, it may be the document itself (a discount on a line): the field comes back.
+  await setQuoteTotalOverride(email, projectId, null)
+  await setQuoteRetries(email, projectId, 1)
+  await page.reload()
+  await expect(row).toContainText(quotesEn.misreadTotalHelp)
+  await expect(field).toHaveValue('')
+  await field.fill('6,480')
+  await row.getByRole('button', { name: quotesEn.save, exact: true }).click()
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  await expect(page.getByRole('region', { name: 'SolarTec Caribe' })).toContainText(quotesEn.totalTyped)
 })
 
 test('a ranked quote whose reading needs a check can be read again from its card', async ({ page }) => {
