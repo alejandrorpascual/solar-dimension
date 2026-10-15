@@ -154,9 +154,13 @@ export function fitLabel(t: Dictionary, r: RankedQuote, v: Verdict): string {
 /** A ranked quote priced by the total the user typed, not the one read: its card says so. */
 export const isTotalTyped = (r: RankedQuote): boolean => r.optionId === null && r.quote.totalOverride !== null
 
-/** A battery-only kit isn't checked for panels, so a quote that includes them says so: it explains the price. */
+/**
+ * A battery-only kit isn't checked for panels, so a quote that includes them says so: it explains the price. Panels
+ * that don't all state their wattage are named without a figure.
+ */
 export function extraPanelsText(t: Dictionary, r: RankedQuote, kit: KitNeeds): string | null {
-  return kit.arrayW === 0 && r.panelsW > 0 ? trq(t, 'alsoPanels', { w: fmtW(r.panelsW, t.locale) }) : null
+  if (kit.arrayW > 0 || r.panelsW === 0) return null
+  return r.panelsW === null ? t.quotes.alsoPanelsUnsized : trq(t, 'alsoPanels', { w: fmtW(r.panelsW, t.locale) })
 }
 
 export function deltaText(t: Dictionary, r: RankedQuote): string {

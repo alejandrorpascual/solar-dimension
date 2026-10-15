@@ -99,6 +99,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   needBattery: 'Batería útil, tu kit',
   needArray: 'Paneles solares, tu kit',
   alsoPanels: 'También incluye {w} de paneles solares',
+  alsoPanelsUnsized: 'También incluye paneles solares',
   gaugeInverter: 'Inversor {w}',
   gaugeBattery: 'Batería {kwh} útiles',
   gaugeLabel: '{item}: {have} frente a {need} necesarios, {zone}',

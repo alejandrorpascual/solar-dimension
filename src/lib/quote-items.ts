@@ -347,6 +347,10 @@ const ARRAY_TOLERANCE = 0.95
 export const quotedArrayW = (x: QuoteExtraction): number =>
   sum(ofKind(x, 'panel', false), (l) => (l.specs.panelWatts ?? 0) * l.qty)
 
+/** The array a quote includes, as its card can state it: 0 with no panels, null when one of them states no wattage. */
+export const includedArrayW = (x: QuoteExtraction): number | null =>
+  ofKind(x, 'panel', false).some((l) => l.specs.panelWatts === null) ? null : quotedArrayW(x)
+
 /**
  * The quoted array against the kit's. Panels with no stated wattage leave it to confirm, and so does a short array
  * when one of its lines states none: that line could make up the rest.

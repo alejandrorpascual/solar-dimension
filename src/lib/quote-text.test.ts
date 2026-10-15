@@ -198,6 +198,14 @@ describe('solar panels', () => {
     expect(extraPanelsText(en, r, solar)).toBeNull()
     expect(extraPanelsText(en, solartec, KIT)).toBeNull()
   })
+  test('panels that state no wattage still explain the price, with no figure that would undercount them', () => {
+    const ranked = (extra: Parameters<typeof extraction>[0]) => compareQuotes(KIT, DEFAULT_MUSTS, [{
+      id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, ...extra]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0,
+    }]).ranked[0]!
+    expect(extraPanelsText(en, ranked([panels(8, null)]), KIT)).toBe('Also includes solar panels')
+    expect(extraPanelsText(es, ranked([panels(8, null)]), KIT)).toBe('También incluye paneles solares')
+    expect(extraPanelsText(en, ranked([panels(6, 550), panels(2, null)]), KIT)).toBe('Also includes solar panels')
+  })
 })
 
 describe('items a quote mentions without enough to judge them', () => {

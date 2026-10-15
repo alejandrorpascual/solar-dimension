@@ -77,6 +77,8 @@ test('a kit with solar panels asks quotes for them, and panels can be made a nic
   await signUp(page)
   await page.goto('/?step=3')
   await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  // A click before the page hydrates does nothing: the planner shows the kit has panels before the step is left.
+  await expect(page.getByRole('group', { name: /Roof planner/ })).toBeVisible()
   await uploadQuotes(page, [await quotePdf('solartec')])
   await page.getByRole('button', { name: 'Ok, got it' }).click()
   await openVerdictFromTray(page)

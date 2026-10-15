@@ -98,6 +98,7 @@ export const quotesEn = {
   needBattery: 'Usable battery, your kit',
   needArray: 'Solar array, your kit',
   alsoPanels: 'Also includes {w} of solar panels',
+  alsoPanelsUnsized: 'Also includes solar panels',
   gaugeInverter: 'Inverter {w}',
   gaugeBattery: 'Battery {kwh} usable',
   gaugeLabel: '{item}: {have} against {need} needed, {zone}',
