@@ -126,9 +126,23 @@ export async function stripQuoteOptions(email: string, projectId: string): Promi
 }
 
 /** Sets the total the user typed on every quote of a project, as if they had saved it on the card. */
-export async function setQuoteTotalOverride(email: string, projectId: string, total: number): Promise<void> {
+export async function setQuoteTotalOverride(email: string, projectId: string, total: number | null): Promise<void> {
   await testDb()`
     update quotes q set total_override = ${total}
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
+/** Turns every quote of a project into a reading that needs review because its total was read as `total`. */
+export async function misreadQuoteTotal(email: string, projectId: string, total: number): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review', extraction = jsonb_set(q.extraction, '{total}', to_jsonb(${total}::numeric))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
+/** Same, because its first line's unit price was read as `unitPrice`, which that line's amount doesn't match. */
+export async function misreadQuoteLine(email: string, projectId: string, unitPrice: number): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review', extraction = jsonb_set(q.extraction, '{lines,0,unitPrice}', to_jsonb(${unitPrice}::numeric))
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 

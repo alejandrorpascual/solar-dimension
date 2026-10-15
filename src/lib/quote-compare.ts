@@ -1,4 +1,4 @@
-import { hasTotal, optionPrices } from './quote-checks'
+import { hasTotal, isFixedByTotal, optionPrices } from './quote-checks'
 import { checkItems, ITEM_IDS, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
 import { hasOptions, optionExtraction } from './quote-options'
 import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
@@ -8,6 +8,8 @@ export interface QuoteView {
   status: QuoteStatus; extraction: QuoteExtraction | null
   overrides: Overrides; totalOverride: number | null
   createdAt: number
+  /** Read agains used: the card hides Read again at MAX_RETRIES, and a reading read again takes the user's total (takesTypedTotal). */
+  retries: number
 }
 export type Fit = 'fits' | 'unclear' | 'short'
 /** Which of a quote's systems an entry is. A single-system quote has no option and an option count of 0. */
@@ -18,10 +20,12 @@ export interface RankedQuote extends EntryOption {
   unknownMusts: ItemId[]; failedMusts: ItemId[]; niceMet: number; usableWh: number
 }
 /**
- * needs_review: the amounts don't add up; no_total: the quote was read but states no total. Both wait for the user's
- * total. no_price: an option of a quote that offers several states no price for it.
+ * needs_review: the total doesn't add up with the lines, or a reading read again still doesn't hold; no_total: the quote
+ * was read but states no total. Both wait for the user's total. misread: a single-system reading whose line amounts,
+ * quantities or currency don't hold, or that has no lines, which a typed total wouldn't fix: it waits to be read again
+ * (takesTypedTotal). no_price: an option of a quote that offers several states no price for it.
  */
-export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'no_price' | 'failed' | 'other_currency'
+export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'misread' | 'no_price' | 'failed' | 'other_currency'
 export interface UnrankedQuote extends EntryOption { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
 export interface Verdict {
   currency: string | null
@@ -66,6 +70,14 @@ interface Entry extends EntryOption { quote: QuoteView; extraction: QuoteExtract
 const totalOf = (q: QuoteView): number | null => q.totalOverride ?? q.extraction?.total ?? null
 
 /**
+ * Whether the user's total can rank a reading that needs review: when its total was all that failed, or once it has been
+ * read again. A wrong line amount, quantity or currency is a reading to redo first, but one that still doesn't hold may be
+ * the document itself (a discount taken off a line, a quote with no lines): it reads the same every time, and without a
+ * total to type it could never be compared. One read again is the test, since each can cost up to 4 model calls.
+ */
+export const takesTypedTotal = (q: QuoteView): boolean => q.extraction !== null && (q.retries > 0 || isFixedByTotal(q.extraction))
+
+/**
  * A ready quote that offers several systems is one entry per option, priced from the document alone: the user's typed
  * total belongs to a single-system quote. Any other quote is one entry. One with options whose numbers need checking
  * has no price, so it waits as one card.
@@ -86,11 +98,12 @@ const optionOf = (e: Entry): EntryOption => ({ optionId: e.optionId, optionLabel
 
 /**
  * Read, and with a positive price. A total of 0 (what the model writes when a quote states none), negative or not a
- * number never ranks: the quote waits for the user's total, like one whose amounts don't add up.
+ * number never ranks: the quote waits for the user's total, like one whose amounts don't add up. A reading that needs
+ * review ranks on the user's total only when the total was all that failed, or once it has been read again.
  */
 const isRankable = (e: Entry): boolean =>
   e.extraction !== null && hasTotal(e.total) &&
-  (e.quote.status === 'ready' || (e.quote.status === 'needs_review' && e.quote.totalOverride !== null))
+  (e.quote.status === 'ready' || (e.quote.status === 'needs_review' && e.quote.totalOverride !== null && takesTypedTotal(e.quote)))
 
 /** The currency most rankable quotes use, counting each file once; a tie goes to the earliest quote's currency. */
 function mainCurrency(entries: readonly Entry[]): string | null {
@@ -111,8 +124,10 @@ function unrankedReason(e: Entry): UnrankedReason {
   if (isPending(e.quote.status)) return 'reading'
   if (isRankable(e)) return 'other_currency'
   if (e.optionId !== null) return 'no_price'
-  if (e.extraction !== null && (e.quote.status === 'needs_review' || e.quote.status === 'ready')) return hasTotal(e.total) ? 'needs_review' : 'no_total'
-  return 'failed'
+  if (e.extraction === null || (e.quote.status !== 'needs_review' && e.quote.status !== 'ready')) return 'failed'
+  // A quote with options has no total form either way: it is read again.
+  if (e.quote.status === 'needs_review' && e.optionCount === 0 && !takesTypedTotal(e.quote)) return 'misread'
+  return hasTotal(e.total) ? 'needs_review' : 'no_total'
 }
 
 function score(e: Entry, kit: KitNeeds, musts: Musts, currency: string): Scored {

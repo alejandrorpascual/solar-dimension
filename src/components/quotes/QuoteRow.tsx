@@ -3,7 +3,7 @@ import { useLocale } from '../../hooks/useLocale'
 import { entryKey, entryName, type RankedQuote, type Verdict } from '../../lib/quote-compare'
 import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
 import { quoteSizing } from '../../lib/quote-sizing'
-import { coverageMeta, deltaText, entrySubtitle, fitLabel, money, reasonLine } from '../../lib/quote-text'
+import { coverageMeta, deltaText, entrySubtitle, fitLabel, isTotalTyped, money, reasonLine } from '../../lib/quote-text'
 import { AskBox } from './AskBox'
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
@@ -45,6 +45,7 @@ export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, o
         <span className={PILL[r.fit]}>{fitLabel(t, r, verdict)}</span>
         {delta && <span className="qmeta num">{delta}</span>}
       </div>
+      {isTotalTyped(r) && <p className="qmeta">{t.quotes.totalTyped}</p>}
       <p className="qrow__reason">{reasonLine(t, r, verdict, kit)}</p>
       <SizingBars sizing={quoteSizing(r.items, kit)} />
       {coverage && <p className="qmeta">{coverage}</p>}

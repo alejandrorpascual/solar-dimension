@@ -1,10 +1,11 @@
 import { trq, type Dictionary, type QuoteKey } from '../i18n'
+import { checkExtraction, hasTotal, isFixedByTotal, linesWithTax } from './quote-checks'
 import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtW } from '../i18n/format'
 import { entryKey, entryName, nothingRead, quoteSubtitle, type EntryOption, type QuoteView, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
 import { HIGHEST_DOD_CHEMISTRY, LOWEST_DOD_CHEMISTRY, STRIP_ITEMS, type ItemCheck, type ItemFacts, type ItemId, type ItemStatus, type KitNeeds } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
-import type { QuoteStatus } from './quote-schema'
+import type { QuoteExtraction, QuoteStatus } from './quote-schema'
 import { SIZED_IDS, SIZING_ZONES, suggestedInverterW, type QuoteSizing, type SizedId, type Sizing, type SizingZone } from './quote-sizing'
 
 const SECONDS_PER_MINUTE = 60
@@ -148,6 +149,9 @@ export function fitLabel(t: Dictionary, r: RankedQuote, v: Verdict): string {
   return t.quotes.fitShort
 }
 
+/** A ranked quote priced by the total the user typed, not the one read: its card says so. */
+export const isTotalTyped = (r: RankedQuote): boolean => r.optionId === null && r.quote.totalOverride !== null
+
 export function deltaText(t: Dictionary, r: RankedQuote): string {
   if (r.delta === null || r.delta === 0) return ''
   return trq(t, r.delta > 0 ? 'moreThanBest' : 'lessThanBest', { amount: money(t, Math.abs(r.delta), r.currency) })
@@ -251,9 +255,33 @@ function unclearText(t: Dictionary, c: ItemCheck, kit: KitNeeds): { label: strin
   }
 }
 
-/** The help above the enter-a-total form: the total is missing, or the amounts don't add up. */
-export function totalHelp(t: Dictionary, reason: 'needs_review' | 'no_total'): string {
-  return reason === 'no_total' ? t.quotes.noTotalHelp : t.quotes.checkNumbersHelp
+/**
+ * The help above the enter-a-total form: the total is missing, or the amounts don't add up. A reading that still doesn't
+ * hold once read again (takesTypedTotal) asks instead for the total as the quote writes it.
+ */
+export function totalHelp(t: Dictionary, u: UnrankedQuote): string {
+  const x = u.quote.extraction
+  if (x !== null && !isFixedByTotal(x)) return x.lines.length === 0 ? t.quotes.noLinesTotalHelp : t.quotes.misreadTotalHelp
+  return u.reason === 'no_total' ? t.quotes.noTotalHelp : t.quotes.checkNumbersHelp
+}
+
+/** Why a reading waits to be read again rather than for a total: no lines were read, or the ones read don't hold together. */
+export function misreadText(t: Dictionary, x: QuoteExtraction, canReadAgain: boolean): string {
+  if (x.lines.length === 0) return canReadAgain ? t.quotes.noLinesHelp : t.quotes.noLinesHelpNoRetry
+  return canReadAgain ? t.quotes.misreadHelp : t.quotes.misreadHelpNoRetry
+}
+
+/**
+ * The total that was read, beside the empty field, and what the lines and tax add up to when the two disagree: the
+ * field starts empty, so the figure that failed the check is never saved by one click. Null when no total was read.
+ */
+export function readTotalText(t: Dictionary, x: QuoteExtraction): string | null {
+  if (!hasTotal(x.total)) return null
+  const total = money(t, x.total, x.currency)
+  const sum = linesWithTax(x)
+  return checkExtraction(x).includes('total_mismatch') && sum > 0
+    ? trq(t, 'totalReadLines', { total, sum: money(t, sum, x.currency) })
+    : trq(t, 'totalRead', { total })
 }
 
 const SUBTITLE_SEPARATOR = ' · '

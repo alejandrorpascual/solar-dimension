@@ -4,8 +4,8 @@ import { expect, test, type Page } from '@playwright/test'
 import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
 import {
-  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, quoteFiles, quoteRetryStates, seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth,
-  setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
+  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFiles, quoteRetryStates, seedQuoteRows,
+  setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage } from './header'
@@ -655,6 +655,48 @@ test('a quote read before options can be read again, and then shows a card per o
   await expect(page.getByText(SUNA_O1)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByText(SUNA_O2)).toBeVisible()
   expect(await quoteRetryStates(email, projectId)).toEqual([{ status: 'ready', retries: 1 }])
+})
+
+test('a total that failed its check is asked for in an empty field; a misread line is read again before its total can be typed', async ({ page }) => {
+  const email = await signUp(page)
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+  await page.goto(`/projects/${projectId}/quotes`)
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least', { timeout: 30_000 })
+
+  // A dropped digit: the lines add up to 6,480, the total was read as 648.
+  await misreadQuoteTotal(email, projectId, 648)
+  await page.reload()
+  const row = page.getByRole('article').filter({ hasText: 'SolarTec Caribe' })
+  const field = row.getByRole('textbox', { name: quotesEn.totalInQuote })
+  await expect(field).toHaveValue('')
+  await expect(row).toContainText('We read $648, but its lines and tax add up to $6,480.')
+  await row.getByRole('button', { name: quotesEn.save, exact: true }).click()
+  await expect(row.getByRole('alert')).toHaveText(quotesEn.totalInvalid)
+  await field.fill('6,480')
+  await row.getByRole('button', { name: quotesEn.save, exact: true }).click()
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  await expect(page.getByRole('region', { name: 'SolarTec Caribe' })).toContainText(quotesEn.totalTyped)
+
+  // A line whose amount its quantity and unit price don't make: the typed total no longer ranks it.
+  await misreadQuoteLine(email, projectId, 1)
+  await page.reload()
+  await expect(verdictHeading(page)).toHaveText(quotesEn.headingNone)
+  await expect(row).toContainText(quotesEn.misreadHelp)
+  await expect(row.getByRole('textbox')).toHaveCount(0)
+  await expect(row.getByRole('button', { name: quotesEn.readAgain })).toBeVisible()
+
+  // Read again and still the same, it may be the document itself (a discount on a line): the field comes back.
+  await setQuoteTotalOverride(email, projectId, null)
+  await setQuoteRetries(email, projectId, 1)
+  await page.reload()
+  await expect(row).toContainText(quotesEn.misreadTotalHelp)
+  await expect(field).toHaveValue('')
+  await field.fill('6,480')
+  await row.getByRole('button', { name: quotesEn.save, exact: true }).click()
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  await expect(page.getByRole('region', { name: 'SolarTec Caribe' })).toContainText(quotesEn.totalTyped)
 })
 
 test('a ranked quote whose reading needs a check can be read again from its card', async ({ page }) => {
