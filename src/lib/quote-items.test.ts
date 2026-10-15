@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { CHEMISTRIES } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
-import { checkItems, DEFAULT_MUSTS, kitNeeds, resolveMusts, setOverride, type ItemCheck, type ItemId, type KitNeeds } from './quote-items'
+import { checkItems, DEFAULT_MUSTS, itemsFor, kitNeeds, resolveMusts, setOverride, type ItemCheck, type ItemId, type KitNeeds } from './quote-items'
 import type { QuoteExtraction, QuoteLine } from './quote-schema'
 import { compute } from './sizing'
 
@@ -111,6 +111,37 @@ describe('battery', () => {
   })
   test('unknown without a capacity', () => {
     expect(item(extraction([line('battery', 1)]), 'battery').status).toBe('unknown')
+  })
+})
+
+describe('solar panels (AI-05)', () => {
+  const solar: KitNeeds = { ...KIT, arrayW: 4400 }
+  const panels = (qty: number, panelWatts: number | null, over = {}) => line('panel', 300 * qty, { qty, specs: { panelWatts }, ...over })
+  const judge = (lines: QuoteLine[]) => checkItems(extraction(lines), solar).find((c) => c.id === 'panels')!
+  test('only a kit with a solar array is checked for panels', () => {
+    expect(itemsFor(KIT)).not.toContain('panels')
+    expect(itemsFor(solar)).toContain('panels')
+    expect(checkItems(SAMPLE_QUOTES.solartec, KIT).map((c) => c.id)).not.toContain('panels')
+    expect(DEFAULT_MUSTS.panels).toBe(true)
+  })
+  test("the kit's array comes from the engine's solar side", () => {
+    const r = compute({ qty: { fridge: 1, lights: 1, tv: 1, router: 1, fan: 2 }, hours: 8, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: null, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
+    expect(r.solar?.arrayW).toBeGreaterThan(0)
+    expect(kitNeeds(r).arrayW).toBe(r.solar?.arrayW)
+    expect(kitNeeds(compute({ qty: { fridge: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)).arrayW).toBe(0)
+  })
+  test('the quoted array passes from 95% of the kit, and is short below', () => {
+    expect(judge([panels(8, 550)])).toMatchObject({ status: 'ok', facts: { arrayW: 4400 } })
+    expect(judge([panels(8, 530)])).toMatchObject({ status: 'ok', facts: { arrayW: 4240 } })
+    expect(judge([panels(6, 550)])).toMatchObject({ status: 'short', facts: { arrayW: 3300, shortArrayW: 1100 } })
+  })
+  test('panels with no wattage are to confirm, and so is a short array with a line that states none', () => {
+    expect(judge([panels(8, null)])).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+    expect(judge([panels(6, 550), panels(2, null)])).toMatchObject({ status: 'unknown', facts: { arrayW: 3300 } })
+  })
+  test('none is unknown, and panels offered only as an extra are missing', () => {
+    expect(judge([line('inverter', 1)]).status).toBe('unknown')
+    expect(judge([panels(8, 550, { optional: true })])).toMatchObject({ status: 'missing', facts: { optionalPrice: 2400 } })
   })
 })
 

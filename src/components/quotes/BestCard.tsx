@@ -4,7 +4,7 @@ import { useLocale } from '../../hooks/useLocale'
 import { entryName, type RankedQuote } from '../../lib/quote-compare'
 import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
 import { quoteSizing, SIZED_IDS } from '../../lib/quote-sizing'
-import { coverageLines, entrySubtitle, gaugeLegend, isTotalTyped, money, oversizeTip, type CoverageKind } from '../../lib/quote-text'
+import { coverageLines, entrySubtitle, extraPanelsText, gaugeLegend, isTotalTyped, money, oversizeTip, type CoverageKind } from '../../lib/quote-text'
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
 import { QuoteActions } from './QuoteActions'
@@ -33,6 +33,7 @@ export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelet
   })
   const subtitle = entrySubtitle(t, best)
   const tip = oversizeTip(t, kit, sizing)
+  const panels = extraPanelsText(t, best, kit)
   // A quote with a typed total ranks even while its reading needs a check, so the way to read it again is on the card.
   const canReadAgain = best.quote.status === 'needs_review' && retry === 'retry'
   return (
@@ -60,6 +61,7 @@ export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelet
           </li>
         ))}
       </ul>
+      {panels && <p className="qmeta">{panels}</p>}
       <div className="qbest__actions">
         <ChecksToggle name={entryName(best)} isOpen={isOpen} controls={bodyId} onToggle={() => setOpen(!isOpen)} variant="button" />
         {canReadAgain && <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button>}

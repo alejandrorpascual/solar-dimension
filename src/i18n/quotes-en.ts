@@ -96,6 +96,9 @@ export const quotesEn = {
   kitNeedsTitle: 'What your kit needs',
   needInverter: 'Inverter, your kit',
   needBattery: 'Usable battery, your kit',
+  needArray: 'Solar array, your kit',
+  alsoPanels: 'Also includes {w} of solar panels',
+  alsoPanelsUnsized: 'Also includes solar panels',
   gaugeInverter: 'Inverter {w}',
   gaugeBattery: 'Battery {kwh} usable',
   gaugeLabel: '{item}: {have} against {need} needed, {zone}',
@@ -134,6 +137,7 @@ export const quotesEn = {
   confirmBatteryCapacity: 'the battery capacity',
   confirmBatteryAll: 'the capacity of every battery',
   confirmBatteryChemistry: 'the battery chemistry',
+  confirmPanelSize: 'the power of the solar panels',
   confirmCableSize: 'the size of the main cables',
   confirmCableRuns: 'that the main cables are {runs} runs of {gauge}',
   confirmFuseRating: 'the rating of the fuse',
@@ -187,6 +191,7 @@ export const quotesEn = {
   gapInverter: 'its inverter is {w} short',
   gapSurge: "its inverter can't start {w} at once",
   gapBattery: 'its battery is {kwh} short',
+  gapPanels: 'its solar array is {w} short',
   gapCables: 'its cables are thinner than {gauge}',
   gapFuse: 'its fuse is below {amps} A',
   gapFuseCable: 'its {amps} A fuse is too big for its {gauge} cable',
@@ -227,19 +232,19 @@ export const quotesEn = {
 } as const
 
 export const quoteItemsEn: Record<ItemId, string> = {
-  inverter: 'Inverter', battery: 'Battery bank', charger: 'Battery charger', wifi: 'Wi-Fi monitoring',
+  inverter: 'Inverter', battery: 'Battery bank', panels: 'Solar panels', charger: 'Battery charger', wifi: 'Wi-Fi monitoring',
   cables: 'Main cables', fuse: 'Class T fuse', installation: 'Installation', warranty: 'Warranty',
 }
 export const quoteItemsInlineEn: Record<ItemId, string> = {
-  inverter: 'a big enough inverter', battery: 'a big enough battery', charger: 'a battery charger', wifi: 'Wi-Fi monitoring',
+  inverter: 'a big enough inverter', battery: 'a big enough battery', panels: 'solar panels', charger: 'a battery charger', wifi: 'Wi-Fi monitoring',
   cables: 'the main cables', fuse: 'a class T fuse', installation: 'installation', warranty: 'a warranty',
 }
 export const quoteItemsShortEn: Record<ItemId, string> = {
-  inverter: 'Inverter', battery: 'Battery', charger: 'Charger', wifi: 'Wi-Fi',
+  inverter: 'Inverter', battery: 'Battery', panels: 'Panels', charger: 'Charger', wifi: 'Wi-Fi',
   cables: 'Cables', fuse: 'Fuse', installation: 'Install', warranty: 'Warranty',
 }
 /** Item names in a comma list after "Includes" or "Doesn't mention". */
 export const quoteItemsListEn: Record<ItemId, string> = {
-  inverter: 'inverter', battery: 'battery', charger: 'charger', wifi: 'Wi-Fi',
+  inverter: 'inverter', battery: 'battery', panels: 'panels', charger: 'charger', wifi: 'Wi-Fi',
   cables: 'cables', fuse: 'fuse', installation: 'installation', warranty: 'warranty',
 }

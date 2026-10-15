@@ -9,7 +9,7 @@ import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import {
-  askText, coverageLines, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, misreadText, money, oversizeTip,
+  askText, coverageLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, misreadText, money, oversizeTip,
   projectLine, questionText, ratioLabel, readTotalText, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
@@ -173,6 +173,38 @@ describe('itemText', () => {
     expect(get('enerhogar', 'wifi')).toEqual({ label: 'Not included', detail: 'Optional, +$120' })
     expect(get('grupoluz', 'fuse')).toEqual({ label: 'Not mentioned', detail: null })
     expect(get('solartec', 'warranty')).toEqual({ label: '10 y battery / 5 y inverter', detail: null })
+  })
+})
+
+describe('solar panels', () => {
+  const solar: KitNeeds = { ...KIT, arrayW: 4400 }
+  const panels = (qty: number, panelWatts: number | null) => line('panel', 1, { qty, specs: { panelWatts } })
+  const item = (lines: Parameters<typeof extraction>[0]) => checkItems(extraction(lines), solar).find((c) => c.id === 'panels')!
+  test('a short array says what the kit needs, and its gap is the watts missing', () => {
+    expect(itemText(en, item([panels(6, 550)]), solar, 'USD')).toEqual({ label: fmtW(3300, 'en'), detail: `Your kit needs ${fmtW(4400, 'en')}` })
+    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([panels(6, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0 }
+    const verdict = compareQuotes(solar, { ...DEFAULT_MUSTS, inverter: false, battery: false, charger: false, cables: false, fuse: false, installation: false }, [quote])
+    expect(reasonLine(en, verdict.ranked[0]!, verdict, solar)).toBe(`Doesn't fit: its solar array is ${fmtW(1100, 'en')} short.`)
+    expect(reasonLine(es, verdict.ranked[0]!, verdict, solar)).toBe(`No cumple: a los paneles les faltan ${fmtW(1100, 'es')}.`)
+  })
+  test('panels with no wattage are included, with their power to confirm', () => {
+    expect(itemText(en, item([panels(8, null)]), solar, 'USD')).toEqual({ label: 'Included', detail: 'Size not stated' })
+  })
+  test("a battery-only kit's card says when a quote includes panels anyway", () => {
+    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, panels(8, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0 }
+    const r = compareQuotes(KIT, DEFAULT_MUSTS, [quote]).ranked[0]!
+    expect(extraPanelsText(en, r, KIT)).toBe(`Also includes ${fmtW(4400, 'en')} of solar panels`)
+    expect(extraPanelsText(es, r, KIT)).toBe(`También incluye ${fmtW(4400, 'es')} de paneles solares`)
+    expect(extraPanelsText(en, r, solar)).toBeNull()
+    expect(extraPanelsText(en, solartec, KIT)).toBeNull()
+  })
+  test('panels that state no wattage still explain the price, with no figure that would undercount them', () => {
+    const ranked = (extra: Parameters<typeof extraction>[0]) => compareQuotes(KIT, DEFAULT_MUSTS, [{
+      id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, ...extra]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0,
+    }]).ranked[0]!
+    expect(extraPanelsText(en, ranked([panels(8, null)]), KIT)).toBe('Also includes solar panels')
+    expect(extraPanelsText(es, ranked([panels(8, null)]), KIT)).toBe('También incluye paneles solares')
+    expect(extraPanelsText(en, ranked([panels(6, 550), panels(2, null)]), KIT)).toBe('Also includes solar panels')
   })
 })
 

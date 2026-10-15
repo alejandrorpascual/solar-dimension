@@ -4,7 +4,7 @@ import { CODE_LENGTH, type LineKind, type QuoteExtraction, type QuoteLine } from
 import type { SizingResult } from './sizing'
 import { correctedAmpacity, microAmps } from './sizing/cable'
 
-export const ITEM_IDS = ['inverter', 'battery', 'charger', 'wifi', 'cables', 'fuse', 'installation', 'warranty'] as const
+export const ITEM_IDS = ['inverter', 'battery', 'panels', 'charger', 'wifi', 'cables', 'fuse', 'installation', 'warranty'] as const
 export type ItemId = (typeof ITEM_IDS)[number]
 /** The five items shown as icons in a quote's row. */
 export const STRIP_ITEMS: readonly ItemId[] = ['charger', 'wifi', 'cables', 'fuse', 'installation']
@@ -19,8 +19,9 @@ export type Override = (typeof OVERRIDES)[number]
 export type Overrides = Partial<Record<ItemId, Override>>
 export type Musts = Record<ItemId, boolean>
 
+/** Panels are a must-have by default, but only a kit with a solar array is checked for them (itemsFor). */
 export const DEFAULT_MUSTS: Musts = {
-  inverter: true, battery: true, charger: true, wifi: false, cables: true, fuse: true, installation: true, warranty: false,
+  inverter: true, battery: true, panels: true, charger: true, wifi: false, cables: true, fuse: true, installation: true, warranty: false,
 }
 
 export function resolveMusts(stored: Partial<Musts> | null | undefined): Musts {
@@ -43,7 +44,12 @@ export interface KitNeeds {
   ampacityByGauge: Readonly<Record<string, number>>
   /** How many main fuses the kit lists, each of `fuseA`, and their class. */
   fuseCount: number; fuseClass: FuseClass
+  /** The solar array the kit's sheet lists, in W; 0 for a battery-only kit. */
+  arrayW: number
 }
+
+/** The items a kit is checked for, in ITEM_IDS order: solar panels only when it has an array. */
+export const itemsFor = (kit: KitNeeds): readonly ItemId[] => (kit.arrayW > 0 ? ITEM_IDS : ITEM_IDS.filter((id) => id !== 'panels'))
 
 /** The heaviest battery-side cable the parts list prints: a string lead can be thicker than one run of a split main cable. */
 function thickestCable(c: SizingResult['cable']): { mm2: number; gauge: string } {
@@ -58,6 +64,7 @@ export function kitNeeds(r: SizingResult): KitNeeds {
     cableRuns: r.cable.runs, mainMm2: r.cable.mm2, designA: r.cable.designA,
     ampacityByGauge: Object.fromEntries(GAUGES.map((g) => [g.awg, correctedAmpacity(g, r.cable, r.cable.conductors)])),
     fuseCount: r.fuse.count, fuseClass: r.fuse.class,
+    arrayW: r.solar?.arrayW ?? 0,
   }
 }
 
@@ -81,6 +88,8 @@ export interface ItemFacts {
   fuseClass?: string; classUnstated?: boolean; kitClass?: FuseClass
   /** How many main fuses the quote lists, when together they carry less than the kit's. */
   fuses?: number
+  /** The quoted solar array, in W, and how far it falls short of the kit's. */
+  arrayW?: number; shortArrayW?: number
   optionalPrice?: number
   batteryYears?: number; inverterYears?: number
   confirmed?: boolean
@@ -331,6 +340,32 @@ function checkFuse(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   return check('fuse', 'ok', { amps }, top.source)
 }
 
+/** A quoted array this close to the kit's counts as it: panels come in steps (545 W, 550 W), and so do their counts. */
+const ARRAY_TOLERANCE = 0.95
+
+/** The included panels with a stated wattage, added up: the array a quote, or one of its options, offers. */
+export const quotedArrayW = (x: QuoteExtraction): number =>
+  sum(ofKind(x, 'panel', false), (l) => (l.specs.panelWatts ?? 0) * l.qty)
+
+/** The array a quote includes, as its card can state it: 0 with no panels, null when one of them states no wattage. */
+export const includedArrayW = (x: QuoteExtraction): number | null =>
+  ofKind(x, 'panel', false).some((l) => l.specs.panelWatts === null) ? null : quotedArrayW(x)
+
+/**
+ * The quoted array against the kit's. Panels with no stated wattage leave it to confirm, and so does a short array
+ * when one of its lines states none: that line could make up the rest.
+ */
+function checkPanels(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
+  const lines = ofKind(x, 'panel', false)
+  if (lines.length === 0) return absent('panels', x, 'panel')
+  const sized = lines.filter((l) => l.specs.panelWatts !== null)
+  if (sized.length === 0) return check('panels', 'unknown', { sizeUnknown: true }, sourceOf(lines))
+  const arrayW = quotedArrayW(x)
+  if (arrayW >= kit.arrayW * ARRAY_TOLERANCE) return check('panels', 'ok', { arrayW }, sourceOf(sized))
+  const status: ItemStatus = sized.length < lines.length ? 'unknown' : 'short'
+  return check('panels', status, { arrayW, shortArrayW: kit.arrayW - arrayW, ...(status === 'unknown' ? { sizeUnknown: true } : {}) }, sourceOf(sized))
+}
+
 function checkInstallation(x: QuoteExtraction): ItemCheck {
   const lines = ofKind(x, 'labor', false)
   return lines.length ? check('installation', 'ok', {}, sourceOf(lines)) : absent('installation', x, 'labor')
@@ -351,11 +386,12 @@ function applyOverride(c: ItemCheck, o: Override | undefined): ItemCheck {
   return { ...c, status: o === 'included' ? 'ok' : 'missing', facts: { ...c.facts, confirmed: true } }
 }
 
-/** Every item of a quote judged against the kit, in ITEM_IDS order; the user's overrides win. */
+/** Every item of a quote the kit is checked for (itemsFor), in ITEM_IDS order; the user's overrides win. */
 export function checkItems(x: QuoteExtraction, kit: KitNeeds, overrides: Overrides = {}): ItemCheck[] {
   const raw: Record<ItemId, ItemCheck> = {
     inverter: checkInverter(x, kit),
     battery: checkBattery(x, kit),
+    panels: checkPanels(x, kit),
     charger: checkFeature(x, { id: 'charger', kind: 'charger', flag: 'hasCharger' }),
     wifi: checkFeature(x, { id: 'wifi', kind: 'monitoring', flag: 'hasWifi' }),
     cables: checkCables(x, kit),
@@ -363,5 +399,5 @@ export function checkItems(x: QuoteExtraction, kit: KitNeeds, overrides: Overrid
     installation: checkInstallation(x),
     warranty: checkWarranty(x),
   }
-  return ITEM_IDS.map((id) => applyOverride(raw[id], overrides[id]))
+  return itemsFor(kit).map((id) => applyOverride(raw[id], overrides[id]))
 }

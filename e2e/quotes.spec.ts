@@ -73,6 +73,30 @@ test('a cheaper quote that leaves a chemistry, a size and a fuse class open is w
   await expect(verdictHeading(page)).toHaveText('Lumen Energía fits your kit for the least')
 })
 
+test('a kit with solar panels asks quotes for them, and panels can be made a nice-to-have', async ({ page }) => {
+  await signUp(page)
+  await page.goto('/?step=3')
+  await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  // A click before the page hydrates does nothing: the planner shows the kit has panels before the step is left.
+  await expect(page.getByRole('group', { name: /Roof planner/ })).toBeVisible()
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  await expect(verdictHeading(page)).toHaveText(quotesEn.headingNone)
+  await expect(page.getByRole('region', { name: 'What your kit needs' })).toContainText(quotesEn.needArray)
+  const row = page.getByRole('article').filter({ hasText: 'SolarTec Caribe' })
+  await expect(row).toContainText("Doesn't mention solar panels.")
+
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  const sheet = page.getByRole('dialog', { name: 'What matters for this project' })
+  const save = saved(page, 'musts')
+  await sheet.getByRole('switch', { name: 'Solar panels', exact: true }).click()
+  await save
+  await sheet.getByRole('button', { name: 'Done', exact: true }).click()
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+})
+
 test('must-haves and confirmations change the winner, and stick', async ({ page }) => {
   await signUp(page)
   await uploadQuotes(page, await Promise.all(ALL.map(quotePdf)))
