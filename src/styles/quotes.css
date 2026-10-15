@@ -215,7 +215,7 @@
 .qcover__mark { width: 14px; flex: none; text-align: center; font-weight: 700; }
 .qcover__line--ok .qcover__mark { color: var(--success); }
 .qcover__line--short, .qcover__line--missing { color: var(--warn-ink); }
-.qcover__line--unknown { color: var(--muted); }
+.qcover__line--unknown, .qcover__line--unclear { color: var(--muted); }
 .qbest__actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .qbest__actions > .qchecks { flex: 1 1 auto; }
 .qlist { display: flex; flex-direction: column; gap: 12px; }

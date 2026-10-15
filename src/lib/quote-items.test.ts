@@ -2,8 +2,8 @@ import { describe, expect, test } from 'vitest'
 import { CHEMISTRIES } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
-import { checkItems, DEFAULT_MUSTS, gaugeMm2, kitNeeds, resolveMusts, setOverride, type ItemCheck, type ItemId } from './quote-items'
-import type { QuoteExtraction } from './quote-schema'
+import { checkItems, DEFAULT_MUSTS, kitNeeds, resolveMusts, setOverride, type ItemCheck, type ItemId, type KitNeeds } from './quote-items'
+import type { QuoteExtraction, QuoteLine } from './quote-schema'
 import { compute } from './sizing'
 
 const item = (x: QuoteExtraction, id: ItemId, overrides = {}): ItemCheck => checkItems(x, KIT, overrides).find((c) => c.id === id)!
@@ -64,13 +64,45 @@ describe('inverter', () => {
 })
 
 describe('battery', () => {
-  test('usable Wh uses kWh × qty × DoD', () => {
+  const bank = (qty: number, specs: object) => extraction([line('battery', 1, { qty, specs })])
+  test('usable Wh uses kWh × qty × the depth of discharge of the stated chemistry, and says so', () => {
     const usable = 8 * 5120 * CHEMISTRIES.lifepo4.dod
-    expect(item(SAMPLE_QUOTES.solartec, 'battery')).toMatchObject({ status: 'ok', facts: { usableWh: usable } })
+    expect(item(SAMPLE_QUOTES.solartec, 'battery')).toMatchObject({ status: 'ok', facts: { usableWh: usable, nominalWh: 8 * 5120, dod: CHEMISTRIES.lifepo4.dod } })
   })
-  test('falls back to volts × Ah, and to the project chemistry', () => {
-    const x = extraction([line('battery', 1, { qty: 2, specs: { batteryVolts: 51.2, ah: 100 } })])
-    expect(item(x, 'battery').facts.usableWh).toBeCloseTo(2 * 5120 * CHEMISTRIES.lifepo4.dod)
+  test('falls back to volts × Ah', () => {
+    expect(item(bank(2, { batteryVolts: 51.2, ah: 100, chemistry: 'lifepo4' }), 'battery').facts.usableWh).toBeCloseTo(2 * 5120 * CHEMISTRIES.lifepo4.dod)
+  })
+  test('a bank that names no chemistry passes when it passes at the lowest depth of discharge, whatever the project uses', () => {
+    // 4 × 12 V 400 Ah = 19.2 kWh: 9.6 kWh even as AGM, enough for the 8 kWh kit.
+    for (const chemistry of [null, 'other']) {
+      expect(item(bank(4, { batteryVolts: 12, ah: 400, chemistry }), 'battery')).toMatchObject({
+        status: 'ok', facts: { usableWh: 9600, dod: CHEMISTRIES.agm.dod, dodAssumed: true },
+      })
+    }
+  })
+  test('and depends on the chemistry when only the higher depth reaches the kit (AI-06)', () => {
+    // 4 × 12 V 200 Ah = 9.6 kWh: 4.8 kWh as AGM, 8.16 kWh as LiFePO₄. A gel or flooded bank labelled "other" used to get 8.16.
+    for (const chemistry of [null, 'other']) {
+      expect(item(bank(4, { batteryVolts: 12, ah: 200, chemistry }), 'battery')).toMatchObject({
+        status: 'unknown', facts: { usableLowWh: 4800, usableHighWh: 9600 * CHEMISTRIES.lifepo4.dod, nominalWh: 9600 },
+      })
+    }
+    expect(item(bank(4, { batteryVolts: 12, ah: 200, chemistry: 'agm' }), 'battery')).toMatchObject({ status: 'short', facts: { usableWh: 4800, shortWh: 3200 } })
+  })
+  test('short when it falls short even at the highest depth of discharge', () => {
+    expect(item(bank(1, { kWh: 5 }), 'battery')).toMatchObject({
+      status: 'short', facts: { usableWh: 5000 * CHEMISTRIES.lifepo4.dod, dod: CHEMISTRIES.lifepo4.dod, dodAssumed: true },
+    })
+  })
+  test("the project's chemistry no longer decides: in an AGM project an unnamed bank that passes as lithium is to confirm, not short", () => {
+    const x = bank(2, { batteryVolts: 51.2, ah: 100 })
+    expect(checkItems(x, { ...KIT, chemistry: 'agm' }).find((c) => c.id === 'battery')!.status).toBe('unknown')
+  })
+  test('a line with no capacity leaves a short bank to confirm, and does not stop one that passes without it', () => {
+    const partial = extraction([line('battery', 1, { specs: { kWh: 5.12, chemistry: 'lifepo4' } }), line('battery', 0, { qty: 2, specs: { ah: 100 } })])
+    expect(item(partial, 'battery')).toMatchObject({ status: 'unknown', facts: { capacityPartial: true, usableLowWh: 5120 * CHEMISTRIES.lifepo4.dod } })
+    const enough = extraction([line('battery', 1, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }), line('battery', 0, { specs: { ah: 100 } })])
+    expect(item(enough, 'battery').status).toBe('ok')
   })
   test('short with the gap', () => {
     const c = item(SAMPLE_QUOTES.enerhogar, 'battery')
@@ -103,14 +135,77 @@ describe('charger and Wi-Fi', () => {
 })
 
 describe('cables and fuse', () => {
-  test('gauges parse with or without "AWG" and "#"', () => {
-    expect(gaugeMm2('2/0')).toBe(67.4)
-    expect(gaugeMm2('#4 AWG')).toBe(21.2)
-    expect(gaugeMm2('70 mm2')).toBeNull()
+  /** The 48 V kit of the audit's probe C2: 5.9 kW running on an 8 kW inverter, so 2 runs of 1 AWG (231 A design) and 2 × 125 A. */
+  const c2 = kitNeeds(compute({ qty: { ac2i: 2, fridge: 1, micro: 1, lights: 2 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT))
+  const wiring = (awg: string, qty = 1) => line('wiring', 1, { qty, specs: { awg } })
+  /** A wiring line as the quote writes it, so its words can say what its quantity counts. */
+  const written = (text: string, awg: string, qty: number) => line('wiring', 1, { qty, description: text, source: { page: 1, text }, specs: { awg } })
+  const fuse = (fuseAmps: number, qty = 1, fuseClass: string | null = 'T') => line('fuse', 1, { qty, specs: { fuseAmps, fuseClass } })
+  const judge = (kit: KitNeeds, lines: QuoteLine[], id: ItemId) => checkItems(extraction(lines), kit).find((c) => c.id === id)!
+
+  test('the probe kit is what the engine prints', () => {
+    expect(c2).toMatchObject({ cableGauge: '1 AWG', cableRuns: 2, designA: 231, fuseA: 125, fuseCount: 2, fuseClass: 'T' })
+    expect(c2.ampacityByGauge['1 AWG']).toBe(130)
   })
   test('cables thicker than the kit are ok, thinner are short', () => {
     expect(item(SAMPLE_QUOTES.solartec, 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
     expect(item(SAMPLE_QUOTES.enerhogar, 'cables')).toMatchObject({ status: 'short', facts: { gauge: '8 AWG' } })
+  })
+  test('gauges thinner than the table are short, not "size not stated" (AI-15)', () => {
+    for (const awg of ['10', '12', '14']) expect(judge(KIT, [wiring(awg)], 'cables')).toMatchObject({ status: 'short', facts: { gauge: `${awg} AWG` } })
+    expect(judge(KIT, [wiring('00')], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '2/0 AWG' } })
+    expect(judge(KIT, [wiring('250 kcmil')], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '250 kcmil' } })
+    expect(judge(KIT, [wiring('2 AWG THHN')], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '2 AWG' } })
+  })
+  test('mm² counts when there is no AWG, within 5%', () => {
+    expect(item(extraction([line('wiring', 1, { specs: { mm2: 70 } })]), 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '70 mm²' } })
+  })
+  test('a size that is not stated or cannot be read is to confirm, not ok (AI-15)', () => {
+    expect(item(extraction([line('wiring', 1)]), 'cables')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+    expect(item(extraction([wiring('heavy duty')]), 'cables')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+    expect(item(extraction([line('fuse', 1)]), 'fuse')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+  })
+  test('a count of runs written before the size reads as that size, not as a thin gauge', () => {
+    expect(judge(KIT, [wiring('2 x 4/0 AWG')], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+  })
+  test('a thinner size beside a cable with no size settles nothing: that cable could be the main one', () => {
+    // A battery cable the quote doesn't size, and the solar cable the kit itself prints as 10 AWG.
+    const unsized = line('wiring', 1, { description: 'Cableado de baterías' })
+    expect(judge(KIT, [unsized, wiring('10')], 'cables')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+    // Nor does it fail a fuse for being too big for the thin cable: 250 A is far above the 50 A of 8 AWG.
+    expect(judge(KIT, [unsized, wiring('8'), fuse(250)], 'fuse').status).toBe('ok')
+    // With every size read, the thickest is the main cable, and thinner than the kit's is short.
+    expect(judge(KIT, [wiring('10'), wiring('8')], 'cables').status).toBe('short')
+    // Lugs, connectors, conduit and the ground are no main cable, so they leave a thin one short.
+    for (const text of ['Terminales y conectores', 'Tubo conduit 1"', 'Cable de tierra']) {
+      expect(judge(KIT, [wiring('8'), line('wiring', 1, { description: text, source: { page: 1, text } })], 'cables').status).toBe('short')
+    }
+  })
+  test('a size the kit needs two runs of is ok only when the quote counts their four leads; a count never fails it (AI-03)', () => {
+    expect(judge(c2, [wiring('1')], 'cables')).toMatchObject({ status: 'unknown', facts: { gauge: '1 AWG', runs: 2, runsUnstated: true } })
+    expect(judge(c2, [wiring('1', 4)], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '1 AWG', runs: 2 } })
+    expect(judge(c2, [wiring('1', 4)], 'cables').facts.runsUnstated).toBeUndefined()
+  })
+  test('a quantity in metres, or not a whole number, counts no leads', () => {
+    for (const x of [written('Cable 1 AWG, 10 m', '1', 10), written('Cable cal. 1, 12 mts', '1', 12), written('Cable 1 AWG', '1', 12.5)]) {
+      expect(judge(c2, [x], 'cables')).toMatchObject({ status: 'unknown', facts: { runs: 2, runsUnstated: true } })
+    }
+    for (const text of ['Cable 1 AWG, 4 tramos de 2 m', 'Cable 1 AWG 12 mtrs', 'Cable 1 AWG 12 ml', 'Cable 1 AWG, precio por metro']) {
+      expect(judge(c2, [written(text, '1', 12)], 'cables').status).toBe('unknown')
+    }
+    expect(judge(c2, [written('Cable 1 AWG, 4 piezas', '1', 4)], 'cables').status).toBe('ok')
+    // Pesos written "M.N." or "m/n" are no length.
+    expect(judge(c2, [written('Cable 1 AWG, 4 pzas, $1,250.00 M.N.', '1', 4)], 'cables').status).toBe('ok')
+    expect(judge(KIT, [written('Cable 4/0 AWG, 12 m', '4/0', 12), fuse(450)], 'fuse')).toMatchObject({ status: 'unknown', facts: { runs: 2, runsUnstated: true } })
+  })
+  test('runs are counted in whole micro-amps, so float noise in a factor asks for no extra run', () => {
+    // 85 × 0.7 is 59.49999999999999 in floating point: 119 A is two runs of it, not three.
+    const kit: KitNeeds = { ...KIT, cableMm2: 53.5, cableGauge: '1/0 AWG', mainMm2: 53.5, designA: 119, ampacityByGauge: { ...KIT.ampacityByGauge, '1/0 AWG': 85 * 0.7 } }
+    expect(judge(kit, [wiring('1/0', 4)], 'cables')).toMatchObject({ status: 'ok', facts: { runs: 2 } })
+  })
+  test('one run of a size that carries the whole current needs no count', () => {
+    expect(judge(KIT, [wiring('4/0')], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+    expect(judge(KIT, [wiring('4/0')], 'cables').facts.runs).toBeUndefined()
   })
   test('the kit asks a quote for its thickest battery-side cable, which can be a string lead and not the main cable', () => {
     // 2 kW at 12 V on two strings, bundled in 50 °C air: three main runs of 2/0, but each string's lead carries half the bank on 3/0.
@@ -119,25 +214,65 @@ describe('cables and fuse', () => {
     expect([r.battery?.config, r.cable.runs, r.cable.gauge, r.cable.string?.gauge]).toEqual(['1S2P', 3, '2/0 AWG', '3/0 AWG'])
     const kit = kitNeeds(r)
     expect(kit).toMatchObject({ cableGauge: '3/0 AWG', cableMm2: 85 })
-    const cables = (awg: string) => checkItems(extraction([line('wiring', 1, { specs: { awg } })]), kit, {}).find((c) => c.id === 'cables')!
-    expect(cables('2/0').status).toBe('short')
-    expect(cables('3/0').status).toBe('ok')
+    expect(judge(kit, [wiring('2/0', 6)], 'cables').status).toBe('short')
+    // 347 A of design current is three runs of 3/0 at this site, so the six leads have to be there too.
+    expect(judge(kit, [wiring('3/0')], 'cables')).toMatchObject({ status: 'unknown', facts: { runs: 3, runsUnstated: true } })
+    expect(judge(kit, [wiring('3/0', 6)], 'cables').status).toBe('ok')
+    // A quote that copies the parts list, three runs of 2/0 and two pairs of 3/0 string leads, carries what the kit's does.
+    expect(judge(kit, [wiring('2/0', 6), wiring('3/0', 4)], 'cables').status).toBe('ok')
   })
   test('a kit with one string asks for its main cable', () => {
     const r = compute({ qty: { fridge: 1, lights: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.cable.string).toBeNull()
     expect(kitNeeds(r)).toMatchObject({ cableGauge: r.cable.gauge, cableMm2: r.cable.mm2 })
   })
-  test('mm² counts when there is no AWG, within 5%', () => {
-    expect(item(extraction([line('wiring', 1, { specs: { mm2: 70 } })]), 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '70 mm²' } })
-  })
-  test('a size that is not stated is ok with sizeUnknown', () => {
-    expect(item(extraction([line('wiring', 1)]), 'cables')).toMatchObject({ status: 'ok', facts: { sizeUnknown: true } })
-    expect(item(extraction([line('fuse', 1)]), 'fuse')).toMatchObject({ status: 'ok', facts: { sizeUnknown: true } })
-  })
   test('a fuse below the kit is short; none is unknown', () => {
-    expect(item(extraction([line('fuse', 1, { specs: { fuseAmps: 150 } })]), 'fuse')).toMatchObject({ status: 'short', facts: { amps: 150 } })
+    expect(item(extraction([fuse(150)]), 'fuse')).toMatchObject({ status: 'short', facts: { amps: 150 } })
     expect(item(SAMPLE_QUOTES.grupoluz, 'fuse').status).toBe('unknown')
+  })
+  test('a fuse above what a cable thinner than 1/0 carries is short: the probe C2 quote no longer fits (AI-03)', () => {
+    const x = [wiring('1'), line('fuse', 1, { description: 'Fusible ANL 250 A', specs: { fuseAmps: 250, fuseClass: 'ANL' } })]
+    expect(judge(c2, x, 'fuse')).toMatchObject({ status: 'short', facts: { amps: 250, gauge: '1 AWG', maxA: 130 } })
+  })
+  test('on 1/0 and up, a fuse above one run asks for the runs in parallel that carry it', () => {
+    // 450 A on 4/0 (230 A a run) is two runs in parallel: fine with their four leads, to confirm with one line.
+    expect(judge(KIT, [wiring('4/0'), fuse(450)], 'fuse')).toMatchObject({ status: 'unknown', facts: { amps: 450, gauge: '4/0 AWG', runs: 2, runsUnstated: true } })
+    expect(judge(KIT, [wiring('4/0', 4), fuse(450)], 'fuse')).toMatchObject({ status: 'ok', facts: { amps: 450 } })
+  })
+  test("a fuse no larger than the kit's own never fails for its size", () => {
+    // 5 kW at 12 V, bundled: six runs of 4/0 at 130 A each, and the engine can protect each only with a 175 A fuse.
+    const custom = [{ id: 'x', name: 'Load', watts: 5000, surge: 5000, note: '' }]
+    const kit = kitNeeds(compute({ qty: { x: 1 }, custom, hours: 1, volts: 12, chemistry: 'lifepo4', cable: { ambientC: 30, insulationC: 90, bundled: true } }, CATALOG_SNAPSHOT))
+    expect(kit).toMatchObject({ cableGauge: '4/0 AWG', cableRuns: 6, fuseA: 175, fuseCount: 6 })
+    expect(kit.ampacityByGauge['4/0 AWG']).toBe(130)
+    expect(judge(kit, [wiring('4/0'), fuse(175, 6)], 'fuse').status).toBe('ok')
+  })
+  test("a class other than the kit's is to confirm; the word for class, and for fuse, is ignored", () => {
+    expect(judge(KIT, [wiring('2/0'), fuse(175, 1, 'ANL')], 'fuse')).toMatchObject({ status: 'unknown', facts: { amps: 175, fuseClass: 'ANL', kitClass: 'T' } })
+    for (const w of ['Fusible ANL', 'Tipo ANL']) expect(judge(KIT, [wiring('2/0'), fuse(175, 1, w)], 'fuse').facts.fuseClass).toBe('ANL')
+    // The class field is kept to 12 characters, so these are what a reading stores.
+    for (const w of ['T', 'Clase T', 'class-T', 'Clase tipo T', 'T (JLLN)', 'Class T (JLL']) {
+      expect(judge(KIT, [wiring('2/0'), fuse(175, 1, w)], 'fuse').status).toBe('ok')
+    }
+  })
+  test('a fuse that states no class is to confirm, unless its line writes the class', () => {
+    expect(judge(KIT, [wiring('2/0'), fuse(175, 1, null)], 'fuse')).toMatchObject({ status: 'unknown', facts: { amps: 175, classUnstated: true, kitClass: 'T' } })
+    const said = (text: string, fuseClass: string | null) => line('fuse', 1, { description: text, source: { page: 1, text }, specs: { fuseAmps: 175, fuseClass } })
+    expect(judge(KIT, [wiring('2/0'), said('Fusible clase T 175 A', null)], 'fuse').status).toBe('ok')
+    expect(item(SAMPLE_QUOTES.voltia, 'fuse').status).toBe('ok')
+    // "Fusible clase T" cut to 12 characters: the word cut short is no class, and the line's words still say T.
+    expect(judge(KIT, [wiring('2/0'), said('Fusible clase T 175 A', 'Fusible clas')], 'fuse').status).toBe('ok')
+    expect(judge(KIT, [wiring('2/0'), said('Fusible 175 A', 'Fusible clas')], 'fuse').facts.classUnstated).toBe(true)
+    // "Tipo" in a line's words is a kind, not a class.
+    expect(judge(KIT, [wiring('2/0'), said('Fusible tipo cartucho 175 A', null)], 'fuse').facts.classUnstated).toBe(true)
+  })
+  test("fewer fuses than the kit's carry together are to confirm; fewer, larger ones on cable that carries them pass", () => {
+    expect(judge(c2, [wiring('1', 4), fuse(125)], 'fuse')).toMatchObject({ status: 'unknown', facts: { amps: 125, fuses: 1 } })
+    expect(judge(c2, [wiring('1', 4), fuse(125, 2)], 'fuse').status).toBe('ok')
+    expect(judge(c2, [wiring('2/0', 4), fuse(250)], 'fuse').status).toBe('ok')
+  })
+  test("a fuse rated under the kit's protects something else and is not counted", () => {
+    expect(judge(c2, [wiring('1', 4), fuse(125, 2), fuse(30, 1, 'ANL')], 'fuse')).toMatchObject({ status: 'ok', facts: { amps: 125 } })
   })
 })
 
