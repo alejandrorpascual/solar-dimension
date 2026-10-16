@@ -9,10 +9,112 @@
             "async": true,
             "timeout": 120,
             "suppressOutput": true,
-            "statusMessage": "Updating Neon skills…"
+            "statusMessage": "Updating Neon skills\u2026"
+          },
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && python3 .claude/hooks/cleanup-wt.py --auto --fetch 2>/dev/null || true"
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-worktree-path.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-delete-outside.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-protected-push.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-secrets.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-key-literals.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-key-literals.py"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(gh issue view:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr ready:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh project item-edit:*)",
+      "Bash(gh project item-list:*)",
+      "Bash(gh api:*)",
+      "Bash(git worktree:*)",
+      "Bash(.claude/bin/super-board-card.sh:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(git blame:*)",
+      "Bash(mkdir:*)",
+      "Bash(pgrep:*)",
+      "Bash(node --check:*)",
+      "Bash(bash .claude/bin/super-board-wave-plan.sh:*)",
+      "Bash(bash .claude/bin/super-board-preflight.sh:*)",
+      "Bash(python3 .claude/bin/super-board-skills-ready.py:*)",
+      "Bash(bash .claude/bin/super-board-usage.sh:*)",
+      "Bash(bash .claude/bin/super-board-throttle.sh:*)",
+      "Bash(bash .claude/bin/super-board-codex-lane.sh:*)",
+      "Bash(bash .claude/bin/super-board-codex-wave.sh:*)",
+      "Bash(bash .claude/bin/super-board-host.sh:*)",
+      "Bash(bash .claude/bin/super-board-pr-body.sh:*)",
+      "Bash(bash .claude/bin/super-board-merge-gate.sh:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(bash .claude/bin/super-board-env-check.sh:*)",
+      "Bash(node --env-file=/Users/alejandrorpascual/projects/solar-dimension/.env.test.local scripts/migrate.ts:*)",
+      "Bash(npm ci:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npm run e2e:*)",
+      "Bash(npx playwright:*)"
     ]
   }
 }
