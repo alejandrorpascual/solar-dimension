@@ -19,6 +19,7 @@ import { AccountClaim, requireAccount, requireQuoteUser } from '../session'
 import { defaultStorage, emptyQuoteTrash } from './deps'
 import { kickQuotes } from './kick'
 import { dailyBudget, insertWithinLimits, quoteCounts, retryWithinBudget } from './limits'
+import { quotePollMs } from './poll'
 import { recoverStaleQuotes, trashQuoteFiles } from './repo'
 import { quotePath } from './storage'
 
@@ -106,6 +107,9 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     kickQuotes([id])
     return { ok: true, id }
   })
+
+/** How often the page asks about quotes being read (QUOTES_POLL_MS). Anyone may ask: it says nothing of an account. */
+export const getQuotePollMs = createServerFn({ method: 'GET' }).handler(async (): Promise<number> => quotePollMs())
 
 /** Every project of the user that has quotes, for the tray and the cards. Also re-kicks jobs that went quiet. */
 export const getQuoteJobs = createServerFn({ method: 'GET' })

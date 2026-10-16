@@ -43,6 +43,7 @@ Signed-in users upload installer quotes (PDF, JPG, PNG or WebP, up to 4 MB, PDFs
 | `CRON_SECRET` | authenticates the daily `/api/quotes/sweep` cron |
 | `QUOTES_DAILY_READS` | model reads admitted per UTC day across every account (uploads and retries); default `100`; set `0` to pause reading. Anything but a whole number falls back to the default, with one warning in the logs |
 | `QUOTES_TRUSTED_EMAILS` | comma-separated emails that may upload without a verified email. For previews and tests only: ignored when `VERCEL_ENV` is `production` |
+| `QUOTES_POLL_MS` | how often, in milliseconds, the page asks about quotes being read; default `3000`. Leave it unset in production; the e2e servers, whose stubbed reads take a moment, set it lower. Anything but a whole number from `100` falls back to the default, with one warning in the logs |
 
 Abuse limits, so nobody can burn the OpenAI budget:
 

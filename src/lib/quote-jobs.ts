@@ -65,11 +65,32 @@ export function etaSeconds(j: ProjectJobs): number | null {
   return j.done === 0 || j.pending === 0 ? null : j.pending * SECONDS_PER_QUOTE
 }
 
-export const POLL_MS = 3000
+/** How often the page asks about quotes being read, unless QUOTES_POLL_MS says otherwise: a read takes about 30 s. */
+export const DEFAULT_POLL_MS = 3000
+/**
+ * The range of QUOTES_POLL_MS taken, so a mistyped value cannot have every open page ask without pause: below the
+ * floor, or past the browser's longest timer, which then fires at once.
+ */
+export const MIN_POLL_MS = 100
+export const MAX_POLL_MS = 60_000
 export const POLL_BACKOFF_MS = 10000
 
+const WHOLE_NUMBER = /^\d+$/
+
+/**
+ * QUOTES_POLL_MS as the poll interval. Unset means the default; a value outside MIN_POLL_MS to MAX_POLL_MS, or anything
+ * but a whole number, also does, flagged as invalid. The E2E servers, whose stubbed reads take a moment, poll faster.
+ */
+export function parsePollMs(raw: string | undefined): { pollMs: number; isInvalid: boolean } {
+  const text = (raw ?? '').trim()
+  if (text === '') return { pollMs: DEFAULT_POLL_MS, isInvalid: false }
+  const n = WHOLE_NUMBER.test(text) ? Number(text) : NaN
+  const isInRange = n >= MIN_POLL_MS && n <= MAX_POLL_MS
+  return isInRange ? { pollMs: n, isInvalid: false } : { pollMs: DEFAULT_POLL_MS, isInvalid: true }
+}
+
 /** Milliseconds until the next status poll, or null to stop polling. */
-export function nextPollDelay(jobs: readonly ProjectJobs[], failures: number): number | null {
+export function nextPollDelay(jobs: readonly ProjectJobs[], failures: number, pollMs: number): number | null {
   if (failures > 0) return POLL_BACKOFF_MS
-  return jobs.some((j) => j.pending > 0) ? POLL_MS : null
+  return jobs.some((j) => j.pending > 0) ? pollMs : null
 }
