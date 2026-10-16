@@ -46,11 +46,15 @@ export async function signUp(page: Page, { verified = true }: { verified?: boole
   return email
 }
 
-/** Signs up, waits for the default project to reach the server, and returns its id. */
+/**
+ * Signs up, waits for the default project to reach the server, and returns its id. The account's first page saves that
+ * project after its Upload button shows, so the wait is for the row itself.
+ */
 export async function signUpWithProject(page: Page): Promise<{ email: string; projectId: string }> {
   const email = await signUp(page)
   await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
+  await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toBeEnabled({ timeout: 15_000 })
+  await expect.poll(() => firstProjectId(email).then(() => true, () => false), { timeout: 15_000 }).toBe(true)
   return { email, projectId: await firstProjectId(email) }
 }
 

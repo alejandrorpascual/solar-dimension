@@ -417,10 +417,7 @@ test('a quote that could not be read can be retried, until its retries are used 
 test('a project that already has 10 quotes refuses an eleventh, with the reason', async ({ page }) => {
   // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
   test.slow()
-  const email = await signUp(page)
-  await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
-  const projectId = await firstProjectId(email)
+  const { email, projectId } = await signUpWithProject(page)
   await seedQuoteRows(email, projectId, 10)
 
   // Once the project has quotes, the card's button reads "Add quotes". The page may learn of the seeded rows at any
@@ -434,10 +431,7 @@ test('a project that already has 10 quotes refuses an eleventh, with the reason'
 test('an account that used its 20 uploads this month is refused, with the reason', async ({ page }) => {
   // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
   test.slow()
-  const email = await signUp(page)
-  await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
-  const projectId = await firstProjectId(email)
+  const { email, projectId } = await signUpWithProject(page)
   await setQuoteUploadsThisMonth(email, 20)
 
   await uploadQuotes(page, [await quotePdf('solartec')])
@@ -576,10 +570,7 @@ test('a Google account whose email Google did not verify does not unlock uploads
 test('a project whose quotes all failed says none could be read, not that a verdict is ready', async ({ page }) => {
   // Sign-up and database seeding over Neon's HTTP driver can pass 30 s on a slow CI runner.
   test.slow()
-  const email = await signUp(page)
-  await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toBeEnabled({ timeout: 15_000 })
-  const projectId = await firstProjectId(email)
+  const { email, projectId } = await signUpWithProject(page)
   await seedQuoteRows(email, projectId, 2)
 
   await page.goto(`/projects/${projectId}/quotes`)
