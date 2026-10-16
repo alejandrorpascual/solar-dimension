@@ -15,13 +15,13 @@ export type Caveat =
   | { id: 'no_headroom'; needW: number }
   /** A size the user confirmed, not the quote: the inverter, the battery, the panels, or what the quote left open. */
   | { id: 'confirmed'; item: ItemId }
-  /** The bank passes even at the lowest depth of discharge, but no line names its chemistry. */
+  /** The bank passes even at the lowest depth of discharge, but a line of it names no chemistry. */
   | { id: 'chemistry_unstated' }
   | { id: 'chemistry_differs'; chemistry: ChemistryId }
   /** Battery units that can't make up the kit's voltage, or an inverter stated for another. */
   | { id: 'bank_voltage'; volts: number }
   | { id: 'inverter_voltage'; volts: number }
-  /** The quote states no tax while another quote ranked beside it does, so the two totals may not be alike. */
+  /** The entry states no tax while another ranked beside it does, so the two totals may not be alike. */
   | { id: 'tax_unstated' }
   /** It ranks on the total the user typed, because its reading needs checking. */
   | { id: 'total_typed' }
@@ -64,10 +64,13 @@ function makesUp(unitV: number, units: number, kitV: number): boolean {
 
 function voltageCaveats(lines: readonly QuoteLine[], kit: KitNeeds): Caveat[] {
   const included = lines.filter((l) => !l.optional && l.specs.batteryVolts !== null)
-  const bank = included.find((l) => l.kind === 'battery' && !makesUp(l.specs.batteryVolts!, l.qty, kit.volts))
+  const batteries = included.filter((l) => l.kind === 'battery')
+  // Units of one voltage make up a string together, whichever lines list them.
+  const unitsAt = (volts: number): number => batteries.filter((l) => l.specs.batteryVolts === volts).reduce((a, l) => a + l.qty, 0)
+  const bankVolts = [...new Set(batteries.map((l) => l.specs.batteryVolts!))].find((v) => !makesUp(v, unitsAt(v), kit.volts))
   const inverter = included.find((l) => l.kind === 'inverter' && l.specs.batteryVolts! <= MAX_DC_VOLTS && !isNear(l.specs.batteryVolts!, kit.volts))
   return [
-    ...(bank ? [{ id: 'bank_voltage' as const, volts: bank.specs.batteryVolts! }] : []),
+    ...(bankVolts !== undefined ? [{ id: 'bank_voltage' as const, volts: bankVolts }] : []),
     ...(inverter ? [{ id: 'inverter_voltage' as const, volts: inverter.specs.batteryVolts! }] : []),
   ]
 }
@@ -82,15 +85,20 @@ function inverterCaveats(items: readonly ItemCheck[], kit: KitNeeds): Caveat[] {
   ]
 }
 
+/** The chemistry a line names, of those the catalog has: null for none, or "other". */
+const namedChemistry = (l: QuoteLine): ChemistryId | null =>
+  l.specs.chemistry === 'lifepo4' || l.specs.chemistry === 'agm' ? l.specs.chemistry : null
+
+/** Every included battery line counts: one that names no chemistry, or another than the kit's, is part of the bank. */
 function batteryCaveats(e: CaveatInput, kit: KitNeeds): Caveat[] {
   const c = itemOf(e.items, 'battery')
   if (c?.status !== 'ok' || c.facts.confirmed) return []
-  if (c.facts.dodAssumed) return [{ id: 'chemistry_unstated' }]
-  const named = e.extraction.lines
-    .filter((l) => l.kind === 'battery' && !l.optional)
-    .map((l) => l.specs.chemistry)
-    .find((ch): ch is ChemistryId => ch === 'lifepo4' || ch === 'agm')
-  return named !== undefined && named !== kit.chemistry ? [{ id: 'chemistry_differs', chemistry: named }] : []
+  const named = e.extraction.lines.filter((l) => l.kind === 'battery' && !l.optional).map(namedChemistry)
+  const other = named.find((ch): ch is ChemistryId => ch !== null && ch !== kit.chemistry)
+  return [
+    ...(named.includes(null) ? [{ id: 'chemistry_unstated' as const }] : []),
+    ...(other !== undefined ? [{ id: 'chemistry_differs' as const, chemistry: other }] : []),
+  ]
 }
 
 /** The must-haves that pass on the user's confirmation of a size (confirmsSize), not on what the quote states. */
@@ -100,7 +108,7 @@ const confirmedCaveats = (items: readonly ItemCheck[], musts: Musts): Caveat[] =
     .map((c) => ({ id: 'confirmed', item: c.id }))
 
 /**
- * Every caveat of one entry, in the order the card lists them. `taxElsewhere` says whether another quote ranked beside
+ * Every caveat of one entry, in the order the card lists them. `taxElsewhere` says whether another entry ranked beside
  * it states tax.
  */
 export function caveatsOf(e: CaveatInput, kit: KitNeeds, musts: Musts, taxElsewhere: boolean): Caveat[] {
@@ -110,7 +118,7 @@ export function caveatsOf(e: CaveatInput, kit: KitNeeds, musts: Musts, taxElsewh
     ...batteryCaveats(e, kit),
     ...voltageCaveats(e.extraction.lines, kit),
     ...confirmedCaveats(e.items, musts),
-    ...(taxElsewhere && !statesTax(whole) ? [{ id: 'tax_unstated' as const }] : []),
+    ...(taxElsewhere && !statesTax(whole, e.optionId) ? [{ id: 'tax_unstated' as const }] : []),
     ...(e.optionId === null && e.quote.totalOverride !== null ? [{ id: 'total_typed' as const }] : []),
   ]
 }

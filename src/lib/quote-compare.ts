@@ -172,9 +172,10 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
     .filter((e) => !inCurrency.includes(e))
     .map((e) => ({ quote: e.quote, name: quoteName(e.quote), ...optionOf(e), reason: unrankedReason(e), currency: e.extraction?.currency ?? null }))
 
-  // Whether another quote ranked beside an entry states tax: then one that states none may be priced without it.
-  const taxed = new Set(inCurrency.filter((e) => statesTax(e.quote.extraction!)).map((e) => e.quote.id))
-  const taxElsewhere = (e: Entry): boolean => [...taxed].some((id) => id !== e.quote.id)
+  // Whether another entry ranked beside one states tax, another quote or another option of its own: then one that
+  // states none may be priced without it.
+  const taxed = inCurrency.filter((e) => statesTax(e.quote.extraction!, e.optionId)).map(entryKey)
+  const taxElsewhere = (e: Entry): boolean => taxed.some((key) => key !== entryKey(e))
   const scored = currency === null ? [] : inCurrency.map((e) => score(e, kit, musts, currency, taxElsewhere(e)))
   const fits = scored.filter((s) => s.fit === 'fits').sort(byFitsOrder)
   const unclear = scored.filter((s) => s.fit === 'unclear').sort(byTotal)

@@ -51,6 +51,11 @@ describe('caveats of a quote that meets every must-have', () => {
   test('a bank of another chemistry than the kit', () => {
     expect(only(clean({ battery: battery({ batteryVolts: 12, ah: 400, chemistry: 'agm' }, 4) })).best!.caveats).toEqual([{ id: 'chemistry_differs', chemistry: 'agm' }])
   })
+  test('every battery line is checked for its chemistry, not only the first that names one', () => {
+    const twoBanks = (second: object) => extraction([inverter(), battery(), line('battery', 1500, { qty: 2, specs: second }), ...rest()])
+    expect(only(twoBanks({ kWh: 5.12, chemistry: 'agm' })).best!.caveats).toEqual([{ id: 'chemistry_differs', chemistry: 'agm' }])
+    expect(caveatIds(twoBanks({ kWh: 5.12 }))).toEqual(['chemistry_unstated'])
+  })
   test("battery units that can't make up the kit's voltage, and an inverter for another voltage (AI-13, probe E5)", () => {
     // E5: a 48 V inverter with 2 × 12 V 400 Ah, a 24 V bank at most.
     expect(only(clean({ battery: battery({ batteryVolts: 12, ah: 400, chemistry: 'lifepo4' }, 2) })).best!.caveats).toEqual([{ id: 'bank_voltage', volts: 12 }])
@@ -63,6 +68,10 @@ describe('caveats of a quote that meets every must-have', () => {
     expect([bank(51.2, 1), bank(25.6, 2), bank(12.8, 4)]).toEqual([[], [], []])
     expect([bank(25.6, 1), bank(12, 3)]).toEqual([['bank_voltage'], ['bank_voltage']])
     expect(caveatIds(clean({ battery: battery({ batteryVolts: 24, ah: 400, chemistry: 'lifepo4' }, 2) }), { ...KIT, volts: 36 })).toEqual(['bank_voltage'])
+  })
+  test('units of one voltage make up the kit together, whichever lines list them: four 12 V as two lines of two', () => {
+    const pair = () => battery({ batteryVolts: 12, ah: 400, chemistry: 'lifepo4' }, 2)
+    expect(caveatIds(extraction([inverter(), pair(), pair(), ...rest()]))).toEqual([])
   })
   test('a total typed by the user', () => {
     expect(caveatIds(clean(), KIT, { status: 'needs_review', totalOverride: 6000 })).toEqual(['total_typed'])
@@ -94,6 +103,16 @@ describe('tax stated on one quote and not on another (AI-04, probe E6)', () => {
     const w = compareQuotes(KIT, DEFAULT_MUSTS, [view('a', taxLine), view('b', noTax)])
     expect(w.ranked.find((r) => r.quote.id === 'b')!.caveats).toEqual([{ id: 'tax_unstated' }])
     expect(w.ranked.find((r) => r.quote.id === 'a')!.caveats).toEqual([])
+  })
+  test("an option states tax for itself alone: its own tax, or a line it shares that names one", () => {
+    const system = (option: string) => [inverter(), battery(), ...rest()].map((l) => ({ ...l, option }))
+    const options = (shared: QuoteLine[]) => extraction([...system('o1'), ...system('o2'), ...shared], {
+      total: 0, options: [{ id: 'o1', label: 'Taxed', total: null, tax: 1000 }, { id: 'o2', label: 'Untaxed', total: null, tax: null }],
+    })
+    const caveatsOf = (x: QuoteExtraction, optionId: string) => only(x).ranked.find((r) => r.optionId === optionId)!.caveats
+    expect([caveatsOf(options([]), 'o1'), caveatsOf(options([]), 'o2')]).toEqual([[], [{ id: 'tax_unstated' }]])
+    const sharedTax = options([line('other', 500, { description: 'IVA' })])
+    expect([caveatsOf(sharedTax, 'o1'), caveatsOf(sharedTax, 'o2')]).toEqual([[], []])
   })
 })
 

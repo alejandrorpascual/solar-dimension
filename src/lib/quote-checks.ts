@@ -1,4 +1,4 @@
-import { hasOptions } from './quote-options'
+import { hasOptions, optionLines } from './quote-options'
 import { UNLISTED_OPTION, type QuoteExtraction, type QuoteLine, type QuoteOption } from './quote-schema'
 
 export type CheckFailure = 'no_lines' | 'no_total' | 'bad_currency' | 'bad_qty' | 'line_mismatch' | 'total_mismatch' | 'option_total_mismatch' | 'unknown_option'
@@ -60,10 +60,16 @@ const isTaxListed = (lines: readonly QuoteLine[], tax: number): boolean =>
   lines.some((l) =>
     !l.optional && l.kind === 'other' && near(l.lineTotal, tax, LINE_TOLERANCE) && (namesTax(l.description) || namesTax(l.source.text)))
 
-/** Whether a quote says anything about tax: an amount for it or one of its options, or an included line that names one. */
-export const statesTax = (x: QuoteExtraction): boolean =>
-  hasTotal(x.tax) || x.options.some((o) => hasTotal(o.tax)) ||
-  x.lines.some((l) => !l.optional && l.kind === 'other' && (namesTax(l.description) || namesTax(l.source.text)))
+/**
+ * Whether a quote (optionId null), or one option of it, says anything about its tax: an amount written for it, or an
+ * included line of its system, its own or shared, that names one. The document's own tax doesn't count for an option:
+ * like optionPrices, which never adds it, it can't tell which option it belongs to.
+ */
+export function statesTax(x: QuoteExtraction, optionId: string | null): boolean {
+  const taxes = optionId === null ? [x.tax, ...x.options.map((o) => o.tax)] : [x.options.find((o) => o.id === optionId)?.tax]
+  const lines = optionId === null ? x.lines : optionLines(x, optionId)
+  return taxes.some(hasTotal) || lines.some((l) => !l.optional && l.kind === 'other' && (namesTax(l.description) || namesTax(l.source.text)))
+}
 
 /**
  * The totals an option priced at `base` may be written as: the base itself, with the tax written for that option, or
