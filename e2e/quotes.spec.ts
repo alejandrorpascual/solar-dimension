@@ -12,7 +12,8 @@ import { switchLanguage } from './header'
 import { PHONE } from './phone'
 import { hideProjects, openProjectAction, showProjects } from './projects'
 import {
-  captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading,
+  captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, signUpWithProject, tray, uploadQuotes,
+  verdictHeading,
 } from './quotes'
 
 const ALL = ['solartec', 'voltia', 'grupoluz', 'enerhogar']
@@ -332,7 +333,7 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
 
   const other = await browser.newContext()
   const stranger = await other.newPage()
-  const strangerEmail = await signUp(stranger)
+  const { email: strangerEmail } = await signUpWithProject(stranger)
   expect((await stranger.request.get(href!)).status()).toBe(404)
   // The project exists only for the owner: a real 404.
   await stranger.goto(verdictUrl)

@@ -1,4 +1,4 @@
-import { expect, type FileChooser, type Page } from '@playwright/test'
+import { expect, request, test, type FileChooser, type Page } from '@playwright/test'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { firstProjectId, markEmailVerified } from './db'
 
@@ -14,18 +14,26 @@ export async function quotePdf(name: string): Promise<{ name: string; mimeType: 
 }
 
 /**
- * Signs up a new email/password account. Only a verified account may start quote reads, and sign-up never verifies,
- * so the account is marked verified in the database unless a test needs it unverified. The server reads the flag from
- * the user row, so the next page load picks it up.
+ * Signs up a new email/password account through the auth API, as the sign-in form does, without loading the form:
+ * these tests are about what comes after, and account.spec.ts goes through the form. It is sent from a request context
+ * of its own, closed once its cookies are in the page's: the page is signed in from its next load, and its pool holds
+ * no idle connection for a later route.fetch to reuse just as the server closes it (ECONNRESET). The account has no
+ * project until a page has loaded and saved one: signUpWithProject waits for that. Only a verified account may start
+ * quote reads, and sign-up never verifies, so the account is marked verified in the database unless a test needs it
+ * unverified. The server reads the flag from the user row, so the next page load picks it up.
  */
 export async function signUp(page: Page, { verified = true }: { verified?: boolean } = {}): Promise<string> {
   const email = `e2e-quotes-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
-  await page.goto('/login')
-  await page.getByRole('button', { name: 'No account yet? Create one' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill('correct-horse-battery')
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  const auth = await request.newContext({ baseURL: test.info().project.use.baseURL })
+  try {
+    const response = await auth.post('/api/auth/sign-up/email', {
+      data: { email, password: 'correct-horse-battery', name: email.split('@')[0] },
+    })
+    expect(response.ok(), await response.text()).toBe(true)
+    await page.context().addCookies((await auth.storageState()).cookies)
+  } finally {
+    await auth.dispose()
+  }
   if (verified) await markEmailVerified(email)
   return email
 }

@@ -58,6 +58,7 @@ test('a signed-in password user can start connecting Google from the account men
 
 test('connecting Google from the account menu while offline says so under the header, and works once back online', async ({ page, baseURL }) => {
   await signUp(page, { verified: false })
+  await page.goto('/')
 
   await connectGoogleOffline(page)
   await expect(underHeader(page)).toHaveText(CONNECT_FAILED)
