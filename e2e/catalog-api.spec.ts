@@ -2,10 +2,6 @@ import { expect, test } from '@playwright/test'
 import { ANOTHER_ENDPOINT, catalogAuthHeader as auth, meantFor, testEndpoint, writeHeaders, wrongTokenHeader } from './catalog-token'
 import { deleteTestAppliance, testApplianceExists } from './db'
 
-test.beforeEach(({}, info) => {
-  test.skip(info.project.name !== 'desktop', 'API checks run once')
-})
-
 const cooktop = (id: string) => ({
   id, category: 'Kitchen', watts: 3500, surge: 3500, duty: 0.15, tons: null, acType: null,
   labels: { en: { name: `E2E cooktop ${id}`, note: 'Test item' }, es: { name: `Anafe E2E ${id}`, note: 'Ítem de prueba' } },

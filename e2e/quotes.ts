@@ -1,5 +1,7 @@
-import { expect, type FileChooser, type Page } from '@playwright/test'
+import { expect, request, test, type FileChooser, type Page } from '@playwright/test'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { quotesEn } from '../src/i18n/quotes-en'
+import { SLOW_READ_MARK } from '../src/lib/quote-fixtures'
 import { firstProjectId, markEmailVerified } from './db'
 
 /** How long one click waits for the file picker before the next try. */
@@ -14,27 +16,45 @@ export async function quotePdf(name: string): Promise<{ name: string; mimeType: 
 }
 
 /**
- * Signs up a new email/password account. Only a verified account may start quote reads, and sign-up never verifies,
- * so the account is marked verified in the database unless a test needs it unverified. The server reads the flag from
- * the user row, so the next page load picks it up.
+ * A quote the stub model takes its time over (SLOW_READ_MS in stub-model.ts; every other read is quick), for a test
+ * that acts while the quote is still being read. Its file name carries the mark.
+ */
+export const slowQuotePdf = (name: string) => quotePdf(`${name}-${SLOW_READ_MARK}`)
+
+/**
+ * Signs up a new email/password account through the auth API, as the sign-in form does, without loading the form:
+ * these tests are about what comes after, and account.spec.ts goes through the form. It is sent from a request context
+ * of its own, closed once its cookies are in the page's: the page is signed in from its next load, and its pool holds
+ * no idle connection for a later route.fetch to reuse just as the server closes it (ECONNRESET). The account has no
+ * project until a page has loaded and saved one: signUpWithProject waits for that. Only a verified account may start
+ * quote reads, and sign-up never verifies, so the account is marked verified in the database unless a test needs it
+ * unverified. The server reads the flag from the user row, so the next page load picks it up.
  */
 export async function signUp(page: Page, { verified = true }: { verified?: boolean } = {}): Promise<string> {
   const email = `e2e-quotes-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
-  await page.goto('/login')
-  await page.getByRole('button', { name: 'No account yet? Create one' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill('correct-horse-battery')
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  const auth = await request.newContext({ baseURL: test.info().project.use.baseURL })
+  try {
+    const response = await auth.post('/api/auth/sign-up/email', {
+      data: { email, password: 'correct-horse-battery', name: email.split('@')[0] },
+    })
+    expect(response.ok(), await response.text()).toBe(true)
+    await page.context().addCookies((await auth.storageState()).cookies)
+  } finally {
+    await auth.dispose()
+  }
   if (verified) await markEmailVerified(email)
   return email
 }
 
-/** Signs up, waits for the default project to reach the server, and returns its id. */
+/**
+ * Signs up, waits for the default project to reach the server, and returns its id. The account's first page saves that
+ * project after its Upload button shows, so the wait is for the row itself.
+ */
 export async function signUpWithProject(page: Page): Promise<{ email: string; projectId: string }> {
   const email = await signUp(page)
   await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
+  await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toBeEnabled({ timeout: 15_000 })
+  await expect.poll(() => firstProjectId(email).then(() => true, () => false), { timeout: 15_000 }).toBe(true)
   return { email, projectId: await firstProjectId(email) }
 }
 
@@ -64,6 +84,11 @@ export async function pickQuoteFiles(
     chooser = await next
   }).toPass({ timeout: 30_000 })
   await chooser!.setFiles(files)
+  // The page sends a batch one file at a time, and a stubbed read can end before the next file is in: the tray would
+  // then offer the verdict of part of the batch. Real reads outlast an upload; here, wait until every file is in.
+  const dialog = page.getByRole('dialog').filter({ hasText: files[0]!.name })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText(new RegExp(`^${quotesEn.stUploading} · `))).toHaveCount(0, { timeout: 30_000 })
 }
 
 export const tray = (page: Page) => page.getByRole('region', { name: 'Quote progress' })
@@ -96,6 +121,12 @@ export const isMustSave = (body: string): boolean => isSave(body, 'musts')
 
 /** The verdict page's data read: the only GET server call whose payload names a project. */
 export const isProjectRead = (url: string): boolean => url.includes('/_serverFn/') && decodeURIComponent(url).includes('"projectId"')
+
+/** The tray's read of the quote jobs: a GET server call whose payload names the account and no project. */
+export function isJobsRead(url: string): boolean {
+  const call = decodeURIComponent(url)
+  return url.includes('/_serverFn/') && call.includes('"account"') && !call.includes('"projectId"')
+}
 
 /**
  * The address and accept header of the page's next upload call, which is stopped before it reaches the server. Server

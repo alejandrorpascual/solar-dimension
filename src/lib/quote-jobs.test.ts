@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
 import { DEFAULT_MUSTS } from './quote-items'
-import { etaSeconds, nextPollDelay, pickTray, summarizeProject, type JobQuote, type ProjectJobs } from './quote-jobs'
+import {
+  DEFAULT_POLL_MS, etaSeconds, finishedKey, MAX_POLL_MS, MIN_POLL_MS, nextPollDelay, parsePollMs, pickTray, summarizeProject,
+  verdictReload, type JobQuote, type ProjectJobs,
+} from './quote-jobs'
 
 const jq = (id: string, over: Partial<JobQuote> = {}): JobQuote => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES.solartec, overrides: {}, totalOverride: null,
@@ -82,10 +85,72 @@ describe('etaSeconds and nextPollDelay', () => {
     expect(etaSeconds(jobs({ total: 4, done: 2, pending: 2 }))).toBe(60)
     expect(etaSeconds(jobs({ total: 4, done: 4, pending: 0 }))).toBeNull()
   })
-  test('polls every 3 s while reading, backs off after a failure, stops when idle', () => {
-    expect(nextPollDelay([jobs({ pending: 1 })], 0)).toBe(3000)
-    expect(nextPollDelay([jobs({ pending: 1 })], 2)).toBe(10000)
-    expect(nextPollDelay([], 1)).toBe(10000)
-    expect(nextPollDelay([jobs({})], 0)).toBeNull()
+  test('polls at the interval it is given while reading, backs off after a failure, stops when idle', () => {
+    expect(nextPollDelay([jobs({ pending: 1 })], 0, 3000)).toBe(3000)
+    expect(nextPollDelay([jobs({ pending: 1 })], 0, 500)).toBe(500)
+    expect(nextPollDelay([jobs({ pending: 1 })], 2, 500)).toBe(10000)
+    expect(nextPollDelay([], 1, 500)).toBe(10000)
+    expect(nextPollDelay([jobs({})], 0, 500)).toBeNull()
+  })
+})
+
+describe('finishedKey', () => {
+  const q = (id: string, status: JobQuote['status'], retries = 0) => ({ id, status, retries })
+
+  test('is the same for the same quotes, in any order', () => {
+    expect(finishedKey([q('a', 'ready'), q('b', 'failed')])).toBe(finishedKey([q('b', 'failed'), q('a', 'ready')]))
+  })
+  test('changes when a quote finishes, though as many are done as before it was read again', () => {
+    expect(finishedKey([q('a', 'ready'), q('b', 'needs_review')])).not.toBe(finishedKey([q('a', 'ready'), q('b', 'ready', 1)]))
+  })
+  test('changes when a retry fails again', () => {
+    expect(finishedKey([q('a', 'failed', 1)])).not.toBe(finishedKey([q('a', 'failed', 2)]))
+  })
+  test('does not change while a quote moves from waiting to being read', () => {
+    expect(finishedKey([q('a', 'queued', 1)])).toBe(finishedKey([q('a', 'processing', 1)]))
+  })
+  test('changes when a quote is added or deleted', () => {
+    expect(finishedKey([q('a', 'ready')])).not.toBe(finishedKey([q('a', 'ready'), q('b', 'queued')]))
+  })
+})
+
+describe('verdictReload', () => {
+  const A = { projectId: 'a', key: 'q1:ready:0' }
+
+  test('reloads when the jobs of the open project change, and remembers them', () => {
+    expect(verdictReload(A, 'a', 'q1:ready:0', 'q1:pending:1')).toEqual({ mark: { projectId: 'a', key: 'q1:pending:1' }, reload: true })
+  })
+  test('does not reload while the jobs match what it last read', () => {
+    expect(verdictReload(A, 'a', 'q1:ready:0', 'q1:ready:0')).toEqual({ mark: A, reload: false })
+  })
+  test('a project opened in place starts from what its own loader read, so its first poll does not read again', () => {
+    expect(verdictReload(A, 'b', 'q9:ready:0', 'q9:ready:0')).toEqual({ mark: { projectId: 'b', key: 'q9:ready:0' }, reload: false })
+  })
+  test('a project opened in place whose quotes moved since its loader read them reloads', () => {
+    expect(verdictReload(A, 'b', 'q9:pending:0', 'q9:ready:0')).toEqual({ mark: { projectId: 'b', key: 'q9:ready:0' }, reload: true })
+  })
+  test('does nothing before the jobs have loaded', () => {
+    expect(verdictReload(A, 'b', 'q9:ready:0', '')).toEqual({ mark: { projectId: 'b', key: 'q9:ready:0' }, reload: false })
+  })
+})
+
+describe('parsePollMs', () => {
+  test('unset or blank polls every 3 s, and is not an error', () => {
+    expect(parsePollMs(undefined)).toEqual({ pollMs: 3000, isInvalid: false })
+    expect(parsePollMs('')).toEqual({ pollMs: 3000, isInvalid: false })
+    expect(parsePollMs('  ')).toEqual({ pollMs: 3000, isInvalid: false })
+  })
+  test('a whole number of milliseconds is the interval, spaces trimmed', () => {
+    expect(parsePollMs('500')).toEqual({ pollMs: 500, isInvalid: false })
+    expect(parsePollMs(` ${MIN_POLL_MS} `)).toEqual({ pollMs: MIN_POLL_MS, isInvalid: false })
+  })
+  test('up to a minute is taken', () => {
+    expect(parsePollMs(String(MAX_POLL_MS))).toEqual({ pollMs: MAX_POLL_MS, isInvalid: false })
+  })
+  test('outside 100 ms to a minute, or anything but a whole number, falls back to 3 s and says so', () => {
+    const outside = [String(MIN_POLL_MS - 1), String(MAX_POLL_MS + 1), '99999999999', '0', '-500']
+    for (const raw of [...outside, '1.5', '1e3', '500ms', 'fast']) {
+      expect(parsePollMs(raw), raw).toEqual({ pollMs: DEFAULT_POLL_MS, isInvalid: true })
+    }
   })
 })

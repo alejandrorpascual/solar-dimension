@@ -3,6 +3,9 @@ import { slugify } from '../src/lib/catalog-schema'
 import { deleteTestAppliance, markEmailVerified } from './db'
 import { E2E_ADMIN as ADMIN } from './servers'
 
+// The admin tests share the run's one admin account, which the first of them to sign in creates: one at a time, in order.
+test.describe.configure({ mode: 'default' })
+
 async function signInOrUp(page: Page, email: string, password: string) {
   await page.goto('/login')
   await page.getByLabel('Email').fill(email)
@@ -18,10 +21,6 @@ async function signInOrUp(page: Page, email: string, password: string) {
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
 }
-
-test.beforeEach(({}, info) => {
-  test.skip(info.project.name !== 'desktop', 'admin checks run once')
-})
 
 test('non-admins get a 404 at /admin/appliances', async ({ page }) => {
   await page.goto('/admin/appliances')

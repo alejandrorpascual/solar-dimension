@@ -1,17 +1,20 @@
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
 import {
-  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFiles, quoteRetryStates, seedQuoteRows,
-  setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
+  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFiles, quoteRetryStates, seedFailedQuote,
+  seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage } from './header'
+import { PHONE } from './phone'
 import { hideProjects, openProjectAction, showProjects } from './projects'
 import {
-  captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading,
+  captureUploadCall, isJobsRead, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, signUpWithProject, slowQuotePdf, tray,
+  uploadQuotes, verdictHeading,
 } from './quotes'
 
 const ALL = ['solartec', 'voltia', 'grupoluz', 'enerhogar']
@@ -20,7 +23,7 @@ const QUOTE_FILES_DIR = '.data/e2e-quotes'
 /** The file name of a real quote from the user's test project, as installers send them. */
 const LONG_FILE_NAME = 'Quotation 0033688 09-16-2026- INVERSOR 3000W - CONDOMINIO VILLA MARTINIQUE - OFICINA 3'
 
-test('quotes upload, are read in the background, and end in a verdict', async ({ page }) => {
+test('quotes upload, are read in the background, and end in a verdict', PHONE, async ({ page }) => {
   await signUp(page)
   await uploadQuotes(page, await Promise.all(ALL.map(quotePdf)))
   const dialog = page.getByRole('dialog', { name: "We've got it from here" })
@@ -272,11 +275,12 @@ test('a reload that read the data before a must-have saved, but answers after th
     return route.fallback()
   })
 
-  // Adding a quote reloads the page once while it is read; the must-have is changed after that reload.
+  // Adding a quote reloads the page once while it is read; the must-have is changed after that reload. The quote is
+  // a slow one, so it is still being read by then, and the reload for its finish comes after the change.
   const addedReload = page.waitForResponse((r) => r.request().method() === 'GET' && isProjectRead(r.url()))
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Add another quote' }).click()
-  await (await chooser).setFiles([await quotePdf('voltia')])
+  await (await chooser).setFiles([await slowQuotePdf('voltia')])
   await page.getByRole('button', { name: 'Ok, got it' }).click()
   await addedReload
 
@@ -313,6 +317,33 @@ test('a verdict that finished while away shows once in the tray', async ({ page 
   await expect(tray(page)).toBeHidden()
 })
 
+test("another project's verdict opened from the tray is read once, not again on the first poll", async ({ page }) => {
+  // Sign-up, an upload and database seeding over Neon's HTTP driver can pass 30 s on a slow CI runner.
+  test.slow()
+  const email = await signUp(page)
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const readyId = await firstProjectId(email)
+  // A second project whose one quote could not be read. Its verdict page offers the first project's in the tray, and
+  // following that link keeps the page and changes only its project.
+  const otherId = randomUUID()
+  await cloneProject(email, otherId)
+  await seedFailedQuote(email, otherId, 'other.pdf')
+  await page.goto(`/projects/${otherId}/quotes`)
+  const seeVerdict = tray(page).getByRole('link', { name: 'See verdict' })
+  await expect(seeVerdict).toBeVisible({ timeout: 30_000 })
+
+  const reads: string[] = []
+  page.on('request', (r) => { if (r.method() === 'GET' && isProjectRead(r.url())) reads.push(r.url()) })
+  // Opening a verdict marks it seen, then reads the jobs again: a second read of the project would be on its way by then.
+  const jobsRead = page.waitForResponse((r) => r.request().method() === 'GET' && isJobsRead(r.url()))
+  await seeVerdict.click()
+  await expect(page).toHaveURL(`/projects/${readyId}/quotes`)
+  await expect(page.getByText('solartec.pdf')).toBeVisible()
+  await jobsRead
+  expect(reads).toHaveLength(1)
+})
+
 test('a file of the wrong type is refused before upload, with the reason', async ({ page }) => {
   await signUp(page)
   await uploadQuotes(page, [{ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') }])
@@ -337,7 +368,7 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
 
   const other = await browser.newContext()
   const stranger = await other.newPage()
-  const strangerEmail = await signUp(stranger)
+  const { email: strangerEmail } = await signUpWithProject(stranger)
   expect((await stranger.request.get(href!)).status()).toBe(404)
   // The project exists only for the owner: a real 404.
   await stranger.goto(verdictUrl)
@@ -354,36 +385,40 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
 test('the hand-off dialog shows each file reading, then lets a file that could not be read be retried from there', async ({ page }) => {
   test.slow()
   await signUp(page)
-  // The stub reads only the sample quotes; any other file name fails on both models.
-  await uploadQuotes(page, [await quotePdf('unreadable')])
+  // The stub reads only the sample quotes; any other file name fails on both models. This one takes its time, so the
+  // dialog shows it being read, the first time and after the retry.
+  const unreadable = await slowQuotePdf('unreadable')
+  await uploadQuotes(page, [unreadable])
   const dialog = page.getByRole('dialog', { name: "We've got it from here" })
-  const row = dialog.getByRole('listitem').filter({ hasText: 'unreadable.pdf' })
+  const row = dialog.getByRole('listitem').filter({ hasText: unreadable.name })
   await expect(row.getByText(/^(Uploading|Waiting|Reading) · about 30 s$/)).toBeVisible()
   await expect(dialog.getByText('1 reading')).toBeVisible()
 
   await expect(row.getByText("Couldn't read it", { exact: true })).toBeVisible({ timeout: 30_000 })
   await expect(dialog.getByText('1 needs your attention')).toBeVisible()
-  await expect(dialog.getByRole('button', { name: 'Delete unreadable.pdf' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: `Delete ${unreadable.name}` })).toBeVisible()
   await row.getByRole('button', { name: 'Retry', exact: true }).click()
   await expect(row.getByText(/^(Waiting|Reading) · about 30 s$/)).toBeVisible()
 
   const watch = dialog.getByRole('link', { name: 'Watch progress' })
   await expect(watch).toHaveCSS('text-decoration-line', 'none')
   await watch.click()
-  await expect(page.getByRole('article').filter({ hasText: 'unreadable.pdf' }).getByText('Uploaded', { exact: true })).toBeVisible()
+  await expect(page.getByRole('article').filter({ hasText: unreadable.name }).getByText('Uploaded', { exact: true })).toBeVisible()
 })
 
 test('a quote that could not be read can be retried, until its retries are used up, on the page and on the server', async ({ page }) => {
   // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
   test.slow()
   const email = await signUp(page)
-  // The stub reads only the sample quotes; any other file name fails on both models.
-  await uploadQuotes(page, [await quotePdf('unreadable')])
+  // The stub reads only the sample quotes; any other file name fails on both models. This one takes its time, so the
+  // row shows it being read again after the retry.
+  const unreadable = await slowQuotePdf('unreadable')
+  await uploadQuotes(page, [unreadable])
   await page.getByRole('button', { name: 'Ok, got it' }).click()
   const projectId = await firstProjectId(email)
   await page.goto(`/projects/${projectId}/quotes`)
 
-  const row = page.getByRole('article').filter({ hasText: 'unreadable.pdf' })
+  const row = page.getByRole('article').filter({ hasText: unreadable.name })
   const failed = row.getByText("Couldn't read it", { exact: true })
   await expect(failed).toBeVisible({ timeout: 30_000 })
   await expect(row.getByText('Uploaded', { exact: true })).toBeVisible()
@@ -416,10 +451,7 @@ test('a quote that could not be read can be retried, until its retries are used 
 test('a project that already has 10 quotes refuses an eleventh, with the reason', async ({ page }) => {
   // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
   test.slow()
-  const email = await signUp(page)
-  await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
-  const projectId = await firstProjectId(email)
+  const { email, projectId } = await signUpWithProject(page)
   await seedQuoteRows(email, projectId, 10)
 
   // Once the project has quotes, the card's button reads "Add quotes". The page may learn of the seeded rows at any
@@ -433,10 +465,7 @@ test('a project that already has 10 quotes refuses an eleventh, with the reason'
 test('an account that used its 20 uploads this month is refused, with the reason', async ({ page }) => {
   // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
   test.slow()
-  const email = await signUp(page)
-  await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
-  const projectId = await firstProjectId(email)
+  const { email, projectId } = await signUpWithProject(page)
   await setQuoteUploadsThisMonth(email, 20)
 
   await uploadQuotes(page, [await quotePdf('solartec')])
@@ -575,10 +604,7 @@ test('a Google account whose email Google did not verify does not unlock uploads
 test('a project whose quotes all failed says none could be read, not that a verdict is ready', async ({ page }) => {
   // Sign-up and database seeding over Neon's HTTP driver can pass 30 s on a slow CI runner.
   test.slow()
-  const email = await signUp(page)
-  await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes', exact: true })).toBeEnabled({ timeout: 15_000 })
-  const projectId = await firstProjectId(email)
+  const { email, projectId } = await signUpWithProject(page)
   await seedQuoteRows(email, projectId, 2)
 
   await page.goto(`/projects/${projectId}/quotes`)
@@ -608,7 +634,7 @@ async function expectZoneNamesApart(page: Page): Promise<void> {
   }
 }
 
-test('on a phone, every card keeps its name, total, reason and gauge labels apart', async ({ page }, testInfo) => {
+test('on a phone, every card keeps its name, total, reason and gauge labels apart', PHONE, async ({ page }, testInfo) => {
   const isPhone = testInfo.project.name === 'phone'
   await signUp(page)
   // A real installer's file name, long and without spaces to break at: it must be cut short, not widen the page.
