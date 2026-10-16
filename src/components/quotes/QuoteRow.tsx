@@ -3,10 +3,12 @@ import { useLocale } from '../../hooks/useLocale'
 import { entryKey, entryName, type RankedQuote, type Verdict } from '../../lib/quote-compare'
 import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
 import { quoteSizing } from '../../lib/quote-sizing'
+import { backupText, caveatsLine } from '../../lib/quote-caveat-text'
 import { coverageMeta, deltaText, entrySubtitle, extraPanelsText, fitLabel, isTotalTyped, money, reasonLine } from '../../lib/quote-text'
 import { AskBox } from './AskBox'
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
+import { QuoteFacts } from './QuoteFacts'
 import { QuoteActions } from './QuoteActions'
 import { SizingBars } from './SizingBars'
 
@@ -31,6 +33,9 @@ export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, o
   const subtitle = entrySubtitle(t, r)
   const coverage = coverageMeta(t, r.items)
   const panels = extraPanelsText(t, r, kit)
+  const backup = backupText(t, r, kit)
+  // What a quote that fits leaves to confirm; one that doesn't fit or is unclear has its reason line for that.
+  const caveats = r.fit === 'fits' ? caveatsLine(t, r.caveats) : null
   // A quote with a typed total ranks even while its reading needs a check, so the way to read it again is on the card.
   const canReadAgain = r.quote.status === 'needs_review' && retry === 'retry'
   return (
@@ -49,6 +54,8 @@ export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, o
       {isTotalTyped(r) && <p className="qmeta">{t.quotes.totalTyped}</p>}
       <p className="qrow__reason">{reasonLine(t, r, verdict, kit)}</p>
       <SizingBars sizing={quoteSizing(r.items, kit)} />
+      {backup && <p className="qmeta num">{backup}</p>}
+      {caveats && <p className="qmeta">{caveats}</p>}
       {coverage && <p className="qmeta">{coverage}</p>}
       {panels && <p className="qmeta">{panels}</p>}
       {canReadAgain && <div className="qrow__actions"><button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button></div>}
@@ -57,6 +64,7 @@ export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, o
       {isOpen && (
         <div className="qrow__body" id={bodyId}>
           <ItemList items={r.items} kit={kit} currency={r.currency} onOverride={onOverride} />
+          <QuoteFacts extraction={r.quote.extraction} />
           <QuoteActions quoteId={r.quote.id} optionCount={r.optionCount} onDelete={onDelete} />
         </div>
       )}

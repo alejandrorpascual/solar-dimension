@@ -14,8 +14,17 @@ export const money = (t: Dictionary, amount: number, currency: string): string =
 const inlineList = (t: Dictionary, ids: readonly ItemId[]): string => fmtList(ids.map((id) => t.quoteItemsInline[id]), t.locale)
 const isBest = (r: RankedQuote, v: Verdict): boolean => v.best !== null && entryKey(v.best) === entryKey(r)
 
+/**
+ * The cheapest quote that meets every must-have is the best fit only when it leaves nothing to confirm; otherwise it is
+ * the cheapest that fits, with what to confirm counted in the heading and listed on its card.
+ */
 export function verdictHeading(t: Dictionary, v: Verdict): string {
-  if (v.best) return trq(t, 'headingBest', { name: entryName(v.best) })
+  if (v.best) {
+    const name = entryName(v.best)
+    const count = v.best.caveats.length
+    if (count === 0) return trq(t, 'headingBest', { name })
+    return count === 1 ? trq(t, 'headingBestToConfirmOne', { name }) : trq(t, 'headingBestToConfirm', { name, count })
+  }
   if (v.ranked.length > 0) return t.quotes.headingNone
   if (v.unranked.some((u) => u.reason === 'reading')) return t.quotes.headingReading
   if (nothingRead(v)) return t.quotes.headingUnread
@@ -109,7 +118,10 @@ const confirmList = (t: Dictionary, items: readonly ItemCheck[]): string => fmtL
 
 export function reasonLine(t: Dictionary, r: RankedQuote, v: Verdict, kit: KitNeeds): string {
   if (isBest(r, v)) return t.quotes.reasonBest
-  if (r.fit === 'fits') return trq(t, 'reasonFits', { delta: money(t, r.delta ?? 0, r.currency) })
+  if (r.fit === 'fits') {
+    const isClean = v.cleanFit !== null && entryKey(v.cleanFit) === entryKey(r)
+    return trq(t, isClean ? 'reasonFitsClean' : 'reasonFits', { delta: money(t, r.delta ?? 0, r.currency) })
+  }
   if (r.fit === 'unclear') {
     const { unmentioned, unclear } = unknownGroups(r)
     return [
@@ -144,8 +156,11 @@ export function questionText(t: Dictionary, r: RankedQuote): string {
   return unclear.length > 0 ? `${ask} ${trq(t, 'questionAlso', { items: confirmList(t, unclear) })}` : ask
 }
 
+/** The best entry's pill: "Best fit" only when it leaves nothing to confirm. */
+export const bestPill = (t: Dictionary, best: RankedQuote): string => (best.caveats.length > 0 ? t.quotes.bestFitToConfirm : t.quotes.bestFit)
+
 export function fitLabel(t: Dictionary, r: RankedQuote, v: Verdict): string {
-  if (isBest(r, v)) return t.quotes.bestFit
+  if (isBest(r, v)) return bestPill(t, r)
   if (r.fit === 'fits') return t.quotes.fitFits
   if (r.fit === 'unclear') return trq(t, 'fitUnclear', { count: r.unknownMusts.length })
   return t.quotes.fitShort

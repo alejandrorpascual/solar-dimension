@@ -46,6 +46,8 @@ export interface KitNeeds {
   fuseCount: number; fuseClass: FuseClass
   /** The solar array the kit's sheet lists, in W; 0 for a battery-only kit. */
   arrayW: number
+  /** The bank voltage, the backup window asked for, and the inverter the kit sheet lists (units in parallel and each one's rating). */
+  volts: number; hours: number; sheetInverter: { count: number; unitW: number }
 }
 
 /** The items a kit is checked for, in ITEM_IDS order: solar panels only when it has an array. */
@@ -65,6 +67,7 @@ export function kitNeeds(r: SizingResult): KitNeeds {
     ampacityByGauge: Object.fromEntries(GAUGES.map((g) => [g.awg, correctedAmpacity(g, r.cable, r.cable.conductors)])),
     fuseCount: r.fuse.count, fuseClass: r.fuse.class,
     arrayW: r.solar?.arrayW ?? 0,
+    volts: r.volts, hours: r.hours, sheetInverter: { count: r.inverter.count, unitW: r.inverter.unitW },
   }
 }
 

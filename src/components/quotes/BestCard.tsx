@@ -1,12 +1,14 @@
-import { Info } from 'lucide-react'
+import { Info, TriangleAlert } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { entryName, type RankedQuote } from '../../lib/quote-compare'
 import type { ItemId, KitNeeds, Override } from '../../lib/quote-items'
 import { quoteSizing, SIZED_IDS } from '../../lib/quote-sizing'
-import { coverageLines, entrySubtitle, extraPanelsText, gaugeLegend, isTotalTyped, money, oversizeTip, type CoverageKind } from '../../lib/quote-text'
+import { backupText, caveatText } from '../../lib/quote-caveat-text'
+import { bestPill, coverageLines, entrySubtitle, extraPanelsText, gaugeLegend, isTotalTyped, money, oversizeTip, type CoverageKind } from '../../lib/quote-text'
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
+import { QuoteFacts } from './QuoteFacts'
 import { QuoteActions } from './QuoteActions'
 import { SizingGauge } from './SizingGauge'
 
@@ -34,11 +36,12 @@ export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelet
   const subtitle = entrySubtitle(t, best)
   const tip = oversizeTip(t, kit, sizing)
   const panels = extraPanelsText(t, best, kit)
+  const backup = backupText(t, best, kit)
   // A quote with a typed total ranks even while its reading needs a check, so the way to read it again is on the card.
   const canReadAgain = best.quote.status === 'needs_review' && retry === 'retry'
   return (
     <section className="qpanel qpanel--best" aria-labelledby={titleId}>
-      <span className="qpill qpill--best qbest__pill">{t.quotes.bestFit}</span>
+      <span className="qpill qpill--best qbest__pill">{bestPill(t, best)}</span>
       <div className="qhead__top">
         <div className="qhead__id">
           <h2 className="qpanel__title qhead__name" id={titleId}>{best.name}</h2>
@@ -53,7 +56,17 @@ export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelet
           <p className="qmeta">{gaugeLegend(t)}</p>
         </div>
       )}
+      {backup && <p className="qmeta num">{backup}</p>}
       {tip && <p className="qtip"><Info size={18} aria-hidden="true" /><span>{tip}</span></p>}
+      {best.caveats.length > 0 && (
+        <div className="qask" role="note">
+          <TriangleAlert size={18} aria-hidden="true" />
+          <div className="qask__body">
+            <p><strong>{t.quotes.caveatsTitle}</strong></p>
+            <ul className="qcaveats">{best.caveats.map((c, i) => <li key={i}>{caveatText(t, c, kit)}</li>)}</ul>
+          </div>
+        </div>
+      )}
       <ul className="qcover">
         {coverageLines(t, best.items).map((l) => (
           <li key={l.kind} className={`qcover__line qcover__line--${l.kind}`}>
@@ -67,7 +80,12 @@ export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelet
         {canReadAgain && <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button>}
         <QuoteActions quoteId={best.quote.id} optionCount={best.optionCount} onDelete={onDelete} />
       </div>
-      {isOpen && <div id={bodyId}><ItemList items={best.items} kit={kit} currency={best.currency} onOverride={onOverride} /></div>}
+      {isOpen && (
+        <div id={bodyId}>
+          <ItemList items={best.items} kit={kit} currency={best.currency} onOverride={onOverride} />
+          <QuoteFacts extraction={best.quote.extraction} />
+        </div>
+      )}
       {error && <p className="qerr" role="alert">{error}</p>}
     </section>
   )

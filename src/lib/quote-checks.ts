@@ -1,4 +1,4 @@
-import { hasOptions } from './quote-options'
+import { hasOptions, optionLines } from './quote-options'
 import { UNLISTED_OPTION, type QuoteExtraction, type QuoteLine, type QuoteOption } from './quote-schema'
 
 export type CheckFailure = 'no_lines' | 'no_total' | 'bad_currency' | 'bad_qty' | 'line_mismatch' | 'total_mismatch' | 'option_total_mismatch' | 'unknown_option'
@@ -43,8 +43,11 @@ export function optionPrices(x: QuoteExtraction): { id: string; total: number | 
   })
 }
 
-/** Words a tax line is written with ("IVA", "I.V.A.", "VAT", "sales tax", "impuesto"), once accents and dots are dropped. */
-const TAX_WORDS = /\b(iva|vat|tax(es)?|impuestos?)\b/
+/**
+ * Words a tax line is written with ("IVA", "I.V.A.", "ITBIS", the Dominican sales tax, "VAT", "sales tax", "impuesto"),
+ * once accents and dots are dropped.
+ */
+const TAX_WORDS = /\b(iva|itbis|vat|tax(es)?|impuestos?)\b/
 const DIACRITICS = /\p{Diacritic}/gu
 const namesTax = (text: string): boolean => TAX_WORDS.test(text.normalize('NFD').replace(DIACRITICS, '').replace(/\./g, '').toLowerCase())
 
@@ -56,6 +59,19 @@ const namesTax = (text: string): boolean => TAX_WORDS.test(text.normalize('NFD')
 const isTaxListed = (lines: readonly QuoteLine[], tax: number): boolean =>
   lines.some((l) =>
     !l.optional && l.kind === 'other' && near(l.lineTotal, tax, LINE_TOLERANCE) && (namesTax(l.description) || namesTax(l.source.text)))
+
+/**
+ * Whether a quote (optionId null), or one option of it, charges tax: an amount written for it, or an included line of its
+ * system, its own or shared, that names one and has an amount. A line that names tax at no charge ("ITBIS no incluido")
+ * charges none. The document's own tax doesn't count for an option: like optionPrices, which never adds it, it can't
+ * tell which option it belongs to.
+ */
+export function statesTax(x: QuoteExtraction, optionId: string | null): boolean {
+  const taxes = optionId === null ? [x.tax, ...x.options.map((o) => o.tax)] : [x.options.find((o) => o.id === optionId)?.tax]
+  const lines = optionId === null ? x.lines : optionLines(x, optionId)
+  return taxes.some(hasTotal) ||
+    lines.some((l) => !l.optional && l.kind === 'other' && hasTotal(l.lineTotal) && (namesTax(l.description) || namesTax(l.source.text)))
+}
 
 /**
  * The totals an option priced at `base` may be written as: the base itself, with the tax written for that option, or

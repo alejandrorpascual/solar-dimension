@@ -67,13 +67,19 @@ test('a cheaper quote that leaves a chemistry, a size and a fuse class open is w
   await expect(check('Main cables')).toContainText('Size not stated')
   await expect(check('Class T fuse')).toContainText('ANL fuse; your kit asks for class T')
 
-  // Confirming the three with the installer makes it the best fit.
+  // Confirming the three with the installer makes it the cheapest that fits, with the three left to confirm on its card,
+  // and SolarTec the one with nothing to confirm.
   for (const name of ['Battery bank', 'Main cables', 'Class T fuse']) {
     const save = saved(page, 'item')
-    await lumen.getByRole('group', { name, exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
+    await lumen.getByRole('group', { name, exact: true }).getByRole('button', { name: quotesEn.overrideConfirmed, exact: true }).click()
     await save
   }
-  await expect(verdictHeading(page)).toHaveText('Lumen Energía fits your kit for the least')
+  await expect(verdictHeading(page)).toHaveText('Lumen Energía is the cheapest that fits: confirm 3 things first')
+  const best = page.getByRole('region', { name: 'Lumen Energía' })
+  await expect(best.getByText(quotesEn.bestFitToConfirm, { exact: true })).toBeVisible()
+  await expect(best.getByRole('note')).toContainText(quotesEn.caveatsTitle)
+  await expect(best.getByRole('note')).toContainText('Battery bank: you confirmed it, the quote does not say it')
+  await expect(page.getByRole('article').filter({ hasText: 'SolarTec Caribe' })).toContainText('Meets every must-have with nothing to confirm. Costs $1,280 more.')
 })
 
 test('a kit with solar panels asks quotes for them, and panels can be made a nice-to-have', async ({ page }) => {
@@ -726,8 +732,10 @@ test('a total that failed its check is asked for in an empty field; a misread li
   await expect(row.getByRole('alert')).toHaveText(quotesEn.totalInvalid)
   await field.fill('6,480')
   await row.getByRole('button', { name: quotesEn.save, exact: true }).click()
-  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  // Ranked on a total the user typed, it is the cheapest that fits with that one thing to confirm.
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe is the cheapest that fits: confirm 1 thing first')
   await expect(page.getByRole('region', { name: 'SolarTec Caribe' })).toContainText(quotesEn.totalTyped)
+  await expect(page.getByRole('region', { name: 'SolarTec Caribe' }).getByRole('note')).toContainText(quotesEn.caveatTyped)
 
   // A line whose amount its quantity and unit price don't make: the typed total no longer ranks it.
   await misreadQuoteLine(email, projectId, 1)
@@ -745,8 +753,8 @@ test('a total that failed its check is asked for in an empty field; a misread li
   await expect(field).toHaveValue('')
   await field.fill('6,480')
   await row.getByRole('button', { name: quotesEn.save, exact: true }).click()
-  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
-  await expect(page.getByRole('region', { name: 'SolarTec Caribe' })).toContainText(quotesEn.totalTyped)
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe is the cheapest that fits: confirm 1 thing first')
+  await expect(page.getByRole('region', { name: 'SolarTec Caribe' }).getByRole('note')).toContainText(quotesEn.caveatTyped)
 })
 
 test('a ranked quote whose reading needs a check can be read again from its card', async ({ page }) => {
