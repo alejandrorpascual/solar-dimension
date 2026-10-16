@@ -1,5 +1,7 @@
 import { expect, request, test, type FileChooser, type Page } from '@playwright/test'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { quotesEn } from '../src/i18n/quotes-en'
+import { SLOW_READ_MARK } from '../src/lib/quote-fixtures'
 import { firstProjectId, markEmailVerified } from './db'
 
 /** How long one click waits for the file picker before the next try. */
@@ -12,6 +14,12 @@ export async function quotePdf(name: string): Promise<{ name: string; mimeType: 
   page.drawText(`Cotización ${name}`, { x: 50, y: 700, size: 14, font: await doc.embedFont(StandardFonts.Helvetica) })
   return { name: `${name}.pdf`, mimeType: 'application/pdf', buffer: Buffer.from(await doc.save()) }
 }
+
+/**
+ * A quote the stub model takes its time over (SLOW_READ_MS in stub-model.ts; every other read is quick), for a test
+ * that acts while the quote is still being read. Its file name carries the mark.
+ */
+export const slowQuotePdf = (name: string) => quotePdf(`${name}-${SLOW_READ_MARK}`)
 
 /**
  * Signs up a new email/password account through the auth API, as the sign-in form does, without loading the form:
@@ -72,6 +80,11 @@ export async function pickQuoteFiles(
     chooser = await next
   }).toPass({ timeout: 30_000 })
   await chooser!.setFiles(files)
+  // The page sends a batch one file at a time, and a stubbed read can end before the next file is in: the tray would
+  // then offer the verdict of part of the batch. Real reads outlast an upload; here, wait until every file is in.
+  const dialog = page.getByRole('dialog').filter({ hasText: files[0]!.name })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText(new RegExp(`^${quotesEn.stUploading} · `))).toHaveCount(0, { timeout: 30_000 })
 }
 
 export const tray = (page: Page) => page.getByRole('region', { name: 'Quote progress' })

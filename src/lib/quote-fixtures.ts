@@ -127,3 +127,10 @@ export const SAMPLE_QUOTES = {
 } satisfies Record<string, QuoteExtraction>
 
 export type SampleQuoteId = keyof typeof SAMPLE_QUOTES
+
+/**
+ * The stub model takes its time over a file whose name carries this word ("voltia-slow.pdf"), so that a test can act
+ * while the quote is still being read. Kept here, beside the names the stub answers to, so E2E can build such a name
+ * without loading the model code.
+ */
+export const SLOW_READ_MARK = 'slow'

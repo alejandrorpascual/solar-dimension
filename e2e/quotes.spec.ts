@@ -12,8 +12,8 @@ import { switchLanguage } from './header'
 import { PHONE } from './phone'
 import { hideProjects, openProjectAction, showProjects } from './projects'
 import {
-  captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, signUpWithProject, tray, uploadQuotes,
-  verdictHeading,
+  captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, signUpWithProject, slowQuotePdf, tray,
+  uploadQuotes, verdictHeading,
 } from './quotes'
 
 const ALL = ['solartec', 'voltia', 'grupoluz', 'enerhogar']
@@ -268,11 +268,12 @@ test('a reload that read the data before a must-have saved, but answers after th
     return route.fallback()
   })
 
-  // Adding a quote reloads the page once while it is read; the must-have is changed after that reload.
+  // Adding a quote reloads the page once while it is read; the must-have is changed after that reload. The quote is
+  // a slow one, so it is still being read by then, and the reload for its finish comes after the change.
   const addedReload = page.waitForResponse((r) => r.request().method() === 'GET' && isProjectRead(r.url()))
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Add another quote' }).click()
-  await (await chooser).setFiles([await quotePdf('voltia')])
+  await (await chooser).setFiles([await slowQuotePdf('voltia')])
   await page.getByRole('button', { name: 'Ok, got it' }).click()
   await addedReload
 
@@ -350,36 +351,40 @@ test('another account gets 404 for the file and the verdict', async ({ page, bro
 test('the hand-off dialog shows each file reading, then lets a file that could not be read be retried from there', async ({ page }) => {
   test.slow()
   await signUp(page)
-  // The stub reads only the sample quotes; any other file name fails on both models.
-  await uploadQuotes(page, [await quotePdf('unreadable')])
+  // The stub reads only the sample quotes; any other file name fails on both models. This one takes its time, so the
+  // dialog shows it being read, the first time and after the retry.
+  const unreadable = await slowQuotePdf('unreadable')
+  await uploadQuotes(page, [unreadable])
   const dialog = page.getByRole('dialog', { name: "We've got it from here" })
-  const row = dialog.getByRole('listitem').filter({ hasText: 'unreadable.pdf' })
+  const row = dialog.getByRole('listitem').filter({ hasText: unreadable.name })
   await expect(row.getByText(/^(Uploading|Waiting|Reading) · about 30 s$/)).toBeVisible()
   await expect(dialog.getByText('1 reading')).toBeVisible()
 
   await expect(row.getByText("Couldn't read it", { exact: true })).toBeVisible({ timeout: 30_000 })
   await expect(dialog.getByText('1 needs your attention')).toBeVisible()
-  await expect(dialog.getByRole('button', { name: 'Delete unreadable.pdf' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: `Delete ${unreadable.name}` })).toBeVisible()
   await row.getByRole('button', { name: 'Retry', exact: true }).click()
   await expect(row.getByText(/^(Waiting|Reading) · about 30 s$/)).toBeVisible()
 
   const watch = dialog.getByRole('link', { name: 'Watch progress' })
   await expect(watch).toHaveCSS('text-decoration-line', 'none')
   await watch.click()
-  await expect(page.getByRole('article').filter({ hasText: 'unreadable.pdf' }).getByText('Uploaded', { exact: true })).toBeVisible()
+  await expect(page.getByRole('article').filter({ hasText: unreadable.name }).getByText('Uploaded', { exact: true })).toBeVisible()
 })
 
 test('a quote that could not be read can be retried, until its retries are used up, on the page and on the server', async ({ page }) => {
   // Seeds the database over Neon's HTTP driver on top of sign-up and an upload, which can pass 30 s on a slow CI runner.
   test.slow()
   const email = await signUp(page)
-  // The stub reads only the sample quotes; any other file name fails on both models.
-  await uploadQuotes(page, [await quotePdf('unreadable')])
+  // The stub reads only the sample quotes; any other file name fails on both models. This one takes its time, so the
+  // row shows it being read again after the retry.
+  const unreadable = await slowQuotePdf('unreadable')
+  await uploadQuotes(page, [unreadable])
   await page.getByRole('button', { name: 'Ok, got it' }).click()
   const projectId = await firstProjectId(email)
   await page.goto(`/projects/${projectId}/quotes`)
 
-  const row = page.getByRole('article').filter({ hasText: 'unreadable.pdf' })
+  const row = page.getByRole('article').filter({ hasText: unreadable.name })
   const failed = row.getByText("Couldn't read it", { exact: true })
   await expect(failed).toBeVisible({ timeout: 30_000 })
   await expect(row.getByText('Uploaded', { exact: true })).toBeVisible()

@@ -52,7 +52,7 @@ Abuse limits, so nobody can burn the OpenAI budget:
 - **Per file:** 4 MB, 5 pages per PDF; the model's answer is capped at 12,000 output tokens.
 - **Across every account:** `QUOTES_DAILY_READS` reads per UTC day, counted in `quote_daily_usage`; once they are spent, uploads and retries are refused until the next UTC day. Worst case per admitted read: up to 3 attempts, each a primary call and a fallback call, either one repeated once right away on a transient error, so at most 12 model calls.
 
-For development, `QUOTES_STORAGE=local` keeps files in `.data/quotes/`, and `QUOTES_MODEL_STUB=1` answers from the sample quotes in `src/lib/quote-fixtures.ts`. The file name picks the sample, as in `solartec.pdf`. The stub never runs on Vercel.
+For development, `QUOTES_STORAGE=local` keeps files in `.data/quotes/`, and `QUOTES_MODEL_STUB=1` answers from the sample quotes in `src/lib/quote-fixtures.ts`. The file name picks the sample, as in `solartec.pdf`. Each read takes `QUOTES_STUB_DELAY_MS` (1.5 s unless set; 0.2 s in the end-to-end run, whose pages ask about reads every 0.4 s through `QUOTES_POLL_MS`), and a file with `slow` in its name, as in `voltia-slow.pdf`, takes 3 s whatever that says: a test that has to act while a quote is still being read uploads one of those. The stub never runs on Vercel.
 
 ## Languages
 

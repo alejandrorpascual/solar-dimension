@@ -6,6 +6,13 @@ import { loadTestEnv } from './e2e/test-env'
 loadTestEnv()
 
 const GOOGLE_TEST_CLIENT_ID = 'e2e-google-client-id'
+/**
+ * The stubbed model answers in a moment, and the page asks about a quote being read this often (3 s in production,
+ * where a read takes about 30 s), so a test waits a moment for a read instead of a full poll. A test that acts while a
+ * quote is still being read uploads it with slowQuotePdf(), which the stub takes SLOW_READ_MS over.
+ */
+const STUB_READ_MS = 200
+const POLL_MS = 400
 
 /**
  * Auth only trusts its own origin, so it has to follow the port. Dummy Google credentials turn the Google button on;
@@ -14,7 +21,8 @@ const GOOGLE_TEST_CLIENT_ID = 'e2e-google-client-id'
 const serverEnv = (port: number, dailyReads: number) => [
   `PORT=${port}`, `BETTER_AUTH_URL=http://localhost:${port}`,
   `GOOGLE_CLIENT_ID=${GOOGLE_TEST_CLIENT_ID}`, 'GOOGLE_CLIENT_SECRET=e2e-google-client-secret', `ADMIN_EMAILS=${E2E_ADMIN.email}`,
-  'QUOTES_STORAGE=local', 'QUOTES_LOCAL_DIR=.data/e2e-quotes', 'QUOTES_MODEL_STUB=1', 'QUOTES_STUB_DELAY_MS=3000', `QUOTES_DAILY_READS=${dailyReads}`,
+  'QUOTES_STORAGE=local', 'QUOTES_LOCAL_DIR=.data/e2e-quotes', 'QUOTES_MODEL_STUB=1', `QUOTES_STUB_DELAY_MS=${STUB_READ_MS}`,
+  `QUOTES_POLL_MS=${POLL_MS}`, `QUOTES_DAILY_READS=${dailyReads}`,
   'CATALOG_API_TOKEN=e2e-catalog-token-0123456789abcdef0123456789abcdef',
 ].join(' ')
 
