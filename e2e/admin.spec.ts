@@ -19,10 +19,6 @@ async function signInOrUp(page: Page, email: string, password: string) {
   await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
 }
 
-test.beforeEach(({}, info) => {
-  test.skip(info.project.name !== 'desktop', 'admin checks run once')
-})
-
 test('non-admins get a 404 at /admin/appliances', async ({ page }) => {
   await page.goto('/admin/appliances')
   await expect(page.getByText('Page not found')).toBeVisible()

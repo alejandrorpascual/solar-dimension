@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
+import { PHONE } from './phone'
 import {
   openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, RETRY_AFTER_MS, showProjects, startNewProject, startRename,
 } from './projects'
@@ -57,7 +58,7 @@ async function chooseRename(page: Page, input: MenuInput): Promise<void> {
 }
 
 for (const input of ['mouse', 'touch', 'keyboard'] as const) {
-  test(`Rename chosen from the ··· menu by ${input} lands in the name field, ready to type`, async ({ page, hasTouch }) => {
+  test(`Rename chosen from the ··· menu by ${input} lands in the name field, ready to type`, PHONE, async ({ page, hasTouch }) => {
     test.skip(input === 'touch' && !hasTouch, 'this project has no touch screen')
     await page.goto('/')
     await showProjects(page)
@@ -76,7 +77,7 @@ for (const input of ['mouse', 'touch', 'keyboard'] as const) {
 }
 
 for (const action of ['Duplicate', 'Delete'] as const) {
-  test(`${action} from the ··· menu puts focus on the title of the project it opens`, async ({ page }, testInfo) => {
+  test(`${action} from the ··· menu puts focus on the title of the project it opens`, PHONE, async ({ page }, testInfo) => {
     await page.goto('/')
     await addProject(page)
     const menu = await openProjectMenu(page)
@@ -113,7 +114,7 @@ test('a name field left empty is stored as Untitled, even if the field never clo
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Untitled')
 })
 
-test('Escape puts back the name the rename started with, though every keystroke was saved', async ({ page }, testInfo) => {
+test('Escape puts back the name the rename started with, though every keystroke was saved', PHONE, async ({ page }, testInfo) => {
   await page.goto('/')
   const field = await startRename(page)
   await page.keyboard.type('Never kept')
@@ -136,7 +137,7 @@ test('Escape puts back the name the rename started with, though every keystroke 
 const pressWhileComposing = (field: Locator, key: 'Enter' | 'Escape') =>
   field.dispatchEvent('keydown', { key, isComposing: true, bubbles: true, cancelable: true })
 
-test('Enter and Escape that an input method is using leave the name field open with what was typed', async ({ page }, testInfo) => {
+test('Enter and Escape that an input method is using leave the name field open with what was typed', PHONE, async ({ page }, testInfo) => {
   await page.goto('/')
   const field = await startRename(page)
   await page.keyboard.type('Casa')
@@ -155,7 +156,7 @@ test('Enter and Escape that an input method is using leave the name field open w
 
 const pressWithoutFocus = (button: Locator) => button.evaluate((el: HTMLElement) => el.click())
 
-test('a rename ends when another project is opened, even if the name field never blurred', async ({ page }, testInfo) => {
+test('a rename ends when another project is opened, even if the name field never blurred', PHONE, async ({ page }, testInfo) => {
   await page.goto('/')
   await addProject(page)
   const field = await startRename(page)
@@ -184,7 +185,7 @@ test('a new project started while a name field still has focus opens its own nam
   await expect(page.getByRole('article', { name: 'Home', exact: true })).toBeVisible()
 })
 
-test("Enter in a new project's name field closes the phone's sheet", async ({ page }, testInfo) => {
+test("Enter in a new project's name field closes the phone's sheet", PHONE, async ({ page }, testInfo) => {
   await page.goto('/')
   const field = await startNewProject(page)
   await expectSheet(page, testInfo, 'open')
@@ -197,7 +198,7 @@ test("Enter in a new project's name field closes the phone's sheet", async ({ pa
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Cabin')
 })
 
-test("leaving a new project's name field keeps the sheet open", async ({ page }, testInfo) => {
+test("leaving a new project's name field keeps the sheet open", PHONE, async ({ page }, testInfo) => {
   await page.goto('/')
   const field = await startNewProject(page)
   await field.fill('Cabin')
@@ -207,7 +208,7 @@ test("leaving a new project's name field keeps the sheet open", async ({ page },
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Cabin')
 })
 
-test("Escape in a new project's name field keeps the sheet open, and so does renaming it afterwards", async ({ page }, testInfo) => {
+test("Escape in a new project's name field keeps the sheet open, and so does renaming it afterwards", PHONE, async ({ page }, testInfo) => {
   await page.goto('/')
   await addProject(page)
   await expectSheet(page, testInfo, 'open')
@@ -220,7 +221,7 @@ test("Escape in a new project's name field keeps the sheet open, and so does ren
   await expectSheet(page, testInfo, 'open')
 })
 
-test('renaming an existing project with Enter keeps the sheet open', async ({ page }, testInfo) => {
+test('renaming an existing project with Enter keeps the sheet open', PHONE, async ({ page }, testInfo) => {
   await page.goto('/')
   const field = await startRename(page)
   await field.fill('Casa')
@@ -231,7 +232,7 @@ test('renaming an existing project with Enter keeps the sheet open', async ({ pa
   await expectSheet(page, testInfo, 'open')
 })
 
-test("a card's controls scroll under the sheet's header, never over its Close button", async ({ page }, testInfo) => {
+test("a card's controls scroll under the sheet's header, never over its Close button", PHONE, async ({ page }, testInfo) => {
   test.skip(!isPhone(testInfo), 'only the phone shows the cards in a sheet')
   await page.goto('/')
   await addProject(page)
@@ -266,7 +267,7 @@ test("a card's controls scroll under the sheet's header, never over its Close bu
   await expect(sheet).toBeHidden()
 })
 
-test("another project's card still shows its focus ring around the whole card", async ({ page }) => {
+test("another project's card still shows its focus ring around the whole card", PHONE, async ({ page }) => {
   await page.goto('/')
   await addProject(page)
   const name = page.getByRole('button', { name: 'Home', exact: true })
@@ -315,7 +316,7 @@ const renameEdges = (page: Page) =>
     }
   })
 
-test('while a project is renamed, the name field and its focus ring stay above the line under it', async ({ page }) => {
+test('while a project is renamed, the name field and its focus ring stay above the line under it', PHONE, async ({ page }) => {
   await page.goto('/')
   const field = await startRename(page)
   await expect(field).toBeFocused()

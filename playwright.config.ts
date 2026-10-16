@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { PHONE } from './e2e/phone'
 import { BUDGET_DAILY_READS, BUDGET_PORT, E2E_ADMIN, E2E_DAILY_READS, E2E_PORT as PORT } from './e2e/servers'
 import { loadTestEnv } from './e2e/test-env'
 
@@ -29,7 +30,9 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure' },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'phone', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' } },
+    // Only the tests declared with PHONE: running every test here too doubled the suite's time, mostly on tests whose
+    // checks no viewport changes.
+    { name: 'phone', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' }, grep: new RegExp(PHONE.tag) },
   ],
   // Never reuse a running server: its database is whatever it started with, which loadTestEnv() can't check. A dev
   // server on the port makes the run fail ("already used") instead; set E2E_PORT to run beside it.

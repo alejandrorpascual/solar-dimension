@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { PHONE } from './phone'
 import { hideProjects, showDownload } from './projects'
 
 const STORAGE_KEY = 'solar-dimension.projects.v1'
@@ -94,7 +95,7 @@ test('a client added in the Download panel prints on the sheet and stays after a
   await expect(page.getByRole('button', { name: 'Change: Junta de Condominio Res. Los Samanes' })).toBeVisible()
 })
 
-test('the form explains a bad RIF, caps long text, and Escape closes only the form', async ({ page }) => {
+test('the form explains a bad RIF, caps long text, and Escape closes only the form', PHONE, async ({ page }) => {
   await page.goto('/?step=4')
   await showDownload(page)
   const form = await openForm(page)
@@ -212,7 +213,7 @@ test('closing the form keeps what was typed, across a reload, until Start over',
   await expect(fresh.getByText('Picking up where you left off')).toBeHidden()
 })
 
-test('with a long list of saved clients, "Use on the sheet" stays on screen', async ({ page }) => {
+test('with a long list of saved clients, "Use on the sheet" stays on screen', PHONE, async ({ page }) => {
   await page.addInitScript(() => {
     const clients = Array.from({ length: 30 }, (_, i) => ({
       id: `c${i}`, usedAt: 100 - i,
@@ -301,7 +302,7 @@ test('clients saved while signed out are not offered to an account that signs in
   await expect(next.getByLabel('Full name')).toHaveValue('')
 })
 
-test('a client with every field at its longest still leaves the parts list whole on page one', async ({ page }) => {
+test('a client with every field at its longest still leaves the parts list whole on page one', PHONE, async ({ page }) => {
   await seedRequester(page, LONGEST_CLIENT)
   await page.goto('/?step=4')
   await showDownload(page)
@@ -345,7 +346,7 @@ for (const { lang, kit, where } of [
   { lang: 'en', kit: SERIES_PARALLEL_KIT, where: 'with a parts list too long for page one' },
   { lang: 'es', kit: SERIES_PARALLEL_KIT, where: 'with a parts list too long for page one, in Spanish' },
 ] as const) {
-  test(`the longest client ${where}: the estimate block prints whole, and the load schedule never takes a third page`, async ({ page, context, baseURL }) => {
+  test(`the longest client ${where}: the estimate block prints whole, and the load schedule never takes a third page`, PHONE, async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: 'lang', value: lang, url: baseURL! }])
     await seedRequester(page, LONGEST_CLIENT, kit)
     const words = SHEET_WORDS[lang]
@@ -393,7 +394,7 @@ async function stubKeyboard(page: Page): Promise<(visibleHeight: number) => Prom
   }
 }
 
-test('with the phone keyboard open, the form sheet ends above it and its last field can be reached', async ({ page }, info) => {
+test('with the phone keyboard open, the form sheet ends above it and its last field can be reached', PHONE, async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'the on-screen keyboard is a phone matter')
   const openKeyboard = await stubKeyboard(page)
   await page.goto('/?step=4')
@@ -408,7 +409,7 @@ test('with the phone keyboard open, the form sheet ends above it and its last fi
   await expect.poll(async () => { const f = (await form.getByLabel('Installation address').boundingBox())!; return f.y + f.height }).toBeLessThanOrEqual(400)
 })
 
-test('on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tapped', async ({ page }, info) => {
+test('on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tapped', PHONE, async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'iOS zooms on focus only on touch devices')
   await page.goto('/?step=4')
   await showDownload(page)

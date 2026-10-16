@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Download, type Page } from '@playwright/test'
+import { PHONE } from './phone'
 import { showDownload } from './projects'
 
 async function downloadAs(page: Page, format: RegExp, button: string): Promise<Download> {
@@ -8,7 +9,7 @@ async function downloadAs(page: Page, format: RegExp, button: string): Promise<D
   return file
 }
 
-test('the kit downloads as a CSV parts list and a PDF spec sheet', async ({ page }) => {
+test('the kit downloads as a CSV parts list and a PDF spec sheet', PHONE, async ({ page }) => {
   await page.goto('/?step=4')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await showDownload(page)
@@ -89,7 +90,7 @@ test('the parts list comes first, and the load schedule gets a PDF page of its o
   expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(1)
 })
 
-test('the preview opens larger, page by page as the PDF prints, or as one image for PNG', async ({ page }) => {
+test('the preview opens larger, page by page as the PDF prints, or as one image for PNG', PHONE, async ({ page }) => {
   await page.goto('/?step=4')
   await showDownload(page)
   await page.getByRole('button', { name: 'View larger' }).click()
@@ -184,7 +185,7 @@ for (const { lang, download, format, button } of [
   { lang: 'en', download: 'Download', format: /^Summary image \(PNG\)/, button: 'Download image' },
   { lang: 'es', download: 'Descargar', format: /^Imagen resumen \(PNG\)/, button: 'Descargar imagen' },
 ] as const) {
-  test(`the downloaded image has the estimate sentence printed on it, with every Include box unticked (${lang})`, async ({ page, context, baseURL }) => {
+  test(`the downloaded image has the estimate sentence printed on it, with every Include box unticked (${lang})`, PHONE, async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: 'lang', value: lang, url: baseURL! }])
     await page.goto('/?step=4')
     await showDownload(page, download)

@@ -3,10 +3,6 @@ import { productKey } from '../src/lib/product-schema'
 import { catalogAuthHeader as auth, writeHeaders } from './catalog-token'
 import { deleteTestProduct, insertUnreadableTestProduct, rawTestProduct, testProductDates } from './db'
 
-test.beforeEach(({}, info) => {
-  test.skip(info.project.name !== 'desktop', 'API checks run once')
-})
-
 const SHEET = 'https://example.com/e2e-datasheet.pdf'
 const NONE = { value: null, source: null, asWritten: null }
 const stated = (value: number, asWritten: string) => ({ value, source: SHEET, asWritten })

@@ -5,8 +5,7 @@ import { signUpWithProject } from './quotes'
 /** A fingerprint no listing of one account prints, short of a one-in-16^12 chance. */
 const WRONG_FINGERPRINT = '000000000000'
 
-test.beforeEach(({}, info) => {
-  test.skip(info.project.name !== 'desktop', 'the cleanup runs in the database, so once is enough')
+test.beforeEach(() => {
   // Sign-up and several statements over Neon can pass 30 s on a slow CI runner.
   test.slow()
 })

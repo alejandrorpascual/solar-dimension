@@ -9,6 +9,7 @@ import {
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage } from './header'
+import { PHONE } from './phone'
 import { hideProjects, openProjectAction, showProjects } from './projects'
 import {
   captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, tray, uploadQuotes, verdictHeading,
@@ -20,7 +21,7 @@ const QUOTE_FILES_DIR = '.data/e2e-quotes'
 /** The file name of a real quote from the user's test project, as installers send them. */
 const LONG_FILE_NAME = 'Quotation 0033688 09-16-2026- INVERSOR 3000W - CONDOMINIO VILLA MARTINIQUE - OFICINA 3'
 
-test('quotes upload, are read in the background, and end in a verdict', async ({ page }) => {
+test('quotes upload, are read in the background, and end in a verdict', PHONE, async ({ page }) => {
   await signUp(page)
   await uploadQuotes(page, await Promise.all(ALL.map(quotePdf)))
   const dialog = page.getByRole('dialog', { name: "We've got it from here" })
@@ -602,7 +603,7 @@ async function expectZoneNamesApart(page: Page): Promise<void> {
   }
 }
 
-test('on a phone, every card keeps its name, total, reason and gauge labels apart', async ({ page }, testInfo) => {
+test('on a phone, every card keeps its name, total, reason and gauge labels apart', PHONE, async ({ page }, testInfo) => {
   const isPhone = testInfo.project.name === 'phone'
   await signUp(page)
   // A real installer's file name, long and without spaces to break at: it must be cut short, not widen the page.

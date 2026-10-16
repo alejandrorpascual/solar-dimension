@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { accountAction } from './header'
+import { PHONE } from './phone'
 import { acceptNewProjectName, hideProjects, showProjects, startNewProject } from './projects'
 
-test('sign up, keep a project across reload and sign-out/sign-in', async ({ page }) => {
+test('sign up, keep a project across reload and sign-out/sign-in', PHONE, async ({ page }) => {
   const email = `e2e-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
   const password = 'correct-horse-battery'
   await page.goto('/login')
