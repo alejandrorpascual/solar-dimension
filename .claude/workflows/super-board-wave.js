@@ -153,7 +153,9 @@ const lanePrompt = (lane, card) => [
   BOARD_IO(),
   `Commits, PR title, PR body blocks, comments: .claude/skills/super-board/references/writing-standard.md. Rewrite only your own PR body blocks, with .claude/bin/super-board-pr-body.sh.`,
   ...(lane === 'review' ? REVIEW_MEMORY : []),
-  ...(lane === 'qa' && card.status === 'Ready'
+  // A card built this wave reaches QA with card.status still Ready (only the
+  // local cursor advances), so the label decides, not the column.
+  ...(lane === 'qa' && card.status === 'Ready' && readyLane(card) === 'qa'
     ? [`This card is labelled qa: it skips Building. Move it Ready → QA yourself, create the issue branch from the base branch, and test what is already there (run.md → "qa cards").`]
     : []),
   ``,
