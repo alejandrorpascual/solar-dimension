@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
+import { quotesEs } from '../src/i18n/quotes-es'
 import {
   cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFiles, quoteRetryStates, seedFailedQuote,
   seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
@@ -13,7 +14,7 @@ import { switchLanguage } from './header'
 import { PHONE } from './phone'
 import { hideProjects, openProjectAction, showProjects } from './projects'
 import {
-  captureUploadCall, isJobsRead, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, signUpWithProject, slowQuotePdf, tray,
+  captureUploadCall, isJobsRead, isMustSave, isProjectRead, openVerdictFromTray, pickQuoteFiles, postUpload, quotePdf, saved, signUp, signUpWithProject, slowQuotePdf, tray,
   uploadQuotes, verdictHeading,
 } from './quotes'
 
@@ -349,6 +350,39 @@ test('a file of the wrong type is refused before upload, with the reason', async
   await uploadQuotes(page, [{ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') }])
   const dialog = page.getByRole('dialog', { name: 'None of these files could be uploaded' })
   await expect(dialog.getByRole('listitem').filter({ hasText: 'notes.txt' })).toContainText('Only PDF, JPG, PNG or WebP files can be read.')
+})
+
+test('a password-protected PDF is refused as locked, not as the wrong type, and the reason says how to fix it', async ({ page }) => {
+  await signUp(page)
+  const buffer = readFileSync('src/lib/fixtures/password-protected.pdf')
+  await uploadQuotes(page, [{ name: 'locked.pdf', mimeType: 'application/pdf', buffer }])
+  const dialog = page.getByRole('dialog', { name: 'None of these files could be uploaded' })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'locked.pdf' })).toContainText(quotesEn.errEncrypted)
+  await expect(dialog).not.toContainText(quotesEn.errType)
+})
+
+test('both upload buttons and the dialog say one file per quote, in English and Spanish', async ({ page }) => {
+  await signUp(page)
+  await page.goto('/?step=4')
+  // The hint sits by the Upload button and is its description, so a screen reader reads it with the button.
+  const upload = page.getByRole('button', { name: 'Upload quotes', exact: true })
+  await expect(upload).toHaveAccessibleDescription(quotesEn.oneFilePerQuote)
+  await expect(page.getByText(quotesEn.oneFilePerQuote)).toBeVisible()
+
+  await pickQuoteFiles(page, [await quotePdf('solartec')])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByText(quotesEn.oneFilePerQuote)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  const addAnother = page.getByRole('button', { name: 'Add another quote' })
+  await expect(addAnother).toHaveAccessibleDescription(quotesEn.oneFilePerQuote)
+  await switchLanguage(page, 'Español')
+  await expect(page.getByRole('button', { name: quotesEs.addAnother })).toHaveAccessibleDescription(quotesEs.oneFilePerQuote)
+
+  await page.goto('/?step=4')
+  await expect(page.getByRole('button', { name: quotesEs.cardAddMore, exact: true })).toHaveAccessibleDescription(quotesEs.oneFilePerQuote)
+  await expect(page.getByText(quotesEs.oneFilePerQuote)).toBeVisible()
 })
 
 test('another account gets 404 for the file and the verdict', async ({ page, browser }) => {

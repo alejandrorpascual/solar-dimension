@@ -84,6 +84,7 @@ export function HandoffDialog({ isOpen, onOpenChange, items, projectId, projectN
                 </ul>
               )}
               {summary && <p className="qhand__summary" aria-live="polite">{summary}</p>}
+              <p className="qmeta">{t.quotes.oneFilePerQuote}</p>
               <div className="qdialog__actions">
                 <button type="button" className="btn btn--primary" onClick={close}>{t.quotes.handoffOk}</button>
                 {kept.length > 0 && (

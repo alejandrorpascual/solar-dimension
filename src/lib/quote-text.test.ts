@@ -323,6 +323,20 @@ describe('status and progress text', () => {
     expect(rejectionText(en, { code: 'pages', pages: 6 })).toBe('That PDF has 6 pages. The limit is 5.')
     expect(rejectionText(es, { code: 'pages', pages: 6 })).toBe('Ese PDF tiene 6 páginas. El límite es 5.')
   })
+  test('a password-protected PDF is told to remove the password and upload it again, in both languages', () => {
+    expect(rejectionText(en, { code: 'encrypted' })).toBe('That PDF is password-protected. Remove the password and upload it again.')
+    expect(rejectionText(es, { code: 'encrypted' })).toBe('Ese PDF está protegido con contraseña. Quítale la contraseña y súbelo de nuevo.')
+  })
+  test('the other refusals keep their wording', () => {
+    expect(rejectionText(en, { code: 'type' })).toBe('Only PDF, JPG, PNG or WebP files can be read.')
+    expect(rejectionText(es, { code: 'type' })).toBe('Solo se pueden leer archivos PDF, JPG, PNG o WebP.')
+    expect(rejectionText(en, { code: 'project_limit' })).toBe('This project already has 10 quotes.')
+    expect(rejectionText(en, { code: 'upload' })).toBe("Couldn't upload it. Try again.")
+  })
+  test('the upload hint says one file per quote and to use a PDF for several pages, in both languages', () => {
+    expect(en.quotes.oneFilePerQuote).toBe('One file per quote; for several pages, use a PDF.')
+    expect(es.quotes.oneFilePerQuote).toBe('Un archivo por cotización; si tiene varias páginas, usa un PDF.')
+  })
   test('an account that may not start reads is told it needs a verified account, in both languages', () => {
     expect(rejectionText(en, { code: 'unverified' })).toBe('Uploading quotes needs a verified account.')
     expect(rejectionText(es, { code: 'unverified' })).toBe('Para subir cotizaciones necesitas una cuenta verificada.')
