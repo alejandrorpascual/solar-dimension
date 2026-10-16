@@ -20,6 +20,9 @@ const serverEnv = (port: number, dailyReads: number) => [
 
 export default defineConfig({
   testDir: './e2e',
+  // Each test makes its own account, project and catalog rows, so tests of one file can run at once (admin.spec.ts,
+  // whose tests share one account, opts out). Without this a long file runs on one worker while the others sit idle.
+  fullyParallel: true,
   timeout: 30_000,
   // In CI a test that fails once runs again, and the run's summary names every test that needed it (the github
   // reporter): a flaky test stays visible without failing the run. Locally a failure is a failure.
