@@ -38,6 +38,15 @@ export function summarizeProject(projectId: string, projectName: string, quotes:
   }
 }
 
+/**
+ * Which quotes are still being read, how each finished one ended, and how many times each was read again. A page that
+ * shows quotes reloads when this changes: unlike a count of finished quotes, it changes when a read starts and ends
+ * between two looks at the jobs, such as a read again that answers at once.
+ */
+export function finishedKey(quotes: readonly { id: string; status: QuoteStatus; retries: number }[]): string {
+  return quotes.map((q) => `${q.id}:${isPending(q.status) ? 'pending' : q.status}:${q.retries}`).sort().join(',')
+}
+
 export type TrayState = { mode: 'reading' | 'ready'; project: ProjectJobs } | null
 
 /** What the tray shows; nothing on the verdict page of the project it would be about. */

@@ -11,7 +11,7 @@ import { useProjectJobs, useQuoteJobs } from '../hooks/useQuoteJobs'
 import { useRootData } from '../hooks/useRootData'
 import { useSignOut } from '../hooks/useSignOut'
 import { APP_NAME } from '../lib/brand'
-import { isPending } from '../lib/quote-schema'
+import { finishedKey } from '../lib/quote-jobs'
 import { getProjectQuotes } from '../server/quotes/api'
 import { getSession } from '../server/session'
 
@@ -44,11 +44,11 @@ function VerdictPage() {
   const jobs = useProjectJobs(projectId)
   const { markSeen } = useQuoteJobs()
   const reload = useCallback(() => router.invalidate({ filter: (m) => m.routeId === Route.id }), [router])
-  // A quote finished while the page is open: reload its data. Every visit also marks the finished ones as seen.
-  // The first poll after a fresh load matches what the loader just read, so it must not reload: the reload would
-  // overwrite a change the user made in the meantime that has not reached the server yet.
-  const doneKey = jobs ? `${jobs.done}/${jobs.total}` : ''
-  const lastKey = useRef(`${data.quotes.filter((q) => !isPending(q.status)).length}/${data.quotes.length}`)
+  // A quote finished, or started again, while the page is open: reload its data. Every visit also marks the finished
+  // ones as seen. The first poll after a fresh load matches what the loader just read, so it must not reload: the
+  // reload would overwrite a change the user made in the meantime that has not reached the server yet.
+  const doneKey = jobs ? finishedKey(jobs.files) : ''
+  const lastKey = useRef(finishedKey(data.quotes))
   useEffect(() => {
     if (doneKey && doneKey !== lastKey.current) {
       lastKey.current = doneKey

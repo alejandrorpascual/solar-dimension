@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
 import { DEFAULT_MUSTS } from './quote-items'
-import { etaSeconds, nextPollDelay, pickTray, summarizeProject, type JobQuote, type ProjectJobs } from './quote-jobs'
+import { etaSeconds, finishedKey, nextPollDelay, pickTray, summarizeProject, type JobQuote, type ProjectJobs } from './quote-jobs'
 
 const jq = (id: string, over: Partial<JobQuote> = {}): JobQuote => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES.solartec, overrides: {}, totalOverride: null,
@@ -87,5 +87,25 @@ describe('etaSeconds and nextPollDelay', () => {
     expect(nextPollDelay([jobs({ pending: 1 })], 2)).toBe(10000)
     expect(nextPollDelay([], 1)).toBe(10000)
     expect(nextPollDelay([jobs({})], 0)).toBeNull()
+  })
+})
+
+describe('finishedKey', () => {
+  const q = (id: string, status: JobQuote['status'], retries = 0) => ({ id, status, retries })
+
+  test('is the same for the same quotes, in any order', () => {
+    expect(finishedKey([q('a', 'ready'), q('b', 'failed')])).toBe(finishedKey([q('b', 'failed'), q('a', 'ready')]))
+  })
+  test('changes when a quote finishes, though as many are done as before it was read again', () => {
+    expect(finishedKey([q('a', 'ready'), q('b', 'needs_review')])).not.toBe(finishedKey([q('a', 'ready'), q('b', 'ready', 1)]))
+  })
+  test('changes when a retry fails again', () => {
+    expect(finishedKey([q('a', 'failed', 1)])).not.toBe(finishedKey([q('a', 'failed', 2)]))
+  })
+  test('does not change while a quote moves from waiting to being read', () => {
+    expect(finishedKey([q('a', 'queued', 1)])).toBe(finishedKey([q('a', 'processing', 1)]))
+  })
+  test('changes when a quote is added or deleted', () => {
+    expect(finishedKey([q('a', 'ready')])).not.toBe(finishedKey([q('a', 'ready'), q('b', 'queued')]))
   })
 })
