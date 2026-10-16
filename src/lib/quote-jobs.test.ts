@@ -3,7 +3,7 @@ import { SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
 import { DEFAULT_MUSTS } from './quote-items'
 import {
   DEFAULT_POLL_MS, etaSeconds, finishedKey, MAX_POLL_MS, MIN_POLL_MS, nextPollDelay, parsePollMs, pickTray, summarizeProject,
-  type JobQuote, type ProjectJobs,
+  verdictReload, type JobQuote, type ProjectJobs,
 } from './quote-jobs'
 
 const jq = (id: string, over: Partial<JobQuote> = {}): JobQuote => ({
@@ -111,6 +111,26 @@ describe('finishedKey', () => {
   })
   test('changes when a quote is added or deleted', () => {
     expect(finishedKey([q('a', 'ready')])).not.toBe(finishedKey([q('a', 'ready'), q('b', 'queued')]))
+  })
+})
+
+describe('verdictReload', () => {
+  const A = { projectId: 'a', key: 'q1:ready:0' }
+
+  test('reloads when the jobs of the open project change, and remembers them', () => {
+    expect(verdictReload(A, 'a', 'q1:ready:0', 'q1:pending:1')).toEqual({ mark: { projectId: 'a', key: 'q1:pending:1' }, reload: true })
+  })
+  test('does not reload while the jobs match what it last read', () => {
+    expect(verdictReload(A, 'a', 'q1:ready:0', 'q1:ready:0')).toEqual({ mark: A, reload: false })
+  })
+  test('a project opened in place starts from what its own loader read, so its first poll does not read again', () => {
+    expect(verdictReload(A, 'b', 'q9:ready:0', 'q9:ready:0')).toEqual({ mark: { projectId: 'b', key: 'q9:ready:0' }, reload: false })
+  })
+  test('a project opened in place whose quotes moved since its loader read them reloads', () => {
+    expect(verdictReload(A, 'b', 'q9:pending:0', 'q9:ready:0')).toEqual({ mark: { projectId: 'b', key: 'q9:ready:0' }, reload: true })
+  })
+  test('does nothing before the jobs have loaded', () => {
+    expect(verdictReload(A, 'b', 'q9:ready:0', '')).toEqual({ mark: { projectId: 'b', key: 'q9:ready:0' }, reload: false })
   })
 })
 

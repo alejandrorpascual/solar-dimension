@@ -122,6 +122,12 @@ export const isMustSave = (body: string): boolean => isSave(body, 'musts')
 /** The verdict page's data read: the only GET server call whose payload names a project. */
 export const isProjectRead = (url: string): boolean => url.includes('/_serverFn/') && decodeURIComponent(url).includes('"projectId"')
 
+/** The tray's read of the quote jobs: a GET server call whose payload names the account and no project. */
+export function isJobsRead(url: string): boolean {
+  const call = decodeURIComponent(url)
+  return url.includes('/_serverFn/') && call.includes('"account"') && !call.includes('"projectId"')
+}
+
 /**
  * The address and accept header of the page's next upload call, which is stopped before it reaches the server. Server
  * function addresses are the same for every account, so a test can send the call again as another user.

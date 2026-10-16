@@ -47,6 +47,19 @@ export function finishedKey(quotes: readonly { id: string; status: QuoteStatus; 
   return quotes.map((q) => `${q.id}:${isPending(q.status) ? 'pending' : q.status}:${q.retries}`).sort().join(',')
 }
 
+/** The finishedKey a verdict page last read its project's data at. */
+export interface ReloadMark { projectId: string; key: string }
+
+/**
+ * Whether the verdict page must read its data again, given the jobs' finishedKey (empty before they load). A project
+ * opened in place starts from what its own loader just read: the previous project's key would differ, and read again.
+ */
+export function verdictReload(last: ReloadMark, projectId: string, loaderKey: string, jobsKey: string): { mark: ReloadMark; reload: boolean } {
+  const mark = last.projectId === projectId ? last : { projectId, key: loaderKey }
+  if (!jobsKey || jobsKey === mark.key) return { mark, reload: false }
+  return { mark: { projectId, key: jobsKey }, reload: true }
+}
+
 export type TrayState = { mode: 'reading' | 'ready'; project: ProjectJobs } | null
 
 /** What the tray shows; nothing on the verdict page of the project it would be about. */

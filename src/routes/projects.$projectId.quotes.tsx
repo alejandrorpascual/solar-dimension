@@ -11,7 +11,7 @@ import { useProjectJobs, useQuoteJobs } from '../hooks/useQuoteJobs'
 import { useRootData } from '../hooks/useRootData'
 import { useSignOut } from '../hooks/useSignOut'
 import { APP_NAME } from '../lib/brand'
-import { finishedKey } from '../lib/quote-jobs'
+import { finishedKey, verdictReload, type ReloadMark } from '../lib/quote-jobs'
 import { getProjectQuotes } from '../server/quotes/api'
 import { getSession } from '../server/session'
 
@@ -45,17 +45,20 @@ function VerdictPage() {
   const { markSeen } = useQuoteJobs()
   const reload = useCallback(() => router.invalidate({ filter: (m) => m.routeId === Route.id }), [router])
   // A quote finished, or started again, while the page is open: reload its data. Every visit also marks the finished
-  // ones as seen. The first poll after a fresh load matches what the loader just read, so it must not reload: the
-  // reload would overwrite a change the user made in the meantime that has not reached the server yet.
+  // ones as seen. The first poll after a fresh load, or after opening another project in place, matches what the
+  // loader just read, so it must not reload: the reload would overwrite a change the user made in the meantime that has
+  // not reached the server yet.
   const doneKey = jobs ? finishedKey(jobs.files) : ''
-  const lastKey = useRef(finishedKey(data.quotes))
+  const loaderKey = finishedKey(data.quotes)
+  const lastRead = useRef<ReloadMark>({ projectId, key: loaderKey })
   useEffect(() => {
-    if (doneKey && doneKey !== lastKey.current) {
-      lastKey.current = doneKey
-      void reload()
-    }
+    const next = verdictReload(lastRead.current, projectId, loaderKey, doneKey)
+    lastRead.current = next.mark
+    if (next.reload) void reload()
+  }, [doneKey, projectId, loaderKey, reload])
+  useEffect(() => {
     void markSeen(projectId)
-  }, [doneKey, projectId, markSeen, reload])
+  }, [doneKey, projectId, markSeen])
   return (
     <main className="page">
       <HeaderBar account={<AccountMenu user={user} busy={false} onSignOut={signOut} google={google} />} />

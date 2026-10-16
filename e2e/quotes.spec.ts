@@ -1,18 +1,19 @@
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
 import {
-  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFiles, quoteRetryStates, seedQuoteRows,
-  setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
+  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFiles, quoteRetryStates, seedFailedQuote,
+  seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage } from './header'
 import { PHONE } from './phone'
 import { hideProjects, openProjectAction, showProjects } from './projects'
 import {
-  captureUploadCall, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, signUpWithProject, slowQuotePdf, tray,
+  captureUploadCall, isJobsRead, isMustSave, isProjectRead, openVerdictFromTray, postUpload, quotePdf, saved, signUp, signUpWithProject, slowQuotePdf, tray,
   uploadQuotes, verdictHeading,
 } from './quotes'
 
@@ -308,6 +309,33 @@ test('a verdict that finished while away shows once in the tray', async ({ page 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await expect(tray(page)).toBeHidden()
+})
+
+test("another project's verdict opened from the tray is read once, not again on the first poll", async ({ page }) => {
+  // Sign-up, an upload and database seeding over Neon's HTTP driver can pass 30 s on a slow CI runner.
+  test.slow()
+  const email = await signUp(page)
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const readyId = await firstProjectId(email)
+  // A second project whose one quote could not be read. Its verdict page offers the first project's in the tray, and
+  // following that link keeps the page and changes only its project.
+  const otherId = randomUUID()
+  await cloneProject(email, otherId)
+  await seedFailedQuote(email, otherId, 'other.pdf')
+  await page.goto(`/projects/${otherId}/quotes`)
+  const seeVerdict = tray(page).getByRole('link', { name: 'See verdict' })
+  await expect(seeVerdict).toBeVisible({ timeout: 30_000 })
+
+  const reads: string[] = []
+  page.on('request', (r) => { if (r.method() === 'GET' && isProjectRead(r.url())) reads.push(r.url()) })
+  // Opening a verdict marks it seen, then reads the jobs again: a second read of the project would be on its way by then.
+  const jobsRead = page.waitForResponse((r) => r.request().method() === 'GET' && isJobsRead(r.url()))
+  await seeVerdict.click()
+  await expect(page).toHaveURL(`/projects/${readyId}/quotes`)
+  await expect(page.getByText('solartec.pdf')).toBeVisible()
+  await jobsRead
+  expect(reads).toHaveLength(1)
 })
 
 test('a file of the wrong type is refused before upload, with the reason', async ({ page }) => {
