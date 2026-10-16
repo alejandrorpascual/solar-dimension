@@ -86,7 +86,7 @@ else
       repository(owner:$owner,name:$repo){
         issues(states:OPEN,first:100,after:$endCursor){
           pageInfo{ hasNextPage endCursor }
-          nodes{ number title body state labels(first:30){ nodes{ name } } comments(last:8){ nodes{ body } } }
+          nodes{ number title body state labels(first:30){ nodes{ name } } comments(last:100){ totalCount nodes{ body authorAssociation } } }
         }
       }
     }' -F owner="${REPO%%/*}" -F repo="${REPO##*/}") || exit $?
@@ -110,8 +110,8 @@ echo "$ISSUES" | jq --arg only "$ONLY" '
         # obvious choices are control characters — which is how a NUL byte ended
         # up in this script and made git treat it as a binary file.
         | [ $lines[($at + 1):][] ] as $tail
-        | ( [ $tail | to_entries[] | select(.value | test("^##[ \t]")) | .key ] | first ) as $end
-        | if $end == null then $tail else $tail[:$end] end
+        | ( [ $tail | to_entries[] | select(.value | test("^##[ \t]")) | .key ] | first ) as $stop
+        | if $stop == null then $tail else $tail[:$stop] end
       end;
 
   # Issue numbers on a bullet: "- #32 — The price feed" -> 32
@@ -127,6 +127,10 @@ echo "$ISSUES" | jq --arg only "$ONLY" '
 
   def blank: (map(select(test("[^ \t]"))) | length) == 0;
 
+  # Live GraphQL payloads nest the comments under `.comments.nodes`; a saved
+  # `gh issue list --json` payload is a bare `.comments` array.
+  def comments: (.comments.nodes? // .comments // []);
+
   # The lanes write `blocked-by: 32, 91` as the last line of a Block comment. The
   # most recent one wins over the issue body: a lane that just parked the card
   # knows why, and the `## Blocked by` in the body may be weeks older.
@@ -134,13 +138,26 @@ echo "$ISSUES" | jq --arg only "$ONLY" '
   # `blocked-by: -` is NOT "no blockers". It means nothing on this board clears
   # it — a credentials, permissions or product-decision block — so the card is
   # parseable AND deliberately not runnable. Only a person moves it.
+  #
+  # Only a collaborator may write the line. Anyone can comment on a public repo,
+  # and a `blocked-by: 999999` from a stranger would lift a human hold. A
+  # comment with no authorAssociation is untrusted, never assumed.
+  def trusted: (.authorAssociation // "") | IN("OWNER", "MEMBER", "COLLABORATOR");
   def comment_line:
-    [ (.comments.nodes // .comments // [])[]
+    [ comments[] | select(trusted)
       | (.body // "") | split("\n")[]
       | select(test("^[ \t]*blocked-by:"; "i")) ]
     | last // null;
 
-  def bodies: [ (.comments.nodes // .comments // [])[] | (.body // "") ];
+  # The query reads the newest 100 comments. When `totalCount` says the thread
+  # is longer, a Block comment may sit past the window, so the body must not be
+  # trusted in its place. A payload with no count (older saves, bare arrays)
+  # counts as complete.
+  def comments_unread:
+    (.comments.totalCount? // null) as $n
+    | ($n | type) == "number" and $n > (comments | length);
+
+  def bodies: [ comments[] | (.body // "") ];
   def label_names: [ (.labels.nodes // .labels // [])[] | (.name // "") ];
   # Index of the newest 🙋 Block comment, or null.
   def needs_at: ( bodies | to_entries
@@ -164,6 +181,9 @@ echo "$ISSUES" | jq --arg only "$ONLY" '
                 { parseable: false, blockers: [], human_gated: false,
                   why: ("the `blocked-by:` line reads \"" + $v + "\" — it must be issue numbers alone, or `-`") }
               end
+          elif ($i | comments_unread) then
+            { parseable: false, blockers: [], human_gated: false,
+              why: "the issue has more comments than were read, so an older Block comment may still hold it; post the current `blocked-by:` line again" }
           elif $sec == null then
             { parseable: false, blockers: [], human_gated: false,
               why: "no `## Blocked by` section — silence is not the same as None" }

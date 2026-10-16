@@ -82,6 +82,7 @@
 #      card → Blocked with the 🙋 template: the human reviews and merges it, or
 #      comments "done" after its pinned request to approve — the next wave re-runs
 #      the gate, which then skips the policy check and merges.
+#      Also a PR whose base is not base_branch (the proof runs against base_branch).
 #   9  verification-readiness: repair config.verify_commands and restart; preserve
 #      card/worktree/approval state. Never bounce to Build or retry a rebase.
 #   79 required GitHub evidence unavailable: local run halt; preserve card and
@@ -211,13 +212,19 @@ pr_head() { python3 "$GITHUB_READ" --kind head -- pr view "$PR" ${REPO:+--repo "
 HEAD=$(pr_head) || exit $?
 read -r HEAD_REF HEAD_SHA <<<"$HEAD"
 [ -n "${HEAD_SHA:-}" ] || { say "could not read the PR head from GitHub"; exit 1; }
-pr_state() { python3 "$GITHUB_READ" --kind merge-state -- pr view "$PR" ${REPO:+--repo "$REPO"} --json state,mergeCommit,headRefOid; }
+pr_state() { python3 "$GITHUB_READ" --kind merge-state -- pr view "$PR" ${REPO:+--repo "$REPO"} --json state,mergeCommit,headRefOid,baseRefName; }
 STATE=$(pr_state) || exit $?
 if [ "$(echo "$STATE" | jq -r .state)" = MERGED ]; then
   say "already merged; no verification, migration, or merge is repeated"
   exit 0
 fi
 [ "$(echo "$STATE" | jq -r .state)" = OPEN ] || { say "PR is closed; refusing merge"; exit 3; }
+# The proof below runs against ${BASE}; a PR aimed elsewhere would land unchecked.
+PR_BASE=$(echo "$STATE" | jq -r '.baseRefName // ""')
+if [ "$PR_BASE" != "$BASE" ]; then
+  say "PR targets ${PR_BASE:-an unknown branch} but this board merges into ${BASE}; a human merges this one"
+  exit 7
+fi
 if [ -n "$EXPECT_HEAD" ]; then
   case "$HEAD_SHA" in
     "$EXPECT_HEAD"*) : ;;
