@@ -148,13 +148,6 @@ printf '%s\n' "$CONFIG_JSON" | python3 "$HERE/super-board-verification-ready.py"
 BASE=$(echo "$CONFIG_JSON" | jq -r '.base_branch // "main"')
 REPO=$(echo "$CONFIG_JSON" | jq -r '.repo.remote // ""' | sed -E 's#^https?://github\.com/##; s#\.git$##')
 REPO_PATH=$(echo "$CONFIG_JSON" | jq -r '.repo.path // "."')
-# A Reviewer runs the gate from its own card worktree, where "." is that
-# worktree, so two reviewers would take two locks and both merge. Anchor to the
-# main checkout through the common git dir, as super-board-github-read.py does
-# for its halt file. A directory that is not a repo keeps its path.
-if COMMON=$(git -C "$REPO_PATH" rev-parse --git-common-dir 2>/dev/null); then
-  REPO_PATH=$(cd "$REPO_PATH" && cd "$COMMON/.." && pwd -P)
-fi
 export SB_REPO_PATH="$REPO_PATH"
 # Read with a while-loop rather than `mapfile`: macOS ships bash 3.2 and every
 # other script in this repo runs there, so this one does too.
@@ -170,7 +163,16 @@ if [ "${#VERIFY[@]}" -eq 0 ]; then
 fi
 python3 "$GITHUB_READ" --check
 
-LOCK_DIR="${REPO_PATH}/.claude/super-board/inflight/merge.lock"
+# A Reviewer runs the gate from its own card worktree, where "." is that
+# worktree, so two reviewers would take two locks and both merge. Only the lock
+# moves to the main checkout, found through the common git dir as
+# super-board-github-read.py finds its halt file: post-merge cleanup still runs
+# from REPO_PATH, because it spares only the worktree it runs in.
+LOCK_ROOT="$REPO_PATH"
+if COMMON=$(git -C "$REPO_PATH" rev-parse --git-common-dir 2>/dev/null); then
+  LOCK_ROOT=$(cd "$REPO_PATH" && cd "$COMMON/.." && pwd -P)
+fi
+LOCK_DIR="${LOCK_ROOT}/.claude/super-board/inflight/merge.lock"
 mkdir -p "$(dirname "$LOCK_DIR")"
 
 say() { echo "[merge-gate #${PR}] $*" >&2; }
