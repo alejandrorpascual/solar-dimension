@@ -61,14 +61,16 @@ const isTaxListed = (lines: readonly QuoteLine[], tax: number): boolean =>
     !l.optional && l.kind === 'other' && near(l.lineTotal, tax, LINE_TOLERANCE) && (namesTax(l.description) || namesTax(l.source.text)))
 
 /**
- * Whether a quote (optionId null), or one option of it, says anything about its tax: an amount written for it, or an
- * included line of its system, its own or shared, that names one. The document's own tax doesn't count for an option:
- * like optionPrices, which never adds it, it can't tell which option it belongs to.
+ * Whether a quote (optionId null), or one option of it, charges tax: an amount written for it, or an included line of its
+ * system, its own or shared, that names one and has an amount. A line that names tax at no charge ("ITBIS no incluido")
+ * charges none. The document's own tax doesn't count for an option: like optionPrices, which never adds it, it can't
+ * tell which option it belongs to.
  */
 export function statesTax(x: QuoteExtraction, optionId: string | null): boolean {
   const taxes = optionId === null ? [x.tax, ...x.options.map((o) => o.tax)] : [x.options.find((o) => o.id === optionId)?.tax]
   const lines = optionId === null ? x.lines : optionLines(x, optionId)
-  return taxes.some(hasTotal) || lines.some((l) => !l.optional && l.kind === 'other' && (namesTax(l.description) || namesTax(l.source.text)))
+  return taxes.some(hasTotal) ||
+    lines.some((l) => !l.optional && l.kind === 'other' && hasTotal(l.lineTotal) && (namesTax(l.description) || namesTax(l.source.text)))
 }
 
 /**

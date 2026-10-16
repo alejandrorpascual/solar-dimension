@@ -67,6 +67,8 @@ describe('caveats of a quote that meets every must-have', () => {
     const bank = (batteryVolts: number, qty: number) => caveatIds(clean({ battery: battery({ batteryVolts, ah: 100, kWh: 10, chemistry: 'lifepo4' }, qty) }))
     expect([bank(51.2, 1), bank(25.6, 2), bank(12.8, 4)]).toEqual([[], [], []])
     expect([bank(25.6, 1), bank(12, 3)]).toEqual([['bank_voltage'], ['bank_voltage']])
+    // Whole strings only: five 12 V leave one over, which the bank's energy can't count on.
+    expect([bank(12, 5), bank(12, 8)]).toEqual([['bank_voltage'], []])
     expect(caveatIds(clean({ battery: battery({ batteryVolts: 24, ah: 400, chemistry: 'lifepo4' }, 2) }), { ...KIT, volts: 36 })).toEqual(['bank_voltage'])
   })
   test('units of one voltage make up the kit together, whichever lines list them: four 12 V as two lines of two', () => {
@@ -103,6 +105,11 @@ describe('tax stated on one quote and not on another (AI-04, probe E6)', () => {
     const w = compareQuotes(KIT, DEFAULT_MUSTS, [view('a', taxLine), view('b', noTax)])
     expect(w.ranked.find((r) => r.quote.id === 'b')!.caveats).toEqual([{ id: 'tax_unstated' }])
     expect(w.ranked.find((r) => r.quote.id === 'a')!.caveats).toEqual([])
+  })
+  test('a line that names tax without charging it states none: "ITBIS no incluido"', () => {
+    const excluded = extraction([...noTax.lines, line('other', 0, { description: 'ITBIS no incluido' })])
+    const w = compareQuotes(KIT, DEFAULT_MUSTS, [view('a', withTax), view('b', excluded)])
+    expect(w.ranked.find((r) => r.quote.id === 'b')!.caveats).toEqual([{ id: 'tax_unstated' }])
   })
   test("an option states tax for itself alone: its own tax, or a line it shares that names one", () => {
     const system = (option: string) => [inverter(), battery(), ...rest()].map((l) => ({ ...l, option }))

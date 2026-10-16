@@ -56,10 +56,13 @@ export const confirmsSize = (c: ItemCheck): boolean => SIZED_ITEMS.includes(c.id
 
 const isNear = (a: number, b: number): boolean => Math.abs(a - b) <= b * VOLTAGE_TOLERANCE
 
-/** Whether `units` of `unitV` make up `kitV` in series: each one near a whole step of it, and at least that many. */
+/**
+ * Whether `units` of `unitV` make up `kitV` in series: each one near a whole step of it, and whole strings of that many.
+ * A unit left over joins no string, though the bank's usable energy counts it.
+ */
 function makesUp(unitV: number, units: number, kitV: number): boolean {
   const inSeries = Math.max(1, Math.round(kitV / unitV))
-  return isNear(unitV, kitV / inSeries) && units >= inSeries
+  return isNear(unitV, kitV / inSeries) && units > 0 && units % inSeries === 0
 }
 
 function voltageCaveats(lines: readonly QuoteLine[], kit: KitNeeds): Caveat[] {
