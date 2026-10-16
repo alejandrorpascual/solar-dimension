@@ -147,7 +147,7 @@
       {
         "name": "phase-a-audit",
         "kind": "cli",
-        "target": "jq -c 'map(select(.id[0:3] != \"SEC\") + {body: (\"Phase A audit finding \" + .id + \" (\" + .severity + \", \" + .status + \", effort \" + .effort + \"). Detail in docs/audits/\" + .document + \" on local main, not on GitHub.\")})' /Users/alejandrorpascual/projects/solar-dimension/docs/audits/evidence/findings.json",
+        "target": "python3 .claude/super-board/sources/phase-a-audit.py /Users/alejandrorpascual/projects/solar-dimension/docs/audits/evidence/findings.json alejandrorpascual/solar-dimension",
         "map": {
           "id": "id",
           "title": "title",
