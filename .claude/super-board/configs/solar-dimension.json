@@ -75,7 +75,9 @@
           "**/authz/**",
           "**/permissions/**",
           "src/lib/auth*",
-          "src/db/auth-schema.ts"
+          "src/db/auth-schema.ts",
+          "src/lib/admin.ts",
+          "src/server/session.ts"
         ],
         "keywords": [
           "jwt.sign",
@@ -83,7 +85,8 @@
           "password_hash",
           "service_role",
           "betterAuth(",
-          "BETTER_AUTH_SECRET"
+          "BETTER_AUTH_SECRET",
+          "ADMIN_EMAILS"
         ]
       },
       "schema": {
