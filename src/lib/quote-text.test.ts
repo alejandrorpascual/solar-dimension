@@ -15,7 +15,7 @@ import {
 } from './quote-text'
 
 const view = (id: SampleQuoteId, i: number): QuoteView => ({
-  id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES[id], overrides: {}, totalOverride: null, createdAt: i, retries: 0,
+  id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES[id], overrides: {}, totalOverride: null, createdAt: i, retries: 0, pages: null,
 })
 const v = compareQuotes(KIT, DEFAULT_MUSTS, (['solartec', 'voltia', 'grupoluz', 'enerhogar'] as const).map(view))
 const [solartec, voltia, grupoluz, enerhogar] = v.ranked as [RankedQuote, RankedQuote, RankedQuote, RankedQuote]
@@ -182,7 +182,7 @@ describe('solar panels', () => {
   const item = (lines: Parameters<typeof extraction>[0]) => checkItems(extraction(lines), solar).find((c) => c.id === 'panels')!
   test('a short array says what the kit needs, and its gap is the watts missing', () => {
     expect(itemText(en, item([panels(6, 550)]), solar, 'USD')).toEqual({ label: fmtW(3300, 'en'), detail: `Your kit needs ${fmtW(4400, 'en')}` })
-    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([panels(6, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0 }
+    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([panels(6, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null }
     const verdict = compareQuotes(solar, { ...DEFAULT_MUSTS, inverter: false, battery: false, charger: false, cables: false, fuse: false, installation: false }, [quote])
     expect(reasonLine(en, verdict.ranked[0]!, verdict, solar)).toBe(`Doesn't fit: its solar array is ${fmtW(1100, 'en')} short.`)
     expect(reasonLine(es, verdict.ranked[0]!, verdict, solar)).toBe(`No cumple: a los paneles les faltan ${fmtW(1100, 'es')}.`)
@@ -191,7 +191,7 @@ describe('solar panels', () => {
     expect(itemText(en, item([panels(8, null)]), solar, 'USD')).toEqual({ label: 'Included', detail: 'Size not stated' })
   })
   test("a battery-only kit's card says when a quote includes panels anyway", () => {
-    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, panels(8, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0 }
+    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, panels(8, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null }
     const r = compareQuotes(KIT, DEFAULT_MUSTS, [quote]).ranked[0]!
     expect(extraPanelsText(en, r, KIT)).toBe(`Also includes ${fmtW(4400, 'en')} of solar panels`)
     expect(extraPanelsText(es, r, KIT)).toBe(`También incluye ${fmtW(4400, 'es')} de paneles solares`)
@@ -200,7 +200,7 @@ describe('solar panels', () => {
   })
   test('panels that state no wattage still explain the price, with no figure that would undercount them', () => {
     const ranked = (extra: Parameters<typeof extraction>[0]) => compareQuotes(KIT, DEFAULT_MUSTS, [{
-      id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, ...extra]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0,
+      id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, ...extra]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null,
     }]).ranked[0]!
     expect(extraPanelsText(en, ranked([panels(8, null)]), KIT)).toBe('Also includes solar panels')
     expect(extraPanelsText(es, ranked([panels(8, null)]), KIT)).toBe('También incluye paneles solares')
@@ -238,7 +238,7 @@ describe('items a quote mentions without enough to judge them', () => {
   test('a fuse too big for its thin cable is short, and the gap names both', () => {
     const kit: KitNeeds = { ...KIT, fuseA: 125, cableMm2: 42.4, cableGauge: '1 AWG' }
     const x = extraction([line('inverter', 1, { specs: { watts: 5000, surgeWatts: 10000, hasCharger: true } }), line('battery', 1, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }), wiring('1'), fuse(250), line('labor', 1)])
-    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: 0, retries: 0 }
+    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null }
     const r = compareQuotes(kit, DEFAULT_MUSTS, [quote]).ranked[0]!
     const c = r.items.find((i) => i.id === 'fuse')!
     expect(itemText(en, c, kit, 'USD')).toEqual({ label: '250 A', detail: 'Too big for 1 AWG, which carries 130 A' })
@@ -271,7 +271,7 @@ describe('items a quote mentions without enough to judge them', () => {
   describe('reason, ask and question', () => {
     const good = [line('inverter', 2000, { specs: { watts: 5000, surgeWatts: 10000 } }), line('battery', 3000, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }), fuse(175, 1, 'T'), line('labor', 1000)]
     const rank = (lines: Parameters<typeof extraction>[0], kit: KitNeeds = KIT) => {
-      const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: 'Luz', status: 'ready', extraction: extraction(lines), overrides: {}, totalOverride: null, createdAt: 0, retries: 0 }
+      const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: 'Luz', status: 'ready', extraction: extraction(lines), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null }
       const verdict = compareQuotes(kit, DEFAULT_MUSTS, [quote])
       return { r: verdict.ranked[0]!, verdict }
     }

@@ -7,11 +7,17 @@ import { firstProjectId, markEmailVerified } from './db'
 /** How long one click waits for the file picker before the next try. */
 const CHOOSER_WAIT_MS = 3_000
 
-/** A real one-page PDF, so the server's page check passes; the stub picks the sample quote by file name. */
+/**
+ * The pages of a test quote: the sample quotes cite pages 1 and 2, and a reading that cites a page past the file's last
+ * is implausible.
+ */
+const QUOTE_PDF_PAGES = 2
+
+/** A real PDF, so the server's page check passes; the stub picks the sample quote by file name. */
 export async function quotePdf(name: string): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
   const doc = await PDFDocument.create()
-  const page = doc.addPage()
-  page.drawText(`Cotización ${name}`, { x: 50, y: 700, size: 14, font: await doc.embedFont(StandardFonts.Helvetica) })
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+  for (let n = 1; n <= QUOTE_PDF_PAGES; n++) doc.addPage().drawText(`Cotización ${name}, página ${n}`, { x: 50, y: 700, size: 14, font })
   return { name: `${name}.pdf`, mimeType: 'application/pdf', buffer: Buffer.from(await doc.save()) }
 }
 
