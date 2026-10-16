@@ -16,10 +16,6 @@ const LATER_THAN_ANY_ROW = Date.UTC(2100, 0, 1)
 const folders: string[] = []
 test.afterAll(() => { for (const folder of folders) rmSync(folder, { recursive: true, force: true }) })
 
-test.beforeEach(({}, info) => {
-  test.skip(info.project.name !== 'desktop', 'the check reads the database, so once is enough')
-})
-
 const repositoryJournal = () => parseJournal(JSON.parse(readFileSync(JOURNAL_FILE, 'utf8')))
 
 /** The journal with one more migration at `position`, numbered as drizzle-kit would have numbered it. */

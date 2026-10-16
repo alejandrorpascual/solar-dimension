@@ -54,8 +54,8 @@ test('with the day’s reads spent, a retry is refused with the reason and the q
  */
 const RACE_TRIALS = 5
 /**
- * Every copy of the race waits for this turn. Without it the desktop and phone copies, started together, stay in
- * step: each takes its one read between the other's two readings, in every run, and both see two.
+ * Every copy of the race waits for this turn. Without it two copies started together (another checkout, or CI, on this
+ * database) stay in step: each takes its one read between the other's two readings, in every run, and both see two.
  */
 const RACE_TURN = 'quote-retry-race'
 

@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage, switchLanguageOnLoad } from './header'
+import { PHONE } from './phone'
 import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showDownload, showProjects, startNewProject, startRename } from './projects'
 
 const STORAGE_KEY = 'solar-dimension.projects.v1'
 
-test('shell renders the stepper, a Home project and step navigation', async ({ page }) => {
+test('shell renders the stepper, a Home project and step navigation', PHONE, async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
   await showProjects(page)
@@ -124,7 +125,7 @@ test('a condo can type 32 cameras, and the AC list is grouped by compressor type
   await expect(page.getByText('2 ton AC · inverter', { exact: true })).toBeVisible()
 })
 
-test('a new project can be created, renamed and deleted', async ({ page }) => {
+test('a new project can be created, renamed and deleted', PHONE, async ({ page }) => {
   await page.goto('/')
   // The new project lands on top, already renaming with its name selected.
   const name = await startNewProject(page)
@@ -142,7 +143,7 @@ test('a new project can be created, renamed and deleted', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Office', exact: true })).toBeVisible()
 })
 
-test('project names can be erased with backspace and replaced', async ({ page }) => {
+test('project names can be erased with backspace and replaced', PHONE, async ({ page }) => {
   await page.goto('/')
   const title = openProjectCard(page).getByRole('heading')
   const name = await startRename(page)
@@ -199,7 +200,7 @@ async function clickPointIn(page: Page, within: Locator, point: { x: number; y: 
   await page.mouse.click(point.x, point.y)
 }
 
-test("clicking another project's card away from its name opens that project", async ({ page }, testInfo) => {
+test("clicking another project's card away from its name opens that project", PHONE, async ({ page }, testInfo) => {
   await openSecondProject(page)
   const home = page.getByRole('article', { name: 'Home' })
   const figures = await settledBox(home.locator('dl'))
@@ -213,7 +214,7 @@ test("clicking another project's card away from its name opens that project", as
   await expect(top).toContainText('Current')
 })
 
-test("quick edit on another project's card shows its steppers without opening it", async ({ page }, testInfo) => {
+test("quick edit on another project's card shows its steppers without opening it", PHONE, async ({ page }, testInfo) => {
   await openSecondProject(page)
   const home = page.getByRole('article', { name: 'Home' })
   await home.getByRole('button', { name: 'Quick edit' }).click()
@@ -222,7 +223,7 @@ test("quick edit on another project's card shows its steppers without opening it
   if (testInfo.project.name === 'phone') await expect(page.getByRole('dialog')).toBeVisible()
 })
 
-test('with quick edit open, a click between stepper rows opens nothing', async ({ page }, testInfo) => {
+test('with quick edit open, a click between stepper rows opens nothing', PHONE, async ({ page }, testInfo) => {
   await openSecondProject(page)
   const home = page.getByRole('article', { name: 'Home' })
   await home.getByRole('button', { name: 'Quick edit' }).click()
@@ -380,7 +381,7 @@ const KIT_PAGE = {
 for (const language of ['English', 'Español'] as const) {
   const words = KIT_PAGE[language]
 
-  test(`the kit says it is an estimate between the parts list and the checks, in ${language}`, async ({ page }) => {
+  test(`the kit says it is an estimate between the parts list and the checks, in ${language}`, PHONE, async ({ page }) => {
     await page.goto('/?step=4')
     if (language !== 'English') await switchLanguageOnLoad(page, language)
     const kit = page.getByRole('main')
@@ -421,7 +422,7 @@ for (const step of [1, 2, 3, 4]) {
   })
 }
 
-test('full flow: appliances → window → kit, and the project survives a reload', async ({ page }) => {
+test('full flow: appliances → window → kit, and the project survives a reload', PHONE, async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Air conditioning' }).click()
   await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
@@ -514,7 +515,7 @@ const NARROWEST_PHONE = { width: 320, height: 900 } as const
 /** Boxes come back in fractions of a pixel; under half of one is rounding, not an overflow. */
 const SUBPIXEL = 0.5
 
-test('on the narrowest phone the quotes card wraps its long Spanish sign-in label instead of widening the page', async ({ page }) => {
+test('on the narrowest phone the quotes card wraps its long Spanish sign-in label instead of widening the page', PHONE, async ({ page }) => {
   await page.goto('/?step=4')
   await switchLanguageOnLoad(page, 'Español')
   await page.setViewportSize(NARROWEST_PHONE)

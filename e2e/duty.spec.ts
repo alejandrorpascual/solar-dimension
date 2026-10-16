@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage, switchLanguageOnLoad } from './header'
+import { PHONE } from './phone'
 
 type Language = 'English' | 'Español'
 
@@ -73,7 +74,7 @@ async function openQuickEdit(page: Page): Promise<Locator> {
 const cardOf = (page: Page, name: string) => page.locator('.card').filter({ has: page.getByText(name, { exact: true }) })
 
 for (const language of ['English', 'Español'] as const) {
-  test(`the duty picker stays inside its appliance card and clear of the quantity buttons at every width, in ${language}`, async ({ page }) => {
+  test(`the duty picker stays inside its appliance card and clear of the quantity buttons at every width, in ${language}`, PHONE, async ({ page }) => {
     await page.goto('/')
     if (language === 'Español') await switchLanguageOnLoad(page, language)
     const picker = page.getByLabel(FRIDGE_DUTY[language])
@@ -86,7 +87,7 @@ for (const language of ['English', 'Español'] as const) {
     }
   })
 
-  test(`the duty picker stays inside its quick-edit row and clear of the quantity buttons at every width, in ${language}`, async ({ page }) => {
+  test(`the duty picker stays inside its quick-edit row and clear of the quantity buttons at every width, in ${language}`, PHONE, async ({ page }) => {
     await page.goto('/?step=4')
     if (language === 'Español') await switchLanguageOnLoad(page, language)
     const panel = await openQuickEdit(page)
@@ -100,7 +101,7 @@ for (const language of ['English', 'Español'] as const) {
   })
 }
 
-test('on a touch screen the duty picker is at least 16 px, so iOS Safari does not zoom in when it is tapped', async ({ page }, info) => {
+test('on a touch screen the duty picker is at least 16 px, so iOS Safari does not zoom in when it is tapped', PHONE, async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'iOS zooms on focus only on touch devices')
   const fontSize = (picker: Locator) => picker.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
 
@@ -130,8 +131,7 @@ const cardControls = (cards: Locator): Promise<CardControls[]> =>
     }
   }))
 
-test('along a desktop row of appliance cards, the Add buttons and the quantity buttons end level', async ({ page }, info) => {
-  test.skip(info.project.name !== 'desktop', 'only the desktop grid stacks a card, with its buttons at the bottom')
+test('along a desktop row of appliance cards, the Add buttons and the quantity buttons end level', async ({ page }) => {
   await page.setViewportSize({ width: DESKTOP_WIDTH, height: VIEWPORT_HEIGHT })
   await page.goto('/')
   await expect(cardOf(page, 'Refrigerator').locator('.duty')).toBeVisible()

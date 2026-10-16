@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { DEFAULT_QTY } from '../src/lib/store'
 import { switchLanguage } from './header'
+import { PHONE } from './phone'
 import { hideProjects, openProjectCard, renameOpenProject } from './projects'
 
 type Language = 'English' | 'Español'
@@ -191,13 +192,12 @@ test('in Spanish the four steps and the lock text are translated', async ({ page
 })
 
 for (const language of LANGUAGES) {
-  test(`${language}: the stepper fits the header at this device's own width`, async ({ page }) => {
+  test(`${language}: the stepper fits the header at this device's own width`, PHONE, async ({ page }) => {
     await openHeaderIn(page, language)
     await expectHeaderFits(page, language, `${page.viewportSize()?.width}px`)
   })
 
-  test(`${language}: the stepper fits the header from a small phone to a wide desktop`, async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'one browser resized through every width is enough')
+  test(`${language}: the stepper fits the header from a small phone to a wide desktop`, async ({ page }) => {
     await openHeaderIn(page, language)
     for (const width of HEADER_WIDTHS) {
       await page.setViewportSize({ width, height: SWEEP_HEIGHT })
@@ -205,8 +205,7 @@ for (const language of LANGUAGES) {
     }
   })
 
-  test(`${language}: the stepper has its own row beside the rail and shares the brand's row on a wide screen`, async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'needs a desktop-sized window')
+  test(`${language}: the stepper has its own row beside the rail and shares the brand's row on a wide screen`, async ({ page }) => {
     await openHeaderIn(page, language)
     const stepper = page.getByRole('navigation', { name: 'Steps' })
     const brand = page.locator('header').getByText('Solar Dimension', { exact: true })
@@ -217,7 +216,7 @@ for (const language of LANGUAGES) {
   })
 }
 
-test('without the rail, steps 2 and 3 name the open project beside the Projects button', async ({ page }, testInfo) => {
+test('without the rail, steps 2 and 3 name the open project beside the Projects button', PHONE, async ({ page }, testInfo) => {
   const isPhone = testInfo.project.name === 'phone'
   const chip = page.getByRole('button', { name: /^Projects · \d+$/ })
   const name = page.locator('.project-open__name')
@@ -241,7 +240,7 @@ test('without the rail, steps 2 and 3 name the open project beside the Projects 
   }
 })
 
-test('a long project name beside the Projects button is cut with an ellipsis instead of widening the page', async ({ page }, testInfo) => {
+test('a long project name beside the Projects button is cut with an ellipsis instead of widening the page', PHONE, async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'phone', 'the name only shows where the rail is hidden')
   await page.goto('/?step=2')
   const chip = page.getByRole('button', { name: /^Projects · \d+$/ })

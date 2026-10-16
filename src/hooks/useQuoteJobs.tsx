@@ -16,7 +16,7 @@ const QuoteJobsContext = createContext<QuoteJobsValue>({ jobs: [], offline: fals
 
 /** Loads the signed-in user's quote jobs once, then polls only while one is being read. */
 export function QuoteJobsProvider({ children }: { children: ReactNode }) {
-  const { user } = useRootData()
+  const { user, quotePollMs } = useRootData()
   const userId = user?.id ?? null
   const [jobs, setJobs] = useState<ProjectJobs[]>([])
   const [failures, setFailures] = useState(0)
@@ -41,11 +41,11 @@ export function QuoteJobsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!userId) return
-    const delay = nextPollDelay(jobs, failures)
+    const delay = nextPollDelay(jobs, failures, quotePollMs)
     if (delay === null) return
     const timer = setTimeout(() => void poller.refresh(), delay)
     return () => clearTimeout(timer)
-  }, [userId, jobs, failures, poller])
+  }, [userId, jobs, failures, poller, quotePollMs])
 
   const value = useMemo(
     () => ({ jobs, offline: failures > 0, refresh: poller.refresh, markSeen: poller.markSeen }),
