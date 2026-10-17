@@ -21,6 +21,10 @@ export function fmtInverter(inverter: { count: number; unitW: number }, locale: 
 export function fmtKwh(wh: number, locale: Locale): string {
   return `${(wh / 1000).toLocaleString(TAGS[locale], { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh`
 }
+/** A count or a unit's rating as a datasheet writes it, with up to two decimals: "8", "5.12", "2.4". */
+export function fmtNumber(n: number, locale: Locale): string {
+  return n.toLocaleString(TAGS[locale], { maximumFractionDigits: 2 })
+}
 /** A number with exactly `digits` decimals in the locale's notation: "3.1", "1.15". */
 export function fmtDecimal(n: number, digits: number, locale: Locale): string {
   return n.toLocaleString(TAGS[locale], { minimumFractionDigits: digits, maximumFractionDigits: digits })

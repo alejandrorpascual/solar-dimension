@@ -1,8 +1,7 @@
 import { useLocale } from '../../hooks/useLocale'
-import { trq } from '../../i18n'
 import { confirmsSize } from '../../lib/quote-caveats'
 import { OVERRIDES, type ItemCheck, type ItemId, type KitNeeds, type Override } from '../../lib/quote-items'
-import { itemText, markLabel } from '../../lib/quote-text'
+import { evidenceLines, itemText, markLabel } from '../../lib/quote-text'
 import { ItemMark } from './ItemMark'
 
 interface Props {
@@ -36,11 +35,7 @@ export function ItemList({ items, kit, currency, onOverride }: Props) {
                 <span className="qitem__label">{label}</span>
               </div>
               {detail && <p className="qitem__detail">{detail}</p>}
-              {c.source?.text && (
-                <p className="qitem__ev">
-                  “{c.source.text}”{c.source.page ? ` · ${trq(t, 'evidence', { page: c.source.page })}` : ''}
-                </p>
-              )}
+              {evidenceLines(t, c).map((ev, i) => <p key={i} className="qitem__ev">{ev}</p>)}
               {canSet && (
                 <div className="qseg" role="group" aria-label={t.quoteItems[c.id]}>
                   {OVERRIDES.map((v) => (
