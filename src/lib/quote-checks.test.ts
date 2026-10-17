@@ -64,6 +64,9 @@ describe('checkExtraction: an implausible reading (AI-08)', () => {
     const bank = (batteryVolts: number, ah: number) => extraction([line('battery', 2700, { specs: { batteryVolts, ah, kWh: 4.8 } })])
     for (const ah of [100, 86, 114]) expect(implausible(bank(48, ah)), `${ah} Ah`).toBe(false)
     for (const ah of [84, 116]) expect(implausible(bank(48, ah)), `${ah} Ah`).toBe(true)
+    // Exactly 15% off is not more than 15%: a 10 kWh bank at 100 V holds at 85 Ah and 115 Ah, where the sums are exact.
+    const tenKWh = (ah: number) => extraction([line('battery', 2700, { specs: { batteryVolts: 100, ah, kWh: 10 } })])
+    for (const ah of [85, 115]) expect(implausible(tenKWh(ah)), `100 V ${ah} Ah`).toBe(false)
     // The realistic case: a 12 V 100 Ah battery of 1.2 kWh with the 48 V system voltage on its line.
     expect(implausible(extraction([line('battery', 2700, { specs: { batteryVolts: 48, ah: 100, kWh: 1.2 } })]))).toBe(true)
   })
@@ -101,6 +104,8 @@ describe('checkExtraction: an implausible reading (AI-08)', () => {
     expect(implausible(extraction([line('inverter', 1000)], { total: 1e15 }))).toBe(true)
     expect(implausible(extraction([line('inverter', 1000)], { subtotal: 2e9, tax: 0, total: 1000 }))).toBe(true)
     expect(implausible(extraction([line('inverter', 1000)], { tax: 2e9 }))).toBe(true)
+    // A discount is written negative: it counts by its size.
+    expect(implausible(extraction([line('inverter', 1000), line('other', -1_000_000_001)]))).toBe(true)
     const options = [{ id: 'o1', label: 'A', total: 2e9, tax: null }, { id: 'o2', label: 'B', total: null, tax: 2e9 }]
     expect(implausible(extraction([line('inverter', 1000, { option: 'o1' }), line('inverter', 1000, { option: 'o2' })], { total: 0, options }))).toBe(true)
   })
