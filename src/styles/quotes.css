@@ -260,6 +260,8 @@
 .qmust[aria-checked='true'] { border-color: var(--ink); background: var(--ink); color: #FFFFFF; }
 .qfoot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
 .qfoot__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+/* The one-file-per-quote hint, on its own line under both buttons. */
+.qfoot__hint { flex-basis: 100%; }
 /* Phones: every control is at least --tap (44 px) high. This block comes last so it wins over the base rules above. */
 @media (max-width: 1023px) {
   .qseg__b, .qmust, .qlink, .qask__copy, .pcard__quotes { min-height: var(--tap); }

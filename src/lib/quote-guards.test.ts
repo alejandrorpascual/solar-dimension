@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, test } from 'vitest'
 import {
@@ -80,6 +81,10 @@ describe('inspectUpload', () => {
   test('a photo is accepted without a page count', async () => {
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0])
     expect(await inspectUpload(png)).toEqual({ ok: true, mime: 'image/png', pages: null })
+  })
+  test('a password-protected PDF is refused as encrypted, not as the wrong type', async () => {
+    const locked = new Uint8Array(readFileSync(new URL('./fixtures/password-protected.pdf', import.meta.url)))
+    expect(await inspectUpload(locked)).toEqual({ ok: false, rejection: { code: 'encrypted' } })
   })
   test('bytes of another type, or a broken PDF, are refused as the wrong type', async () => {
     const text = (s: string) => new TextEncoder().encode(s)

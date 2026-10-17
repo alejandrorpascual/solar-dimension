@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { useQuoteUpload } from '../../hooks/useQuoteUpload'
 import { useRootData } from '../../hooks/useRootData'
@@ -13,10 +14,12 @@ export function AddQuoteButton({ projectId, projectName }: { projectId: string; 
   const { t } = useLocale()
   const { user } = useRootData()
   const upload = useQuoteUpload(projectId)
+  const hintId = useId()
   if (!user?.canUseQuotes) return <QuotesLockedAction withNote />
   return (
     <>
-      <FilePickButton label={t.quotes.addAnother} isDisabled={upload.isUploading} onFiles={(files) => void upload.start(files)} />
+      <FilePickButton label={t.quotes.addAnother} isDisabled={upload.isUploading} describedBy={hintId} onFiles={(files) => void upload.start(files)} />
+      <p className="qmeta qfoot__hint" id={hintId}>{t.quotes.oneFilePerQuote}</p>
       <HandoffDialog isOpen={upload.isOpen} onOpenChange={upload.setOpen} items={upload.items} projectId={projectId} projectName={projectName} />
     </>
   )

@@ -27,6 +27,7 @@ export function QuotesCard({ project, isSaving }: Props) {
   const upload = useQuoteUpload(project.id)
   const [isDragging, setDragging] = useState(false)
   const titleId = useId()
+  const hintId = useId()
   const isBusy = isSaving || upload.isUploading
 
   if (!user) {
@@ -54,6 +55,7 @@ export function QuotesCard({ project, isSaving }: Props) {
       <FilePickButton
         label={isSaving ? t.quotes.cardSaving : jobs ? t.quotes.cardAddMore : t.quotes.cardUpload}
         isDisabled={isBusy}
+        describedBy={hintId}
         onFiles={(files) => void upload.start(files)}
       />
     )
@@ -65,6 +67,7 @@ export function QuotesCard({ project, isSaving }: Props) {
       <div className="qcard__body">
         <h3 className="qcard__title" id={titleId}>{jobs ? projectLine(t, jobs) : t.quotes.cardTitle}</h3>
         <p className="qcard__meta">{meta}</p>
+        {user.canUseQuotes && <p className="qcard__meta" id={hintId}>{t.quotes.oneFilePerQuote}</p>}
       </div>
       <div className="qcard__actions">
         {jobs && <Link className="qbtn" to="/projects/$projectId/quotes" params={{ projectId: project.id }}>{t.quotes.seeVerdict}</Link>}
