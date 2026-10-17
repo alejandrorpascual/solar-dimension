@@ -361,6 +361,36 @@ describe('evidence (AI-18)', () => {
     ])
     expect(item(x, 'cables').sources).toEqual([{ page: 2, text: 'Cable 4/0 AWG baterías' }])
   })
+  test('a cable too thin for the kit cites only its thickest line, the one that falls short', () => {
+    const x = extraction([
+      said('wiring', 1, 'Cable 10 AWG para paneles', 2, { awg: '10' }),
+      said('wiring', 2, 'Cable 2 AWG baterías', 2, { awg: '2' }),
+    ])
+    const cables = item(x, 'cables')
+    expect(cables).toMatchObject({ status: 'short', facts: { gauge: '2 AWG' } })
+    expect(cables.sources).toEqual([{ page: 2, text: 'Cable 2 AWG baterías' }])
+  })
+  test('a cable the kit needs in parallel runs cites only its thickest line', () => {
+    // 400 A of design current is two runs of 4/0 (230 A a run); the four 4/0 leads count them.
+    const heavy: KitNeeds = { ...KIT, designA: 400 }
+    const x = extraction([
+      said('wiring', 1, 'Cable 8 AWG para paneles', 2, { awg: '8' }),
+      said('wiring', 2, 'Cable 4/0 AWG baterías', 4, { awg: '4/0' }),
+    ])
+    const cables = checkItems(x, heavy).find((c) => c.id === 'cables')!
+    expect(cables).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG', runs: 2 } })
+    expect(cables.sources).toEqual([{ page: 2, text: 'Cable 4/0 AWG baterías' }])
+  })
+  test('cables with no readable size cite one line: the first that could be the main cable, not a fitting', () => {
+    const x = extraction([
+      said('wiring', 1, 'Terminales y zapatas', 10, {}),
+      said('wiring', 1, 'Cableado de baterías e inversor', 1, {}),
+      said('wiring', 2, 'Cableado AC', 1, {}),
+    ])
+    const cables = item(x, 'cables')
+    expect(cables).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+    expect(cables.sources).toEqual([{ page: 1, text: 'Cableado de baterías e inversor' }])
+  })
   test("a fuse check that counts and classes every main fuse cites each of them; one too small cites only itself", () => {
     const fuses = [
       said('wiring', 1, 'Cable 4/0 AWG', 2, { awg: '4/0' }),
