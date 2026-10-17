@@ -13,11 +13,14 @@ const CHOOSER_WAIT_MS = 3_000
  */
 const QUOTE_PDF_PAGES = 2
 
-/** A real PDF, so the server's page check passes; the stub picks the sample quote by file name. */
-export async function quotePdf(name: string): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
+/** A real PDF, so the server's page check passes; the stub picks the sample quote by file name. One argument, for `.map`. */
+export const quotePdf = (name: string) => quotePdfOfPages(name, QUOTE_PDF_PAGES)
+
+/** The same with `pages` pages: fewer than the reading cites make the reading implausible. */
+export async function quotePdfOfPages(name: string, pages: number): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
   const doc = await PDFDocument.create()
   const font = await doc.embedFont(StandardFonts.Helvetica)
-  for (let n = 1; n <= QUOTE_PDF_PAGES; n++) doc.addPage().drawText(`Cotización ${name}, página ${n}`, { x: 50, y: 700, size: 14, font })
+  for (let n = 1; n <= pages; n++) doc.addPage().drawText(`Cotización ${name}, página ${n}`, { x: 50, y: 700, size: 14, font })
   return { name: `${name}.pdf`, mimeType: 'application/pdf', buffer: Buffer.from(await doc.save()) }
 }
 
