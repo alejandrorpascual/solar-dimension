@@ -102,10 +102,25 @@ describe('totalHelp', () => {
     expect(totalHelp(es, unranked({ extraction: noLines, retries: 1 }))).toBe(es.quotes.noLinesTotalHelp)
   })
   test('before it is read again, a reading with no lines says so rather than blaming its line amounts', () => {
-    expect(misreadText(en, lineOff, true)).toBe(en.quotes.misreadHelp)
-    expect(misreadText(en, lineOff, false)).toBe(en.quotes.misreadHelpNoRetry)
-    expect(misreadText(en, noLines, true)).toBe("We couldn't read any lines in this quote, so a total alone wouldn't say what it includes. Read it again, or upload a clearer copy.")
-    expect(misreadText(es, noLines, false)).toBe(es.quotes.noLinesHelpNoRetry)
+    expect(misreadText(en, lineOff, null, true)).toBe(en.quotes.misreadHelp)
+    expect(misreadText(en, lineOff, null, false)).toBe(en.quotes.misreadHelpNoRetry)
+    expect(misreadText(en, noLines, null, true)).toBe("We couldn't read any lines in this quote, so a total alone wouldn't say what it includes. Read it again, or upload a clearer copy.")
+    expect(misreadText(es, noLines, null, false)).toBe(es.quotes.noLinesHelpNoRetry)
+  })
+  test('an implausible reading says its numbers cannot be right, not that its amounts disagree', () => {
+    // SolarTec's battery line read as 5,120 kWh (Wh read as kWh): its amounts still add up.
+    const tooBig = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 1 ? { ...l, specs: { ...l.specs, kWh: 5120 } } : l)) }
+    expect(misreadText(en, tooBig, null, true)).toBe(
+      "Some numbers we read can't be right for a real quote, like a size or amount far too large or a page the file doesn't have, so a total wouldn't fix it. Read it again, or upload a clearer copy.",
+    )
+    expect(misreadText(en, tooBig, null, false)).toBe(
+      "Some numbers we read can't be right for a real quote, like a size or amount far too large or a page the file doesn't have, so a total wouldn't fix it. Upload a clearer copy.",
+    )
+    expect(misreadText(es, tooBig, null, true)).toBe(es.quotes.implausibleHelp)
+    expect(misreadText(es, tooBig, null, false)).toBe(es.quotes.implausibleHelpNoRetry)
+    // SolarTec cites page 2, which a one-page file does not have; read from two pages, only its line amount is off.
+    expect(misreadText(en, SAMPLE_QUOTES.solartec, 1, true)).toBe(en.quotes.implausibleHelp)
+    expect(misreadText(en, lineOff, 2, true)).toBe(en.quotes.misreadHelp)
   })
 })
 

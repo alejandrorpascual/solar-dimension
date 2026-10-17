@@ -69,7 +69,7 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
         </form>
       )}
       {waitsForTotal && u.optionCount > 0 && <p className="qmeta">{trq(t, canReadAgain ? 'optionsReviewHelp' : 'optionsReviewHelpNoRetry', { count: u.optionCount })}</p>}
-      {u.reason === 'misread' && extraction !== null && <p className="qmeta">{misreadText(t, extraction, canReadAgain)}</p>}
+      {u.reason === 'misread' && extraction !== null && <p className="qmeta">{misreadText(t, extraction, u.quote.pages, canReadAgain)}</p>}
       <div className="qrow__actions">
         {canReadAgain && <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button>}
         <QuoteActions quoteId={u.quote.id} optionCount={u.optionCount} onDelete={onDelete} />
