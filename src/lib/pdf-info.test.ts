@@ -31,6 +31,12 @@ test('reports a password-protected PDF as encrypted even when pdf-lib cannot par
   expect(await pdfInfo(broken)).toEqual({ ok: false, reason: 'encrypted' })
 })
 
+test('reports a file pdf-lib cannot parse as encrypted when its trailer holds the encryption dictionary itself', async () => {
+  // No object survives, so pdf-lib has no catalog and counting pages throws; the trailer's /Encrypt is a dictionary, not a reference.
+  const broken = text('%PDF-1.4\ntrailer\n<< /Encrypt << /Filter /Standard /V 1 /R 2 >> >>\n%%EOF\n')
+  expect(await pdfInfo(broken)).toEqual({ ok: false, reason: 'encrypted' })
+})
+
 test('does not call a broken PDF encrypted for a name that only starts with /Encrypt', async () => {
   expect(await pdfInfo(text('%PDF-1.4\n1 0 obj\n<< /EncryptMetadata false >>\nendobj\n'))).toEqual({ ok: false, reason: 'invalid' })
 })

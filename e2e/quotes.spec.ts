@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { fmtKwh } from '../src/i18n/format'
@@ -10,11 +10,11 @@ import {
   seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
-import { switchLanguage } from './header'
+import { switchLanguage, switchLanguageOnLoad } from './header'
 import { PHONE } from './phone'
 import { hideProjects, openProjectAction, showProjects } from './projects'
 import {
-  captureUploadCall, isJobsRead, isMustSave, isProjectRead, openVerdictFromTray, pickQuoteFiles, postUpload, quotePdf, saved, signUp, signUpWithProject, slowQuotePdf, tray,
+  captureUploadCall, isJobsRead, isMustSave, isProjectRead, lockedPdf, openVerdictFromTray, pickQuoteFiles, postUpload, quotePdf, saved, signUp, signUpWithProject, slowQuotePdf, tray,
   uploadQuotes, verdictHeading,
 } from './quotes'
 
@@ -354,11 +354,21 @@ test('a file of the wrong type is refused before upload, with the reason', async
 
 test('a password-protected PDF is refused as locked, not as the wrong type, and the reason says how to fix it', async ({ page }) => {
   await signUp(page)
-  const buffer = readFileSync('src/lib/fixtures/password-protected.pdf')
-  await uploadQuotes(page, [{ name: 'locked.pdf', mimeType: 'application/pdf', buffer }])
+  await uploadQuotes(page, [lockedPdf()])
   const dialog = page.getByRole('dialog', { name: 'None of these files could be uploaded' })
   await expect(dialog.getByRole('listitem').filter({ hasText: 'locked.pdf' })).toContainText(quotesEn.errEncrypted)
   await expect(dialog).not.toContainText(quotesEn.errType)
+})
+
+test('the dialog for a password-protected PDF gives the reason and the one-file hint in Spanish', async ({ page }) => {
+  await signUp(page)
+  await page.goto('/?step=4')
+  await switchLanguageOnLoad(page, 'Español')
+  await pickQuoteFiles(page, [lockedPdf()], quotesEs.cardUpload)
+  const dialog = page.getByRole('dialog', { name: quotesEs.handoffNone })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'locked.pdf' })).toContainText(quotesEs.errEncrypted)
+  await expect(dialog).not.toContainText(quotesEs.errType)
+  await expect(dialog.getByText(quotesEs.oneFilePerQuote)).toBeVisible()
 })
 
 test('both upload buttons and the dialog say one file per quote, in English and Spanish', async ({ page }) => {
