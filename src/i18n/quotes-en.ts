@@ -165,6 +165,8 @@ export const quotesEn = {
   totalTyped: 'Total entered by you',
   misreadHelp: "Some line amounts, quantities or the currency we read don't hold together, so a total wouldn't fix it. Read it again, or upload a clearer copy.",
   misreadHelpNoRetry: "Some line amounts, quantities or the currency we read don't hold together, so a total wouldn't fix it. Upload a clearer copy.",
+  implausibleHelp: "Some numbers we read can't be right for a real quote, like a size or amount far too large or a page the file doesn't have, so a total wouldn't fix it. Read it again, or upload a clearer copy.",
+  implausibleHelpNoRetry: "Some numbers we read can't be right for a real quote, like a size or amount far too large or a page the file doesn't have, so a total wouldn't fix it. Upload a clearer copy.",
   noLinesHelp: "We couldn't read any lines in this quote, so a total alone wouldn't say what it includes. Read it again, or upload a clearer copy.",
   noLinesHelpNoRetry: "We couldn't read any lines in this quote, so a total alone wouldn't say what it includes. Upload a clearer copy.",
   misreadTotalHelp: "We read it again and some line amounts, quantities or the currency still don't hold together. If the quote is written that way (a discount on a line, say), enter its total to compare it.",

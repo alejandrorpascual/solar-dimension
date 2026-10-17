@@ -17,6 +17,8 @@ export interface ClaimedQuote {
   id: string; blobPathname: string; mime: QuoteMime; fileName: string; attempts: number
   /** The claim's time as the database wrote it, as text so no microseconds are lost; `finish` compares it. */
   claimedAt: string
+  /** The file's page count, which the reading's source pages are checked against; null for an image. */
+  pages: number | null
 }
 export type Finish =
   | { status: 'ready' | 'needs_review'; extraction: QuoteExtraction; modelUsed: string; usage: QuoteUsage[] }
@@ -39,12 +41,12 @@ type Attempt =
 
 const asModelError = (e: unknown): ModelError => (e instanceof ModelError ? e : new ModelError('invalid', String(e)))
 
-/** One model's answer; a transient error gets one immediate retry. */
-async function attempt(deps: ProcessDeps, input: ModelInput, model: string): Promise<Attempt> {
+/** One model's answer, checked against the file's page count; a transient error gets one immediate retry. */
+async function attempt(deps: ProcessDeps, input: ModelInput, model: string, pages: number | null): Promise<Attempt> {
   const once = async (): Promise<Attempt> => {
     const out = await deps.model.extract(input, model)
     const extraction = normalizeExtraction(out.extraction)
-    return { ok: true, extraction, passes: checkExtraction(extraction).length === 0, usage: { model, input: out.input, output: out.output } }
+    return { ok: true, extraction, passes: checkExtraction(extraction, pages).length === 0, usage: { model, input: out.input, output: out.output } }
   }
   try {
     return await once()
@@ -122,7 +124,7 @@ export async function processQuote(id: string, deps: ProcessDeps): Promise<Outco
   }
   if (!bytes) return finish({ status: 'failed', error: 'file missing from storage', usage: [] })
   const input: ModelInput = { bytes, mime: job.mime, fileName: job.fileName }
-  const primary = await attempt(deps, input, deps.models.primary)
-  const fallback = primary.ok && primary.passes ? null : await attempt(deps, input, deps.models.fallback)
+  const primary = await attempt(deps, input, deps.models.primary, job.pages)
+  const fallback = primary.ok && primary.passes ? null : await attempt(deps, input, deps.models.fallback, job.pages)
   return finish(decide(primary, fallback, job.attempts, deps.models))
 }

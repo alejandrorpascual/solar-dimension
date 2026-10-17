@@ -294,8 +294,12 @@ export function totalHelp(t: Dictionary, u: UnrankedQuote): string {
   return u.reason === 'no_total' ? t.quotes.noTotalHelp : t.quotes.checkNumbersHelp
 }
 
-/** Why a reading waits to be read again rather than for a total: no lines were read, or the ones read don't hold together. */
-export function misreadText(t: Dictionary, x: QuoteExtraction, canReadAgain: boolean): string {
+/**
+ * Why a reading waits to be read again rather than for a total: a number no real quote states (a 5,120 kWh battery, a
+ * page past the file's `pages`), no lines were read, or the ones read don't hold together.
+ */
+export function misreadText(t: Dictionary, x: QuoteExtraction, pages: number | null, canReadAgain: boolean): string {
+  if (checkExtraction(x, pages).includes('implausible')) return canReadAgain ? t.quotes.implausibleHelp : t.quotes.implausibleHelpNoRetry
   if (x.lines.length === 0) return canReadAgain ? t.quotes.noLinesHelp : t.quotes.noLinesHelpNoRetry
   return canReadAgain ? t.quotes.misreadHelp : t.quotes.misreadHelpNoRetry
 }

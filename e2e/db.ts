@@ -146,6 +146,14 @@ export async function misreadQuoteLine(email: string, projectId: string, unitPri
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/** Same, because line `line`'s spec `spec` was read as `value` (a 5,120 kWh battery: Wh read as kWh). */
+export async function misreadQuoteSpec(email: string, projectId: string, line: number, spec: string, value: number): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review',
+      extraction = jsonb_set(q.extraction, ${['lines', String(line), 'specs', spec]}::text[], to_jsonb(${value}::numeric))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
 /** The status and retries of every quote of a project, oldest first. */
 export async function quoteRetryStates(email: string, projectId: string): Promise<{ status: string; retries: number }[]> {
   const rows = await testDb()`

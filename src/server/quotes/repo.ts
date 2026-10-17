@@ -25,7 +25,7 @@ export const dbJobRepo: QuoteJobRepo = {
       .where(and(eq(quotes.id, id), lt(quotes.attempts, MAX_ATTEMPTS), claimable()))
       .returning({
         id: quotes.id, blobPathname: quotes.blobPathname, mime: quotes.mime, fileName: quotes.fileName, attempts: quotes.attempts,
-        claimedAt: sql<string>`${quotes.claimedAt}::text`,
+        claimedAt: sql<string>`${quotes.claimedAt}::text`, pages: quotes.pages,
       })
     const row = rows[0]
     return row ? ({ ...row, mime: row.mime as QuoteMime } satisfies ClaimedQuote) : null

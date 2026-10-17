@@ -2,11 +2,14 @@ import { describe, expect, test } from 'vitest'
 import { checkExtraction, isFixedByTotal, linesWithTax, optionPrices } from './quote-checks'
 import { optionLines } from './quote-options'
 import { extraction, line, SAMPLE_QUOTES, warranty } from './quote-fixtures'
-import { UNLISTED_OPTION, type QuoteExtraction } from './quote-schema'
+import { UNLISTED_OPTION, type QuoteExtraction, type QuoteLine } from './quote-schema'
 
 describe('checkExtraction', () => {
-  test('passes every sample quote', () => {
-    for (const q of Object.values(SAMPLE_QUOTES)) expect(checkExtraction(q)).toEqual([])
+  test('passes every sample quote, read from a file of unknown or two pages (they cite pages 1 and 2)', () => {
+    for (const q of Object.values(SAMPLE_QUOTES)) {
+      expect(checkExtraction(q)).toEqual([])
+      expect(checkExtraction(q, 2)).toEqual([])
+    }
   })
   test('flags a quote with no lines', () => {
     expect(checkExtraction(extraction([]))).toContain('no_lines')
@@ -46,6 +49,85 @@ describe('checkExtraction', () => {
   })
   test('a quote with no total is flagged once, as no total, whatever its lines add up to', () => {
     expect(checkExtraction(extraction([line('inverter', 1000)], { total: 0 }))).toEqual(['no_total'])
+  })
+})
+
+describe('checkExtraction: an implausible reading (AI-08)', () => {
+  const implausible = (x: QuoteExtraction, pages: number | null = null) => checkExtraction(x, pages).includes('implausible')
+  test('a 5,120 kWh battery (Wh read as kWh) and a 1,000,000,000 W inverter each fail', () => {
+    expect(implausible(extraction([line('battery', 2700, { specs: { kWh: 5120 } })]))).toBe(true)
+    expect(implausible(extraction([line('inverter', 1890, { specs: { watts: 1_000_000_000 } })]))).toBe(true)
+    expect(implausible(extraction([line('battery', 2700, { specs: { kWh: 5.12 } }), line('inverter', 1890, { specs: { watts: 12000 } })]))).toBe(false)
+  })
+  test('a battery whose volts × Ah is more than 15% off its kWh fails', () => {
+    // 48 V × 100 Ah is 4.8 kWh, so a stated 4.8 kWh holds from 85 Ah to 115 Ah.
+    const bank = (batteryVolts: number, ah: number) => extraction([line('battery', 2700, { specs: { batteryVolts, ah, kWh: 4.8 } })])
+    for (const ah of [100, 86, 114]) expect(implausible(bank(48, ah)), `${ah} Ah`).toBe(false)
+    for (const ah of [84, 116]) expect(implausible(bank(48, ah)), `${ah} Ah`).toBe(true)
+    // Exactly 15% off is not more than 15%: a 10 kWh bank at 100 V holds at 85 Ah and 115 Ah, where the sums are exact.
+    const tenKWh = (ah: number) => extraction([line('battery', 2700, { specs: { batteryVolts: 100, ah, kWh: 10 } })])
+    for (const ah of [85, 115]) expect(implausible(tenKWh(ah)), `100 V ${ah} Ah`).toBe(false)
+    // The realistic case: a 12 V 100 Ah battery of 1.2 kWh with the 48 V system voltage on its line.
+    expect(implausible(extraction([line('battery', 2700, { specs: { batteryVolts: 48, ah: 100, kWh: 1.2 } })]))).toBe(true)
+  })
+  test('each spec has its ceiling, per unit, and must be above 0', () => {
+    const spec = (specs: Partial<QuoteLine['specs']>) => implausible(extraction([line('other', 100, { specs })]))
+    const ceilings: [keyof QuoteLine['specs'], number][] = [
+      ['watts', 100_000], ['surgeWatts', 100_000], ['panelWatts', 1000], ['batteryVolts', 1000], ['ah', 5000], ['kWh', 1000],
+      ['chargerAmps', 2000], ['fuseAmps', 2000],
+    ]
+    for (const [key, max] of ceilings) {
+      expect(spec({ [key]: max }), `${key} ${max}`).toBe(false)
+      expect(spec({ [key]: max + 1 }), `${key} ${max + 1}`).toBe(true)
+    }
+    for (const key of [...ceilings.map(([k]) => k), 'mm2' as const]) {
+      expect(spec({ [key]: 0 }), `${key} 0`).toBe(true)
+      expect(spec({ [key]: -5 }), `${key} -5`).toBe(true)
+    }
+    expect(spec({ mm2: 120 })).toBe(false)
+  })
+  test('a surge below the running watts, or above 5× them, fails', () => {
+    const inverter = (watts: number, surgeWatts: number) => implausible(extraction([line('inverter', 1890, { specs: { watts, surgeWatts } })]))
+    expect(inverter(3000, 3000)).toBe(false)
+    expect(inverter(3000, 15000)).toBe(false)
+    expect(inverter(3000, 2999)).toBe(true)
+    expect(inverter(3000, 15001)).toBe(true)
+  })
+  test('a quantity over 10,000 and an amount over 1,000,000,000 fail; COP and VES amounts pass', () => {
+    expect(implausible(extraction([line('fuse', 100, { qty: 10_000 })]))).toBe(false)
+    expect(implausible(extraction([line('fuse', 100, { qty: 10_001 })]))).toBe(true)
+    // A whole kit in Colombian pesos runs to tens of millions.
+    expect(implausible(extraction([line('inverter', 45_000_000)], { currency: 'COP' }))).toBe(false)
+    expect(implausible(extraction([line('inverter', 1_000_000_000)], { currency: 'COP' }))).toBe(false)
+    expect(implausible(extraction([line('inverter', 1_000_000_001)], { currency: 'COP' }))).toBe(true)
+    expect(implausible(extraction([line('inverter', 1000, { unitPrice: 1e15 })]))).toBe(true)
+    expect(implausible(extraction([line('inverter', 1000)], { total: 1e15 }))).toBe(true)
+    expect(implausible(extraction([line('inverter', 1000)], { subtotal: 2e9, tax: 0, total: 1000 }))).toBe(true)
+    expect(implausible(extraction([line('inverter', 1000)], { tax: 2e9 }))).toBe(true)
+    // A discount is written negative: it counts by its size.
+    expect(implausible(extraction([line('inverter', 1000), line('other', -1_000_000_001)]))).toBe(true)
+    const options = [{ id: 'o1', label: 'A', total: 2e9, tax: null }, { id: 'o2', label: 'B', total: null, tax: 2e9 }]
+    expect(implausible(extraction([line('inverter', 1000, { option: 'o1' }), line('inverter', 1000, { option: 'o2' })], { total: 0, options }))).toBe(true)
+  })
+  test('a warranty over 30 years, or below 0, fails', () => {
+    for (const years of [0, 10, 30]) expect(implausible(extraction([line('battery', 100)], { warranties: [warranty('battery', years)] })), String(years)).toBe(false)
+    for (const years of [31, -3]) expect(implausible(extraction([line('battery', 100)], { warranties: [warranty('battery', years)] })), String(years)).toBe(true)
+  })
+  test('a source page must be from 1 to the file\'s page count; an image has no count, so only the first bound applies', () => {
+    const onPage = (page: number | null) => extraction([line('labor', 100, { source: { page, text: 'Instalación' } })])
+    expect(implausible(onPage(2), 2)).toBe(false)
+    expect(implausible(onPage(null), 2)).toBe(false)
+    expect(implausible(onPage(3), 2)).toBe(true)
+    expect(implausible(onPage(0), 2)).toBe(true)
+    expect(implausible(onPage(-7), null)).toBe(true)
+    expect(implausible(onPage(1.5), 2)).toBe(true)
+    expect(implausible(onPage(40), null)).toBe(false)
+  })
+  test('a YYYY-MM-DD date must be a real day from 2000 to 2100; a date written another way is left as read', () => {
+    const dated = (date: string | null, validUntil: string | null = null) => implausible(extraction([line('labor', 100)], { date, validUntil }))
+    for (const date of [null, '', '2026-10-16', '2000-01-01', '2100-12-31', '2028-02-29', '16/10/2026']) expect(dated(date), String(date)).toBe(false)
+    for (const date of ['1999-12-31', '2101-01-01', '2026-13-01', '2026-02-30', '0000-00-00']) expect(dated(date), date).toBe(true)
+    expect(dated('2026-10-16', '9999-01-01')).toBe(true)
   })
 })
 
