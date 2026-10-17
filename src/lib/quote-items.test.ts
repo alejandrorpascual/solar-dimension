@@ -27,7 +27,9 @@ describe('must-haves and overrides', () => {
 
 describe('inverter', () => {
   test('ok when running and surge watts cover the kit', () => {
-    expect(item(SAMPLE_QUOTES.solartec, 'inverter')).toMatchObject({ status: 'ok', facts: { watts: 12000, surgeWatts: 24000 } })
+    expect(item(SAMPLE_QUOTES.solartec, 'inverter')).toMatchObject({
+      status: 'ok', facts: { watts: 12000, surgeWatts: 24000, terms: [{ qty: 1, each: 12000 }], surgeTerms: [{ qty: 1, each: 24000 }] },
+    })
   })
   test('short with the gap when running watts are below the kit', () => {
     expect(item(SAMPLE_QUOTES.enerhogar, 'inverter')).toMatchObject({ status: 'short', facts: { watts: 300, shortW: 3560 } })
@@ -67,7 +69,7 @@ describe('battery', () => {
   const bank = (qty: number, specs: object) => extraction([line('battery', 1, { qty, specs })])
   test('usable Wh uses kWh × qty × the depth of discharge of the stated chemistry, and says so', () => {
     const usable = 8 * 5120 * CHEMISTRIES.lifepo4.dod
-    expect(item(SAMPLE_QUOTES.solartec, 'battery')).toMatchObject({ status: 'ok', facts: { usableWh: usable, nominalWh: 8 * 5120, dod: CHEMISTRIES.lifepo4.dod } })
+    expect(item(SAMPLE_QUOTES.solartec, 'battery')).toMatchObject({ status: 'ok', facts: { usableWh: usable, terms: [{ qty: 8, each: 5120 }], dod: CHEMISTRIES.lifepo4.dod } })
   })
   test('falls back to volts × Ah', () => {
     expect(item(bank(2, { batteryVolts: 51.2, ah: 100, chemistry: 'lifepo4' }), 'battery').facts.usableWh).toBeCloseTo(2 * 5120 * CHEMISTRIES.lifepo4.dod)
@@ -84,7 +86,7 @@ describe('battery', () => {
     // 4 × 12 V 200 Ah = 9.6 kWh: 4.8 kWh as AGM, 8.16 kWh as LiFePO₄. A gel or flooded bank labelled "other" used to get 8.16.
     for (const chemistry of [null, 'other']) {
       expect(item(bank(4, { batteryVolts: 12, ah: 200, chemistry }), 'battery')).toMatchObject({
-        status: 'unknown', facts: { usableLowWh: 4800, usableHighWh: 9600 * CHEMISTRIES.lifepo4.dod, nominalWh: 9600 },
+        status: 'unknown', facts: { usableLowWh: 4800, usableHighWh: 9600 * CHEMISTRIES.lifepo4.dod, terms: [{ qty: 4, each: 2400 }] },
       })
     }
     expect(item(bank(4, { batteryVolts: 12, ah: 200, chemistry: 'agm' }), 'battery')).toMatchObject({ status: 'short', facts: { usableWh: 4800, shortWh: 3200 } })
@@ -328,6 +330,79 @@ describe('installation and warranty', () => {
   test('warranty years per part', () => {
     expect(item(SAMPLE_QUOTES.solartec, 'warranty')).toMatchObject({ status: 'ok', facts: { batteryYears: 10, inverterYears: 5 } })
     expect(item(extraction([line('inverter', 1)]), 'warranty').status).toBe('unknown')
+  })
+})
+
+describe('evidence (AI-18)', () => {
+  /** A line as the quote writes it, on a given page, so its evidence can be told from another's. */
+  const said = (kind: QuoteLine['kind'], page: number, text: string, qty: number, specs: object) =>
+    line(kind, 1, { qty, description: text, source: { page, text }, specs })
+  test('a bank summed from two battery lines cites both', () => {
+    const x = extraction([
+      said('battery', 1, 'Batería LiFePO4 5.12 kWh × 4', 4, { kWh: 5.12, chemistry: 'lifepo4' }),
+      said('battery', 2, 'Batería LiFePO4 2.4 kWh × 2', 2, { kWh: 2.4, chemistry: 'lifepo4' }),
+    ])
+    expect(item(x, 'battery').sources).toEqual([
+      { page: 1, text: 'Batería LiFePO4 5.12 kWh × 4' },
+      { page: 2, text: 'Batería LiFePO4 2.4 kWh × 2' },
+    ])
+  })
+  test('inverters summed from two lines cite both', () => {
+    const x = extraction([
+      said('inverter', 1, 'Inversor 3 kW', 1, { watts: 3000, surgeWatts: 6000 }),
+      said('inverter', 1, 'Inversor 2 kW', 1, { watts: 2000, surgeWatts: 4000 }),
+    ])
+    expect(item(x, 'inverter').sources.map((s) => s.text)).toEqual(['Inversor 3 kW', 'Inversor 2 kW'])
+  })
+  test('the cable check still cites only the thickest line, which decides it', () => {
+    const x = extraction([
+      said('wiring', 1, 'Cable 8 AWG para paneles', 2, { awg: '8' }),
+      said('wiring', 2, 'Cable 4/0 AWG baterías', 2, { awg: '4/0' }),
+    ])
+    expect(item(x, 'cables').sources).toEqual([{ page: 2, text: 'Cable 4/0 AWG baterías' }])
+  })
+  test('a cable too thin for the kit cites only its thickest line, the one that falls short', () => {
+    const x = extraction([
+      said('wiring', 1, 'Cable 10 AWG para paneles', 2, { awg: '10' }),
+      said('wiring', 2, 'Cable 2 AWG baterías', 2, { awg: '2' }),
+    ])
+    const cables = item(x, 'cables')
+    expect(cables).toMatchObject({ status: 'short', facts: { gauge: '2 AWG' } })
+    expect(cables.sources).toEqual([{ page: 2, text: 'Cable 2 AWG baterías' }])
+  })
+  test('a cable the kit needs in parallel runs cites only its thickest line', () => {
+    // 400 A of design current is two runs of 4/0 (230 A a run); the four 4/0 leads count them.
+    const heavy: KitNeeds = { ...KIT, designA: 400 }
+    const x = extraction([
+      said('wiring', 1, 'Cable 8 AWG para paneles', 2, { awg: '8' }),
+      said('wiring', 2, 'Cable 4/0 AWG baterías', 4, { awg: '4/0' }),
+    ])
+    const cables = checkItems(x, heavy).find((c) => c.id === 'cables')!
+    expect(cables).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG', runs: 2 } })
+    expect(cables.sources).toEqual([{ page: 2, text: 'Cable 4/0 AWG baterías' }])
+  })
+  test('cables with no readable size cite one line: the first that could be the main cable, not a fitting', () => {
+    const x = extraction([
+      said('wiring', 1, 'Terminales y zapatas', 10, {}),
+      said('wiring', 1, 'Cableado de baterías e inversor', 1, {}),
+      said('wiring', 2, 'Cableado AC', 1, {}),
+    ])
+    const cables = item(x, 'cables')
+    expect(cables).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+    expect(cables.sources).toEqual([{ page: 1, text: 'Cableado de baterías e inversor' }])
+  })
+  test("a fuse check that counts and classes every main fuse cites each of them; one too small cites only itself", () => {
+    const fuses = [
+      said('wiring', 1, 'Cable 4/0 AWG', 2, { awg: '4/0' }),
+      said('fuse', 1, 'Fusible clase T 175 A', 1, { fuseAmps: 175, fuseClass: 'T' }),
+      said('fuse', 2, 'Fusible clase T 200 A', 1, { fuseAmps: 200, fuseClass: 'T' }),
+    ]
+    expect(item(extraction(fuses), 'fuse').sources.map((s) => s.text)).toEqual(['Fusible clase T 175 A', 'Fusible clase T 200 A'])
+    const small = [said('fuse', 1, 'Fusible 100 A', 1, { fuseAmps: 100, fuseClass: 'T' }), said('fuse', 1, 'Fusible 30 A', 1, { fuseAmps: 30, fuseClass: 'T' })]
+    expect(item(extraction(small), 'fuse')).toMatchObject({ status: 'short', sources: [{ page: 1, text: 'Fusible 100 A' }] })
+  })
+  test('an item the quote does not mention cites nothing', () => {
+    expect(item(extraction([line('labor', 1)]), 'charger').sources).toEqual([])
   })
 })
 

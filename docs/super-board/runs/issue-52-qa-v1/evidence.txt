@@ -1,0 +1,24 @@
+Issue #52 · QA v1 · builder head 395cc79 plus the QA tests
+verify (npm ci, typecheck, test:coverage, build): exit 0 · 96 files, 1556 tests · 98.22% statements
+unit: npx vitest run src/lib/quote-items.test.ts src/lib/quote-text.test.ts · 143 passed
+
+AC1 two battery lines, two quotes: quote-items.test.ts:340 · quote-text.test.ts:185 · e2e/quote-evidence.spec.ts:37
+AC2 arithmetic, EN and ES: quote-text.test.ts:197 :202 :212 :217 · e2e/quote-evidence.spec.ts:46-48
+AC3 cable cites its thickest line: quote-items.test.ts:357 :364 :373 :384 · e2e/quote-evidence.spec.ts:32
+component rung: n/a, the repo has no component test runner
+
+Mutants (applied, the two quote test files run, file restored): 10 applied, 10 killed
+- evidence keeps only the first line: 4 tests fail
+- cable cites every wiring line when ok / too thin / in parallel runs / of no readable size: 1 test fails each
+  (before QA the last three survived; quote-items.test.ts:364 :373 :384 were added for them)
+- two lines lose their brackets · one unit prints "1 ×" · Spanish surge word · Spanish "85 %" · no inverter
+  arithmetic on a pass: 1 to 2 tests fail each
+
+Edge cases: one unit, a line with no page, a line with no words, an item not mentioned, mixed depths: pinned.
+Stored data: n/a, item checks are computed from the stored reading on every load (quote-compare.ts:144).
+Low, not written: two lines sharing one source text show the same quote twice; a unit capacity past two
+decimals prints rounded (8.0384 kWh as 8.04 kWh).
+
+Screenshots: none from this session. Its guard-secrets hook refuses to link .env.test.local, so the app could
+not start on the test database here. The e2e spec saves evidence-<desktop|phone>-<en|es>.png into the CI
+run's playwright-results artifact.

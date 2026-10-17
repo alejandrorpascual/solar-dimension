@@ -146,6 +146,34 @@ export async function misreadQuoteLine(email: string, projectId: string, unitPri
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/** One battery line as a quote writes it: how many units, one unit's capacity, and the page and words it is on. */
+export interface BatteryLine { qty: number; kWh: number; page: number; text: string }
+
+/**
+ * Splits the battery line of every quote of a project into two, as a quote with two banks writes them. Each keeps half
+ * the line's amount, so the lines still add up to the quote's total. No sample quote has two battery lines in one system.
+ */
+export async function splitQuoteBattery(email: string, projectId: string, [first, second]: readonly [BatteryLine, BatteryLine]): Promise<void> {
+  await testDb()`
+    update quotes q set extraction = jsonb_set(q.extraction, '{lines}', (
+      select jsonb_agg(part.l order by e.n, part.k)
+      from jsonb_array_elements(q.extraction -> 'lines') with ordinality as e(l, n)
+      cross join lateral (
+        select 0 as k, case when e.l ->> 'kind' <> 'battery' then e.l else e.l || jsonb_build_object(
+          'qty', ${first.qty}::int, 'lineTotal', (e.l ->> 'lineTotal')::numeric / 2, 'description', ${first.text}::text,
+          'source', jsonb_build_object('page', ${first.page}::int, 'text', ${first.text}::text),
+          'specs', (e.l -> 'specs') || jsonb_build_object('kWh', ${first.kWh}::numeric)) end as l
+        union all
+        select 1, e.l || jsonb_build_object(
+          'qty', ${second.qty}::int, 'lineTotal', (e.l ->> 'lineTotal')::numeric / 2, 'description', ${second.text}::text,
+          'source', jsonb_build_object('page', ${second.page}::int, 'text', ${second.text}::text),
+          'specs', (e.l -> 'specs') || jsonb_build_object('kWh', ${second.kWh}::numeric))
+        where e.l ->> 'kind' = 'battery'
+      ) part
+    ))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
 /** The status and retries of every quote of a project, oldest first. */
 export async function quoteRetryStates(email: string, projectId: string): Promise<{ status: string; retries: number }[]> {
   const rows = await testDb()`

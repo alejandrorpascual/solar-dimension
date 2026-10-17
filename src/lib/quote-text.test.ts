@@ -7,9 +7,10 @@ import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId 
 import { checkItems, DEFAULT_MUSTS, type KitNeeds } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
+import type { QuoteLine } from './quote-schema'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import {
-  askText, coverageLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, misreadText, money, oversizeTip,
+  askText, coverageLines, evidenceLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, misreadText, money, oversizeTip,
   projectLine, questionText, ratioLabel, readTotalText, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
@@ -176,6 +177,61 @@ describe('itemText', () => {
   })
 })
 
+describe('evidence and arithmetic (AI-18)', () => {
+  /** A line as the quote writes it, on a given page. */
+  const said = (kind: QuoteLine['kind'], page: number | null, text: string, qty: number, specs: object = {}) =>
+    line(kind, 1, { qty, description: text, source: { page, text }, specs })
+  const judged = (lines: QuoteLine[], id: string) => checkItems(extraction(lines), KIT).find((c) => c.id === id)!
+  test('two battery lines show two evidence quotes, each with its page', () => {
+    const bank = judged([
+      said('battery', 1, 'Batería LiFePO4 5.12 kWh × 4', 4, { kWh: 5.12, chemistry: 'lifepo4' }),
+      said('battery', 2, 'Batería LiFePO4 2.4 kWh × 2', 2, { kWh: 2.4, chemistry: 'lifepo4' }),
+    ], 'battery')
+    expect(evidenceLines(en, bank)).toEqual(['“Batería LiFePO4 5.12 kWh × 4” · Page 1', '“Batería LiFePO4 2.4 kWh × 2” · Page 2'])
+    expect(evidenceLines(es, bank)).toEqual(['“Batería LiFePO4 5.12 kWh × 4” · Página 1', '“Batería LiFePO4 2.4 kWh × 2” · Página 2'])
+  })
+  test('a line with no page shows its words alone, and one with no words shows nothing', () => {
+    const labor = judged([said('labor', null, 'Mano de obra', 1), said('labor', 2, '', 1)], 'installation')
+    expect(evidenceLines(en, labor)).toEqual(['“Mano de obra”'])
+  })
+  test("a bank prints each line's units times one unit's capacity, times the depth of discharge", () => {
+    const solartec = checkItems(SAMPLE_QUOTES.solartec, KIT).find((c) => c.id === 'battery')!
+    expect(itemText(en, solartec, KIT, 'USD')).toEqual({ label: `${fmtKwh(8 * 5120 * 0.85, 'en')} usable`, detail: '8 × 5.12 kWh × 85% depth of discharge' })
+    expect(itemText(es, solartec, KIT, 'USD').detail).toBe('8 × 5.12 kWh × 85 % de descarga')
+  })
+  test('two battery lines at one depth add up inside brackets; one unit needs no "1 ×"', () => {
+    const two = judged([
+      said('battery', 1, 'Batería 5.12 kWh × 4', 4, { kWh: 5.12, chemistry: 'lifepo4' }),
+      said('battery', 1, 'Batería 2.4 kWh × 2', 2, { kWh: 2.4, chemistry: 'lifepo4' }),
+    ], 'battery')
+    expect(itemText(en, two, KIT, 'USD').detail).toBe('(4 × 5.12 kWh + 2 × 2.4 kWh) × 85% depth of discharge')
+    expect(itemText(es, two, KIT, 'USD').detail).toBe('(4 × 5.12 kWh + 2 × 2.4 kWh) × 85 % de descarga')
+    const one = judged([said('battery', 1, 'Batería 10 kWh', 1, { kWh: 10, chemistry: 'lifepo4' })], 'battery')
+    expect(itemText(en, one, KIT, 'USD').detail).toBe('10 kWh × 85% depth of discharge')
+  })
+  test('a bank that names no chemistry prints the depth it was judged at, in both languages', () => {
+    const assumed = judged([said('battery', 1, 'Batería 12 V 400 Ah', 4, { batteryVolts: 12, ah: 400 })], 'battery')
+    expect(itemText(en, assumed, KIT, 'USD').detail).toBe('4 × 4.8 kWh × 50%, chemistry not stated')
+    expect(itemText(es, assumed, KIT, 'USD').detail).toBe('4 × 4.8 kWh × 50 %, sin indicar la química')
+  })
+  test('an inverter that meets the kit prints its running and start-up watts, line by line', () => {
+    const solartec = checkItems(SAMPLE_QUOTES.solartec, KIT).find((c) => c.id === 'inverter')!
+    expect(itemText(en, solartec, KIT, 'USD')).toEqual({ label: '12.0 kW', detail: '12.0 kW running · 24.0 kW surge' })
+    expect(itemText(es, solartec, KIT, 'USD').detail).toBe('12.0 kW en marcha · 24.0 kW de arranque')
+    const pair = judged([said('inverter', 1, 'Inversor 5 kW × 2', 2, { watts: 5000, surgeWatts: 10000 })], 'inverter')
+    expect(itemText(en, pair, KIT, 'USD')).toEqual({ label: '10.0 kW', detail: '2 × 5,000 W running · 2 × 10.0 kW surge' })
+    const mixed = judged([
+      said('inverter', 1, 'Inversor 3 kW', 1, { watts: 3000, surgeWatts: 6000 }),
+      said('inverter', 1, 'Inversor 2 kW', 1, { watts: 2000, surgeWatts: 4000 }),
+    ], 'inverter')
+    expect(itemText(en, mixed, KIT, 'USD').detail).toBe('3,000 W + 2,000 W running · 6,000 W + 4,000 W surge')
+    expect(itemText(es, mixed, KIT, 'USD').detail).toBe('3,000 W + 2,000 W en marcha · 6,000 W + 4,000 W de arranque')
+  })
+  test('an item the quote does not mention shows no evidence', () => {
+    expect(evidenceLines(en, judged([said('labor', 1, 'Mano de obra', 1)], 'charger'))).toEqual([])
+  })
+})
+
 describe('solar panels', () => {
   const solar: KitNeeds = { ...KIT, arrayW: 4400 }
   const panels = (qty: number, panelWatts: number | null) => line('panel', 1, { qty, specs: { panelWatts } })
@@ -252,9 +308,9 @@ describe('items a quote mentions without enough to judge them', () => {
     })
     expect(itemText(es, range, KIT, 'USD').detail).toMatch(/^No indica la química: /)
     const solartecBattery = checkItems(SAMPLE_QUOTES.solartec, KIT).find((c) => c.id === 'battery')!
-    expect(itemText(en, solartecBattery, KIT, 'USD').detail).toBe(`${fmtKwh(8 * 5120, 'en')} × 85% depth of discharge`)
+    expect(itemText(en, solartecBattery, KIT, 'USD').detail).toBe('8 × 5.12 kWh × 85% depth of discharge')
     const assumed = judged([line('battery', 1, { qty: 4, specs: { batteryVolts: 12, ah: 400 } })], 'battery')
-    expect(itemText(en, assumed, KIT, 'USD').detail).toBe(`${fmtKwh(19200, 'en')} × 50%, chemistry not stated`)
+    expect(itemText(en, assumed, KIT, 'USD').detail).toBe('4 × 4.8 kWh × 50%, chemistry not stated')
   })
   test('a battery or an inverter line with no size is included, with its capacity or power to confirm', () => {
     expect(itemText(en, judged([line('battery', 1)], 'battery'), KIT, 'USD')).toEqual({ label: 'Included', detail: 'Capacity not stated' })
