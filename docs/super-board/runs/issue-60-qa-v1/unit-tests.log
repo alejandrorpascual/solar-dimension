@@ -1,0 +1,82 @@
+
+ RUN  v5.0.1 .
+
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > takes the first standard rating at 125% of the running current and keeps the gauge when it fits 1ms
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > steps the gauge up until the fuse is under the cable ampacity 0ms
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > one fuse per run; the bank is the weak link when it would only justify a smaller fuse 0ms
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > a bank that just covers the inverter is not flagged for the 125% fuse rule 0ms
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > a start-up over twice the rating, or over the rating for longer than the fuse holds, may blow it 0ms
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > a bank that can short above the interrupting rating is warned about 0ms
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > a fuse interrupts a fault up to its rating, the rating included 0ms
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > skips fuses not listed for the bank voltage, and uses the largest when none is big enough 0ms
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > with no fuse listed for the bank voltage it still picks one, and warns that it is not rated for it 0ms
+ ✓ src/lib/sizing/fuse.test.ts > pickFuse > a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > the gauges are the 310.16 sizes, smallest first 1ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 8 AWG copper carries 50 A in the 75 °C column and 55 A in the 90 °C column 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 6 AWG copper carries 65 A in the 75 °C column and 75 A in the 90 °C column 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 4 AWG copper carries 85 A in the 75 °C column and 95 A in the 90 °C column 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 2 AWG copper carries 115 A in the 75 °C column and 130 A in the 90 °C column 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 1 AWG copper carries 130 A in the 75 °C column and 145 A in the 90 °C column 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 1/0 AWG copper carries 150 A in the 75 °C column and 170 A in the 90 °C column 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 2/0 AWG copper carries 175 A in the 75 °C column and 195 A in the 90 °C column 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 3/0 AWG copper carries 200 A in the 75 °C column and 225 A in the 90 °C column 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 4/0 AWG copper carries 230 A in the 75 °C column and 260 A in the 90 °C column 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from -10 to 10 °C takes 1.2 on 75 °C cable and 1.15 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 11 to 15 °C takes 1.15 on 75 °C cable and 1.12 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 16 to 20 °C takes 1.11 on 75 °C cable and 1.08 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 21 to 25 °C takes 1.05 on 75 °C cable and 1.04 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 26 to 30 °C takes 1 on 75 °C cable and 1 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 31 to 35 °C takes 0.94 on 75 °C cable and 0.96 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 36 to 40 °C takes 0.88 on 75 °C cable and 0.91 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 41 to 45 °C takes 0.82 on 75 °C cable and 0.87 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 46 to 50 °C takes 0.75 on 75 °C cable and 0.82 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 51 to 55 °C takes 0.67 on 75 °C cable and 0.76 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 56 to 60 °C takes 0.58 on 75 °C cable and 0.71 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 61 to 65 °C takes 0.47 on 75 °C cable and 0.65 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 66 to 70 °C takes 0.33 on 75 °C cable and 0.58 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 71 to 75 °C takes 0 on 75 °C cable and 0.5 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 76 to 80 °C takes 0 on 75 °C cable and 0.41 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > air from 81 to 85 °C takes 0 on 75 °C cable and 0.29 on 90 °C cable 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 2 to 3 current-carrying conductors together take 1 1ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 4 to 6 current-carrying conductors together take 0.8 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 7 to 9 current-carrying conductors together take 0.7 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 10 to 20 current-carrying conductors together take 0.5 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 21 to 30 current-carrying conductors together take 0.45 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 31 to 40 current-carrying conductors together take 0.4 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > 41 to 100 current-carrying conductors together take 0.35 0ms
+ ✓ src/lib/nec.test.ts > the NEC tables, row by row > the tables hold no row the code book does not 0ms
+ ✓ src/lib/nec.test.ts > ambientFactor > is 1 at the 30 °C table base and drops just above it 0ms
+ ✓ src/lib/nec.test.ts > ambientFactor > rises below 30 °C and reads the last row up to 85 °C 0ms
+ ✓ src/lib/nec.test.ts > ambientFactor > is 0 where the insulation cannot be used: 75 °C cable above 70 °C, anything above 85 °C 0ms
+ ✓ src/lib/nec.test.ts > ambientFactor > rows are ordered by temperature with factors falling 0ms
+ ✓ src/lib/nec.test.ts > bundleFactor > is 1 for three or fewer conductors and steps down from four 0ms
+ ✓ src/lib/nec.test.ts > bundleFactor > rows are ordered by conductor count 0ms
+ ✓ src/lib/nec.test.ts > ampsAt > reads the column asked for, and 90 °C is never below 75 °C 0ms
+ ✓ src/lib/sizing-matrix.test.ts > every stock kit at the default cable conditions > is sized for a 1.5 m run in 30 °C open air on 90 °C cable 13ms
+ ✓ src/lib/sizing-matrix.test.ts > every stock kit at the default cable conditions > gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less 1ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > a sound kit passes all six checks, each with a line that names its figures 18ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > names come from the dictionary in both languages 1ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > a failing check shows its warnings instead of the pass line, and lists every starter 1ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > parallel strings report the maker limit, and the bundled cable says so 0ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > with several runs the cable line reads per run 0ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > an inverter under the running load, or short of its headroom, fails the inverter size check with its own wording in both languages 2ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > an inverter short of the load and of the start-up at once lists both, the running load first 1ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > a start-up the inverter cannot hold says why, in both languages: above its surge rating, or within it and too long 1ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > an inverter sold for another voltage is a note beside the checks, and the inverter size check still passes 1ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > inverters in parallel pass as a set: the lines name how many, what they give together and what each one draws 1ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > a set that still falls short fails the inverter check and is named as a set, in both languages 3ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > a start-up between the two surge windows is too long up to the full surge rating, and names what the longer rating holds 1ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > a cable row that cannot carry its design current fails the cable check and names the row, in both languages 1ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > the short-cable line offers only what would work: no higher voltage at 48 V, no cooler spot in a cool room 2ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > with several runs the passing cable line states one run's design current, rounded once 0ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages 0ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > nothing to check for an empty kit 0ms
+ ✓ src/lib/kit-checks.test.ts > kitChecks > every warning code the checks own is a real code, and no code is owned twice 0ms
+ ✓ src/lib/kit-checks.test.ts > uncheckedWarnings and keys > general notes stay out of the checks and keep their own text 0ms
+ ✓ src/lib/kit-checks.test.ts > uncheckedWarnings and keys > warningKey tells apart two warnings with the same code 0ms
+
+ Test Files  4 passed (4)
+      Tests  73 passed (73)
+   Start at  12:13:14
+   Duration  325ms (transform 61%, import 27%, tests 11%, worker 2%)
+

@@ -63,4 +63,20 @@ describe('pickFuse', () => {
     expect(pickFuse(ctx({ fuses: low, volts: 12 })).fuse).toMatchObject({ a: 100, class: 'ANL' })
     expect(pickFuse(ctx({ perRunA: 2000, surgePerRunA: 2000, gaugeIndex: 8 })).fuse.a).toBe(400)
   })
+
+  test('with no fuse listed for the bank voltage it still picks one, and warns that it is not rated for it', () => {
+    // A 48 V bank rises on charge, so its fuse needs 48 × 1.25 = 60 V DC; a 32 V ANL fuse is all the list has.
+    const only32 = [{ a: 100, class: 'ANL' as const, aicA: 6000, maxVdc: 32 }]
+    const r = pickFuse(ctx({ fuses: only32, volts: 48 }))
+    expect(r.fuse).toMatchObject({ a: 100, maxVdc: 32 })
+    expect(r.warnings).toEqual([{ code: 'fuseVoltage', params: { fuseA: 100, maxVdc: 32, volts: 48, needVdc: 60 } }])
+    // The same fuse on a 12 V bank is rated for the 15 V it needs.
+    expect(pickFuse(ctx({ fuses: only32, volts: 12 })).warnings).toEqual([])
+  })
+
+  test('a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not', () => {
+    const listedFor = (maxVdc: number) => [{ a: 100, class: 'T' as const, aicA: 20000, maxVdc }]
+    expect(pickFuse(ctx({ fuses: listedFor(60), volts: 48 })).warnings).toEqual([])
+    expect(pickFuse(ctx({ fuses: listedFor(59), volts: 48 })).warnings.map((w) => w.code)).toEqual(['fuseVoltage'])
+  })
 })

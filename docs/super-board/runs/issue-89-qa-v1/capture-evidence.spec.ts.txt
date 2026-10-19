@@ -1,0 +1,61 @@
+// QA evidence capture for issue #89: not part of the suite, never committed. QA_PHASE=before|after, QA_SHOTS_DIR=<dir>.
+import { mkdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { expect, test, type Page } from '@playwright/test'
+import { showDownload } from './projects'
+
+const PHASE = process.env.QA_PHASE ?? 'after'
+const DIR = process.env.QA_SHOTS_DIR ?? 'qa-shots'
+mkdirSync(DIR, { recursive: true })
+
+const VIEWPORTS = [
+  { name: 'desktop', width: 1920, height: 1080, crop: true },
+  { name: 'tablet', width: 1024, height: 768, crop: true },
+  { name: 'mobile', width: 375, height: 667, crop: false },
+] as const
+
+/** The failed message and the button under it, cut out of the page with some air around them. */
+async function cropAround(page: Page, path: string) {
+  const parts = [page.locator('.dl__actions:visible'), page.locator('.dl__error:visible, .dl__progress:visible')]
+  const boxes = (await Promise.all(parts.map((p) => p.first().boundingBox()))).filter((b): b is NonNullable<typeof b> => b !== null)
+  const x = Math.max(0, Math.min(...boxes.map((b) => b.x)) - 16)
+  const y = Math.max(0, Math.min(...boxes.map((b) => b.y)) - 16)
+  const right = Math.max(...boxes.map((b) => b.x + b.width)) + 16
+  const bottom = Math.max(...boxes.map((b) => b.y + b.height)) + 16
+  await page.screenshot({ path, clip: { x, y, width: right - x, height: bottom - y } })
+}
+
+async function stuckCapture(page: Page, kind: 'pdf' | 'png') {
+  await page.clock.install()
+  if (kind === 'pdf') await page.route(/jspdf.*\.js/, () => {})
+  else await page.addInitScript(() => { HTMLCanvasElement.prototype.toBlob = () => { document.documentElement.dataset.held = 'true' } })
+  await page.goto('/?step=4')
+  await showDownload(page)
+  await page.getByRole('radio', { name: kind === 'pdf' ? /^Spec sheet \(PDF\)/ : /^Summary image \(PNG\)/ }).check()
+  const started = kind === 'pdf' ? page.waitForRequest(/jspdf.*\.js/) : page.waitForFunction(() => document.documentElement.dataset.held === 'true')
+  await page.getByRole('button', { name: kind === 'pdf' ? 'Download PDF' : 'Download image' }).click()
+  await expect(page.getByRole('progressbar', { name: 'Preparing the file…' })).toBeVisible()
+  await started
+  await page.clock.fastForward(30_000)
+}
+
+for (const vp of VIEWPORTS) {
+  test(`${PHASE} · PDF stuck · ${vp.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: vp.width, height: vp.height })
+    await stuckCapture(page, 'pdf')
+    if (PHASE === 'after') await expect(page.getByRole('alert')).toHaveText('Could not create the file. Try again.')
+    else await page.waitForTimeout(1500) // before the fix nothing more can happen: the page keeps saying "Preparing the file…"
+    await page.locator('.dl__actions:visible').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: join(DIR, `${PHASE}-${vp.name}.png`) })
+    if (vp.crop) await cropAround(page, join(DIR, `${PHASE}-${vp.name}-crop.png`))
+  })
+}
+
+test(`${PHASE} · PNG stuck · mobile`, async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 })
+  await stuckCapture(page, 'png')
+  if (PHASE === 'after') await expect(page.getByRole('alert')).toHaveText('Could not create the file. Try again.')
+  else await page.waitForTimeout(1500)
+  await page.locator('.dl__actions:visible').scrollIntoViewIfNeeded()
+  await page.screenshot({ path: join(DIR, `${PHASE}-png-mobile.png`) })
+})

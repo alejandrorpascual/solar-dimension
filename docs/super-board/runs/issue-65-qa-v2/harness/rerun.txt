@@ -1,0 +1,13 @@
+Harness for the screenshots and sheet page counts in this folder: the app's own KitSummary and KitSheet, rendered
+with the app's built CSS and Google Fonts in headless Chromium. No server, no database, no env file.
+"before" = src at staging 6eb9329 (src identical to origin/staging 95af2e0); "after" = this branch.
+
+From a checkout of this branch, after npm ci and npm run build (the build makes .output/public/_build/*.css):
+  H=docs/super-board/runs/issue-65-qa-v2/harness
+  mkdir -p /tmp/sd-staging && git archive 6eb9329 src | tar -x -C /tmp/sd-staging
+  node $H/build.mjs "$PWD" $H/out/branch.js
+  node $H/build.mjs "$PWD" $H/out/staging.js /tmp/sd-staging/src
+  node $H/capture.mjs "$PWD" <new output dir>
+
+Page counts come from the app's printPages() (src/client/export-file.ts), the same cut renderPdf() uses.
+A screenshot of a sheet marks each A4 page edge with a red dashed line.

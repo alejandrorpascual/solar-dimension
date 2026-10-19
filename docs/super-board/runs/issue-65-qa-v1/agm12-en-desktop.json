@@ -1,0 +1,21 @@
+{
+  "checks": [
+    "Inverter size240 W running on a 1,000 W inverter · 1,290 W for 3 s, within its assumed 2,000 W surge rating240 W running + 1,050 W (Refrigerator) starting",
+    "Battery continuous currentBank gives an assumed 120 A continuous; the inverter draws up to 93 A",
+    "Battery peak currentBank peak of an assumed 400 A covers the 119 A start-up for 3 s",
+    "Parallel strings2 in parallel, within the assumed limit of 4",
+    "Fuse125 A class T: under the cable's 130 A, 20 kA interrupting, start-up 119 A within what it holds",
+    "Cable1 AWG carries 130 A after derating (30 °C) for a 116 A design current · 1.2% drop at start-up"
+  ],
+  "rows": [
+    "PartSpecificationQuantity",
+    "Inverter1,000 W continuous, not VA, pure sine, 12 V DC input2,000 W surge · covers 240 W running, 1,290 W peak×1",
+    "Batteries12 V 200 Ah AGM1 in series × 2 in parallel (1S2P) · 4.8 kWh bank, 2.4 kWh usable · 120 A continuous, 400 A peak from the bank (assumed ratings) · Same model and age in every string · Equal cable lengths to the bus bars · A fuse on each string×2",
+    "Main cable1 AWG (42.4 mm²) copper, 1.5 m eachBattery to inverter · 116 A design current · 130 A after derating · 1.2% drop at start-up×2",
+    "String leads6 AWG (13.3 mm²) copper, 30 cm eachA positive and a negative from each string to the bus bars (bus bars not listed) · 58 A design current · 65 A after derating×4",
+    "Fuse125 A class TInline on the positive lead, as close to the bank as possible · 20 kA interrupting rating×1",
+    "String fuses60 A class T, one per parallel stringOn each string's positive lead, so a shorted string drops out alone×2"
+  ],
+  "fine": "Assumes 90% inverter efficiency, 25% inverter headroom, 50% depth of discharge, 1,100 W per ton of cooling, one motor starting at a time, copper cable with 90 °C insulation at 30 °C. NEC ampacity tables; verify against local code. Inverter sizes are continuous watts, not VA, at room temperature; the 25% headroom covers power factor and heat. Assumed ratings, not a maker's datasheet: each 12 V 200 Ah AGM battery gives 60 A continuous and 200 A peak for 5 s, at most 4 in parallel, and 12 A per Ah into a short; each 1,000 W inverter surges to 2,000 W for 3 s.",
+  "horizontalOverflowPx": 0
+}

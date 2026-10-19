@@ -1,0 +1,13 @@
+src/client/export-file.test.ts against hand-made breakages of src/client/export-file.ts (each restored after the run)
+
+mutant                                   result
+REVOKE_AFTER_MS 40_000 -> 0 (old code)   killed · 'keeps the link alive for 40 s after the click'
+REVOKE_AFTER_MS 40_000 -> 39_000         killed · same test
+REVOKE_AFTER_MS 40_000 -> 41_000         killed · same test
+CAPTURE_TIMEOUT_MS 30_000 -> 29_000      killed · 'gives up on a capture still running after 30 s'
+CAPTURE_TIMEOUT_MS 30_000 -> 31_000      killed · 'gives up on ...' and 'drops a file that arrives after the limit'
+drop .finally(clearTimeout)              killed · 'leaves no timer running once the capture is done'
+Promise.race([capture, expired]) -> Promise.race([capture])   killed · 'gives up on ...' and 'drops a file ...'
+
+e2e/download.spec.ts (new PDF and PNG stuck-capture tests) with the call-site and helper reverted to origin/staging:
+  both red: the alert 'Could not create the file. Try again.' never appears.

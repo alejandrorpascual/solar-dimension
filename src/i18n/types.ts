@@ -86,7 +86,7 @@ export type UiKey =
   | 'checkBatteryPeak' | 'checkBatteryPeakOk' | 'checkParallel' | 'checkParallelOk' | 'checkParallelSingle'
   | 'checkFuse' | 'checkFuseOk' | 'checkCable' | 'checkCableOk'
   | 'fuseAicNote' | 'stringFuseSpec' | 'stringFuseNote' | 'batteriesCurrentNote'
-  | 'fineStartsOne' | 'fineStartsTwo' | 'fineStartsAll' | 'fineBundled'
+  | 'fineStartsOne' | 'fineStartsTwo' | 'fineStartsAll' | 'fineBundled' | 'fineRatings'
 
 export type QuoteKey = keyof typeof quotesEn
 export type RequesterKey = keyof typeof requesterEn

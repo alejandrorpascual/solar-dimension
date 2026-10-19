@@ -32,7 +32,8 @@ test('the kit downloads as a CSV parts list and a PDF spec sheet', PHONE, async 
   expect(pdf.suggestedFilename()).toBe('Home-kit.pdf')
   const bytes = await readFile((await pdf.path())!)
   expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-')
-  expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(1)
+  // The last check prints on page two: the fine print's assumed ratings take the room page one had left.
+  expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
@@ -76,6 +77,44 @@ test('export progress is visible while the file is being prepared', async ({ pag
   await expect(page.getByRole('status').filter({ hasText: 'File ready. Download started.' })).toBeVisible()
 })
 
+/**
+ * A capture that never finishes: the PDF one waits on its library, the PNG one on the canvas encoding. `underway`
+ * settles once the capture has started, which is also once its 30 s limit is counting, so the test can run the clock out.
+ */
+const STUCK_CAPTURES = [
+  {
+    file: 'PDF', format: /^Spec sheet \(PDF\)/, button: 'Download PDF',
+    hold: (page: Page) => page.route(/jspdf.*\.js/, () => {}),
+    underway: (page: Page) => page.waitForRequest(/jspdf.*\.js/),
+  },
+  {
+    file: 'PNG', format: /^Summary image \(PNG\)/, button: 'Download image',
+    hold: (page: Page) => page.addInitScript(() => { HTMLCanvasElement.prototype.toBlob = () => { document.documentElement.dataset.held = 'true' } }),
+    underway: (page: Page) => page.waitForFunction(() => document.documentElement.dataset.held === 'true'),
+  },
+] as const
+
+for (const { file, format, button, hold, underway } of STUCK_CAPTURES) {
+  test(`a ${file} capture still running after 30 s ends in the failed message and saves no file`, async ({ page }) => {
+    await page.clock.install()
+    await hold(page)
+    await page.goto('/?step=4')
+    await showDownload(page)
+    await page.getByRole('radio', { name: format }).check()
+    const saved: Download[] = []
+    page.on('download', (download) => saved.push(download))
+    const started = underway(page)
+    await page.getByRole('button', { name: button }).click()
+    await expect(page.getByRole('progressbar', { name: 'Preparing the file…' })).toBeVisible()
+    await started
+    await page.clock.fastForward(30_000)
+    await expect(page.getByRole('alert')).toHaveText('Could not create the file. Try again.')
+    await expect(page.getByRole('progressbar')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: button })).toBeEnabled()
+    expect(saved).toHaveLength(0)
+  })
+}
+
 const pdfPageCount = async (file: Download) =>
   (await readFile((await file.path())!)).toString('latin1').match(/\/Type\s*\/Page\b/g)?.length ?? 0
 
@@ -87,7 +126,11 @@ test('the parts list comes first, and the load schedule gets a PDF page of its o
   expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(2)
 
   await page.getByRole('checkbox', { name: 'Appliance list' }).uncheck()
-  expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(1)
+  await expect(sheet.locator('h3')).toHaveText(['Parts list', 'Checks'])
+  // With no load schedule there is no page break, but the last check still prints on page two. Page one had 10.8 px to
+  // spare before the fine print listed the assumed battery and inverter ratings (three lines, 50 px). The same sheet in
+  // Spanish already printed its last check on page two before that.
+  expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(2)
 })
 
 test('the preview opens larger, page by page as the PDF prints, or as one image for PNG', PHONE, async ({ page }) => {

@@ -1,0 +1,23 @@
+{
+  "kits": 912,
+  "perVolt": {
+    "12": 168,
+    "24": 216,
+    "36": 168,
+    "48": 360
+  },
+  "sets": 24,
+  "voltages": [
+    12,
+    24,
+    36,
+    48
+  ],
+  "maxDropPct": 0.9,
+  "minFuseOverRun": 1.26,
+  "fuseAboveCableWarned": 192,
+  "fuseOverPrintedAmpacity": 21,
+  "overCableMainRuns": 21,
+  "overCableAllCarryTheirOwnWarning": true,
+  "kitsWarnedOnlyByStringLeads": 171
+}
