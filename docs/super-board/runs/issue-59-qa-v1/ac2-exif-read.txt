@@ -1,0 +1,11 @@
+## ac2-small-640x480-orientation-1-input.jpg
+640x480 orientation=TopLeft
+exif:GPSInfo=38
+exif:GPSLatitude=10/1,28/1,50/1
+exif:GPSLatitudeRef=N
+exif:GPSLongitude=66/1,54/1,12/1
+exif:GPSLongitudeRef=W
+exif:Orientation=1
+## ac2-small-640x480-orientation-1-output.jpg
+640x480 orientation=Undefined
+  (no EXIF tags)
