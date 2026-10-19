@@ -53,7 +53,7 @@ export const es: Dictionary = {
     inverterParallelNote: '{count} en paralelo trabajan como un inversor de {total} y toman hasta {amps} A de las barras colectoras',
     batteriesNote: '{series} en serie × {parallel} en paralelo ({config}) · banco de {bank}, {usable} utilizables',
     mainCableSpec: '{gauge} ({mm2} mm²) de cobre, {length} m cada uno', mainCableNote: 'De batería a inversor · {amps} A de corriente de diseño{perRun} · {ampacity} A tras la corrección · {runDrop}% de caída, {drop}% al arrancar',
-    mainCableSetNote: 'Mismo largo y terminales idénticos',
+    mainCableParallelNote: 'Mismo largo y terminales idénticos',
     interconnectsSpec: 'Puentes {gauge}, {cm} cm cada uno',
     seriesLinksNote: 'Entre baterías en serie · {amps} A de corriente de diseño · {ampacity} A tras la corrección',
     seriesLinksSharedNote: 'Entre baterías en serie · {each} puentes idénticos lado a lado en cada enlace · {amps} A de corriente de diseño cada uno · {ampacity} A tras la corrección',

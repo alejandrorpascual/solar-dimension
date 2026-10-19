@@ -53,7 +53,7 @@ export const en: Dictionary = {
     inverterParallelNote: '{count} in parallel work as one {total} inverter, drawing up to {amps} A from the bus bars',
     batteriesNote: '{series} in series × {parallel} in parallel ({config}) · {bank} bank, {usable} usable',
     mainCableSpec: '{gauge} ({mm2} mm²) copper, {length} m each', mainCableNote: 'Battery to inverter · {amps} A design current{perRun} · {ampacity} A after derating · {runDrop}% drop, {drop}% at start-up',
-    mainCableSetNote: 'Equal length, identical lugs',
+    mainCableParallelNote: 'Equal length, identical lugs',
     interconnectsSpec: '{gauge} jumpers, {cm} cm each',
     seriesLinksNote: 'Between batteries in series · {amps} A design current · {ampacity} A after derating',
     seriesLinksSharedNote: 'Between batteries in series · {each} identical jumpers side by side at every link · {amps} A design current each · {ampacity} A after derating',

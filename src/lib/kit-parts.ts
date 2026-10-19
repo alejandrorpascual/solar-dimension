@@ -109,7 +109,7 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
       note: joinNotes([
         tr(t, 'mainCableNote', { amps: fmtInt(c.designPerRunA, locale), perRun, ampacity: fmtInt(c.ampacity, locale), runDrop: c.dropPct, drop: c.startupDropPct }),
         // More than one run to an inverter: conductors in parallel, which share the current only when alike.
-        c.runs > r.inverter.count ? t.ui.mainCableSetNote : '',
+        c.runs > r.inverter.count ? t.ui.mainCableParallelNote : '',
       ]),
       qty: String(c.mainCount),
     },
