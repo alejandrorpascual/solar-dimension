@@ -15,8 +15,9 @@ test('the roof area fills the planner with the recommended panels, taps override
   await page.goto('/?step=3')
   await page.getByRole('button', { name: /^Yes, add panels/ }).click()
   const planner = page.getByRole('group', { name: /Roof planner/ })
-  // Home: 48 V 200 Ah = 9.6 kWh bank, 4.8 h → 5 panels; 40 m² holds 13, and 12 wire on as few controllers as 13 need.
+  // Home: 48 V 200 Ah = 9.6 kWh bank, 4.8 h → 5 panels; 40 m² holds 13, and 12 wire on as few controllers as 13 need: the roof line names the 12.
   await expect(planner.getByRole('button')).toHaveCount(12)
+  await expect(page.getByText('Fits 12 panels with walkways.')).toBeVisible()
   await expect(planner.getByRole('button', { pressed: true })).toHaveCount(5)
   await expect(page.getByText('Recommended · refills the bank in a day')).toBeVisible()
   await expect(page.getByText(/^5 panels · 2\.8 kW$/)).toBeVisible()

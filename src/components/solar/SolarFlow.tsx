@@ -49,7 +49,7 @@ export function SolarFlow({ result: r }: Props) {
           <div className="note-box"><strong>{t.ui.cloudyDay}</strong><br />{s.panels === 0 ? '—' : tr(t, 'cloudyNote', { wh: fmtKwh(s.cloudyWh, locale), pct: Math.round(s.coverRatio * PERCENT * SOLAR.CLOUDY_SHARE) })}</div>
         </div>
       </div>
-      <p className="fine muted">{t.ui.solarAssumptions}</p>
+      {s.panels > 0 && <p className="fine muted">{t.ui.solarAssumptions}</p>}
     </div>
   )
 }

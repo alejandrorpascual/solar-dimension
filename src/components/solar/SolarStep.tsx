@@ -28,7 +28,6 @@ export function SolarStep({ store, commit, project, result }: Props) {
         <div className="solar__cols">
           <RoofPlanner
             solar={result.solar}
-            volts={result.volts}
             onRoof={(m2) => commit(withSolarRoof(store, id, m2))}
             onPanels={(n) => commit(withSolarPanels(store, id, n))}
             onSun={(h) => commit(withSolarSun(store, id, h))}

@@ -53,8 +53,9 @@ export interface SolarInput {
 export interface SolarPick {
   roofM2: number
   sunHours: number
+  volts: Voltage
   fit: number
-  /** The most panels at or under the fit that wire: one planner tile each, and what the roof limit compares. */
+  /** The most panels at or under the fit that wire: one planner tile each, the count the roof line names, and what the roof limit compares. */
   wiredFit: number
   recommended: number
   panels: number
@@ -200,7 +201,7 @@ export function sizeSolar(input: SolarInput): SolarPick | null {
   const electrical = sizeElectrical(panels, input.volts)
 
   return {
-    roofM2, sunHours, fit, wiredFit, recommended, panels,
+    roofM2, sunHours, volts: input.volts, fit, wiredFit, recommended, panels,
     isRecommended: panels === recommended,
     isRoofLimited: wiredFit < need,
     isTooShort: asked > 0 && panels === 0,
