@@ -3,7 +3,7 @@ import { useLocale } from '../../hooks/useLocale'
 import { panelCount, tr } from '../../i18n'
 import { fmtDecimal, fmtKw } from '../../i18n/format'
 import type { Voltage } from '../../lib/catalog'
-import { panelsBelow, SOLAR, type SolarPick } from '../../lib/solar'
+import { nextWirable, SOLAR, type SolarPick } from '../../lib/solar'
 
 interface Props {
   solar: SolarPick
@@ -13,12 +13,12 @@ interface Props {
   onSun: (hours: number) => void
 }
 
-/** Roof area in, tiles out: one tile per panel the roof holds, the recommended ones pre-filled, tap to override. */
+/** Roof area in, tiles out: one tile per panel the roof can wire, the recommended ones pre-filled, tap to override. */
 export function RoofPlanner({ solar: s, volts, onRoof, onPanels, onSun }: Props) {
   const { t, locale } = useLocale()
   const roofId = useId()
   const sunId = useId()
-  const tiles = Array.from({ length: s.fit }, (_, i) => i)
+  const tiles = Array.from({ length: s.wiredFit }, (_, i) => i)
   return (
     <div className="planner">
       <div className="planner__roof">
@@ -44,7 +44,7 @@ export function RoofPlanner({ solar: s, volts, onRoof, onPanels, onSun }: Props)
           const on = i < s.panels
           return (
             <button key={i} type="button" className={`tile${on ? ' tile--on' : ''}`} aria-pressed={on}
-              aria-label={tr(t, on ? 'removePanel' : 'addPanel', { n: i + 1 })} onClick={() => onPanels(on ? panelsBelow(i + 1, volts) : i + 1)} />
+              aria-label={tr(t, on ? 'removePanel' : 'addPanel', { n: i + 1 })} onClick={() => onPanels(on ? nextWirable(i + 1, -1, volts) : nextWirable(i, 1, volts))} />
           )
         })}
       </div>

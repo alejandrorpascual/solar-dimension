@@ -201,8 +201,7 @@ describe('battery unit choice', () => {
 
   test('a 48 V roof that holds one panel lists no panels and says the string is too short', () => {
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 5, panels: null, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
-    expect(r.solar?.panels).toBe(0)
-    expect(r.solar?.dailyWh).toBe(0)
+    expect([r.solar?.panels, r.solar?.dailyWh]).toEqual([0, 0])
     expect(r.warnings).toContainEqual({ code: 'stringTooShort', params: { volts: 48, count: 2, fit: 1 } })
     // No "it still refills over more days": with no panels it does not.
     expect(r.warnings.some((w) => w.code === 'roofLimited')).toBe(false)
@@ -210,18 +209,14 @@ describe('battery unit choice', () => {
 
   test('a 24 V roof that holds one panel keeps it and warns only that the roof is small', () => {
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 24, chemistry: 'lifepo4', solar: { roofM2: 5, panels: null, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
-    expect(r.solar?.panels).toBe(1)
-    expect(r.solar?.dailyWh).toBe(1980)
-    expect(r.warnings.some((w) => w.code === 'stringTooShort')).toBe(false)
-    expect(r.warnings.some((w) => w.code === 'roofLimited')).toBe(true)
+    expect([r.solar?.panels, r.solar?.dailyWh]).toEqual([1, 1980])
+    expect(r.warnings.map((w) => w.code).filter((c) => c === 'stringTooShort' || c === 'roofLimited')).toEqual(['roofLimited'])
   })
 
   test('a 48 V roof with every panel tapped off is not called too short', () => {
     // Removing panel 2 of 2 at 48 V asks for 0: the roof holds 13, so the string is not the reason there are none.
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: 0, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
-    expect(r.solar?.panels).toBe(0)
-    expect(r.solar?.isTooShort).toBe(false)
-    expect(r.warnings.some((w) => w.code === 'stringTooShort')).toBe(false)
+    expect([r.solar?.panels, r.solar?.isTooShort, r.warnings.some((w) => w.code === 'stringTooShort')]).toEqual([0, false, false])
   })
 
   test('an empty project with panels sizes nothing and warns nothing', () => {

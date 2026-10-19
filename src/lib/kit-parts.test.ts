@@ -223,7 +223,7 @@ describe('solar rows on every bank voltage and roof', () => {
             expect(rows.map((p) => p.id), at).toEqual(['solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'])
             expect(rows[0]!.qty, at).toBe(String(s.strings * s.perString))
             expect(rows[0]!.note, at).toContain(s.strings === 1 ? `1 string of ${s.perString} in series` : `${s.strings} strings of ${s.perString} in series`)
-            expect(tooShort, at).toEqual([])
+            expect([tooShort, r.warnings.find((w) => w.code === 'roofLimited')?.params.fit], at).toEqual([[], s.isRoofLimited ? s.wiredFit : undefined])
           } else {
             expect([rows.length, s.dailyWh], at).toEqual([0, 0])
             expect(tooShort, at).toEqual([{ code: 'stringTooShort', params: { volts, count: SHORTEST[volts], fit: s.fit } }])

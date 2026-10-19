@@ -71,7 +71,7 @@ const toOption = (c: BankCandidate, ctx: RuntimeContext, autoId: string | undefi
 /** A roof too small for one string that charges says so; otherwise a roof short of a day's refill says that. */
 function solarWarnings(solar: SolarPick, bankWh: number, volts: Voltage): Warning[] {
   if (solar.isTooShort) return [{ code: 'stringTooShort', params: { volts, count: minSeries(volts), fit: solar.fit } }]
-  return solar.isRoofLimited ? [{ code: 'roofLimited', params: { fit: solar.fit, need: panelsToRefill(bankWh, solar.sunHours) } }] : []
+  return solar.isRoofLimited ? [{ code: 'roofLimited', params: { fit: solar.wiredFit, need: panelsToRefill(bankWh, solar.sunHours) } }] : []
 }
 
 /** True when the kit has a solar array worth showing: panels chosen and at least one appliance. */
