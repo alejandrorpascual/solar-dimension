@@ -209,6 +209,14 @@ describe('evidence and arithmetic (AI-18)', () => {
     const labor = judged([said('labor', null, 'Mano de obra', 1), said('labor', 2, '', 1)], 'installation')
     expect(evidenceLines(en, labor)).toEqual(['“Mano de obra”'])
   })
+  test('two lines read from one quote row show its quote once', () => {
+    const row = 'Batería LiFePO4 5.12 kWh × 4 y 2.4 kWh × 2'
+    const bank = judged([
+      said('battery', 1, row, 4, { kWh: 5.12, chemistry: 'lifepo4' }),
+      said('battery', 1, row, 2, { kWh: 2.4, chemistry: 'lifepo4' }),
+    ], 'battery')
+    expect(evidenceLines(en, bank)).toEqual([`“${row}” · Page 1`])
+  })
   test("a bank prints each line's units times one unit's capacity, times the depth of discharge", () => {
     const solartec = checkItems(SAMPLE_QUOTES.solartec, KIT).find((c) => c.id === 'battery')!
     expect(itemText(en, solartec, KIT, 'USD')).toEqual({ label: `${fmtKwh(8 * 5120 * 0.85, 'en')} usable`, detail: '8 × 5.12 kWh × 85% depth of discharge' })

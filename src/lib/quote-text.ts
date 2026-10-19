@@ -238,9 +238,9 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
   }
 }
 
-/** Each line a check read, in the quote's own words with its page: "“Batería LiFePO4 5.12 kWh × 8” · Page 1". */
+/** Each line a check read, in the quote's own words with its page: "“Batería LiFePO4 5.12 kWh × 8” · Page 1". Lines read from one quote row show it once. */
 export function evidenceLines(t: Dictionary, c: ItemCheck): string[] {
-  return c.sources.filter((s) => s.text).map((s) => (s.page ? `“${s.text}” · ${trq(t, 'evidence', { page: s.page })}` : `“${s.text}”`))
+  return [...new Set(c.sources.filter((s) => s.text).map((s) => (s.page ? `“${s.text}” · ${trq(t, 'evidence', { page: s.page })}` : `“${s.text}”`)))]
 }
 
 /** Summed lines as the quote counts them: "2 × 5,000 W + 3,000 W", one unit without its "1 ×". */

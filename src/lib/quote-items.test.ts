@@ -347,6 +347,17 @@ describe('evidence (AI-18)', () => {
       { page: 2, text: 'Batería LiFePO4 2.4 kWh × 2' },
     ])
   })
+  test('a bank left to confirm by a line with no capacity cites that line too', () => {
+    const x = extraction([said('battery', 1, 'Batería LiFePO4 2.4 kWh', 1, { kWh: 2.4, chemistry: 'lifepo4' }), said('battery', 2, 'Banco de baterías', 2, {})])
+    expect(item(x, 'battery')).toMatchObject({ status: 'unknown', facts: { capacityPartial: true } })
+    expect(item(x, 'battery').sources.map((s) => s.text)).toEqual(['Batería LiFePO4 2.4 kWh', 'Banco de baterías'])
+  })
+  test('panels left to confirm by a line with no wattage cite that line too', () => {
+    const x = extraction([said('panel', 1, 'Panel 550 W × 6', 6, { panelWatts: 550 }), said('panel', 2, 'Paneles adicionales', 2, {})])
+    const panels = checkItems(x, { ...KIT, arrayW: 4400 }).find((c) => c.id === 'panels')!
+    expect(panels).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+    expect(panels.sources.map((s) => s.text)).toEqual(['Panel 550 W × 6', 'Paneles adicionales'])
+  })
   test('inverters summed from two lines cite both', () => {
     const x = extraction([
       said('inverter', 1, 'Inversor 3 kW', 1, { watts: 3000, surgeWatts: 6000 }),

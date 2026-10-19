@@ -104,7 +104,7 @@ export interface ItemFacts {
 }
 /** Where a quote says something: the page and the words of one of its lines. */
 export type Evidence = QuoteLine['source']
-/** `sources` cites every line the check read: all the lines it summed or compared, or the one line that decides it (the thickest cable, a fuse too small or too big). */
+/** `sources` cites every line the check read: all the lines it summed or compared and any with no readable size that leave it to confirm, or the one line that decides it (the thickest cable, a fuse too small or too big). */
 export interface ItemCheck { id: ItemId; status: ItemStatus; facts: ItemFacts; sources: readonly Evidence[] }
 
 /** A DC run is a positive and a negative lead: what a wiring line's quantity is counted in. */
@@ -215,7 +215,7 @@ function checkBattery(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   if (highWh < kit.usableWh && !capacityPartial) {
     return check('battery', 'short', { usableWh: highWh, shortWh: kit.usableWh - highWh, terms, ...applied('high') }, sources)
   }
-  return check('battery', 'unknown', { usableLowWh: lowWh, usableHighWh: highWh, terms, ...(capacityPartial ? { capacityPartial } : {}) }, sources)
+  return check('battery', 'unknown', { usableLowWh: lowWh, usableHighWh: highWh, terms, ...(capacityPartial ? { capacityPartial } : {}) }, sourcesOf(lines))
 }
 
 interface Feature { id: 'charger' | 'wifi'; kind: LineKind; flag: 'hasCharger' | 'hasWifi' }
@@ -376,7 +376,7 @@ function checkPanels(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const arrayW = quotedArrayW(x)
   if (arrayW >= kit.arrayW * ARRAY_TOLERANCE) return check('panels', 'ok', { arrayW }, sourcesOf(sized))
   const status: ItemStatus = sized.length < lines.length ? 'unknown' : 'short'
-  return check('panels', status, { arrayW, shortArrayW: kit.arrayW - arrayW, ...(status === 'unknown' ? { sizeUnknown: true } : {}) }, sourcesOf(sized))
+  return check('panels', status, { arrayW, shortArrayW: kit.arrayW - arrayW, ...(status === 'unknown' ? { sizeUnknown: true } : {}) }, sourcesOf(status === 'unknown' ? lines : sized))
 }
 
 function checkInstallation(x: QuoteExtraction): ItemCheck {
