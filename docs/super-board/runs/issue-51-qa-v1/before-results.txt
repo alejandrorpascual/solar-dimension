@@ -1,0 +1,5 @@
+# Before shots: the same harness built against staging 4fbbb23 (this branch's base), src only (APP_SRC=<base>/src node build-any.mjs).
+before-ac1-best            Show checks opened: 0 "Lines we read" tables
+before-ac2-line-mismatch   0 tables, no Show checks; card says: Some line amounts, quantities or the currency we read don't hold together, so a total wouldn't fix it. Read it again, or upload a clearer copy.
+before-ac2-currency        0 tables, no Show checks; card says the same sentence as line-mismatch
+page errors: 0 across 9 shots
