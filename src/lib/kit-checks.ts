@@ -28,10 +28,12 @@ export interface KitCheck { id: CheckId; name: string; status: CheckStatus; line
 
 const KA = 1000
 
-/** The warning in the user's language, with the appliance named as the catalog names it there. */
+/** The warning in the user's language, with the appliance, or each one a note covers, named as the catalog names it there. */
 export function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[]): string {
-  const item = items.find((i) => i.id === w.params.itemId)
-  const itemName = item ? applianceName(t, item) : w.params.itemName
+  const { itemId, itemIds } = w.params
+  const item = items.find((i) => i.id === itemId)
+  const listed = itemIds ? fmtList(items.filter((i) => itemIds.includes(i.id)).map((i) => applianceName(t, i)), t.locale) : undefined
+  const itemName = listed ?? (item ? applianceName(t, item) : w.params.itemName)
   return t.warnings[w.code]({ ...w.params, itemName })
 }
 

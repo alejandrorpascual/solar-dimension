@@ -24,7 +24,7 @@ export const es: Dictionary = {
   ui: {
     step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Paneles solares', step4: 'Tu kit', stepOf: 'Paso {n} de 4',
     project: 'Proyecto', projectName: 'Nombre del proyecto', newProject: '+ Nuevo proyecto', duplicate: 'Duplicar', delete: 'Eliminar', untitled: 'Sin nombre',
-    acInverter: 'Aire acondicionado inverter', acInverterHelp: 'Arranque suave. Cuida la batería y el inversor.', acConventional: 'Aire acondicionado convencional', acConventionalHelp: 'Arranca con ~3× su potencia en marcha. Necesita un inversor más grande.', acSizeOne: '{tons} tonelada · {btu}k BTU', acSizeMany: '{tons} toneladas · {btu}k BTU',
+    acInverter: 'Aire acondicionado inverter', acInverterHelp: 'Arranque suave. Cuida el inversor.', acConventional: 'Aire acondicionado convencional', acConventionalHelp: 'Arranca con ~3× su potencia en marcha. Necesita un inversor más grande.', acSizeOne: '{tons} tonelada · {btu}k BTU', acSizeMany: '{tons} toneladas · {btu}k BTU',
     q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; los de arranque, el inversor.',
     search: 'Buscar aparatos', nothingMatches: 'Nada coincide. Prueba otra palabra o agrégalo abajo.', sectionAdded: 'Agregados: {count}',
     add: 'Agregar', addOne: 'Agregar {name}', qtyOf: 'Cantidad de {name}', removeOne: 'Quitar un {name}', remove: 'Quitar {name}',
@@ -69,6 +69,7 @@ export const es: Dictionary = {
     estimateNotice: 'Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada.',
     fine: 'Supone 90% de eficiencia del inversor, 25% de margen, {dod}% de profundidad de descarga, 1,100 W por tonelada de refrigeración, {starts}, cable de cobre con aislamiento de {insulation} °C a {ambient} °C{bundled}. Tablas de ampacidad NEC; verifica con la normativa local. Los tamaños de inversor son vatios continuos, no VA, a temperatura ambiente; el margen de 25% cubre el factor de potencia y el calor.',
     fineStartsOne: 'un solo motor arrancando a la vez', fineStartsTwo: 'dos motores arrancando juntos', fineStartsAll: 'todos los motores arrancando a la vez', fineBundled: ', agrupado',
+    fineAcDuty: ' El aire acondicionado funciona {typical} de cada hora en un día típico y {hard} en un día duro.',
     fineRatings: ' Valores supuestos, no de la ficha de un fabricante: cada batería de {battery} entrega {cont} A continuos y {peak} A pico durante {peakSeconds} s, como máximo {parallel} en paralelo, y {shortCircuit} A por Ah en cortocircuito; cada inversor de {inverter} arranca hasta {surge} durante {surgeSeconds} s.',
     footer1: '{name} · {count} aparatos · {running} en marcha · {peak} pico', footer2: '{hours} h a {volts} V · {load} de carga', footer3: '{batteries} · {inverter} · {gauge}', footerEmpty: 'Nada seleccionado todavía',
     back: 'Atrás', next: 'Siguiente: horas de respaldo', nextSolar: 'Siguiente: paneles solares', buildKit: 'Armar mi kit', startOver: 'Empezar de nuevo',
@@ -144,6 +145,7 @@ export const es: Dictionary = {
     parallelStrings: (p) => `${p.strings} ramas en paralelo se desbalancean. Prefiere unidades más grandes o un voltaje mayor.`,
     dominantLoad: (p) => `${p.itemName} es el ${p.sharePct}% de la energía. Quitarlo es la forma más barata de reducir el banco.`,
     splitPhase: (p) => `${p.itemName} normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.`,
+    lockedRotor: (p) => `${p.itemName}: el arranque es una estimación y la placa puede indicar más amperios de rotor bloqueado. Compara amperios de rotor bloqueado × voltios con el arranque del inversor, o instala un arrancador suave.`,
     inverterUndersized: (p) => {
       const [inverter, unit, running] = [p.inverterW ?? 0, p.unitW ?? 0, p.runningW ?? 0].map((n) => n.toLocaleString('es-419'))
       const isUnder = (p.inverterW ?? 0) < (p.runningW ?? 0)

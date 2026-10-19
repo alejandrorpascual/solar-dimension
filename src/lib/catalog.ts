@@ -68,8 +68,11 @@ export const SIZING = {
   /** Voltage drop at start-up current the inverter still rides through. */
   MAX_STARTUP_DROP_PCT: 10,
   DUTY_MIN: 0.05,
-  /** Runtime scenarios: how cycling duties and inverter efficiency move on a light day and on a hard one. */
-  SCENARIO: { optimistic: { duty: 0.8, eff: 0.93 }, worst: { duty: 1.3, eff: 0.85 } },
+  /**
+   * Runtime scenarios: how cycling duties and inverter efficiency move on a light day and on a hard one. A hot day keeps
+   * an air conditioner's compressor on, so the hard day runs every AC at `acDuty`, whatever its catalog duty.
+   */
+  SCENARIO: { optimistic: { duty: 0.8, eff: 0.93 }, worst: { duty: 1.3, eff: 0.85, acDuty: 1 } },
   /** Seconds a start-up surge lasts, by class. */
   SURGE_SECONDS: { inrush: 0.02, motor: 1, compressor: 3 } as Record<SurgeClass, number>,
   /** How many times its rating a fuse holds, and for how long, before a start-up blows it. */

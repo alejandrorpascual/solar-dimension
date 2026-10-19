@@ -1,6 +1,6 @@
 import { tr, type Dictionary, type Locale } from '../i18n'
 import { fmtDecimal, fmtInt, fmtW } from '../i18n/format'
-import { CHEMISTRIES } from './catalog'
+import { CHEMISTRIES, SIZING } from './catalog'
 import { hasPanels, type SizingResult } from './sizing'
 import { SOLAR } from './solar'
 
@@ -19,12 +19,22 @@ function ratingsLine(t: Dictionary, r: SizingResult, locale: Locale): string {
   })
 }
 
+const pct = (duty: number): number => Math.round(duty * 100)
+
+/** The share of each hour the kit's ACs run on a typical day (a range when they differ) and on a hard day; nothing without an AC. */
+function acDutyLine(t: Dictionary, r: SizingResult): string {
+  const duties = r.items.filter((i) => i.acType).map((i) => pct(i.effectiveDuty))
+  if (duties.length === 0) return ''
+  const [low, high] = [Math.min(...duties), Math.max(...duties)]
+  return tr(t, 'fineAcDuty', { typical: low === high ? `${low}%` : `${low}–${high}%`, hard: `${pct(SIZING.SCENARIO.worst.acDuty)}%` })
+}
+
 /** The assumptions line under the kit and on the sheet, filled with the settings and ratings this kit was sized with; a panel kit adds the solar assumptions. */
 export function finePrint(t: Dictionary, r: SizingResult, dodPct: number, locale: Locale): string {
   const starts = r.simultaneousStarts === 'all' ? t.ui.fineStartsAll : r.simultaneousStarts >= 2 ? t.ui.fineStartsTwo : t.ui.fineStartsOne
   const base = tr(t, 'fine', {
     dod: dodPct, starts, insulation: r.cable.insulationC, ambient: r.cable.ambientC, bundled: r.cable.bundled ? t.ui.fineBundled : '',
-  }) + ratingsLine(t, r, locale)
+  }) + acDutyLine(t, r) + ratingsLine(t, r, locale)
   if (!hasPanels(r)) return base
   return base + tr(t, 'fineSolar', { w: `${SOLAR.PANEL_W} W`, sun: fmtDecimal(r.solar.sunHours, 1, locale) })
 }

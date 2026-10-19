@@ -60,6 +60,23 @@ describe.each(['en', 'es'] as const)('finePrint (%s)', (locale) => {
     expect(text.indexOf(es ? 'La parte solar supone paneles de 550 W' : 'Solar assumes 550 W panels')).toBeGreaterThan(ratings)
   })
 
+  test('a kit with an AC states the duty it assumed on a typical day and on a hard day', () => {
+    const r = compute({ qty: { ac1c: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(finePrint(t, r, DOD_PCT, locale)).toContain(es
+      ? 'El aire acondicionado funciona 50% de cada hora en un día típico y 100% en un día duro.'
+      : 'Air conditioning runs 50% of each hour on a typical day and 100% on a hard day.')
+  })
+
+  test('ACs at different duties give the typical range, the changed duty included', () => {
+    const r = compute({ qty: { ac1c: 1, ac15i: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4', dutyOverrides: { ac15i: 0.75 } }, CATALOG_SNAPSHOT)
+    expect(finePrint(t, r, DOD_PCT, locale)).toContain(es ? 'funciona 50–75% de cada hora' : 'runs 50–75% of each hour')
+  })
+
+  test('a kit without an AC says nothing about AC duty', () => {
+    const r = compute({ qty: { fridge: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(finePrint(t, r, DOD_PCT, locale)).not.toContain(es ? 'aire acondicionado' : 'Air conditioning')
+  })
+
   test('a kit with nothing selected has no battery to list ratings for', () => {
     const r = compute({ qty: {}, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(finePrint(t, r, DOD_PCT, locale)).not.toContain(es ? 'Valores supuestos' : 'Assumed ratings')

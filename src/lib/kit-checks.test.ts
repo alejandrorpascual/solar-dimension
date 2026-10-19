@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { getDictionary } from '../i18n'
 import { DEFAULT_HARDWARE } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { CHECK_IDS, CHECK_WARNINGS, kitChecks, uncheckedWarnings, warningKey, warningText } from './kit-checks'
+import { CHECK_IDS, CHECK_WARNINGS, kitChecks, kitNotes, uncheckedWarnings, warningKey, warningText } from './kit-checks'
 import { compute, type SizingInput } from './sizing'
 
 const en = getDictionary('en')
@@ -298,5 +298,29 @@ describe('uncheckedWarnings and keys', () => {
     expect(warningKey({ code: 'splitPhase', params: { itemId: 'a' } })).not.toBe(warningKey({ code: 'splitPhase', params: { itemId: 'b' } }))
     expect(warningKey({ code: 'highCurrent', params: { amps: 1 } })).toBe(warningKey({ code: 'highCurrent', params: { amps: 2 } }))
     expect(warningKey({ code: 'cableUndersized', params: { conductor: 'stringLeads' } })).not.toBe(warningKey({ code: 'cableUndersized', params: { conductor: 'interconnects' } }))
+  })
+})
+
+describe('the locked-rotor note', () => {
+  const lockedRotor = (r: ReturnType<typeof kit>, t = en) => kitNotes(t, r).filter((n) => n.includes(t === en ? 'locked-rotor' : 'rotor bloqueado'))
+
+  test.each(['ac1c', 'washer', 'well', 'sump', 'gate-slide', 'gate-swing'])('shows for %s, whose start-up is a rule of thumb', (id) => {
+    expect(lockedRotor(kit({ [id]: 1 }))).toHaveLength(1)
+  })
+
+  test.each(['ac1i', 'fridge', 'fan', 'barrier'])('does not show for %s', (id) => {
+    expect(lockedRotor(kit({ [id]: 1 }))).toEqual([])
+  })
+
+  test('is one note that names each motor it covers, in both languages', () => {
+    const r = kit({ fridge: 1, washer: 1, well: 1 })
+    expect(lockedRotor(r)).toEqual(["Washing machine and Well pump, 1/2 HP: the start-up surge is a rule of thumb, and the nameplate's locked-rotor amps can be higher. Check locked-rotor amps × volts against the inverter's surge, or fit a soft starter."])
+    expect(lockedRotor(r, es)).toEqual(['Lavadora y Bomba de pozo, 1/2 HP: el arranque es una estimación y la placa puede indicar más amperios de rotor bloqueado. Compara amperios de rotor bloqueado × voltios con el arranque del inversor, o instala un arrancador suave.'])
+  })
+
+  test('does not show for a start-up stated as an electronic inrush, whatever its size', () => {
+    const charger = { id: 'charger', name: 'Charger', cat: 'Work' as const, watts: 300, surge: 900, duty: 1, note: '', surgeClass: 'inrush' as const }
+    const r = compute({ qty: { charger: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, [...CATALOG_SNAPSHOT, charger])
+    expect(lockedRotor(r)).toEqual([])
   })
 })

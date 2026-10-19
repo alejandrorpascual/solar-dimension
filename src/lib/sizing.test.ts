@@ -66,8 +66,8 @@ describe('compute', () => {
     expect(r.inverter.voltsOk).toBe(false)
     expect(r.cable.runs).toBe(3)
     const codes = r.warnings.map((w) => w.code)
-    // Nine AGM strings can short at 21.6 kA, past a class T fuse's 20 kA.
-    expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad', 'fuseInterrupt'])
+    // Nine AGM strings can short at 21.6 kA, past a class T fuse's 20 kA. The AC and the well pump start on a rule of thumb.
+    expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad', 'lockedRotor', 'fuseInterrupt'])
     expect(r.warnings[2]?.params).toMatchObject({ strings: 9, maxParallel: 4 })
     expect(r.warnings[3]?.params.itemId).toBe('ac1c')
     expect(r.warnings[3]?.params.sharePct).toBeGreaterThan(50)
@@ -529,7 +529,7 @@ describe('bank wiring', () => {
     expect(pair.inverter).toMatchObject({ count: 2, unitW: 8000 })
     expect(pair.battery).toMatchObject({ config: '1S3P', parallelFor: { continuous: 2, lead: 3 } })
     expect(pair.cable.string).toMatchObject({ amps: 123, designA: 154, fuse: { count: 3 } })
-    expect(pair.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase'])
+    expect(pair.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase', 'lockedRotor'])
   })
 
   test('a battery picked by hand that cannot take the string its leads need is left as it was, and flagged', () => {
@@ -787,5 +787,24 @@ describe('engineering checks', () => {
     const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 20000, surge: 40000, volts: [48] as const, surgeSeconds: 10 }] }
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
     expect(r.inverter.w).toBe(20000)
+  })
+})
+
+describe('air conditioning on a hard day', () => {
+  // One 280 Ah unit covers the AC at its catalog duty and at 100%, so both kits run on the same bank.
+  const acKit = (id: string, dutyOverrides: Record<string, number> = {}) =>
+    compute({ qty: { [id]: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-280', dutyOverrides }, CATALOG_SNAPSHOT)
+
+  test.each(['ac1c', 'ac1i'])('a 1-ton AC (%s) for 8 h has the same hard-day runtime as that AC set to 100% duty', (id) => {
+    const catalogDuty = acKit(id)
+    const nonStop = acKit(id, { [id]: 1 })
+    expect(catalogDuty.battery!.bankWh).toBe(nonStop.battery!.bankWh)
+    expect(catalogDuty.battery!.runtime.worst).toBeCloseTo(nonStop.battery!.runtime.worst)
+  })
+
+  test('the bank is still sized on a typical day: a 1-ton AC for 8 h keeps one 48 V 200 Ah unit', () => {
+    const r = compute({ qty: { ac1c: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.battery).toMatchObject({ unitLabel: '48 V 200 Ah LiFePO₄', count: 1, bankWh: 9600 })
+    expect(r.requiredWh).toBe(5752)
   })
 })
