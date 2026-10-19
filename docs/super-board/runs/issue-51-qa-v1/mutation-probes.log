@@ -1,15 +1,5 @@
-# Each mutant was applied to the clone, the named test file run, then the file restored with git checkout (never committed).
-
-M1 src/lib/quote-line-text.ts  lineMoney: `Number.isInteger(n) ? 0 : CENTS` -> `0` (cents dropped)
-   npx vitest run src/lib/quote-line-text.test.ts -> Tests 1 failed | 4 passed (5)
-   killed by: quote-line-text.test.ts:16 (fuse unit price '$45.50')
-
-M2 src/lib/quote-text.ts  MISREAD_REASONS: bad_currency -> misreadLines, line_mismatch -> misreadCurrency (sentences swapped)
-   npx vitest run src/lib/quote-text.test.ts -> Tests 3 failed | 78 passed (81)
-   killed by: quote-text.test.ts:110, :125, :141
-
-M3 src/lib/quote-line-text.ts  unit price: `l.unitPrice === null ? NONE : ...` -> `lineMoney(t, l.unitPrice ?? 0, ...)` (no dash)
-   npx vitest run src/lib/quote-line-text.test.ts -> Tests 1 failed | 4 passed (5)
-   killed by: quote-line-text.test.ts:16 (labor row unit price '—')
-
-After restore: git status shows no source change; npx vitest run src/lib/quote-line-text.test.ts src/lib/quote-text.test.ts -> Tests 86 passed (86)
+# Each mutant applied in the clone, the test file run, the source restored with git checkout (never committed)
+M1 quote-line-text.ts lineMoney cents dropped (`? 0 : CENTS` -> `0`)     1 failed | 4 passed · killed by quote-line-text.test.ts:16
+M2 quote-text.ts MISREAD_REASONS currency and lines sentences swapped    3 failed | 78 passed · killed by quote-text.test.ts:110, :125, :141
+M3 quote-line-text.ts no dash for a missing unit price (`?? 0`)           1 failed | 4 passed · killed by quote-line-text.test.ts:16
+after restore: no source change · 86/86 pass

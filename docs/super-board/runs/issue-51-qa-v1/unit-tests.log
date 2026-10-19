@@ -1,8 +1,3 @@
 # npx vitest run src/lib/quote-line-text.test.ts src/lib/quote-text.test.ts src/i18n/format.test.ts
- Test Files  3 passed (3)
-      Tests  96 passed (96)
-
-# coverage of the changed source files (same three test files, v8 json-summary)
-src/lib/quote-line-text.ts  lines 100 · branches 100 · functions 100 · statements 100
-src/i18n/format.ts          lines 100 · branches 100 · functions 100 · statements 100
-src/lib/quote-text.ts       misreadText (lines 314-330) fully covered; file 95.3 % lines from these files alone, 96.2 % in the full suite (its uncovered lines, the last being 229, 233 and 300, are outside the changed hunk at 311-330)
+Test Files  3 passed (3) · Tests  96 passed (96)
+coverage from these files: quote-line-text.ts 100 % · format.ts 100 % · quote-text.ts misreadText (314-330) fully covered
