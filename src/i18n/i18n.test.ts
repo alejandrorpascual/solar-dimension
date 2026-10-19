@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { CATEGORIES } from '../lib/catalog'
 import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
+import { CUSTOM_DUTY_MIN_PCT } from '../lib/custom'
 import { en } from './en'
 import { es } from './es'
 import { applianceName, applianceNote, batteryCount, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
@@ -133,6 +134,11 @@ describe('tr', () => {
     expect(tr(es, 'kitFor', { name: 'Casa' })).toBe('Kit para Casa')
     expect(tr(en, 'kitFor')).toBe('Kit for ')
     expect(tr(en, 'back')).toBe('Back')
+  })
+
+  test('the custom form duty error names the 5% floor and 100% in both languages', () => {
+    expect(tr(en, 'errDuty', { min: CUSTOM_DUTY_MIN_PCT })).toBe('Enter how much of each hour it runs, from 5 to 100%. Leave it empty if it never stops.')
+    expect(tr(es, 'errDuty', { min: CUSTOM_DUTY_MIN_PCT })).toBe('Escribe qué parte de cada hora funciona, de 5 a 100%. Déjalo vacío si no se apaga nunca.')
   })
 })
 

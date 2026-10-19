@@ -1,0 +1,147 @@
+ RUN  v5.0.1 <checkout>
+ ✓ src/lib/schema.test.ts > accepts a valid store 2ms
+ ✓ src/lib/schema.test.ts > rejects unknown voltage, out-of-range hours and empty project lists 1ms
+ ✓ src/lib/schema.test.ts > battery unit defaults to automatic (null) and accepts a unit id 0ms
+ ✓ src/lib/schema.test.ts > defaults updatedAt to 0 and rejects negative stamps 0ms
+ ✓ src/lib/schema.test.ts > rejects quantities above the catalog maximum and unknown versions 0ms
+ ✓ src/lib/schema.test.ts > a project has no requester until one is added, and keeps a valid one 1ms
+ ✓ src/lib/schema.test.ts > an unreadable requester is dropped instead of losing every saved project 0ms
+ ✓ src/lib/schema.test.ts > a saved requester with a malformed ID is dropped, and the project still loads 0ms
+ ✓ src/lib/schema.test.ts > a project has no solar choice until one is made, and keeps a valid one 0ms
+ ✓ src/lib/schema.test.ts > an unreadable solar choice is dropped instead of losing every saved project 0ms
+ ✓ src/lib/schema.test.ts > solar values outside their ranges are dropped 0ms
+ ✓ src/lib/schema.test.ts > a project saved before duty overrides and electrical settings reads as the defaults 0ms
+ ✓ src/lib/schema.test.ts > duty overrides keep valid shares and are dropped whole when unreadable, without losing the project 0ms
+ ✓ src/lib/schema.test.ts > a partial electrical object keeps the defaults for what it lacks, and a bad field falls back on its own 0ms
+ ✓ src/lib/schema.test.ts > a custom appliance that no longer parses is dropped by itself; the project and its other loads stay 0ms
+ ✓ src/lib/schema.test.ts > a custom appliance keeps the share of each hour it runs; one saved before it had one reads as before 0ms
+ ✓ src/lib/schema.test.ts > a custom appliance whose saved duty is not a share of an hour is dropped by itself 0ms
+ ✓ src/lib/schema.test.ts > an unreadable custom list reads as empty instead of losing every saved project 0ms
+ ✓ src/lib/custom.test.ts > parseCustom > multiplies volts by amps and keeps an explicit surge 1ms
+ ✓ src/lib/custom.test.ts > parseCustom > uses watts directly and defaults surge to running watts 0ms
+ ✓ src/lib/custom.test.ts > parseCustom > a share of each hour under 100% makes the load cycle; left empty or at 100% it runs nonstop 1ms
+ ✓ src/lib/custom.test.ts > parseCustom > a share of each hour outside the duty picker floor and 100% is refused 0ms
+ ✓ src/lib/custom.test.ts > parseCustom > rejects an empty name 0ms
+ ✓ src/lib/custom.test.ts > parseCustom > rejects zero or non-numeric values per mode 0ms
+ ✓ src/lib/custom.test.ts > parseCustom > rejects a surge below running watts 0ms
+ ✓ src/lib/custom.test.ts > parseCustom > a name is kept to the length a saved project allows 0ms
+ ✓ src/lib/custom.test.ts > parseCustom > a load that rounds to zero watts is refused, in either mode 0ms
+ ✓ src/lib/custom.test.ts > parseCustom > volts × amps too large for a number are refused, not stored as Infinity 0ms
+ ✓ src/lib/custom.test.ts > parseCustom > watts typed with a thousands separator are questioned instead of being read as a decimal 0ms
+ ✓ src/lib/custom.test.ts > isCustomLoadId > knows the ids the form hands out from the ids a catalog appliance can have 0ms
+ ✓ src/lib/custom.test.ts > isCustomLoadId > every id parseCustom makes is one 0ms
+ ✓ src/lib/custom.test.ts > whatever the form accepts, a saved project accepts > 2,000 random forms: every accepted load passes the store schema, alone and inside a project 11ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > es has every ui key that en has, and nothing extra 1ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > every catalog category is translated in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > warnings render with params in both languages 11ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > the engineering-check warnings render their figures in both languages 1ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > es has every kind and parallel note that en has 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > highCurrent ends the sentence when there is no higher voltage to suggest 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > es has every requester key that en has, and nothing extra 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > every key the requester model and form use has copy in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > the privacy page names the requester details in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > the roof warning names what fits and what is needed in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > the undersized-cable warning names each cable row, its gauge and both currents in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > the undersized-cable warning lists the ways out it is given, and always ends on trimming the load 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > every part the kit can list has a name in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries > the four steps are named in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > batteryCount > uses the singular for one battery and the plural otherwise, in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > isLocale > accepts only known locale strings 0ms
+ ✓ src/i18n/i18n.test.ts > tr > replaces placeholders and blanks missing params 0ms
+ ✓ src/i18n/i18n.test.ts > tr > the custom form duty error names the 5% floor and 100% in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > resolveLocale > prefers the cookie, then Accept-Language, then en 0ms
+ ✓ src/i18n/i18n.test.ts > resolveLocale > walks the whole device language list by preference, not just the first entry 1ms
+ ✓ src/i18n/i18n.test.ts > applianceName reads the item labels in the active language and keeps custom names 0ms
+ ✓ src/i18n/i18n.test.ts > applianceNote reads the item labels and keeps custom notes 0ms
+ ✓ src/i18n/i18n.test.ts > the missing-appliances warning agrees in number in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > dictionaries no longer carry appliance names 0ms
+ ✓ src/i18n/i18n.test.ts > privacy page > both languages have the same sections, each with a heading and a body 1ms
+ ✓ src/i18n/i18n.test.ts > terms page > both languages have the same sections, each with a heading and a body 0ms
+ ✓ src/i18n/i18n.test.ts > quote dictionaries > es has every quote key en has, and nothing extra 0ms
+ ✓ src/i18n/i18n.test.ts > quote dictionaries > every item has a name, an inline phrase and a short label in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > quote dictionaries > trq fills placeholders 0ms
+ ✓ src/i18n/i18n.test.ts > quote dictionaries > no quote string promises an email 0ms
+ ✓ src/i18n/i18n.test.ts > inverterSize > one inverter is named by its size, a set by how many work in parallel, in both languages 0ms
+ ✓ src/lib/sizing.test.ts > compute > returns an empty result with no items selected 3ms
+ ✓ src/lib/sizing.test.ts > compute > sizes essentials at 48 V with the smallest 48 V inverter 1ms
+ ✓ src/lib/sizing.test.ts > compute > picks a 12 V inverter for the same load at 12 V 1ms
+ ✓ src/lib/sizing.test.ts > compute > a conventional AC drives the surge and the inverter pick 0ms
+ ✓ src/lib/sizing.test.ts > compute > warns on a big load at 12 V with AGM and flags the dominant appliance 0ms
+ ✓ src/lib/sizing.test.ts > compute > warns once about a split-phase inverter when a selected appliance draws 3 kW or more 1ms
+ ✓ src/lib/sizing.test.ts > compute > clamps hours, run length and unknown voltage to safe values 1ms
+ ✓ src/lib/sizing.test.ts > compute > includes custom loads as continuous items 0ms
+ ✓ src/lib/sizing.test.ts > compute > a custom load that runs part of each hour cycles: a 1,035 W pump at 30% for 24 h counts 7,452 Wh 0ms
+ ✓ src/lib/sizing.test.ts > compute > a cycling custom load takes a duty override 0ms
+ ✓ src/lib/sizing.test.ts > compute > a custom load saved without a duty still runs nonstop, and an override does not shrink it 0ms
+ ✓ src/lib/sizing.test.ts > compute > catalog appends custom loads after the built-in list 0ms
+ ✓ src/lib/sizing.test.ts > compute > skips quantities for ids that are not in the catalog, and counts retired items 0ms
+ ✓ src/lib/sizing.test.ts > compute > says how many counted appliances the catalog could not resolve, even when nothing else is left 0ms
+ ✓ src/lib/sizing.test.ts > battery unit choice > lists every unit sold at the bank voltage, bank-voltage units first, with the count each needs 0ms
+ ✓ src/lib/sizing.test.ts > battery unit choice > orders 48 V units first at a 48 V bank, then 24 V, then 12 V 0ms
+ ✓ src/lib/sizing.test.ts > battery unit choice > each option carries its own runtime and string layout, and runtime grows with capacity at a fixed load 1ms
+ ✓ src/lib/sizing.test.ts > battery unit choice > a chosen unit drives the bank, its wiring, runtime and warnings 1ms
+ ✓ src/lib/sizing.test.ts > battery unit choice > a unit that is not sold for this voltage or chemistry falls back to the automatic pick 0ms
+ ✓ src/lib/sizing.test.ts > battery unit choice > has no solar side unless the project chose panels 0ms
+ ✓ src/lib/sizing.test.ts > battery unit choice > sizes the solar side from the bank it picked and the average draw 0ms
+ ✓ src/lib/sizing.test.ts > battery unit choice > warns when the roof cannot hold the panels that refill the bank 0ms
+ ✓ src/lib/sizing.test.ts > battery unit choice > an empty project with panels sizes nothing and warns nothing 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 9,600 W is the last load one inverter carries with its 25% headroom 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 9601 W is past one inverter: 2 × 8000 W in parallel carry it with the headroom kept 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 12000 W is past one inverter: 2 × 8000 W in parallel carry it with the headroom kept 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 12001 W is past one inverter: 2 × 8000 W in parallel carry it with the headroom kept 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 15000 W is past one inverter: 2 × 10000 W in parallel carry it with the headroom kept 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 19200 W is past one inverter: 2 × 12000 W in parallel carry it with the headroom kept 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 19201 W is past one inverter: 3 × 10000 W in parallel carry it with the headroom kept 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 28800 W is past one inverter: 3 × 12000 W in parallel carry it with the headroom kept 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 28,800 W is the last load three 12 kW units carry with headroom: one watt more and the kit says how much is left 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > a load equal to the largest set has no headroom at all 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > past the largest set the inverters cannot carry the load: runningOk is false and the headroom reads 0 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > a list whose units work alone still falls back to its largest one, flagged as a single inverter 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > at 12 V the limit is 2400 W: past it the engine reaches for a bigger inverter built for another voltage, still with headroom 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > at 24 V the limit is 4000 W: past it the engine reaches for a bigger inverter built for another voltage, still with headroom 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > at 36 V the limit is 4000 W: past it the engine reaches for a bigger inverter built for another voltage, still with headroom 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > three water heaters at 48 V: 13.5 kW gets two 10 kW inverters and no inverter warning 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > a 24 V bank past one inverter is pointed at 48 V units, as it is for a single one 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > an empty project warns about nothing 0ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > a load one unit cannot carry gets identical units in parallel, with no inverter warning 0ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > one inverter that carries the load stays one, with nothing to say about parallel units 0ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > the bank feeds the whole set, and each inverter gets the runs and fuses it would get alone 0ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > the bank counts its strings for the whole set's current, not one inverter's 0ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > each string lead and its fuse carry the set's current split between the strings 0ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > at 48 V the high-current note is about what one inverter draws: no higher bank voltage would carry the set on less 0ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > below 48 V the whole DC side counts, so the note does not go away when a second inverter is added 0ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > a start-up one unit cannot hold is shared by the set, however many units that takes 1ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > past what the maker allows in parallel the largest set is listed and flagged, with its size 0ms
+ ✓ src/lib/sizing.test.ts > inverters in parallel > a set sold for another voltage is named by its unit in the voltage note 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > a one-string bank links its batteries with the main cable's copper 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > two inverters on a one-string bank: each series link is one jumper per inverter, so the string carries both 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > when the main cable splits in two runs, each series link is two jumpers, so 185 A never rides on one 130 A cable 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > a run of the main cable and the jumper that copies it state one design current, rounded once 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > with strings in parallel a link carries one string, so it takes the string lead's gauge, not the main cable's 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > a bank takes another string rather than ask one lead for more than it carries 8ms
+ ✓ src/lib/sizing.test.ts > bank wiring > a battery picked by hand that cannot take the string its leads need is left as it was, and flagged 1ms
+ ✓ src/lib/sizing.test.ts > bank wiring > a bank is read against the fuses its kit is given, not the best rating in the list 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > with strings in parallel, each string's fuse has to interrupt one battery as well 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > a bank is marked as one the fuses can interrupt exactly when its kit's fuse check agrees, whatever the fuse list 43ms
+ ✓ src/lib/sizing.test.ts > bank wiring > the automatic bank is the one that passes the most, before the one with the fewest batteries 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > past the parallel limit of the battery's maker, a string lead no single cable can carry is a cable warning that names the row 0ms
+ ✓ src/lib/sizing.test.ts > bank wiring > a main cable that six runs of the largest gauge cannot carry is a cable warning too 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > a duty override changes the energy and the average, and is clamped to 5%..100% 2ms
+ ✓ src/lib/sizing.test.ts > engineering checks > motors starting together add their surges, largest first; "all" counts every unit of a quantity 1ms
+ ✓ src/lib/sizing.test.ts > engineering checks > a momentary load counts its bursts as energy and joins the start-up only when every motor starts 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > hot air and bundled runs derate the cable and step the gauge up 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > warns when no cable is rated for the air temperature 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > the inverter draw, not only the energy, sets how many strings a bank needs 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > a unit that cannot feed the inverter within its parallel limit is flagged, warned about and runs 0 h worst case 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > the automatic pick skips banks that fail a check when a healthy one exists 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > when no bank passes every check the automatic pick still returns the fewest batteries 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > runtime scenarios bracket the typical figure, and typical is the headline hours 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > a start-up above every surge rating is warned about, and its length is not blamed 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > a start-up within the surge rating that outlasts its window is warned about as too long 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > a start-up that is both too long and above the surge rating is blamed on its watts 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > the configured start-up, not the inverter rating, is what the fuse must hold 0ms
+ ✓ src/lib/sizing.test.ts > engineering checks > a replacement hardware catalog drives the picks 0ms
+ Test Files  4 passed (4)
+      Tests  142 passed (142)
+   Start at  14:22:07
+   Duration  359ms (transform 51%, import 34%, tests 15%, worker 1%)

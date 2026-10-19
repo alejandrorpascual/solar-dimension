@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
-import { CUSTOM_NAME_MAX, EMPTY_FORM, parseCustom, type CustomError, type CustomForm } from '../lib/custom'
+import { CUSTOM_DUTY_MIN_PCT, CUSTOM_NAME_MAX, EMPTY_FORM, parseCustom, type CustomError, type CustomForm } from '../lib/custom'
 import type { Store } from '../lib/schema'
 import { addCustom, currentProject, removeUnreadCustom, takenLoadIds, unreadCustomCount } from '../lib/store'
 
@@ -53,9 +53,10 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
           <label className="field"><span className="lab">{t.ui.runningW}</span><input className="in" type="number" min="0" placeholder="750" value={form.watts} onChange={(e) => set({ watts: e.target.value })} /></label>
         )}
         <label className="field"><span className="lab">{t.ui.surgeOptional}</span><input className="in" type="number" min="0" placeholder={t.ui.sameAsRunning} value={form.surge} onChange={(e) => set({ surge: e.target.value })} /></label>
+        <label className="field"><span className="lab">{t.ui.dutyPctLabel}</span><input className="in" type="number" min={CUSTOM_DUTY_MIN_PCT} max="100" placeholder="100" value={form.dutyPct} onChange={(e) => set({ dutyPct: e.target.value })} /></label>
         <button type="button" className="btn btn--primary custom__submit" onClick={submit}>{t.ui.addAppliance}</button>
       </div>
-      {error && <div className="error" role="alert">{tr(t, error, { max: CUSTOM_NAME_MAX })}</div>}
+      {error && <div className="error" role="alert">{tr(t, error, { max: CUSTOM_NAME_MAX, min: CUSTOM_DUTY_MIN_PCT })}</div>}
     </div>
   )
 }

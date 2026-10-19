@@ -5,7 +5,7 @@ import { APPLIANCE_CATEGORIES } from '../lib/catalog-schema'
 import { LOAD_KINDS, SURGE_CLASSES } from '../lib/catalog'
 import type { Musts, Overrides } from '../lib/quote-items'
 import type { Requester } from '../lib/requester'
-import type { Electrical, Solar } from '../lib/schema'
+import type { CustomLoad, Electrical, Solar } from '../lib/schema'
 import { QUOTE_STATUSES, type StoredExtraction, type QuoteStatus, type QuoteUsage } from '../lib/quote-schema'
 import { PRODUCT_KINDS, PRODUCT_ORIGINS, type BatterySpecs, type ExtraSpec, type InverterSpecs, type ProductConflict, type ProductInput } from '../lib/product-schema'
 
@@ -20,7 +20,7 @@ export const projects = pgTable(
     userId: text('user_id').notNull(),
     name: text('name').notNull(),
     qty: jsonb('qty').$type<Record<string, number>>().notNull(),
-    custom: jsonb('custom').$type<Array<{ id: string; name: string; watts: number; surge: number; note: string }>>().notNull(),
+    custom: jsonb('custom').$type<CustomLoad[]>().notNull(),
     hours: integer('hours').notNull(),
     volts: integer('volts').notNull(),
     chemistry: text('chemistry').notNull(),

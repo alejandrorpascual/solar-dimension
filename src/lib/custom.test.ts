@@ -13,6 +13,23 @@ describe('parseCustom', () => {
     expect(r).toEqual({ ok: true, item: { id: 'custom2', name: 'Heater', watts: 750, surge: 750, note: 'Custom · 750 W' } })
   })
 
+  test('a share of each hour under 100% makes the load cycle; left empty or at 100% it runs nonstop', () => {
+    const pump = { ...EMPTY_FORM, name: 'Pool pump', watts: '1035' }
+    expect(parseCustom({ ...pump, dutyPct: '30' }, [])).toEqual({ ok: true, item: { id: 'custom1', name: 'Pool pump', watts: 1035, surge: 1035, note: 'Custom · 1035 W', duty: 0.3 } })
+    expect(parseCustom({ ...pump, dutyPct: ' 5 ' }, [])).toMatchObject({ ok: true, item: { duty: 0.05 } })
+    for (const dutyPct of ['', '  ', '100']) {
+      const r = parseCustom({ ...pump, dutyPct }, [])
+      expect(r.ok && r.item, JSON.stringify(dutyPct)).not.toHaveProperty('duty')
+      expect(r.ok, JSON.stringify(dutyPct)).toBe(true)
+    }
+  })
+
+  test('a share of each hour outside the duty picker floor and 100% is refused', () => {
+    for (const dutyPct of ['0', '4', '-30', '101', '1e3', 'abc', '30%', '0,3']) {
+      expect(parseCustom({ ...EMPTY_FORM, name: 'Pump', watts: '500', dutyPct }, []), dutyPct).toEqual({ ok: false, error: 'errDuty' })
+    }
+  })
+
   test('rejects an empty name', () => {
     expect(parseCustom({ ...EMPTY_FORM, watts: '100' }, [])).toEqual({ ok: false, error: 'errName' })
   })
@@ -84,6 +101,7 @@ describe('whatever the form accepts, a saved project accepts', () => {
     }
   }
   const NUMBERS = ['', '0', '0.4', '0.49', '0.5', '0.51', '1', '1.5', '1.500', '12.000', '1,5', '1,500', '750', '1500', '1e3', '1e-3', '1e200', '1e308', '1e400', '-5', 'abc', ' 12 ', 'Infinity', 'NaN', '0x10', '007', '.5', '5.', '99999999']
+  const PERCENTS = ['', ' ', '5', '30', '12.5', '99.9', '100', '1e2', '4.99', '100.1', '0', '-5', 'abc', '30%', 'NaN']
   const NAMES = ['', ' ', 'Pump', ' Heater ', 'x'.repeat(79), 'x'.repeat(80), 'x'.repeat(81), 'x'.repeat(300), `  ${'y'.repeat(80)}  `, '=HYPERLINK("x")', 'Niño 🚿', '\t\n']
 
   test('2,000 random forms: every accepted load passes the store schema, alone and inside a project', () => {
@@ -91,7 +109,7 @@ describe('whatever the form accepts, a saved project accepts', () => {
     const pick = <T>(list: readonly T[]): T => list[Math.floor(next() * list.length)]!
     let accepted = 0
     for (let i = 0; i < 2000; i++) {
-      const form: CustomForm = { name: pick(NAMES), mode: next() < 0.5 ? 'watts' : 'va', watts: pick(NUMBERS), volts: pick(NUMBERS), amps: pick(NUMBERS), surge: pick(NUMBERS) }
+      const form: CustomForm = { name: pick(NAMES), mode: next() < 0.5 ? 'watts' : 'va', watts: pick(NUMBERS), volts: pick(NUMBERS), amps: pick(NUMBERS), surge: pick(NUMBERS), dutyPct: pick(PERCENTS) }
       const result = parseCustom(form, ['custom1'])
       if (!result.ok) continue
       accepted++

@@ -316,6 +316,34 @@ test('the custom form questions watts typed with a thousands separator, and keep
   await expect(page.getByText('Custom · 1500 W')).toBeVisible()
 })
 
+test('a custom pump that runs 30% of each hour cycles, and its duty picker changes it', async ({ page }) => {
+  const saved = () => page.evaluate((key) => {
+    const { custom, dutyOverrides } = JSON.parse(localStorage.getItem(key) ?? '{}').projects[0]
+    return { custom, dutyOverrides }
+  }, STORAGE_KEY)
+  const pump = { id: 'custom1', name: 'Pool pump', watts: 1035, surge: 1035, note: 'Custom · 1035 W', duty: 0.3 }
+  await page.goto('/')
+  await page.getByLabel('Name', { exact: true }).fill('Pool pump')
+  await page.getByLabel('Running W').fill('1035')
+  await page.getByLabel('Runs % of each hour').fill('30')
+  const picker = page.getByLabel('Pool pump: share of each hour it runs')
+  // A click that lands before the page hydrates does nothing; once one adds the pump the form is empty, so another adds nothing.
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Add appliance' }).click()
+    await expect(picker).toBeVisible({ timeout: 1000 })
+  }).toPass()
+  const card = page.locator('.card').filter({ has: picker })
+  await expect(picker).toHaveValue('0.3')
+  await expect(card.getByText('~311 W average', { exact: true })).toBeVisible()
+  await expect.poll(saved).toEqual({ custom: [pump], dutyOverrides: {} })
+
+  await picker.selectOption({ label: '50% of each hour' })
+  await expect(card.getByText('~518 W average · typical 30%', { exact: true })).toBeVisible()
+  await expect.poll(saved).toEqual({ custom: [pump], dutyOverrides: { custom1: 0.5 } })
+  await page.reload()
+  await expect(page.getByLabel('Pool pump: share of each hour it runs')).toHaveValue('0.5')
+})
+
 test('a saved custom appliance that no longer loads stays reported until it is removed, and a new one does not take its place', async ({ page }) => {
   // What the form used to write: a pasted product title, longer than a saved project holds. It had a count of 3 and a duty.
   await page.addInitScript((key) => {

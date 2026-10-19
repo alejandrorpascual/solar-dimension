@@ -26,7 +26,7 @@ const tenth = (n: number) => Math.round(n * 10) / 10
 
 export function catalog(appliances: readonly CatalogItem[], custom: readonly CustomLoadLike[] = []): CatalogItem[] {
   const extra: CatalogItem[] = custom.map((c) => ({
-    id: c.id, name: c.name, cat: 'Custom', watts: c.watts, surge: c.surge, duty: 1, note: c.note, isCustom: true,
+    id: c.id, name: c.name, cat: 'Custom', watts: c.watts, surge: c.surge, duty: c.duty ?? 1, note: c.note, isCustom: true,
   }))
   return [...appliances, ...extra]
 }
