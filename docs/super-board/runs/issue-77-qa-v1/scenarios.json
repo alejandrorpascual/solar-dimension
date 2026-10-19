@@ -1,0 +1,334 @@
+{
+  "results": {
+    "ac1-recommended": {
+      "locale": "en",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 40,
+        "panels": null,
+        "sunHours": 4.5
+      },
+      "need": 5,
+      "recommended": 5,
+      "panels": 5,
+      "arrayW": 2750,
+      "coverRatio": 0.9457540760869565,
+      "roofWarnings": []
+    },
+    "ac1-agm-recommended": {
+      "locale": "en",
+      "volts": 12,
+      "chemistry": "agm",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 40,
+        "panels": null,
+        "sunHours": 4.5
+      },
+      "need": 4,
+      "recommended": 4,
+      "panels": 4,
+      "arrayW": 2200,
+      "coverRatio": 0.7566236413043478,
+      "roofWarnings": []
+    },
+    "ac1-agm-roof-warning": {
+      "locale": "en",
+      "volts": 12,
+      "chemistry": "agm",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 10,
+        "panels": null,
+        "sunHours": 4.5
+      },
+      "need": 4,
+      "recommended": 3,
+      "panels": 3,
+      "arrayW": 1650,
+      "coverRatio": 0.5674932065217391,
+      "roofWarnings": [
+        {
+          "code": "roofLimited",
+          "params": {
+            "fit": 3,
+            "need": 4
+          }
+        }
+      ]
+    },
+    "ac1-roof-warning": {
+      "locale": "en",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 10,
+        "panels": null,
+        "sunHours": 4.5
+      },
+      "need": 5,
+      "recommended": 3,
+      "panels": 3,
+      "arrayW": 1650,
+      "coverRatio": 0.5674932065217391,
+      "roofWarnings": [
+        {
+          "code": "roofLimited",
+          "params": {
+            "fit": 3,
+            "need": 5
+          }
+        }
+      ]
+    },
+    "ac2-help-coverage-en": {
+      "locale": "en",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 40,
+        "panels": null,
+        "sunHours": 4.5
+      },
+      "need": 5,
+      "recommended": 5,
+      "panels": 5,
+      "arrayW": 2750,
+      "coverRatio": 0.9457540760869565,
+      "roofWarnings": []
+    },
+    "ac2-help-coverage-es": {
+      "locale": "es",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 40,
+        "panels": null,
+        "sunHours": 4.5
+      },
+      "need": 5,
+      "recommended": 5,
+      "panels": 5,
+      "arrayW": 2750,
+      "coverRatio": 0.9457540760869565,
+      "roofWarnings": []
+    },
+    "ac4-tapped-zero": {
+      "locale": "en",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 10,
+        "panels": 0,
+        "sunHours": 4.5
+      },
+      "need": 5,
+      "recommended": 3,
+      "panels": 0,
+      "arrayW": 0,
+      "coverRatio": 0,
+      "roofWarnings": []
+    },
+    "ac4-one-panel": {
+      "locale": "en",
+      "volts": 24,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 7200,
+      "solar": {
+        "roofM2": 5,
+        "panels": null,
+        "sunHours": 4.5
+      },
+      "need": 4,
+      "recommended": 1,
+      "panels": 1,
+      "arrayW": 550,
+      "coverRatio": 0.1891304347826087,
+      "roofWarnings": [
+        {
+          "code": "roofLimited",
+          "params": {
+            "fit": 1,
+            "need": 4
+          }
+        }
+      ]
+    }
+  },
+  "checks": {
+    "ac1-recommended/desktop": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "95%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac1-recommended/mobile": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "95%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    },
+    "ac1-agm-recommended/desktop": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "76%",
+      "panelsLine": "4 panels · 2.2 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac1-agm-recommended/mobile": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "76%",
+      "panelsLine": "4 panels · 2.2 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    },
+    "ac1-agm-roof-warning/desktop": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "57%",
+      "panelsLine": "3 panels · 1.7 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": "Your roof holds 3 panels; 4 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": null
+    },
+    "ac1-agm-roof-warning/mobile": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "57%",
+      "panelsLine": "3 panels · 1.7 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": "Your roof holds 3 panels; 4 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": false
+    },
+    "ac1-roof-warning/desktop": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "57%",
+      "panelsLine": "3 panels · 1.7 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": "Your roof holds 3 panels; 5 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": null
+    },
+    "ac1-roof-warning/mobile": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "57%",
+      "panelsLine": "3 panels · 1.7 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": "Your roof holds 3 panels; 5 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": false
+    },
+    "ac2-help-coverage-en/desktop": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "95%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac2-help-coverage-en/mobile": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "95%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.5 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    },
+    "ac2-help-coverage-es/desktop": {
+      "help": "Los paneles recargan el banco en los días de sol; lo que reponen depende del sol y del techo. Puedes saltarte este paso y quedarte con un kit solo de baterías.",
+      "coverHead": "Producción en un día despejado frente al consumo de un día",
+      "coverPct": "95%",
+      "panelsLine": "5 paneles · 2.8 kW",
+      "sun": "4.5 h",
+      "pill": "Recomendado · recarga el banco en un día",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac2-help-coverage-es/mobile": {
+      "help": "Los paneles recargan el banco en los días de sol; lo que reponen depende del sol y del techo. Puedes saltarte este paso y quedarte con un kit solo de baterías.",
+      "coverHead": "Producción en un día despejado frente al consumo de un día",
+      "coverPct": "95%",
+      "panelsLine": "5 paneles · 2.8 kW",
+      "sun": "4.5 h",
+      "pill": "Recomendado · recarga el banco en un día",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    },
+    "ac4-tapped-zero/desktop": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "0%",
+      "panelsLine": "0 panels · 0 W",
+      "sun": "4.5 h",
+      "pill": "Back to recommended · 3",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac4-tapped-zero/mobile": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "0%",
+      "panelsLine": "0 panels · 0 W",
+      "sun": "4.5 h",
+      "pill": "Back to recommended · 3",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    },
+    "ac4-one-panel/desktop": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "19%",
+      "panelsLine": "1 panel · 550 W",
+      "sun": "4.5 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac4-one-panel/mobile": {
+      "help": "Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.",
+      "coverHead": "Clear-day yield against a day's use",
+      "coverPct": "19%",
+      "panelsLine": "1 panel · 550 W",
+      "sun": "4.5 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    }
+  }
+}
