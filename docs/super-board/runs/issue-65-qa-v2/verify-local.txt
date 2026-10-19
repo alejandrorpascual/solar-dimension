@@ -1,0 +1,11 @@
+Verify chain (config verify_commands) in a fresh clone at 7f01987872a7b2d8f6144d24ac413ee39dbd4033
+Command: npm ci --silent && npm run typecheck && npm run test:coverage && npm run build
+Exit: VERIFY_EXIT=0
+ Test Files  97 passed (97)
+      Tests  1570 passed (1570)
+All files          |   98.29 |    93.63 |   99.33 |    98.9 |                   
+  fine-print.ts    |     100 |       75 |     100 |     100 | 24-26             
+  kit-checks.ts    |     100 |    97.61 |     100 |     100 | 90                
+✓ built in 852ms
+✓ built in 404ms
+✓ built in 871ms

@@ -1,0 +1,28 @@
+== M1 es: drop supuesto from the battery peak pass line
+ src/i18n/es.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ FAIL  src/lib/kit-checks.test.ts > kitChecks > the pass lines resting on a generic rating say it is assumed, the fuse and cable lines do not (es)
+      Tests  1 failed | 20 passed (21)
+restored: src clean
+== M2 en: drop (assumed ratings) from the batteries note
+ src/i18n/en.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ FAIL  src/lib/kit-parts.test.ts > kit parts (en) > the batteries note states the bank currents as assumed ratings, and the parallel notes only with parallel strings
+      Tests  1 failed | 33 passed (34)
+restored: src clean
+== M3 fine print: type the short-circuit A per Ah instead of reading the catalog
+ src/lib/fine-print.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ FAIL  src/lib/fine-print.test.ts > finePrint (en) > a LiFePO₄ kit lists the battery and inverter ratings it was sized with, as the catalog states them
+ FAIL  src/lib/fine-print.test.ts > finePrint (en) > a AGM kit lists the battery and inverter ratings it was sized with, as the catalog states them
+ FAIL  src/lib/fine-print.test.ts > finePrint (es) > a LiFePO₄ kit lists the battery and inverter ratings it was sized with, as the catalog states them
+ FAIL  src/lib/fine-print.test.ts > finePrint (es) > a AGM kit lists the battery and inverter ratings it was sized with, as the catalog states them
+      Tests  4 failed | 8 passed (12)
+restored: src clean
+== M4 en: drop continuous, not VA from the inverter spec
+ src/i18n/en.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ FAIL  src/lib/kit-parts.test.ts > kit parts (en) > inverters in parallel: the row counts them and says what they give together; the cable and fuse rows are per inverter
+ FAIL  src/lib/kit-parts.test.ts > kit parts (en) > the inverter spec says its size is continuous watts, not VA
+      Tests  2 failed | 32 passed (34)
+restored: src clean
