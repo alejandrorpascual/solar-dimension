@@ -39,6 +39,8 @@ Screenshots, 1920×1080 / 1024×768 / 375×667, from a capture run that is not c
   ac2-arithmetic-es-*              the same in Spanish, "× 85 % de descarga", "Página 2", "de arranque"
   ac3-cable-thickest-line-*        the unsplit SolarTec quote: one box under Main cables
   No sideways scroll at any of the three widths (scrollWidth <= viewport width, asserted before each shot).
+  before-*                         staging 6eb9329's src on the same two-line bank: one quote box, "25.3 kWh × 85%"
+                                   and no inverter arithmetic (src restored to 1d5f2fd after the capture)
 
 Test gaps (not written):
 - Medium: the surviving mutant above. A bank that passes on its sized lines alone cites only those lines; no test
