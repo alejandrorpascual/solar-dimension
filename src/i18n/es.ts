@@ -31,7 +31,7 @@ export const es: Dictionary = {
     running: 'en marcha', surge: 'arranque', runningSurgeLine: '{watts} W en marcha · {surge} de arranque', splitPhase: 'Requiere un inversor de 240 V / fase partida',
     customTitle: '¿No está en la lista?', customHelp: 'Escribe los vatios de la etiqueta, o los voltios y amperios y nosotros los multiplicamos.',
     watts: 'Vatios', voltsAmps: 'Voltios × amperios', name: 'Nombre', runningW: 'W en marcha', volts: 'Voltios', amps: 'Amperios', surgeOptional: 'W de arranque (opcional)', sameAsRunning: 'igual que en marcha', dutyPctLabel: '% de cada hora que funciona', addAppliance: 'Agregar aparato',
-    errName: 'Ponle un nombre al aparato.', errNameLong: 'El nombre puede tener hasta {max} caracteres.', errVa: 'Ingresa voltios y amperios que den al menos 1 vatio.', errWatts: 'Ingresa al menos 1 vatio en marcha.', errSurge: 'El arranque no puede ser menor que los vatios en marcha.',
+    errName: 'Ponle un nombre al aparato.', errNameLong: 'El nombre puede tener hasta {max} caracteres.', errVa: 'Ingresa voltios y amperios que den de 1 a {maxW} vatios.', errWatts: 'Ingresa de 1 a {maxW} vatios en marcha.', errSurge: 'El arranque debe ir de los vatios en marcha hasta {maxSurge} W.',
     errThousands: 'Escribe los vatios como número entero sin separador: 1500, no 1.500 ni 1,500.',
     errDuty: 'Escribe qué parte de cada hora funciona, de {min} a 100%. Déjalo vacío si no se apaga nunca.',
     customUnreadOne: 'No se pudo cargar 1 aparato personalizado de este proyecto, así que el kit lo deja fuera. Agrégalo de nuevo abajo y luego quita el que no cargó.',

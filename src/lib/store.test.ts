@@ -228,6 +228,24 @@ describe('a custom appliance the project could not read back', () => {
     expect(missingNotice(after)).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
   })
 
+  test('one saved above the catalog ceiling of 30,000 W running or 120,000 W surge is dropped with the notice', () => {
+    // Arrange
+    const base = initialStore().projects[0]!
+    const custom = [
+      { id: 'custom1', name: 'Typo', watts: 30_001, surge: 30_001, note: '' },
+      { id: 'custom2', name: 'Huge start', watts: 30_000, surge: 120_001, note: '' },
+      { id: 'custom3', name: 'At the ceiling', watts: 30_000, surge: 120_000, note: '' },
+    ]
+
+    // Act
+    const project = ProjectSchema.parse({ ...base, qty: { custom1: 1, custom2: 1, custom3: 1 }, custom })
+
+    // Assert
+    expect(project.custom.map((c) => c.id)).toEqual(['custom3'])
+    expect(unreadCustomCount(project)).toBe(2)
+    expect(missingNotice(project)).toEqual([{ code: 'missingAppliances', params: { count: 2 } }])
+  })
+
   test('it is counted until it is removed, and removing it takes its count, its duty and the notice with it', () => {
     // Arrange
     const store = recovered()

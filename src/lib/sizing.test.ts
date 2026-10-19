@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { DEFAULT_HARDWARE } from './catalog'
+import { DEFAULT_HARDWARE, type ChemistryId } from './catalog'
 import { catalog, compute } from './sizing'
 
 const ESSENTIALS = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
@@ -140,6 +140,43 @@ describe('compute', () => {
     const custom = [{ id: 'custom1', name: 'Pump', watts: 500, surge: 500, note: '' }]
     const withCustom = compute({ qty: { custom1: 1 }, custom, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(withCustom.warnings.some((w) => w.code === 'missingAppliances')).toBe(false)
+  })
+})
+
+describe('inputs a saved project would refuse', () => {
+  const KIT = { hours: 10, volts: 48, chemistry: 'lifepo4' } as const
+  /** The path of every NaN anywhere in the result, so one cannot hide in a nested field. */
+  const nanPaths = (value: unknown, path = 'result'): string[] => {
+    if (typeof value === 'number') return Number.isNaN(value) ? [path] : []
+    if (value !== null && typeof value === 'object') return Object.entries(value).flatMap(([k, v]) => nanPaths(v, `${path}.${k}`))
+    return []
+  }
+
+  test('a quantity of 0.5 gives an empty kit and no zero-quantity item', () => {
+    const r = compute({ ...KIT, qty: { lights: 0.5 } }, CATALOG_SNAPSHOT)
+    expect(r.empty).toBe(true)
+    expect(r.items).toEqual([])
+    expect(r.warnings).toEqual([])
+  })
+
+  test('an infinite quantity is left out instead of throwing', () => {
+    const r = compute({ ...KIT, qty: { fridge: Infinity, lights: 1 } }, CATALOG_SNAPSHOT)
+    expect(r.items.map((i) => [i.id, i.qty])).toEqual([['lights', 1]])
+  })
+
+  test('an unknown chemistry, even an inherited object key, sizes as LiFePO4 without throwing', () => {
+    const lifepo4 = compute({ ...KIT, qty: ESSENTIALS }, CATALOG_SNAPSHOT)
+    for (const chemistry of ['nimh', 'toString', 'constructor', '__proto__', 'hasOwnProperty']) {
+      expect(compute({ ...KIT, qty: ESSENTIALS, chemistry: chemistry as ChemistryId }, CATALOG_SNAPSHOT), chemistry).toEqual(lifepo4)
+    }
+  })
+
+  test('a load with NaN watts is left out and counted as missing, and no result field is NaN', () => {
+    const custom = [{ id: 'custom1', name: 'Broken', watts: NaN, surge: NaN, note: '' }]
+    const r = compute({ ...KIT, qty: { ...ESSENTIALS, custom1: 1 }, custom }, CATALOG_SNAPSHOT)
+    expect(nanPaths(r)).toEqual([])
+    expect(r.runningW).toBe(465)
+    expect(r.warnings).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
   })
 })
 
