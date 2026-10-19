@@ -802,6 +802,11 @@ describe('air conditioning on a hard day', () => {
     expect(catalogDuty.battery!.runtime.worst).toBeCloseTo(nonStop.battery!.runtime.worst)
   })
 
+  test.each(['ac1c', 'ac1i'])('the hard day runs a 1-ton AC (%s) non-stop: the usable bank over its full 1,100 W', (id) => {
+    // 48 V × 280 Ah = 13,440 Wh. 85% depth of discharge and 85% hard-day efficiency leave 9,710 Wh: 8.83 h at 1,100 W.
+    expect(acKit(id).battery!.runtime.worst).toBeCloseTo(8.83, 2)
+  })
+
   test('the bank is still sized on a typical day: a 1-ton AC for 8 h keeps one 48 V 200 Ah unit', () => {
     const r = compute({ qty: { ac1c: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(r.battery).toMatchObject({ unitLabel: '48 V 200 Ah LiFePO₄', count: 1, bankWh: 9600 })
