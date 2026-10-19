@@ -216,6 +216,14 @@ describe('battery unit choice', () => {
     expect(r.warnings.some((w) => w.code === 'roofLimited')).toBe(true)
   })
 
+  test('a 48 V roof with every panel tapped off is not called too short', () => {
+    // Removing panel 2 of 2 at 48 V asks for 0: the roof holds 13, so the string is not the reason there are none.
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: 0, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
+    expect(r.solar?.panels).toBe(0)
+    expect(r.solar?.isTooShort).toBe(false)
+    expect(r.warnings.some((w) => w.code === 'stringTooShort')).toBe(false)
+  })
+
   test('an empty project with panels sizes nothing and warns nothing', () => {
     const r = compute({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
     expect(r.solar?.panels).toBe(0)
