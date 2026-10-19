@@ -1,5 +1,5 @@
 import type { UiKey } from '../i18n/types'
-import { SIZING } from './catalog'
+import { MAX_APPLIANCE_SURGE, MAX_APPLIANCE_WATTS, SIZING } from './catalog'
 
 export interface CustomForm {
   name: string
@@ -66,12 +66,13 @@ export function parseCustom(form: CustomForm, existingIds: readonly string[]): P
   if (name.length > CUSTOM_NAME_MAX) return { ok: false, error: 'errNameLong' }
   if ((!isVa && isGrouped(form.watts)) || isGrouped(form.surge)) return { ok: false, error: 'errThousands' }
   const watts = Math.round(computed)
-  // Whole, finite watts are what is stored: a load that rounds to zero, or volts × amps that overflow, would be one the saved project refuses.
-  if (!(watts >= 1 && Number.isFinite(watts))) {
+  // Whole watts within the catalog's ceiling are what is stored: a load that rounds to zero, or one above the ceiling
+  // (volts × amps that overflow included), would be one the saved project refuses.
+  if (!(watts >= 1 && watts <= MAX_APPLIANCE_WATTS)) {
     return { ok: false, error: isVa ? 'errVa' : 'errWatts' }
   }
   const surge = num(form.surge)
-  if (surge > 0 && surge < computed) return { ok: false, error: 'errSurge' }
+  if (surge > 0 && (surge < computed || Math.round(surge) > MAX_APPLIANCE_SURGE)) return { ok: false, error: 'errSurge' }
   const duty = dutyOf(form.dutyPct)
   if (duty === null) return { ok: false, error: 'errDuty' }
   return {

@@ -1,0 +1,15 @@
+# verify_commands on 02749c3 + QA test: npm ci --silent && npm run typecheck && npm run test:coverage && npm run build
+exit 0
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+> test:coverage
+> vitest run --coverage
+ Test Files  96 passed (96)
+      Tests  1570 passed (1570)
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+All files          |   98.27 |    93.66 |   99.34 |   98.86 |                   
+> build
+> vite build
+✓ built in 733ms
+✓ built in 269ms
+✓ built in 601ms

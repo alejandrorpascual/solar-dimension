@@ -39,11 +39,14 @@ export function effectiveDuty(item: CatalogItem, overrides: Record<string, numbe
   return { duty: item.duty, overridden: false }
 }
 
+/** The whole units counted for an appliance: a fraction rounds down, and a quantity that is not a finite number counts as none. */
+export const unitsOf = (qty: number | undefined): number => (typeof qty === 'number' && Number.isFinite(qty) ? Math.trunc(qty) : 0)
+
 export function selectItems(items: readonly CatalogItem[], qty: Record<string, number>, hours: number, overrides: Record<string, number>): SelectedItem[] {
   return items
-    .filter((a) => (qty[a.id] ?? 0) > 0)
+    .filter((a) => unitsOf(qty[a.id]) > 0)
     .map((a) => {
-      const n = Math.trunc(qty[a.id] ?? 0)
+      const n = unitsOf(qty[a.id])
       const { duty, overridden } = effectiveDuty(a, overrides)
       const startClass = surgeClassOf(a)
       return {

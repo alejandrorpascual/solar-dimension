@@ -1,11 +1,10 @@
 import { z } from 'zod'
-import { LOAD_KINDS, SURGE_CLASSES, type ApplianceLabels, type CatalogItem, type CompressorType, type LoadKind, type SurgeClass } from './catalog'
+import { LOAD_KINDS, MAX_APPLIANCE_SURGE, MAX_APPLIANCE_WATTS, SURGE_CLASSES, type ApplianceLabels, type CatalogItem, type CompressorType, type LoadKind, type SurgeClass } from './catalog'
 import { isCustomLoadId } from './custom'
 
 export const APPLIANCE_CATEGORIES = ['Kitchen', 'Living', 'Climate', 'Air conditioning', 'Work', 'Utility', 'Security', 'Personal'] as const
 export type ApplianceCategory = (typeof APPLIANCE_CATEGORIES)[number]
 
-export const MAX_APPLIANCE_WATTS = 30_000
 const MAX_BATCH = 100
 const LARGE_LOAD_W = 5000
 const NONSTOP_HEAVY_W = 1000
@@ -26,7 +25,7 @@ export const ApplianceSchema = z
       .refine((id) => !isCustomLoadId(id), 'ids like "custom1" are reserved for custom loads'),
     category: z.enum(APPLIANCE_CATEGORIES),
     watts: z.number().int().min(1).max(MAX_APPLIANCE_WATTS),
-    surge: z.number().int().min(1).max(MAX_APPLIANCE_WATTS * 4),
+    surge: z.number().int().min(1).max(MAX_APPLIANCE_SURGE),
     duty: z.number().gt(0).lte(1),
     tons: z.number().positive().nullable().default(null),
     acType: z.enum(['inverter', 'conventional']).nullable().default(null),

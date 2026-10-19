@@ -31,7 +31,7 @@ export const en: Dictionary = {
     running: 'running', surge: 'surge', runningSurgeLine: '{watts} W running · {surge} surge', splitPhase: 'Needs a 240 V / split-phase inverter',
     customTitle: 'Something not on the list?', customHelp: 'Type the watts from the label, or the volts and amps and we multiply them.',
     watts: 'Watts', voltsAmps: 'Volts × amps', name: 'Name', runningW: 'Running W', volts: 'Volts', amps: 'Amps', surgeOptional: 'Surge W (optional)', sameAsRunning: 'same as running', dutyPctLabel: 'Runs % of each hour', addAppliance: 'Add appliance',
-    errName: 'Give the appliance a name.', errNameLong: 'Keep the name to {max} characters or fewer.', errVa: 'Enter volts and amps that make at least 1 watt.', errWatts: 'Enter at least 1 running watt.', errSurge: 'Surge cannot be below running watts.',
+    errName: 'Give the appliance a name.', errNameLong: 'Keep the name to {max} characters or fewer.', errVa: 'Enter volts and amps that make 1 to {maxW} watts.', errWatts: 'Enter 1 to {maxW} running watts.', errSurge: 'Surge must be from the running watts up to {maxSurge} W.',
     errThousands: 'Write watts as a whole number with no separator: 1500, not 1.500 or 1,500.',
     errDuty: 'Enter how much of each hour it runs, from {min} to 100%. Leave it empty if it never stops.',
     customUnreadOne: '1 custom appliance in this project could not be loaded, so the kit leaves it out. Add it again below, then remove the one that did not load.',

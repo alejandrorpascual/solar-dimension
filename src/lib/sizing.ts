@@ -3,7 +3,7 @@ import { ambientFactor, ampsAt, bundleFactor } from './nec'
 import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate, type BankDemand } from './sizing/battery'
 import { canInterruptFault, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
 import { dcAmps, pickInverter, toInverterPick } from './sizing/inverter'
-import { selectItems, surgeProfile } from './sizing/loads'
+import { selectItems, surgeProfile, unitsOf } from './sizing/loads'
 import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
 import type {
   BatteryOption, BatteryPick, CableConditions, CustomLoadLike, SelectedItem, SimultaneousStarts, SizingInput, SizingResult, Warning,
@@ -37,8 +37,11 @@ export function catalog(appliances: readonly CatalogItem[], custom: readonly Cus
  */
 function missingCount(list: readonly CatalogItem[], qty: Record<string, number>): number {
   const known = new Set(list.map((i) => i.id))
-  return Object.entries(qty).filter(([id, n]) => n > 0 && !known.has(id)).length
+  return Object.entries(qty).filter(([id, n]) => unitsOf(n) > 0 && !known.has(id)).length
 }
+
+/** Whether the engine can size an item: finite running and surge watts. One it cannot is left out and counted as missing. */
+const isSizable = (i: CatalogItem): boolean => Number.isFinite(i.watts) && Number.isFinite(i.surge)
 
 function normalizeStarts(v: SimultaneousStarts | undefined): SimultaneousStarts {
   if (v === 'all') return 'all'
@@ -75,11 +78,12 @@ export const hasPanels = (r: SizingResult): r is SizingResult & { solar: SolarPi
 export function compute(input: SizingInput, appliances: readonly CatalogItem[], hardware: HardwareCatalog = DEFAULT_HARDWARE): SizingResult {
   const hours = clamp(finite(input.hours, 10), HOURS_RANGE[0], HOURS_RANGE[1])
   const volts: Voltage = VOLTAGES.includes(input.volts) ? input.volts : 48
-  const chem = hardware.chemistries[input.chemistry] ?? hardware.chemistries.lifepo4
+  // An own key only: a name such as "toString" would otherwise find a method on the object's prototype.
+  const chem = Object.hasOwn(hardware.chemistries, input.chemistry) ? hardware.chemistries[input.chemistry] : hardware.chemistries.lifepo4
   const starts = normalizeStarts(input.simultaneousStarts)
   const cond = normalizeCable(input)
 
-  const list = catalog(appliances, input.custom)
+  const list = catalog(appliances, input.custom).filter(isSizable)
   const items = selectItems(list, input.qty ?? {}, hours, input.dutyOverrides ?? {})
   const missing = missingCount(list, input.qty ?? {})
   const runningW = sum(items, (i) => i.totalWatts)

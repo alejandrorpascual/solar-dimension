@@ -1,0 +1,12 @@
+# Mutant: isSizable without the surge check (src/lib/sizing.ts:44)
+-const isSizable = (i: CatalogItem): boolean => Number.isFinite(i.watts) && Number.isFinite(i.surge)
++const isSizable = (i: CatalogItem): boolean => Number.isFinite(i.watts)
+## builder tests on the mutant
+      Tests  1 passed | 83 skipped (84)
+## QA test on the mutant
+     × a load with finite running watts but a NaN surge is left out too, and no result field is NaN 8ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected [ 'result.items.6.surge', …(1) ] to deeply equal []
+      Tests  1 failed | 83 skipped (84)
+## restored
+      Tests  1 passed | 83 skipped (84)

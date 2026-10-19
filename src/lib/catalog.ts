@@ -42,6 +42,11 @@ export interface CatalogItem {
   cyclesPerHour?: number
 }
 
+/** The most running watts one appliance may draw, catalog or custom. */
+export const MAX_APPLIANCE_WATTS = 30_000
+/** The largest start-up surge one appliance may have: four times the running ceiling. */
+export const MAX_APPLIANCE_SURGE = MAX_APPLIANCE_WATTS * 4
+
 export const SIZING = {
   INVERTER_EFF: 0.9,
   HEADROOM: 1.25,

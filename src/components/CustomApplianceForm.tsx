@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
+import { fmtInt } from '../i18n/format'
+import { MAX_APPLIANCE_SURGE, MAX_APPLIANCE_WATTS } from '../lib/catalog'
 import { CUSTOM_DUTY_MIN_PCT, CUSTOM_NAME_MAX, EMPTY_FORM, parseCustom, type CustomError, type CustomForm } from '../lib/custom'
 import type { Store } from '../lib/schema'
 import { addCustom, currentProject, removeUnreadCustom, takenLoadIds, unreadCustomCount } from '../lib/store'
 
 export function CustomApplianceForm({ store, commit }: { store: Store; commit: (s: Store) => void }) {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const [form, setForm] = useState<CustomForm>(EMPTY_FORM)
   const [error, setError] = useState<CustomError | null>(null)
   const set = (patch: Partial<CustomForm>) => { setForm({ ...form, ...patch }); setError(null) }
@@ -56,7 +58,7 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
         <label className="field"><span className="lab">{t.ui.dutyPctLabel}</span><input className="in" type="number" min={CUSTOM_DUTY_MIN_PCT} max="100" placeholder="100" value={form.dutyPct} onChange={(e) => set({ dutyPct: e.target.value })} /></label>
         <button type="button" className="btn btn--primary custom__submit" onClick={submit}>{t.ui.addAppliance}</button>
       </div>
-      {error && <div className="error" role="alert">{tr(t, error, { max: CUSTOM_NAME_MAX, min: CUSTOM_DUTY_MIN_PCT })}</div>}
+      {error && <div className="error" role="alert">{tr(t, error, { max: CUSTOM_NAME_MAX, min: CUSTOM_DUTY_MIN_PCT, maxW: fmtInt(MAX_APPLIANCE_WATTS, locale), maxSurge: fmtInt(MAX_APPLIANCE_SURGE, locale) })}</div>}
     </div>
   )
 }

@@ -59,6 +59,18 @@ describe('parseCustom', () => {
     expect(parseCustom({ ...EMPTY_FORM, name: 'Half watt', watts: '0.5' }, [])).toMatchObject({ ok: true, item: { watts: 1, surge: 1 } })
   })
 
+  test('a load is held to the catalog ceiling of 30,000 W running and 120,000 W surge', () => {
+    const furnace = { ...EMPTY_FORM, name: 'Furnace' }
+    expect(parseCustom({ ...furnace, watts: '30000' }, [])).toMatchObject({ ok: true, item: { watts: 30000, surge: 30000 } })
+    expect(parseCustom({ ...furnace, watts: '30001' }, [])).toEqual({ ok: false, error: 'errWatts' })
+    expect(parseCustom({ ...furnace, watts: '1000000000' }, [])).toEqual({ ok: false, error: 'errWatts' })
+    // 240 V × 125 A is the ceiling exactly; 126 A is over it.
+    expect(parseCustom({ ...furnace, mode: 'va', volts: '240', amps: '125' }, [])).toMatchObject({ ok: true, item: { watts: 30000 } })
+    expect(parseCustom({ ...furnace, mode: 'va', volts: '240', amps: '126' }, [])).toEqual({ ok: false, error: 'errVa' })
+    expect(parseCustom({ ...furnace, watts: '30000', surge: '120000' }, [])).toMatchObject({ ok: true, item: { surge: 120000 } })
+    expect(parseCustom({ ...furnace, watts: '30000', surge: '120001' }, [])).toEqual({ ok: false, error: 'errSurge' })
+  })
+
   test('volts × amps too large for a number are refused, not stored as Infinity', () => {
     expect(parseCustom({ ...EMPTY_FORM, name: 'Typo', mode: 'va', volts: '1e200', amps: '1e200' }, [])).toEqual({ ok: false, error: 'errVa' })
     expect(parseCustom({ ...EMPTY_FORM, name: 'Typo', mode: 'va', volts: '1e308', amps: '10' }, [])).toEqual({ ok: false, error: 'errVa' })
