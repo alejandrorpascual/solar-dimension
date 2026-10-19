@@ -146,6 +146,13 @@ export async function misreadQuoteLine(email: string, projectId: string, unitPri
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/** Same, because its currency was read as `currency`, which is no ISO code ("RD$"). */
+export async function misreadQuoteCurrency(email: string, projectId: string, currency: string): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review', extraction = jsonb_set(q.extraction, '{currency}', to_jsonb(${currency}::text))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
 /** Same, because line `line`'s spec `spec` was read as `value` (a 5,120 kWh battery: Wh read as kWh). */
 export async function misreadQuoteSpec(email: string, projectId: string, line: number, spec: string, value: number): Promise<void> {
   await testDb()`

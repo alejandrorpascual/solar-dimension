@@ -34,6 +34,10 @@ describe('fmtMoney and fmtList', () => {
   test('an unknown currency code falls back to the number and the code', () => {
     expect(fmtMoney(10, 'ZZZZ', 'en')).toBe('10 ZZZZ')
   })
+  test('cents when asked for, with a known code or not', () => {
+    expect(fmtMoney(45.5, 'USD', 'en', 2)).toBe('$45.50')
+    expect(fmtMoney(45.5, 'RD$', 'en', 2)).toBe('45.50 RD$')
+  })
   test('lists join with "and" / "y"', () => {
     expect(fmtList(['a charger', 'a fuse'], 'en')).toBe('a charger and a fuse')
     expect(fmtList(['un cargador', 'un fusible'], 'es')).toBe('un cargador y un fusible')

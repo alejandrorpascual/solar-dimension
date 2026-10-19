@@ -1,10 +1,14 @@
 import { useId, useState, type FormEvent } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { trq } from '../../i18n'
-import { type UnrankedQuote } from '../../lib/quote-compare'
+import { entryName, type UnrankedQuote } from '../../lib/quote-compare'
 import { parseTotal } from '../../lib/quote-guards'
+import { lineRows } from '../../lib/quote-line-text'
 import { entrySubtitle, fileStatusText, misreadText, readTotalText, totalHelp } from '../../lib/quote-text'
+import { ChecksToggle } from './ChecksToggle'
 import { QuoteActions } from './QuoteActions'
+import { QuoteFacts } from './QuoteFacts'
+import { QuoteLines } from './QuoteLines'
 
 interface Props {
   u: UnrankedQuote; error: string | null
@@ -15,13 +19,16 @@ interface Props {
 
 /**
  * A read quote that can't be ranked yet: it needs a corrected total, needs reading again, has no price for an option, or
- * is in another currency. Quotes still reading or that couldn't be read are ProgressCards.
+ * is in another currency. Show checks lists the lines that were read, so what failed can be seen. Quotes still reading or
+ * that couldn't be read are ProgressCards.
  */
 export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Props) {
   const { t } = useLocale()
   const nameId = useId()
   const inputId = useId()
   const errorId = useId()
+  const bodyId = useId()
+  const [isOpen, setOpen] = useState(false)
   // The field starts empty, beside the total that was read: saving the figure that failed the check takes typing it.
   const [total, setTotal] = useState('')
   const [isInvalid, setInvalid] = useState(false)
@@ -43,6 +50,7 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
       ? { cls: 'qpill qpill--warn', text: t.quotes.noPrice }
       : { cls: 'qpill qpill--warn', text: fileStatusText(t, u.quote.status) }
   const subtitle = entrySubtitle(t, u)
+  const hasLines = extraction !== null && lineRows(t, extraction, u.optionId).length > 0
   return (
     <article className="qrow" aria-labelledby={nameId}>
       <div className="qhead__top">
@@ -74,6 +82,13 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
         {canReadAgain && <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button>}
         <QuoteActions quoteId={u.quote.id} optionCount={u.optionCount} onDelete={onDelete} />
       </div>
+      {hasLines && <ChecksToggle name={entryName(u)} isOpen={isOpen} controls={bodyId} onToggle={() => setOpen(!isOpen)} variant="link" />}
+      {hasLines && isOpen && (
+        <div className="qrow__body" id={bodyId}>
+          <QuoteLines extraction={extraction} optionId={u.optionId} />
+          <QuoteFacts extraction={extraction} />
+        </div>
+      )}
       {error && <p className="qerr" role="alert">{error}</p>}
     </article>
   )

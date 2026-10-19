@@ -1,5 +1,5 @@
 import { trq, type Dictionary, type QuoteKey } from '../i18n'
-import { checkExtraction, hasTotal, isFixedByTotal, linesWithTax } from './quote-checks'
+import { checkExtraction, hasTotal, isFixedByTotal, linesWithTax, type CheckFailure } from './quote-checks'
 import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtNumber, fmtW } from '../i18n/format'
 import { entryKey, entryName, nothingRead, quoteSubtitle, type EntryOption, type QuoteView, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
 import { HIGHEST_DOD_CHEMISTRY, LOWEST_DOD_CHEMISTRY, STRIP_ITEMS, type ItemCheck, type ItemFacts, type ItemId, type ItemStatus, type KitNeeds, type Term } from './quote-items'
@@ -311,14 +311,22 @@ export function totalHelp(t: Dictionary, u: UnrankedQuote): string {
   return u.reason === 'no_total' ? t.quotes.noTotalHelp : t.quotes.checkNumbersHelp
 }
 
+/** The sentence for each check a misread reading can fail that a typed total wouldn't fix, in the order the card names them. */
+const MISREAD_REASONS: readonly (readonly [CheckFailure, QuoteKey])[] = [
+  ['bad_currency', 'misreadCurrency'], ['line_mismatch', 'misreadLines'], ['bad_qty', 'misreadQty'],
+]
+
 /**
  * Why a reading waits to be read again rather than for a total: a number no real quote states (a 5,120 kWh battery, a
- * page past the file's `pages`), no lines were read, or the ones read don't hold together.
+ * page past the file's `pages`), no lines were read, or the checks the ones read failed, each named.
  */
 export function misreadText(t: Dictionary, x: QuoteExtraction, pages: number | null, canReadAgain: boolean): string {
-  if (checkExtraction(x, pages).includes('implausible')) return canReadAgain ? t.quotes.implausibleHelp : t.quotes.implausibleHelpNoRetry
+  const failures = checkExtraction(x, pages)
+  if (failures.includes('implausible')) return canReadAgain ? t.quotes.implausibleHelp : t.quotes.implausibleHelpNoRetry
   if (x.lines.length === 0) return canReadAgain ? t.quotes.noLinesHelp : t.quotes.noLinesHelpNoRetry
-  return canReadAgain ? t.quotes.misreadHelp : t.quotes.misreadHelpNoRetry
+  const reasons = MISREAD_REASONS.filter(([f]) => failures.includes(f)).map(([, key]) => t.quotes[key])
+  const action = canReadAgain ? t.quotes.misreadAction : t.quotes.misreadActionNoRetry
+  return [...(reasons.length > 0 ? reasons : [t.quotes.misreadOther]), action].join(' ')
 }
 
 /**
