@@ -199,6 +199,11 @@ describe('battery unit choice', () => {
     expect(r.warnings).toContainEqual({ code: 'roofLimited', params: { fit: 2, need: 5 } })
   })
 
+  test('a 48 V roof that holds 11 panels but wires 10 says it holds the 10', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 24, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 35, panels: null, sunHours: 3 } }, CATALOG_SNAPSHOT)
+    expect([r.solar?.fit, r.solar?.panels, r.warnings.find((w) => w.code === 'roofLimited')?.params]).toEqual([11, 10, { fit: 10, need: 11 }])
+  })
+
   test('a 48 V roof that holds one panel lists no panels and says the string is too short', () => {
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 5, panels: null, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
     expect([r.solar?.panels, r.solar?.dailyWh]).toEqual([0, 0])
