@@ -1,5 +1,5 @@
 import { caveatsOf, type Caveat } from './quote-caveats'
-import { hasTotal, isFixedByTotal, optionPrices, statesTax } from './quote-checks'
+import { checkExtraction, hasTotal, isFixedByTotal, optionPrices, statesTax } from './quote-checks'
 import { checkItems, includedArrayW, itemsFor, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
 import { hasOptions, optionExtraction } from './quote-options'
 import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
@@ -11,6 +11,8 @@ export interface QuoteView {
   createdAt: number
   /** Read agains used: the card hides Read again at MAX_RETRIES, and a reading read again takes the user's total (takesTypedTotal). */
   retries: number
+  /** The file's page count (quotes.pages), which a reading's source pages are checked against; null for an image. */
+  pages: number | null
 }
 export type Fit = 'fits' | 'unclear' | 'short'
 /** Which of a quote's systems an entry is. A single-system quote has no option and an option count of 0. */
@@ -30,8 +32,9 @@ export interface RankedQuote extends EntryOption {
 /**
  * needs_review: the total doesn't add up with the lines, or a reading read again still doesn't hold; no_total: the quote
  * was read but states no total. Both wait for the user's total. misread: a single-system reading whose line amounts,
- * quantities or currency don't hold, or that has no lines, which a typed total wouldn't fix: it waits to be read again
- * (takesTypedTotal). no_price: an option of a quote that offers several states no price for it.
+ * quantities or currency don't hold, that has no lines, or that states an implausible number, which a typed total
+ * wouldn't fix: it waits to be read again (takesTypedTotal). no_price: an option of a quote that offers several states no
+ * price for it.
  */
 export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'misread' | 'no_price' | 'failed' | 'other_currency'
 export interface UnrankedQuote extends EntryOption { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
@@ -83,9 +86,13 @@ const totalOf = (q: QuoteView): number | null => q.totalOverride ?? q.extraction
  * Whether the user's total can rank a reading that needs review: when its total was all that failed, or once it has been
  * read again. A wrong line amount, quantity or currency is a reading to redo first, but one that still doesn't hold may be
  * the document itself (a discount taken off a line, a quote with no lines): it reads the same every time, and without a
- * total to type it could never be compared. One read again is the test, since each can cost up to 4 model calls.
+ * total to type it could never be compared. One read again is the test, since each can cost up to 4 model calls. An
+ * implausible reading (a 5,120 kWh battery) never takes one: no document is written that way, and its sizes would rank.
  */
-export const takesTypedTotal = (q: QuoteView): boolean => q.extraction !== null && (q.retries > 0 || isFixedByTotal(q.extraction))
+export function takesTypedTotal(q: QuoteView): boolean {
+  if (q.extraction === null || checkExtraction(q.extraction, q.pages).includes('implausible')) return false
+  return q.retries > 0 || isFixedByTotal(q.extraction)
+}
 
 /**
  * A ready quote that offers several systems is one entry per option, priced from the document alone: the user's typed

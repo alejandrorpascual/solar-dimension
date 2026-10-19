@@ -1,7 +1,10 @@
+import { PRODUCT_LIMITS } from './product-limits'
 import { hasOptions, optionLines } from './quote-options'
-import { UNLISTED_OPTION, type QuoteExtraction, type QuoteLine, type QuoteOption } from './quote-schema'
+import { UNLISTED_OPTION, type LineSpecs, type QuoteExtraction, type QuoteLine, type QuoteOption } from './quote-schema'
 
-export type CheckFailure = 'no_lines' | 'no_total' | 'bad_currency' | 'bad_qty' | 'line_mismatch' | 'total_mismatch' | 'option_total_mismatch' | 'unknown_option'
+export type CheckFailure =
+  | 'no_lines' | 'no_total' | 'bad_currency' | 'bad_qty' | 'line_mismatch' | 'total_mismatch' | 'option_total_mismatch' | 'unknown_option'
+  | 'implausible'
 
 const LINE_TOLERANCE = 0.01
 const TOTAL_TOLERANCE = 0.02
@@ -104,8 +107,70 @@ function hasOptionTotalMismatch(x: QuoteExtraction): boolean {
   })
 }
 
-/** Why an extraction can't be trusted as is; an empty list means it passed. */
-export function checkExtraction(x: QuoteExtraction): CheckFailure[] {
+/**
+ * How far a reading's numbers may go, per unit, before a slipped unit or digit is the likelier story: 5,120 kWh is Wh
+ * read as kWh. Equipment bounds are the product library's (PRODUCT_LIMITS); the amount cap leaves room for COP and VES.
+ * Only numbers past a bound fail: a missing or non-numeric one is the other checks' business (no_total, bad_qty).
+ */
+const PLAUSIBLE = {
+  PANEL_WATTS: 1000, MAX_SURGE_RATIO: 5, BANK_TOLERANCE: 0.15, QTY: 10_000, AMOUNT: 1_000_000_000, FIRST_YEAR: 2000, LAST_YEAR: 2100,
+} as const
+/** The most each stated spec may be. Every stated spec must also be above 0; a cable section has no upper bound. */
+const SPEC_MAX = {
+  watts: PRODUCT_LIMITS.WATTS, surgeWatts: PRODUCT_LIMITS.WATTS, panelWatts: PLAUSIBLE.PANEL_WATTS, batteryVolts: PRODUCT_LIMITS.VOLTS,
+  ah: PRODUCT_LIMITS.AH, kWh: PRODUCT_LIMITS.KWH, chargerAmps: PRODUCT_LIMITS.AMPS, fuseAmps: PRODUCT_LIMITS.AMPS, mm2: Number.POSITIVE_INFINITY,
+} as const satisfies Partial<Record<keyof LineSpecs, number>>
+const SPEC_KEYS = Object.keys(SPEC_MAX) as (keyof typeof SPEC_MAX)[]
+const WH_PER_KWH = 1000
+
+/** A spec out of range, a surge outside 1× to 5× the watts, or a bank whose volts × Ah is more than 15% off its kWh. */
+function hasImplausibleSpecs(s: LineSpecs): boolean {
+  const isOutOfRange = SPEC_KEYS.some((k) => {
+    const v = s[k]
+    return v !== null && (v <= 0 || v > SPEC_MAX[k])
+  })
+  const isSurgeOff = s.watts !== null && s.surgeWatts !== null &&
+    (s.surgeWatts < s.watts || s.surgeWatts > s.watts * PLAUSIBLE.MAX_SURGE_RATIO)
+  const isBankOff = s.batteryVolts !== null && s.ah !== null && s.kWh !== null &&
+    Math.abs((s.batteryVolts * s.ah) / WH_PER_KWH - s.kWh) > s.kWh * PLAUSIBLE.BANK_TOLERANCE
+  return isOutOfRange || isSurgeOff || isBankOff
+}
+
+/** An amount in the quote's currency past the cap; a discount, written negative, counts by its size. */
+const isPastAmountCap = (n: number | null): boolean => n !== null && Math.abs(n) > PLAUSIBLE.AMOUNT
+
+/** A source page outside 1 to the file's page count, or only below 1 when the count is unknown (an image has none). */
+const isOffThePages = (page: number | null, pages: number | null): boolean =>
+  page !== null && (!Number.isInteger(page) || page < 1 || (pages !== null && page > pages))
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/**
+ * A date written YYYY-MM-DD that is not a real day from 2000 to 2100. One written another way, or blank, is left as
+ * read: nothing ranks on a date, and the prompt asks for no format, so turning it away could hide a real quote.
+ */
+function isImplausibleDate(date: string | null): boolean {
+  const match = date === null ? null : ISO_DATE.exec(date)
+  if (!match) return false
+  const [year, month, day] = match.slice(1).map(Number) as [number, number, number]
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return year < PLAUSIBLE.FIRST_YEAR || year > PLAUSIBLE.LAST_YEAR || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day
+}
+
+/** Whether any number in a reading is past what a real quote states (PLAUSIBLE). `pages` is the file's page count, if known. */
+function isImplausible(x: QuoteExtraction, pages: number | null): boolean {
+  const amounts = [x.subtotal, x.tax, x.total, ...x.options.flatMap((o) => [o.total, o.tax]), ...x.lines.flatMap((l) => [l.unitPrice, l.lineTotal])]
+  return x.lines.some((l) => hasImplausibleSpecs(l.specs) || l.qty > PLAUSIBLE.QTY || isOffThePages(l.source.page, pages)) ||
+    amounts.some(isPastAmountCap) ||
+    x.warranties.some((w) => w.years < 0 || w.years > PRODUCT_LIMITS.YEARS) ||
+    [x.date, x.validUntil].some(isImplausibleDate)
+}
+
+/**
+ * Why an extraction can't be trusted as is; an empty list means it passed. `pages` is the file's page count (quotes.pages),
+ * null when unknown: an image has none.
+ */
+export function checkExtraction(x: QuoteExtraction, pages: number | null = null): CheckFailure[] {
   const failures: CheckFailure[] = []
   if (x.lines.length === 0) failures.push('no_lines')
   // The schema needs a number, so a quote that states no total comes back as 0: it waits for the user's total. A quote
@@ -124,6 +189,7 @@ export function checkExtraction(x: QuoteExtraction): CheckFailure[] {
   // and so is each option's own written total.
   if (isMulti && hasOptionTotalMismatch(x)) failures.push('option_total_mismatch')
   if (!isMulti && hasTotalMismatch(x)) failures.push('total_mismatch')
+  if (isImplausible(x, pages)) failures.push('implausible')
   return failures
 }
 
@@ -143,6 +209,6 @@ const TOTAL_FAILURES: ReadonlySet<CheckFailure> = new Set(['no_total', 'total_mi
 
 /**
  * Whether a reading that failed its checks can be ranked once the user types its total. A wrong line amount, quantity,
- * currency or option is a reading to redo: a typed total would rank it with that error in it.
+ * currency or option, or an implausible number, is a reading to redo: a typed total would rank it with that error in it.
  */
 export const isFixedByTotal = (x: QuoteExtraction): boolean => checkExtraction(x).every((f) => TOTAL_FAILURES.has(f))

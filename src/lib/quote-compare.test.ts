@@ -5,7 +5,7 @@ import { DEFAULT_MUSTS } from './quote-items'
 
 const view = (id: string, over: Partial<QuoteView> = {}): QuoteView => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready',
-  extraction: SAMPLE_QUOTES[id as SampleQuoteId] ?? null, overrides: {}, totalOverride: null, createdAt: 1, retries: 0, ...over,
+  extraction: SAMPLE_QUOTES[id as SampleQuoteId] ?? null, overrides: {}, totalOverride: null, createdAt: 1, retries: 0, pages: null, ...over,
 })
 const ALL = (['solartec', 'voltia', 'grupoluz', 'enerhogar'] as const).map((id, i) => view(id, { createdAt: i }))
 const ids = (v: { quote: QuoteView }[]) => v.map((r) => r.quote.id)
@@ -137,6 +137,20 @@ describe('what is not ranked', () => {
     const noLines = view('x', { status: 'needs_review', extraction: extraction([], { total: 5000 }) })
     expect(compareQuotes(KIT, DEFAULT_MUSTS, [noLines]).unranked).toMatchObject([{ reason: 'misread' }])
     expect(compareQuotes(KIT, DEFAULT_MUSTS, [{ ...noLines, retries: 1 }]).unranked).toMatchObject([{ reason: 'needs_review' }])
+  })
+  test('an implausible reading waits to be read again: a typed total never ranks it, read again or not (AI-08)', () => {
+    // 5,120 kWh batteries: Wh read as kWh. The misread card has no total form.
+    const huge = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l) => (l.kind === 'battery' ? { ...l, specs: { ...l.specs, kWh: 5120 } } : l)) }
+    const typed = view('solartec', { status: 'needs_review', extraction: huge, totalOverride: 6480 })
+    for (const q of [typed, { ...typed, retries: 1 }]) {
+      const v = compareQuotes(KIT, DEFAULT_MUSTS, [q])
+      expect(v.ranked).toEqual([])
+      expect(v.unranked).toMatchObject([{ reason: 'misread' }])
+    }
+    // SolarTec cites page 2: past the end of a one-page file, it is misread; in a two-page file it ranks on the typed total.
+    const cited = view('solartec', { status: 'needs_review', totalOverride: 6480, retries: 1, pages: 1 })
+    expect(compareQuotes(KIT, DEFAULT_MUSTS, [cited]).unranked).toMatchObject([{ reason: 'misread' }])
+    expect(compareQuotes(KIT, DEFAULT_MUSTS, [{ ...cited, pages: 2 }]).best?.total).toBe(6480)
   })
   test('a quote with options whose reading needs review still waits to be read again, as before', () => {
     const lineOff = { ...SAMPLE_QUOTES.suna, lines: SAMPLE_QUOTES.suna.lines.map((l, i) => (i === 0 ? { ...l, unitPrice: 1 } : l)) }

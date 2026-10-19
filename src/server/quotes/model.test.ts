@@ -66,6 +66,10 @@ describe('prompt, model names and stub', () => {
     expect(SYSTEM_PROMPT).toContain('Warranties get option the same way')
     expect(SYSTEM_PROMPT).toContain('write one line per component')
   })
+  test('the prompt asks for the page in the file, counting from 1, not a number printed on the page', () => {
+    // A line's page is checked against the file's page count (isOffThePages in quote-checks.ts).
+    expect(SYSTEM_PROMPT).toContain("source.page is the line's page in the file, counting from 1, not a page number printed on it")
+  })
   test('the structured output asks for options and each line\'s option', () => {
     const schema = JSON.stringify(req.text.format)
     expect(schema).toContain('"options"')

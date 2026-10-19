@@ -11,11 +11,11 @@ import type { QuoteStorage } from './storage'
 type Step = QuoteExtraction | ModelError
 const BAD = extraction([line('inverter', 1000)], { tax: 0, total: 5000 }) // lines + tax don't add up to the total
 
-function setup(steps: Record<string, Step[]>, opts: { attempts?: number; claimed?: boolean; file?: boolean } = {}) {
+function setup(steps: Record<string, Step[]>, opts: { attempts?: number; claimed?: boolean; file?: boolean; pages?: number | null } = {}) {
   const finished: Finish[] = []
   const calls: string[] = []
   const job: ClaimedQuote = { id: 'q1', blobPathname: 'quotes/u/x.pdf', mime: 'application/pdf', fileName: 'x.pdf', attempts: opts.attempts ?? 1,
-    claimedAt: '2026-09-30 11:00:00.123456+00',
+    claimedAt: '2026-09-30 11:00:00.123456+00', pages: opts.pages ?? null,
   }
   const model: QuoteModel = {
     async extract(_input, name) {
@@ -58,6 +58,16 @@ describe('processQuote', () => {
     const s = setup({ luna: [BAD], sol: [BAD] })
     expect(await processQuote('q1', s.deps)).toBe('needs_review')
     expect(s.finished[0]).toMatchObject({ modelUsed: 'sol' })
+  })
+  test('a reading is checked against the file\'s stored page count: past its last page, it needs review (AI-08)', async () => {
+    // SolarTec cites page 2.
+    expect(await processQuote('q1', setup({ luna: [SAMPLE_QUOTES.solartec], sol: [SAMPLE_QUOTES.solartec] }, { pages: 1 }).deps)).toBe('needs_review')
+    expect(await processQuote('q1', setup({ luna: [SAMPLE_QUOTES.solartec] }, { pages: 2 }).deps)).toBe('ready')
+  })
+  test('an implausible reading needs review: a 5,120 kWh battery is never ready', async () => {
+    const huge = extraction([line('battery', 2700, { specs: { kWh: 5120 } })])
+    const s = setup({ luna: [huge], sol: [huge] })
+    expect(await processQuote('q1', s.deps)).toBe('needs_review')
   })
   test('primary answers badly, fallback errors: needs_review with the primary extraction', async () => {
     const s = setup({ luna: [BAD], sol: [invalid()] })
@@ -114,7 +124,7 @@ function fencedRepo() {
       row.status = 'processing'
       row.attempts += 1
       row.claimedAt = `claim ${row.attempts}`
-      return { id, blobPathname: 'quotes/u/x.pdf', mime: 'application/pdf', fileName: 'x.pdf', attempts: row.attempts, claimedAt: row.claimedAt }
+      return { id, blobPathname: 'quotes/u/x.pdf', mime: 'application/pdf', fileName: 'x.pdf', attempts: row.attempts, claimedAt: row.claimedAt, pages: null }
     },
     async finish(job, f) {
       if (row.status !== 'processing' || row.attempts !== job.attempts || row.claimedAt !== job.claimedAt) return false

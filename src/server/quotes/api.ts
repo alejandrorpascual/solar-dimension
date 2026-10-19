@@ -32,7 +32,7 @@ function toJobQuote(r: QuoteRow): JobQuote {
   return {
     id: r.id, fileName: r.fileName, label: r.vendorLabel, status: r.status, extraction: r.extraction ? withOptionDefaults(r.extraction) : null,
     overrides: r.overrides, totalOverride: r.totalOverride, createdAt: r.createdAt.getTime(), seenAt: r.seenAt?.getTime() ?? null,
-    retries: r.retries,
+    retries: r.retries, pages: r.pages,
   }
 }
 

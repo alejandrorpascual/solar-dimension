@@ -66,7 +66,7 @@ describe('recoverStaleQuotes', () => {
 
 describe('dbJobRepo.finish', () => {
   const job: ClaimedQuote = { id: 'q1', blobPathname: 'quotes/u/x.pdf', mime: 'application/pdf', fileName: 'x.pdf', attempts: 2,
-    claimedAt: '2026-09-30 11:00:00.123456+00',
+    claimedAt: '2026-09-30 11:00:00.123456+00', pages: null,
   }
   const ready = { status: 'ready' as const, extraction: { lines: [] } as never, modelUsed: 'luna', usage: [] }
   const requeue = { status: 'queued' as const, error: 'transient: 503', usage: [] }

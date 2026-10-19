@@ -166,6 +166,8 @@ export const quotesEs: Record<QuoteKey, string> = {
   totalTyped: 'Total escrito por ti',
   misreadHelp: 'Algunos importes, cantidades o la moneda que leímos no cuadran, así que un total no lo arreglaría. Léela de nuevo o sube una copia más clara.',
   misreadHelpNoRetry: 'Algunos importes, cantidades o la moneda que leímos no cuadran, así que un total no lo arreglaría. Sube una copia más clara.',
+  implausibleHelp: 'Algunos números que leímos no pueden ser de una cotización real, como una capacidad o un importe demasiado grandes o una página que el archivo no tiene, así que un total no lo arreglaría. Léela de nuevo o sube una copia más clara.',
+  implausibleHelpNoRetry: 'Algunos números que leímos no pueden ser de una cotización real, como una capacidad o un importe demasiado grandes o una página que el archivo no tiene, así que un total no lo arreglaría. Sube una copia más clara.',
   noLinesHelp: 'No pudimos leer ninguna línea de esta cotización, así que un total solo no diría qué incluye. Léela de nuevo o sube una copia más clara.',
   noLinesHelpNoRetry: 'No pudimos leer ninguna línea de esta cotización, así que un total solo no diría qué incluye. Sube una copia más clara.',
   misreadTotalHelp: 'La leímos de nuevo y algunos importes, cantidades o la moneda siguen sin cuadrar. Si la cotización está escrita así (con un descuento en una línea, por ejemplo), escribe su total para compararla.',
