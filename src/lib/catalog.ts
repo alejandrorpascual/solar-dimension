@@ -59,6 +59,8 @@ export const SIZING = {
   WATTS_PER_TON: 1100,
   MAX_QTY: 100,
   SPLIT_PHASE_W: 3000,
+  /** An air conditioner this size or larger is usually sold for 240 V, whatever its running watts. */
+  SPLIT_PHASE_TONS: 1.5,
   /** NEC 210.19 / 706.30: conductors and overcurrent devices carry 125% of a continuous load. */
   NEC_CONTINUOUS: 1.25,
   /** NEC 110.14(C): terminations are rated 75 °C, so a 90 °C conductor's ampacity is capped at the 75 °C column. */
@@ -218,5 +220,10 @@ export const DEFAULT_HARDWARE: HardwareCatalog = { chemistries: CHEMISTRIES, inv
 /** What the appliance picker offers: the catalog without retired items. The engine still counts retired ones. */
 export const forPicker = (items: readonly CatalogItem[]): CatalogItem[] => items.filter((i) => !i.retired)
 
-/** Whether an appliance needs a 240 V split-phase inverter (3 kW or more). */
-export const needsSplitPhase = (item: { watts: number }): boolean => item.watts >= SIZING.SPLIT_PHASE_W
+/** Whether an appliance needs a 240 V split-phase inverter: 3 kW or more, or an air conditioner of 1.5 tons or more. */
+export const needsSplitPhase = (item: { watts: number; tons?: number }): boolean =>
+  item.watts >= SIZING.SPLIT_PHASE_W || (item.tons ?? 0) >= SIZING.SPLIT_PHASE_TONS
+
+/** The well pump is sold for 120 V and for 240 V alike, so only its nameplate says which one the user has. */
+const NAMEPLATE_240V_ID = 'well'
+export const mayRunOn240V = (item: { id: string }): boolean => item.id === NAMEPLATE_240V_ID

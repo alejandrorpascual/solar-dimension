@@ -294,6 +294,13 @@ describe('uncheckedWarnings and keys', () => {
     expect(warningText(es, split, r.items)).toContain('Calentador de agua eléctrico')
   })
 
+  test('a 2-ton air conditioner alone gives the split-phase note naming it, in English and Spanish', () => {
+    const r = kit({ ac2c: 1 })
+    expect(kitNotes(en, r)).toContain('2 ton AC · conventional usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.')
+    expect(kitNotes(es, r)).toContain('Aire de 2 toneladas · convencional normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.')
+    expect(kitNotes(en, kit({ ac1c: 1 })).some((note) => note.includes('240 V'))).toBe(false)
+  })
+
   test('warningKey tells apart two warnings with the same code', () => {
     expect(warningKey({ code: 'splitPhase', params: { itemId: 'a' } })).not.toBe(warningKey({ code: 'splitPhase', params: { itemId: 'b' } }))
     expect(warningKey({ code: 'highCurrent', params: { amps: 1 } })).toBe(warningKey({ code: 'highCurrent', params: { amps: 2 } }))
