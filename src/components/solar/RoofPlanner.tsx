@@ -2,7 +2,7 @@ import { useId } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { panelCount, tr } from '../../i18n'
 import { fmtDecimal, fmtKw } from '../../i18n/format'
-import { SOLAR, type SolarPick } from '../../lib/solar'
+import { nextWirable, SOLAR, type SolarPick } from '../../lib/solar'
 
 interface Props {
   solar: SolarPick
@@ -11,12 +11,13 @@ interface Props {
   onSun: (hours: number) => void
 }
 
-/** Roof area in, tiles out: one tile per panel the roof holds, the recommended ones pre-filled, tap to override. */
+/** Roof area in, tiles out: one tile per panel the roof can wire, the count the roof line names (a roof too short for one string names its fit; the clear-day note says why), the recommended ones pre-filled, tap to override. */
 export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
   const { t, locale } = useLocale()
   const roofId = useId()
   const sunId = useId()
-  const tiles = Array.from({ length: s.fit }, (_, i) => i)
+  const tiles = Array.from({ length: s.wiredFit }, (_, i) => i)
+  const shownFit = s.wiredFit || s.fit
   return (
     <div className="planner">
       <div className="planner__roof">
@@ -28,7 +29,7 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
             <button type="button" className="planner__step" aria-label={t.ui.roofMore} disabled={s.roofM2 >= SOLAR.ROOF_RANGE[1]} onClick={() => onRoof(s.roofM2 + SOLAR.ROOF_STEP)}>+</button>
           </div>
           <p className="planner__fits">
-            <span className="planner__fits-line">{tr(t, s.fit === 1 ? 'roofFitsOne' : 'roofFitsMany', { panels: panelCount(t, s.fit) })}</span>
+            <span className="planner__fits-line">{tr(t, shownFit === 1 ? 'roofFitsOne' : 'roofFitsMany', { panels: panelCount(t, shownFit) })}</span>
             <span className="muted planner__fits-hint">{t.ui.roofHint}</span>
           </p>
         </div>
@@ -42,15 +43,15 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
           const on = i < s.panels
           return (
             <button key={i} type="button" className={`tile${on ? ' tile--on' : ''}`} aria-pressed={on}
-              aria-label={tr(t, on ? 'removePanel' : 'addPanel', { n: i + 1 })} onClick={() => onPanels(on ? i : i + 1)} />
+              aria-label={tr(t, on ? 'removePanel' : 'addPanel', { n: i + 1 })} onClick={() => onPanels(on ? nextWirable(i + 1, -1, s.volts) : nextWirable(i, 1, s.volts))} />
           )
         })}
       </div>
       <div className="planner__count">
         <span className="num planner__big">{tr(t, 'panelsLine', { panels: panelCount(t, s.panels), kw: fmtKw(s.arrayW, locale) })}</span>
-        {s.isRecommended
+        {!s.isTooShort && (s.isRecommended
           ? <span className="planner__pill">{s.isRoofLimited ? t.ui.recommendedPillLimited : t.ui.recommendedPill}</span>
-          : <button type="button" className="chip" onClick={() => onPanels(null)}>{tr(t, 'backToRecommended', { n: s.recommended })}</button>}
+          : <button type="button" className="chip" onClick={() => onPanels(null)}>{tr(t, 'backToRecommended', { n: s.recommended })}</button>)}
       </div>
       <div className="planner__sun">
         <div className="planner__sun-head">

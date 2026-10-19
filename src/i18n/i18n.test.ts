@@ -26,6 +26,12 @@ describe('dictionaries', () => {
       expect(d.warnings.dominantLoad(p)).toContain('54')
     }
   })
+  test('a string too short to charge names the panels it needs, and 36 V reads as marginal', () => {
+    expect(en.warnings.stringTooShort({ volts: 48, count: 2, fit: 1 })).toBe('A string needs at least 2 panels in series to charge a 48 V bank, and the roof holds only 1. This kit lists no panels; make room for 2 or more.')
+    expect(es.warnings.stringTooShort({ volts: 48, count: 2, fit: 1 })).toBe('Una cadena necesita al menos 2 paneles en serie para cargar un banco de 48 V, y en el techo cabe solo 1. Este kit no lleva paneles; haz espacio para 2 o más.')
+    expect(en.warnings.stringTooShort({ volts: 36, count: 2, fit: 1 })).toMatch(/^At 36 V one panel is marginal: /)
+    expect(es.warnings.stringTooShort({ volts: 36, count: 2, fit: 1 })).toMatch(/^A 36 V un panel es marginal: /)
+  })
   test('the engineering-check warnings render their figures in both languages', () => {
     const p = { surgeW: 9400, seconds: 3, ratedW: 7500, inverterW: 5000, inverterSurgeW: 10000, tooLong: true, needA: 463, maxA: 540, strings: 9, unitLabel: '12 V 200 Ah AGM', fuseA: 200, surgeA: 309, shortCircuitA: 21600, aicA: 20000, dropPct: 12.5, ambientC: 90 }
     for (const d of [en, es]) {

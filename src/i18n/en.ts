@@ -109,7 +109,7 @@ export const en: Dictionary = {
     pvDisconnectSpec: '{amps} A DC breaker, 500 V', pvDisconnectNote: 'Between the panels and the controller, reachable from the ground',
     mountingSpec: 'Aluminium rails and mid/end clamps for {panels}', mountingNote: 'Tilt 10° facing south on a flat roof; flush on a pitched one',
     solarTag: 'Solar', fineSolar: ' Solar assumes {w} panels, 75% panel-to-battery efficiency and {sun} peak sun hours a day.',
-    stringsOne: '1 string of {n} in series', stringsMany: '{strings} strings of up to {n} in series',
+    stringsOne: '1 string of {n} in series', stringsMany: '{strings} strings of {n} in series',
     average: 'Average', averageWatts: 'Average (W)', kind: 'Kind',
     runsLabel: 'Runs', dutyOf: '{name}: share of each hour it runs', dutyOption: '{pct}% of each hour', dutyTypical: '{pct}% · typical', dutyNonstop: '100% · never stops',
     rename: 'Rename', projectActions: 'More actions for {name}', stepLocked: 'Add at least one appliance first', stepGo: 'Step {n}: {label}', dutyRuns: 'Runs · {pct}% of each hour', dutyBursts: '~{min} min an hour', dutyTypicalAt: 'typical {pct}%', averageDrawFor: '~{w} average for {qty}',
@@ -189,6 +189,9 @@ export const en: Dictionary = {
       ? '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute; if it is still missing, add it again.'
       : `${p.count} appliances in this project could not be loaded, so this kit leaves them out. Reload in a minute; if they are still missing, add them again.`,
     roofLimited: (p) => `Your roof holds ${p.fit} panels; ${p.need} would refill the bank in one clear day. It still refills over more days of sun.`,
+    stringTooShort: (p) => p.volts === 36
+      ? `At 36 V one panel is marginal: on a hot day it falls short of the voltage the controller charges at, and the roof holds only ${p.fit}. This kit lists no panels; make room for ${p.count} in series.`
+      : `A string needs at least ${p.count} panels in series to charge a ${p.volts} V bank, and the roof holds only ${p.fit}. This kit lists no panels; make room for ${p.count} or more.`,
   },
   parts: { inverter: 'Inverter', batteries: 'Batteries', mainCable: 'Main cable', interconnects: 'Interconnects', stringLeads: 'String leads', fuse: 'Fuse', stringFuses: 'String fuses', solarPanels: 'Solar panels', chargeController: 'Charge controller', pvCable: 'PV cable', pvDisconnect: 'PV disconnect', mounting: 'Mounting'  },
   kinds: { continuous: 'Always on', cycling: 'Cycles on and off', momentary: 'Short bursts' },

@@ -9,7 +9,7 @@ import type {
   BatteryOption, BatteryPick, CableConditions, CustomLoadLike, SelectedItem, SimultaneousStarts, SizingInput, SizingResult, Warning,
 } from './sizing/types'
 import { buildWarnings, inverterNotes, parallelNotes } from './sizing/warnings'
-import { panelsToRefill, sizeSolar, type SolarPick } from './solar'
+import { minSeries, panelsToRefill, sizeSolar, type SolarPick } from './solar'
 
 export type * from './sizing/types'
 
@@ -71,6 +71,12 @@ const toOption = (c: BankCandidate, ctx: RuntimeContext, autoId: string | undefi
   }
 }
 
+/** A roof too small for one string that charges says so; otherwise a roof short of a day's refill says that. */
+function solarWarnings(solar: SolarPick, bankWh: number, volts: Voltage): Warning[] {
+  if (solar.isTooShort) return [{ code: 'stringTooShort', params: { volts, count: minSeries(volts), fit: solar.fit } }]
+  return solar.isRoofLimited ? [{ code: 'roofLimited', params: { fit: solar.wiredFit, need: panelsToRefill(bankWh, solar.sunHours) } }] : []
+}
+
 /** True when the kit has a solar array worth showing: panels chosen and at least one appliance. */
 export const hasPanels = (r: SizingResult): r is SizingResult & { solar: SolarPick } =>
   r.solar !== null && r.solar.panels > 0 && !r.empty
@@ -120,9 +126,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   // An empty project still gets a (smallest) bank from autoPick; panels for it would be nonsense, so size against 0.
   const bankWh = items.length === 0 ? 0 : battery?.bankWh ?? 0
   const solar = sizeSolar({ solar: input.solar ?? null, bankWh, volts, averageW })
-  const roofWarning: Warning[] = solar && items.length > 0 && solar.isRoofLimited
-    ? [{ code: 'roofLimited', params: { fit: solar.fit, need: panelsToRefill(bankWh, solar.sunHours) } }]
-    : []
+  const solarWarning = solar && items.length > 0 ? solarWarnings(solar, bankWh, volts) : []
 
   const main = sizeMain(battery)
   const wiring = sizeBankWiring({ ...wires, battery, main })
@@ -160,7 +164,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
         items, inverter, runningW, surgeProfile: profile, amps: inverter.continuousA, volts, battery, loadWh,
         protection: [...main.warnings, ...undersized('mainCable', main, { cond, volts }), ...wiring.warnings], missing, startupA,
       }),
-      ...roofWarning,
+      ...solarWarning,
     ],
     batteryOptions: candidates.map((c) => toOption(c, runtimeCtx, auto?.id)),
     batteryUnit: chosen?.id ?? null,

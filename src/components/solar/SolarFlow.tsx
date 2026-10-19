@@ -18,7 +18,9 @@ export function SolarFlow({ result: r }: Props) {
   if (!s || !r.battery) return null
   const axisWh = Math.max(AXIS_MIN_WH, Math.ceil(Math.max(s.dailyWh, s.dailyUseWh) / AXIS_STEP_WH) * AXIS_STEP_WH)
   const pct = (wh: number) => `${Math.min(PERCENT, Math.round((wh / axisWh) * PERCENT))}%`
-  const clearNote = s.panels === 0
+  // A roof too small for a string that charges says why it has no panels instead of asking for a tap.
+  const tooShort = r.warnings.find((w) => w.code === 'stringTooShort')
+  const clearNote = tooShort ? t.warnings.stringTooShort(tooShort.params) : s.panels === 0
     ? t.ui.noPanelsYet
     : s.refillsInOneDay && s.refillHours !== null
       ? tr(t, 'refillSameDay', { hours: fmtHours(s.refillHours, locale), spare: fmtKwh(Math.max(0, s.dailyWh - r.battery.bankWh), locale) })
@@ -47,7 +49,7 @@ export function SolarFlow({ result: r }: Props) {
           <div className="note-box"><strong>{t.ui.cloudyDay}</strong><br />{s.panels === 0 ? '—' : tr(t, 'cloudyNote', { wh: fmtKwh(s.cloudyWh, locale), pct: Math.round(s.coverRatio * PERCENT * SOLAR.CLOUDY_SHARE) })}</div>
         </div>
       </div>
-      <p className="fine muted">{t.ui.solarAssumptions}</p>
+      {s.panels > 0 && <p className="fine muted">{t.ui.solarAssumptions}</p>}
     </div>
   )
 }
