@@ -32,7 +32,8 @@ test('the kit downloads as a CSV parts list and a PDF spec sheet', PHONE, async 
   expect(pdf.suggestedFilename()).toBe('Home-kit.pdf')
   const bytes = await readFile((await pdf.path())!)
   expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-')
-  expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(1)
+  // The last check prints on page two: the fine print's assumed ratings take the room page one had left.
+  expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
@@ -87,7 +88,11 @@ test('the parts list comes first, and the load schedule gets a PDF page of its o
   expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(2)
 
   await page.getByRole('checkbox', { name: 'Appliance list' }).uncheck()
-  expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(1)
+  await expect(sheet.locator('h3')).toHaveText(['Parts list', 'Checks'])
+  // With no load schedule there is no page break, but the last check still prints on page two. Page one had 10.8 px to
+  // spare before the fine print listed the assumed battery and inverter ratings (three lines, 50 px). The same sheet in
+  // Spanish already printed its last check on page two before that.
+  expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(2)
 })
 
 test('the preview opens larger, page by page as the PDF prints, or as one image for PNG', PHONE, async ({ page }) => {
