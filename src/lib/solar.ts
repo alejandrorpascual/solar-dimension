@@ -21,6 +21,8 @@ export const SOLAR = {
   ROOF_RANGE: [5, 500] as const,
   ROOF_STEP: 5,
   MAX_PER_STRING: 5,
+  /** Strings one controller takes in parallel: two need no fuse of their own, and the kit lists none. */
+  MAX_PARALLEL_STRINGS: 2,
   CONTROLLER_MAX_VOC: 450,
   /** How far an MPPT controller needs the string above the charge voltage to start and keep charging. */
   MPPT_HEADROOM_V: 5,
@@ -114,21 +116,25 @@ export function minSeries(volts: Voltage): number {
   return Math.floor((SOLAR.CHARGE_V[volts] + SOLAR.MPPT_HEADROOM_V) / (SOLAR.PANEL_VMP * SOLAR.HOT_VMP_DERATE)) + 1
 }
 
-interface StringLayout { strings: number; perString: number; controllers: number; stringsOnFullest: number }
+interface StringLayout { strings: number; perString: number; controllers: number; controllerA: number; stringsOnFullest: number }
 
 /**
  * Equal strings for exactly `panels`, every string from the shortest that charges up to five long (fewer where one
- * controller passes less, as at 12 V); the fewest controllers win, then the fewest strings. Null when no length divides
- * the count.
+ * controller passes less, as at 12 V), at most two to a controller. The fewest controllers win, then the smallest
+ * controller rating, then the fewest strings. Null when no length divides the count.
  */
 function stringLayout(panels: number, volts: Voltage): StringLayout | null {
   const perController = panelsPerController(volts)
+  const chargeV = SOLAR.CHARGE_V[volts]
   let best: StringLayout | null = null
   for (let perString = Math.min(SOLAR.MAX_PER_STRING, perController); perString >= minSeries(volts); perString--) {
     if (panels % perString !== 0) continue
     const strings = panels / perString
-    const controllers = Math.ceil(strings / Math.floor(perController / perString))
-    if (!best || controllers < best.controllers) best = { strings, perString, controllers, stringsOnFullest: Math.ceil(strings / controllers) }
+    const controllers = Math.ceil(strings / Math.min(SOLAR.MAX_PARALLEL_STRINGS, Math.floor(perController / perString)))
+    const stringsOnFullest = Math.ceil(strings / controllers)
+    const controllerA = pickRating(SOLAR.CONTROLLER_AMPS, (stringsOnFullest * perString * SOLAR.PANEL_W) / chargeV)
+    const isBetter = !best || controllers < best.controllers || (controllers === best.controllers && controllerA < best.controllerA)
+    if (isBetter) best = { strings, perString, controllers, controllerA, stringsOnFullest }
   }
   return best
 }
@@ -143,16 +149,21 @@ function nearestWirable(n: number, fit: number, volts: Voltage): number {
   return 0
 }
 
+/** The most panels below `n` that wire as equal strings; zero when none do. Removing panel n asks for this, so the count always drops. */
+export function panelsBelow(n: number, volts: Voltage): number {
+  for (let count = n - 1; count > 0; count--) if (stringLayout(count, volts)) return count
+  return 0
+}
+
 /** Controllers, equal strings and the PV breaker for a count that wires; the ratings come from the fullest controller. */
 function sizeElectrical(panels: number, volts: Voltage) {
   const layout = panels === 0 ? null : stringLayout(panels, volts)
   if (!layout) return { chargeA: 0, controllers: 0, controllerA: 0, strings: 0, perString: 0, breakerA: 0 }
-  const chargeV = SOLAR.CHARGE_V[volts]
-  const { strings, perString, controllers, stringsOnFullest } = layout
+  const { strings, perString, controllers, controllerA, stringsOnFullest } = layout
   return {
-    chargeA: Math.round((panels * SOLAR.PANEL_W) / chargeV),
+    chargeA: Math.round((panels * SOLAR.PANEL_W) / SOLAR.CHARGE_V[volts]),
     controllers,
-    controllerA: pickRating(SOLAR.CONTROLLER_AMPS, (stringsOnFullest * perString * SOLAR.PANEL_W) / chargeV),
+    controllerA,
     strings,
     perString,
     breakerA: pickRating(SOLAR.BREAKERS, SOLAR.PANEL_ISC * stringsOnFullest * SOLAR.BREAKER_MARGIN),

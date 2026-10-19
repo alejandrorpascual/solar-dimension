@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { minSeries, panelsFit, panelsToRefill, recommendedPanels, sizeSolar, SOLAR } from './solar'
+import { minSeries, panelsBelow, panelsFit, panelsToRefill, recommendedPanels, sizeSolar, SOLAR } from './solar'
 
 // The design's sample: 48 V, 2 × 48 V 200 Ah = 19,200 Wh bank, 1,100 W average draw.
 const BANK_WH = 19_200
@@ -251,5 +251,50 @@ describe('string length against the charge voltage', () => {
     expect(s.panels).toBe(25)
     expect(s.strings).toBe(5)
     expect(s.perString).toBe(5)
+  })
+})
+
+describe('controller breakers and remove taps', () => {
+  const base = { bankWh: BANK_WH, averageW: AVERAGE_W }
+  const pick = (volts: (typeof VOLTAGES)[number], roofM2: number, panels: number) => sizeSolar({ ...base, volts, solar: { roofM2, panels, sunHours: 5 } })!
+
+  test('across every voltage and 1–166 panels, each controller and its breaker cover the strings on it, never more than 2', () => {
+    for (const volts of VOLTAGES) {
+      for (let panels = 1; panels <= panelsFit(SOLAR.ROOF_RANGE[1]); panels++) {
+        const s = pick(volts, 500, panels)
+        const at = `${volts} V · ${s.strings} strings of ${s.perString} on ${s.controllers}`
+        const onFullest = Math.ceil(s.strings / s.controllers)
+        // A panel's 14 A short-circuit current plus the breaker's 1.25 margin; two strings in parallel need no fuse each, and the kit lists none.
+        expect(s.breakerA, at).toBeGreaterThanOrEqual(14 * onFullest * 1.25)
+        expect(s.controllerA, at).toBeGreaterThanOrEqual((onFullest * s.perString * SOLAR.PANEL_W) / SOLAR.CHARGE_V[volts])
+        expect(onFullest, at).toBeLessThanOrEqual(2)
+      }
+    }
+  })
+
+  test('7 one-panel strings at 24 V go 2 to a controller; 12 panels at 48 V take 2 × 60 A, not 2 × 80 A', () => {
+    // 4 strings on one controller would need 14 A × 4 × 1.25 = 70 A, past the 63 A the breaker list stops at.
+    const s24 = pick(24, 40, 7)
+    expect([s24.strings, s24.perString, s24.controllers, s24.controllerA, s24.breakerA]).toEqual([7, 1, 4, 40, 40])
+    const s48 = pick(48, 40, 12)
+    expect([s48.strings, s48.perString, s48.controllers, s48.controllerA, s48.breakerA]).toEqual([4, 3, 2, 60, 40])
+  })
+
+  test('removing panel n leaves the most panels below n that wire, on every voltage and roof', () => {
+    for (const volts of VOLTAGES) {
+      for (let roofM2 = SOLAR.ROOF_RANGE[0]; roofM2 <= SOLAR.ROOF_RANGE[1]; roofM2 += SOLAR.ROOF_STEP) {
+        for (let n = 1; n <= panelsFit(roofM2); n++) {
+          const at = `${volts} V · remove panel ${n} on ${roofM2} m²`
+          const left = pick(volts, roofM2, panelsBelow(n, volts)).panels
+          expect(left, at).toBeLessThan(n)
+          // No count between what is left and n would have stayed as asked.
+          for (let k = left + 1; k < n; k++) expect(pick(volts, roofM2, k).panels, `${at} · ${k}`).not.toBe(k)
+        }
+      }
+    }
+  })
+
+  test('at 48 V removing panel 8 leaves 6 and removing panel 2 leaves none; at 24 V removing panel 8 leaves 7', () => {
+    expect([panelsBelow(8, 48), panelsBelow(2, 48), panelsBelow(8, 24)]).toEqual([6, 0, 7])
   })
 })

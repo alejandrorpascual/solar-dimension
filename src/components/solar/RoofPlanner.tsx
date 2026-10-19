@@ -2,17 +2,19 @@ import { useId } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { panelCount, tr } from '../../i18n'
 import { fmtDecimal, fmtKw } from '../../i18n/format'
-import { SOLAR, type SolarPick } from '../../lib/solar'
+import type { Voltage } from '../../lib/catalog'
+import { panelsBelow, SOLAR, type SolarPick } from '../../lib/solar'
 
 interface Props {
   solar: SolarPick
+  volts: Voltage
   onRoof: (m2: number) => void
   onPanels: (n: number | null) => void
   onSun: (hours: number) => void
 }
 
 /** Roof area in, tiles out: one tile per panel the roof holds, the recommended ones pre-filled, tap to override. */
-export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
+export function RoofPlanner({ solar: s, volts, onRoof, onPanels, onSun }: Props) {
   const { t, locale } = useLocale()
   const roofId = useId()
   const sunId = useId()
@@ -42,15 +44,15 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
           const on = i < s.panels
           return (
             <button key={i} type="button" className={`tile${on ? ' tile--on' : ''}`} aria-pressed={on}
-              aria-label={tr(t, on ? 'removePanel' : 'addPanel', { n: i + 1 })} onClick={() => onPanels(on ? i : i + 1)} />
+              aria-label={tr(t, on ? 'removePanel' : 'addPanel', { n: i + 1 })} onClick={() => onPanels(on ? panelsBelow(i + 1, volts) : i + 1)} />
           )
         })}
       </div>
       <div className="planner__count">
         <span className="num planner__big">{tr(t, 'panelsLine', { panels: panelCount(t, s.panels), kw: fmtKw(s.arrayW, locale) })}</span>
-        {s.isRecommended
+        {!s.isTooShort && (s.isRecommended
           ? <span className="planner__pill">{s.isRoofLimited ? t.ui.recommendedPillLimited : t.ui.recommendedPill}</span>
-          : <button type="button" className="chip" onClick={() => onPanels(null)}>{tr(t, 'backToRecommended', { n: s.recommended })}</button>}
+          : <button type="button" className="chip" onClick={() => onPanels(null)}>{tr(t, 'backToRecommended', { n: s.recommended })}</button>)}
       </div>
       <div className="planner__sun">
         <div className="planner__sun-head">
