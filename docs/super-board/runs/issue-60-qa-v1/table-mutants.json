@@ -1,0 +1,1250 @@
+[
+  {
+    "table": "GAUGES",
+    "row": "8 AWG",
+    "field": "amps75",
+    "from": 50,
+    "to": 51,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "8 AWG",
+    "field": "amps75",
+    "from": 50,
+    "to": 49,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "8 AWG",
+    "field": "amps90",
+    "from": 55,
+    "to": 56,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "8 AWG",
+    "field": "amps90",
+    "from": 55,
+    "to": 54,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "6 AWG",
+    "field": "amps75",
+    "from": 65,
+    "to": 66,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "6 AWG",
+    "field": "amps75",
+    "from": 65,
+    "to": 64,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "6 AWG",
+    "field": "amps90",
+    "from": 75,
+    "to": 76,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "6 AWG",
+    "field": "amps90",
+    "from": 75,
+    "to": 74,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "4 AWG",
+    "field": "amps75",
+    "from": 85,
+    "to": 86,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "4 AWG",
+    "field": "amps75",
+    "from": 85,
+    "to": 84,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "4 AWG",
+    "field": "amps90",
+    "from": 95,
+    "to": 96,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "4 AWG",
+    "field": "amps90",
+    "from": 95,
+    "to": 94,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "2 AWG",
+    "field": "amps75",
+    "from": 115,
+    "to": 116,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "2 AWG",
+    "field": "amps75",
+    "from": 115,
+    "to": 114,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "2 AWG",
+    "field": "amps90",
+    "from": 130,
+    "to": 131,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "2 AWG",
+    "field": "amps90",
+    "from": 130,
+    "to": 129,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "1 AWG",
+    "field": "amps75",
+    "from": 130,
+    "to": 131,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "1 AWG",
+    "field": "amps75",
+    "from": 130,
+    "to": 129,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "1 AWG",
+    "field": "amps90",
+    "from": 145,
+    "to": 146,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "1 AWG",
+    "field": "amps90",
+    "from": 145,
+    "to": 144,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "1/0 AWG",
+    "field": "amps75",
+    "from": 150,
+    "to": 151,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "1/0 AWG",
+    "field": "amps75",
+    "from": 150,
+    "to": 149,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "1/0 AWG",
+    "field": "amps90",
+    "from": 170,
+    "to": 171,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "1/0 AWG",
+    "field": "amps90",
+    "from": 170,
+    "to": 169,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "2/0 AWG",
+    "field": "amps75",
+    "from": 175,
+    "to": 176,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "2/0 AWG",
+    "field": "amps75",
+    "from": 175,
+    "to": 174,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "2/0 AWG",
+    "field": "amps90",
+    "from": 195,
+    "to": 196,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "2/0 AWG",
+    "field": "amps90",
+    "from": 195,
+    "to": 194,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "3/0 AWG",
+    "field": "amps75",
+    "from": 200,
+    "to": 201,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "3/0 AWG",
+    "field": "amps75",
+    "from": 200,
+    "to": 199,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "3/0 AWG",
+    "field": "amps90",
+    "from": 225,
+    "to": 226,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "3/0 AWG",
+    "field": "amps90",
+    "from": 225,
+    "to": 224,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "4/0 AWG",
+    "field": "amps75",
+    "from": 230,
+    "to": 231,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "4/0 AWG",
+    "field": "amps75",
+    "from": 230,
+    "to": 229,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "4/0 AWG",
+    "field": "amps90",
+    "from": 260,
+    "to": 261,
+    "caught": true
+  },
+  {
+    "table": "GAUGES",
+    "row": "4/0 AWG",
+    "field": "amps90",
+    "from": 260,
+    "to": 259,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 10",
+    "field": "maxC",
+    "from": 10,
+    "to": 11,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 10",
+    "field": "maxC",
+    "from": 10,
+    "to": 9,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 10",
+    "field": "f75",
+    "from": 1.2,
+    "to": 1.21,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 10",
+    "field": "f75",
+    "from": 1.2,
+    "to": 1.19,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 10",
+    "field": "f90",
+    "from": 1.15,
+    "to": 1.16,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 10",
+    "field": "f90",
+    "from": 1.15,
+    "to": 1.14,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 15",
+    "field": "maxC",
+    "from": 15,
+    "to": 16,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 15",
+    "field": "maxC",
+    "from": 15,
+    "to": 14,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 15",
+    "field": "f75",
+    "from": 1.15,
+    "to": 1.16,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 15",
+    "field": "f75",
+    "from": 1.15,
+    "to": 1.14,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 15",
+    "field": "f90",
+    "from": 1.12,
+    "to": 1.13,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 15",
+    "field": "f90",
+    "from": 1.12,
+    "to": 1.11,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 20",
+    "field": "maxC",
+    "from": 20,
+    "to": 21,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 20",
+    "field": "maxC",
+    "from": 20,
+    "to": 19,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 20",
+    "field": "f75",
+    "from": 1.11,
+    "to": 1.12,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 20",
+    "field": "f75",
+    "from": 1.11,
+    "to": 1.1,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 20",
+    "field": "f90",
+    "from": 1.08,
+    "to": 1.09,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 20",
+    "field": "f90",
+    "from": 1.08,
+    "to": 1.07,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 25",
+    "field": "maxC",
+    "from": 25,
+    "to": 26,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 25",
+    "field": "maxC",
+    "from": 25,
+    "to": 24,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 25",
+    "field": "f75",
+    "from": 1.05,
+    "to": 1.06,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 25",
+    "field": "f75",
+    "from": 1.05,
+    "to": 1.04,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 25",
+    "field": "f90",
+    "from": 1.04,
+    "to": 1.05,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 25",
+    "field": "f90",
+    "from": 1.04,
+    "to": 1.03,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 30",
+    "field": "maxC",
+    "from": 30,
+    "to": 31,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 30",
+    "field": "maxC",
+    "from": 30,
+    "to": 29,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 30",
+    "field": "f75",
+    "from": 1,
+    "to": 1.01,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 30",
+    "field": "f75",
+    "from": 1,
+    "to": 0.99,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 30",
+    "field": "f90",
+    "from": 1,
+    "to": 1.01,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 30",
+    "field": "f90",
+    "from": 1,
+    "to": 0.99,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 35",
+    "field": "maxC",
+    "from": 35,
+    "to": 36,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 35",
+    "field": "maxC",
+    "from": 35,
+    "to": 34,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 35",
+    "field": "f75",
+    "from": 0.94,
+    "to": 0.95,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 35",
+    "field": "f75",
+    "from": 0.94,
+    "to": 0.93,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 35",
+    "field": "f90",
+    "from": 0.96,
+    "to": 0.97,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 35",
+    "field": "f90",
+    "from": 0.96,
+    "to": 0.95,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 40",
+    "field": "maxC",
+    "from": 40,
+    "to": 41,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 40",
+    "field": "maxC",
+    "from": 40,
+    "to": 39,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 40",
+    "field": "f75",
+    "from": 0.88,
+    "to": 0.89,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 40",
+    "field": "f75",
+    "from": 0.88,
+    "to": 0.87,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 40",
+    "field": "f90",
+    "from": 0.91,
+    "to": 0.92,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 40",
+    "field": "f90",
+    "from": 0.91,
+    "to": 0.9,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 45",
+    "field": "maxC",
+    "from": 45,
+    "to": 46,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 45",
+    "field": "maxC",
+    "from": 45,
+    "to": 44,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 45",
+    "field": "f75",
+    "from": 0.82,
+    "to": 0.83,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 45",
+    "field": "f75",
+    "from": 0.82,
+    "to": 0.81,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 45",
+    "field": "f90",
+    "from": 0.87,
+    "to": 0.88,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 45",
+    "field": "f90",
+    "from": 0.87,
+    "to": 0.86,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 50",
+    "field": "maxC",
+    "from": 50,
+    "to": 51,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 50",
+    "field": "maxC",
+    "from": 50,
+    "to": 49,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 50",
+    "field": "f75",
+    "from": 0.75,
+    "to": 0.76,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 50",
+    "field": "f75",
+    "from": 0.75,
+    "to": 0.74,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 50",
+    "field": "f90",
+    "from": 0.82,
+    "to": 0.83,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 50",
+    "field": "f90",
+    "from": 0.82,
+    "to": 0.81,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 55",
+    "field": "maxC",
+    "from": 55,
+    "to": 56,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 55",
+    "field": "maxC",
+    "from": 55,
+    "to": 54,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 55",
+    "field": "f75",
+    "from": 0.67,
+    "to": 0.68,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 55",
+    "field": "f75",
+    "from": 0.67,
+    "to": 0.66,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 55",
+    "field": "f90",
+    "from": 0.76,
+    "to": 0.77,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 55",
+    "field": "f90",
+    "from": 0.76,
+    "to": 0.75,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 60",
+    "field": "maxC",
+    "from": 60,
+    "to": 61,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 60",
+    "field": "maxC",
+    "from": 60,
+    "to": 59,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 60",
+    "field": "f75",
+    "from": 0.58,
+    "to": 0.59,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 60",
+    "field": "f75",
+    "from": 0.58,
+    "to": 0.57,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 60",
+    "field": "f90",
+    "from": 0.71,
+    "to": 0.72,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 60",
+    "field": "f90",
+    "from": 0.71,
+    "to": 0.7,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 65",
+    "field": "maxC",
+    "from": 65,
+    "to": 66,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 65",
+    "field": "maxC",
+    "from": 65,
+    "to": 64,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 65",
+    "field": "f75",
+    "from": 0.47,
+    "to": 0.48,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 65",
+    "field": "f75",
+    "from": 0.47,
+    "to": 0.46,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 65",
+    "field": "f90",
+    "from": 0.65,
+    "to": 0.66,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 65",
+    "field": "f90",
+    "from": 0.65,
+    "to": 0.64,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 70",
+    "field": "maxC",
+    "from": 70,
+    "to": 71,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 70",
+    "field": "maxC",
+    "from": 70,
+    "to": 69,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 70",
+    "field": "f75",
+    "from": 0.33,
+    "to": 0.34,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 70",
+    "field": "f75",
+    "from": 0.33,
+    "to": 0.32,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 70",
+    "field": "f90",
+    "from": 0.58,
+    "to": 0.59,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 70",
+    "field": "f90",
+    "from": 0.58,
+    "to": 0.57,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 75",
+    "field": "maxC",
+    "from": 75,
+    "to": 76,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 75",
+    "field": "maxC",
+    "from": 75,
+    "to": 74,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 75",
+    "field": "f75",
+    "from": 0,
+    "to": 0.01,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 75",
+    "field": "f75",
+    "from": 0,
+    "to": -0.01,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 75",
+    "field": "f90",
+    "from": 0.5,
+    "to": 0.51,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 75",
+    "field": "f90",
+    "from": 0.5,
+    "to": 0.49,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 80",
+    "field": "maxC",
+    "from": 80,
+    "to": 81,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 80",
+    "field": "maxC",
+    "from": 80,
+    "to": 79,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 80",
+    "field": "f75",
+    "from": 0,
+    "to": 0.01,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 80",
+    "field": "f75",
+    "from": 0,
+    "to": -0.01,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 80",
+    "field": "f90",
+    "from": 0.41,
+    "to": 0.42,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 80",
+    "field": "f90",
+    "from": 0.41,
+    "to": 0.4,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 85",
+    "field": "maxC",
+    "from": 85,
+    "to": 86,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 85",
+    "field": "maxC",
+    "from": 85,
+    "to": 84,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 85",
+    "field": "f75",
+    "from": 0,
+    "to": 0.01,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 85",
+    "field": "f75",
+    "from": 0,
+    "to": -0.01,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 85",
+    "field": "f90",
+    "from": 0.29,
+    "to": 0.3,
+    "caught": true
+  },
+  {
+    "table": "AMBIENT_CORRECTION",
+    "row": "maxC 85",
+    "field": "f90",
+    "from": 0.29,
+    "to": 0.28,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 4",
+    "field": "minConductors",
+    "from": 4,
+    "to": 5,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 4",
+    "field": "minConductors",
+    "from": 4,
+    "to": 3,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 4",
+    "field": "factor",
+    "from": 0.8,
+    "to": 0.81,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 4",
+    "field": "factor",
+    "from": 0.8,
+    "to": 0.79,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 7",
+    "field": "minConductors",
+    "from": 7,
+    "to": 8,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 7",
+    "field": "minConductors",
+    "from": 7,
+    "to": 6,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 7",
+    "field": "factor",
+    "from": 0.7,
+    "to": 0.71,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 7",
+    "field": "factor",
+    "from": 0.7,
+    "to": 0.69,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 10",
+    "field": "minConductors",
+    "from": 10,
+    "to": 11,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 10",
+    "field": "minConductors",
+    "from": 10,
+    "to": 9,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 10",
+    "field": "factor",
+    "from": 0.5,
+    "to": 0.51,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 10",
+    "field": "factor",
+    "from": 0.5,
+    "to": 0.49,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 21",
+    "field": "minConductors",
+    "from": 21,
+    "to": 22,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 21",
+    "field": "minConductors",
+    "from": 21,
+    "to": 20,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 21",
+    "field": "factor",
+    "from": 0.45,
+    "to": 0.46,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 21",
+    "field": "factor",
+    "from": 0.45,
+    "to": 0.44,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 31",
+    "field": "minConductors",
+    "from": 31,
+    "to": 32,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 31",
+    "field": "minConductors",
+    "from": 31,
+    "to": 30,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 31",
+    "field": "factor",
+    "from": 0.4,
+    "to": 0.41,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 31",
+    "field": "factor",
+    "from": 0.4,
+    "to": 0.39,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 41",
+    "field": "minConductors",
+    "from": 41,
+    "to": 42,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 41",
+    "field": "minConductors",
+    "from": 41,
+    "to": 40,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 41",
+    "field": "factor",
+    "from": 0.35,
+    "to": 0.36,
+    "caught": true
+  },
+  {
+    "table": "BUNDLE_ADJUSTMENT",
+    "row": "min 41",
+    "field": "factor",
+    "from": 0.35,
+    "to": 0.34,
+    "caught": true
+  }
+]
