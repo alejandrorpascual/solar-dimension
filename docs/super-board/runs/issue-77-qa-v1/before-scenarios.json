@@ -1,0 +1,334 @@
+{
+  "results": {
+    "ac1-recommended": {
+      "locale": "en",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 40,
+        "panels": null,
+        "sunHours": 4.8
+      },
+      "recommended": 5,
+      "panels": 5,
+      "arrayW": 2750,
+      "coverRatio": 1.1209239130434783,
+      "roofWarnings": []
+    },
+    "ac1-agm-recommended": {
+      "locale": "en",
+      "volts": 12,
+      "chemistry": "agm",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 40,
+        "panels": null,
+        "sunHours": 4.8
+      },
+      "recommended": 5,
+      "panels": 5,
+      "arrayW": 2750,
+      "coverRatio": 1.1209239130434783,
+      "roofWarnings": []
+    },
+    "ac1-agm-roof-warning": {
+      "locale": "en",
+      "volts": 12,
+      "chemistry": "agm",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 10,
+        "panels": null,
+        "sunHours": 4.8
+      },
+      "recommended": 3,
+      "panels": 3,
+      "arrayW": 1650,
+      "coverRatio": 0.6725543478260869,
+      "roofWarnings": [
+        {
+          "code": "roofLimited",
+          "params": {
+            "fit": 3,
+            "need": 5
+          }
+        }
+      ]
+    },
+    "ac1-roof-warning": {
+      "locale": "en",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 10,
+        "panels": null,
+        "sunHours": 4.8
+      },
+      "recommended": 3,
+      "panels": 3,
+      "arrayW": 1650,
+      "coverRatio": 0.6725543478260869,
+      "roofWarnings": [
+        {
+          "code": "roofLimited",
+          "params": {
+            "fit": 3,
+            "need": 5
+          }
+        }
+      ]
+    },
+    "ac2-help-coverage-en": {
+      "locale": "en",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 40,
+        "panels": null,
+        "sunHours": 4.8
+      },
+      "recommended": 5,
+      "panels": 5,
+      "arrayW": 2750,
+      "coverRatio": 1.1209239130434783,
+      "roofWarnings": []
+    },
+    "ac2-help-coverage-es": {
+      "locale": "es",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 40,
+        "panels": null,
+        "sunHours": 4.8
+      },
+      "recommended": 5,
+      "panels": 5,
+      "arrayW": 2750,
+      "coverRatio": 1.1209239130434783,
+      "roofWarnings": []
+    },
+    "ac4-tapped-zero": {
+      "locale": "en",
+      "volts": 48,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 9600,
+      "solar": {
+        "roofM2": 10,
+        "panels": 0,
+        "sunHours": 4.8
+      },
+      "recommended": 3,
+      "panels": 0,
+      "arrayW": 0,
+      "coverRatio": 0,
+      "roofWarnings": [
+        {
+          "code": "roofLimited",
+          "params": {
+            "fit": 3,
+            "need": 5
+          }
+        }
+      ]
+    },
+    "ac4-one-panel": {
+      "locale": "en",
+      "volts": 24,
+      "chemistry": "lifepo4",
+      "hours": 10,
+      "bankWh": 7200,
+      "solar": {
+        "roofM2": 5,
+        "panels": null,
+        "sunHours": 4.8
+      },
+      "recommended": 1,
+      "panels": 1,
+      "arrayW": 550,
+      "coverRatio": 0.22418478260869565,
+      "roofWarnings": [
+        {
+          "code": "roofLimited",
+          "params": {
+            "fit": 1,
+            "need": 4
+          }
+        }
+      ]
+    }
+  },
+  "checks": {
+    "ac1-recommended/desktop": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers a full day's use",
+      "coverPct": "112%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac1-recommended/mobile": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers a full day's use",
+      "coverPct": "112%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    },
+    "ac1-agm-recommended/desktop": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers a full day's use",
+      "coverPct": "112%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac1-agm-recommended/mobile": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers a full day's use",
+      "coverPct": "112%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    },
+    "ac1-agm-roof-warning/desktop": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers part of a day's use",
+      "coverPct": "67%",
+      "panelsLine": "3 panels · 1.7 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": "Your roof holds 3 panels; 5 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": null
+    },
+    "ac1-agm-roof-warning/mobile": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers part of a day's use",
+      "coverPct": "67%",
+      "panelsLine": "3 panels · 1.7 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": "Your roof holds 3 panels; 5 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": false
+    },
+    "ac1-roof-warning/desktop": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers part of a day's use",
+      "coverPct": "67%",
+      "panelsLine": "3 panels · 1.7 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": "Your roof holds 3 panels; 5 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": null
+    },
+    "ac1-roof-warning/mobile": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers part of a day's use",
+      "coverPct": "67%",
+      "panelsLine": "3 panels · 1.7 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": "Your roof holds 3 panels; 5 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": false
+    },
+    "ac2-help-coverage-en/desktop": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers a full day's use",
+      "coverPct": "112%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac2-help-coverage-en/mobile": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers a full day's use",
+      "coverPct": "112%",
+      "panelsLine": "5 panels · 2.8 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · refills the bank in a day",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    },
+    "ac2-help-coverage-es/desktop": {
+      "help": "Los paneles recargan el banco de día, así que un apagón más largo que las horas de respaldo queda cubierto. Puedes saltarte este paso y quedarte con un kit solo de baterías.",
+      "coverHead": "Cubre el consumo de un día completo",
+      "coverPct": "112%",
+      "panelsLine": "5 paneles · 2.8 kW",
+      "sun": "4.8 h",
+      "pill": "Recomendado · recarga el banco en un día",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac2-help-coverage-es/mobile": {
+      "help": "Los paneles recargan el banco de día, así que un apagón más largo que las horas de respaldo queda cubierto. Puedes saltarte este paso y quedarte con un kit solo de baterías.",
+      "coverHead": "Cubre el consumo de un día completo",
+      "coverPct": "112%",
+      "panelsLine": "5 paneles · 2.8 kW",
+      "sun": "4.8 h",
+      "pill": "Recomendado · recarga el banco en un día",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    },
+    "ac4-tapped-zero/desktop": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers part of a day's use",
+      "coverPct": "0%",
+      "panelsLine": "0 panels · 0.0 kW",
+      "sun": "4.8 h",
+      "pill": "Back to recommended · 3",
+      "roofNote": "Your roof holds 3 panels; 5 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": null
+    },
+    "ac4-tapped-zero/mobile": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers part of a day's use",
+      "coverPct": "0%",
+      "panelsLine": "0 panels · 0.0 kW",
+      "sun": "4.8 h",
+      "pill": "Back to recommended · 3",
+      "roofNote": "Your roof holds 3 panels; 5 would refill the bank in one clear day. It still refills over more days of sun.",
+      "coverHeadOverlapsPct": false
+    },
+    "ac4-one-panel/desktop": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers part of a day's use",
+      "coverPct": "22%",
+      "panelsLine": "1 panel · 0.6 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": null,
+      "coverHeadOverlapsPct": null
+    },
+    "ac4-one-panel/mobile": {
+      "help": "Panels refill the bank by day, so an outage that outlasts the window is covered. You can skip this and keep a battery-only kit.",
+      "coverHead": "Covers part of a day's use",
+      "coverPct": "22%",
+      "panelsLine": "1 panel · 0.6 kW",
+      "sun": "4.8 h",
+      "pill": "Recommended · the most your roof fits",
+      "roofNote": null,
+      "coverHeadOverlapsPct": false
+    }
+  }
+}
