@@ -21,9 +21,12 @@ export interface FuseContext {
 
 export interface FuseSizing { fuse: FusePick; gaugeIndex: number; warnings: Warning[] }
 
+/** The least DC voltage a fuse on this bank must be listed for: the bank rises on charge. */
+const neededVdc = (volts: Voltage): number => volts * SIZING.FUSE_VOLTAGE_MARGIN
+
 /** The fuses listed for this bank voltage; every fuse when none is, so a kit still gets one and its checks say why. */
 export function fusePool(fuses: readonly Fuse[], volts: Voltage): readonly Fuse[] {
-  const usable = fuses.filter((f) => f.maxVdc >= volts * SIZING.FUSE_VOLTAGE_MARGIN)
+  const usable = fuses.filter((f) => f.maxVdc >= neededVdc(volts))
   return usable.length > 0 ? usable : fuses
 }
 
@@ -32,8 +35,8 @@ export const interrupts = (fuse: Pick<Fuse, 'aicA'>, shortCircuitA: number): boo
 
 /**
  * The fuse that protects the cable: a standard rating at least the NEC continuous factor over the running current,
- * never above the cable's corrected ampacity (the gauge steps up until it fits). Then three checks against what the
- * bank and the start-up do to it.
+ * never above the cable's corrected ampacity (the gauge steps up until it fits). Then whether it is listed for the
+ * bank voltage, and three checks against what the bank and the start-up do to it.
  */
 export function pickFuse(ctx: FuseContext): FuseSizing {
   const minA = ctx.perRunA * SIZING.NEC_CONTINUOUS
@@ -43,6 +46,11 @@ export function pickFuse(ctx: FuseContext): FuseSizing {
   while (gi < ctx.lastGaugeIndex && fuse.a > ctx.ampacityAt(gi)) gi++
 
   const warnings: Warning[] = []
+  // Only a list with nothing rated for the bank gets here: fusePool then hands back every fuse.
+  const needVdc = neededVdc(ctx.volts)
+  if (fuse.maxVdc < needVdc) {
+    warnings.push({ code: 'fuseVoltage', params: { fuseA: fuse.a, maxVdc: fuse.maxVdc, volts: ctx.volts, needVdc } })
+  }
   // The bank is the weak link when the fuse is bigger than the one the bank's own continuous current would get.
   if (ctx.bankContinuousA !== null) {
     const bankMinA = (ctx.bankContinuousA / ctx.runs) * SIZING.NEC_CONTINUOUS

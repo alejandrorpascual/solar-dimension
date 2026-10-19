@@ -239,6 +239,22 @@ describe('kitChecks', () => {
     expect(cable.lines[0]).toContain('for a 154 A design current per run')
   })
 
+  test('a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages', () => {
+    // Essentials at 48 V need a 100 A fuse; the only one listed is a 32 V ANL fuse, under the 60 V a 48 V bank needs.
+    const hardware = { ...DEFAULT_HARDWARE, fuses: [{ a: 100, class: 'ANL' as const, aicA: 6000, maxVdc: 32 }] }
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
+    const fuse = (locale: 'en' | 'es') => kitChecks(locale === 'en' ? en : es, r, locale).find((c) => c.id === 'fuse')!
+    expect(fuse('en')).toMatchObject({
+      status: 'warn',
+      lines: ['The 100 A fuse is listed for only 32 V DC, and a 48 V bank needs 60 V DC or more: it may not break a fault. Use a fuse listed for at least 60 V DC.'],
+    })
+    expect(fuse('es')).toMatchObject({
+      status: 'warn',
+      lines: ['El fusible de 100 A solo está certificado para 32 V CC, y un banco de 48 V necesita 60 V CC o más: podría no cortar una falla. Usa un fusible certificado para al menos 60 V CC.'],
+    })
+    expect(uncheckedWarnings(r).map((w) => w.code)).not.toContain('fuseVoltage')
+  })
+
   test('nothing to check for an empty kit', () => {
     expect(kitChecks(en, kit({}), 'en')).toEqual([])
   })
