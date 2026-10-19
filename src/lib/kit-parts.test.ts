@@ -77,6 +77,21 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(parts.find(p => p.id === 'mainCable')!.note).toContain(locale === 'es' ? '154 A de corriente de diseño por tramo' : '154 A design current per run')
   })
 
+  test('the main cable note gives the drop at full load and at start-up; runs in parallel to one inverter add equal length and identical lugs', () => {
+    const note = (r: ReturnType<typeof compute>) => buildParts(r, t, locale).find(p => p.id === 'mainCable')!.note
+    expect(note(result('48-300'))).toBe(locale === 'es'
+      ? 'De batería a inversor · 87 A de corriente de diseño · 115 A tras la corrección · 0.2% de caída a plena carga, 0.1% al arrancar'
+      : 'Battery to inverter · 87 A design current · 115 A after derating · 0.2% drop at full load, 0.1% at start-up')
+    const load = (watts: number) => ({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }], hours: 1, chemistry: 'lifepo4' as const })
+    expect(note(compute({ ...load(3000), volts: 24, batteryUnit: '12-200' }, CATALOG_SNAPSHOT))).toBe(locale === 'es'
+      ? 'De batería a inversor · 116 A de corriente de diseño por tramo · 150 A tras la corrección · 0.4% de caída a plena carga, 0.3% al arrancar · Mismo largo y terminales idénticos'
+      : 'Battery to inverter · 116 A design current per run · 150 A after derating · 0.4% drop at full load, 0.3% at start-up · Equal length, identical lugs')
+    // Two inverters on a run each: no conductors in parallel.
+    const pair = compute({ ...load(4000), volts: 48 }, CATALOG_SNAPSHOT, { ...DEFAULT_HARDWARE, inverters: [{ w: 3000, surge: 6000, volts: [48], surgeSeconds: 5, maxParallel: 3 }] })
+    expect([pair.inverter.count, pair.cable.runs]).toEqual([2, 2])
+    expect(note(pair)).not.toContain(locale === 'es' ? 'terminales' : 'lugs')
+  })
+
   test('the fuse keeps its class in the spec and states its interrupting rating', () => {
     const fuse = buildParts(result('48-300'), t, locale).find(p => p.id === 'fuse')!
     expect(fuse.spec).toBe(locale === 'es' ? '100 A clase T' : '100 A class T')

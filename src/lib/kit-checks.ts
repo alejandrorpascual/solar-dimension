@@ -76,7 +76,7 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
-        designA: a(c.designPerRunA), perRun: shareLabel(r, t), drop: c.startupDropPct,
+        designA: a(c.designPerRunA), perRun: shareLabel(r, t), runDrop: c.dropPct, drop: c.startupDropPct,
       })
   }
 }
