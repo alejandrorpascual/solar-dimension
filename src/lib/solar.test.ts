@@ -55,6 +55,14 @@ describe('refilling the usable energy over charge losses', () => {
     // 9,239 Wh into 5 × 550 × 0.75 = 2,062.5 W of charge is 4.48 h, inside the 4.5 h of sun; 6,250 / (4 × 412.5) = 3.79 h.
     expect([pick(CHEMISTRIES.lifepo4), pick(CHEMISTRIES.agm)].map((s) => [Number(s.refillHours?.toFixed(2)), s.refillsInOneDay])).toEqual([[4.48, true], [3.79, true]])
   })
+
+  test('a roof-limited LiFePO4 array takes the usable energy over charge losses in days, not the whole bank', () => {
+    // 20 m² fits 6 panels: 6 × 550 × 5 × 0.75 = 12,375 Wh a clear day. 19,200 × 0.85 / 0.92 = 17,739 Wh to refill, so 1.43 days.
+    // Dividing the whole 19,200 Wh bank instead would read 1.55.
+    const s = sizeSolar({ solar: { roofM2: 20, panels: null, sunHours: 5 }, bankWh: BANK_WH, chemistry: CHEMISTRIES.lifepo4, volts: 48, averageW: AVERAGE_W })!
+    expect([s.panels, s.dailyWh, Math.round(s.refillWh), s.refillsInOneDay]).toEqual([6, 12_375, 17_739, false])
+    expect(s.refillDays).toBeCloseTo(1.43, 2)
+  })
 })
 
 describe('sizeSolar', () => {
