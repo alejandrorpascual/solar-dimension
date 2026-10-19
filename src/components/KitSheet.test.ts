@@ -86,6 +86,23 @@ describe('the spec sheet carries what a supplier must read', () => {
     expect(sheetText(SOUND, 'en', NOTHING)).not.toContain('[Needs attention]')
   })
 
+  test('a conventional AC prints the locked-rotor note under Notes and the AC duty in the assumptions, in English and Spanish', () => {
+    const ac: SizingInput = { qty: { ...DEFAULT_QTY, ac1c: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }
+    const en = sheetText(ac, 'en')
+    expect(en.slice(en.indexOf('\nNotes\n'))).toContain('1 ton AC · conventional: the start-up surge is a rule of thumb, and the nameplate\'s locked-rotor amps can be higher.')
+    expect(en).toContain('Air conditioning runs 50% of each hour on a typical day and 100% on a hard day.')
+    const es = sheetText(ac, 'es')
+    expect(es.slice(es.indexOf('\nNotas\n'))).toContain('Aire de 1 tonelada · convencional: el arranque es una estimación y la placa puede indicar más amperios de rotor bloqueado.')
+    expect(es).toContain('El aire acondicionado funciona 50% de cada hora en un día típico y 100% en un día duro.')
+  })
+
+  test('an inverter AC prints its own typical duty but no locked-rotor note', () => {
+    // The catalog runs a 1-ton inverter AC 60% of each hour, a conventional one 50%.
+    const text = sheetText({ qty: { ...DEFAULT_QTY, ac1i: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, 'en')
+    expect(text).toContain('Air conditioning runs 60% of each hour on a typical day and 100% on a hard day.')
+    expect(text).not.toContain('locked-rotor')
+  })
+
   test('appliances the catalog could not load are named as left out, so the sheet never under-reports in silence', () => {
     const text = sheetText({ ...SOUND, qty: { ...DEFAULT_QTY, gone1: 1, gone2: 2 } }, 'en')
     expect(text).toContain('2 appliances in this project could not be loaded, so this kit leaves them out.')

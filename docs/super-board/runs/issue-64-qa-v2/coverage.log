@@ -1,0 +1,5 @@
+npm run test:coverage on 7d704d1 + the QA v2 tests: exit 0
+ Test Files  99 passed (99)
+      Tests  1703 passed (1703)
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+All files          |   98.31 |    93.91 |   99.36 |   98.89 |                   

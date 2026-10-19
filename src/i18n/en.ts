@@ -24,7 +24,7 @@ export const en: Dictionary = {
   ui: {
     step1: 'Appliances', step2: 'Backup window', step3: 'Solar panels', step4: 'Your kit', stepOf: 'Step {n} of 4',
     project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
-    acInverter: 'Inverter air conditioning', acInverterHelp: 'Soft start. Easy on the battery and inverter.', acConventional: 'Conventional air conditioning', acConventionalHelp: 'Starts at ~3× its running power. Needs a bigger inverter.', acSizeOne: '{tons} ton · {btu}k BTU', acSizeMany: '{tons} ton · {btu}k BTU',
+    acInverter: 'Inverter air conditioning', acInverterHelp: 'Soft start. Easy on the inverter.', acConventional: 'Conventional air conditioning', acConventionalHelp: 'Starts at ~3× its running power. Needs a bigger inverter.', acSizeOne: '{tons} ton · {btu}k BTU', acSizeMany: '{tons} ton · {btu}k BTU',
     q1: 'Which appliances need to stay on?', q1Help: 'Add each one and set how many. Running watts drive the battery, surge watts drive the inverter.',
     search: 'Search appliances', nothingMatches: 'Nothing matches. Try another word or add it below.', sectionAdded: '{count} added',
     add: 'Add', addOne: 'Add {name}', qtyOf: 'Quantity of {name}', removeOne: 'Remove one {name}', remove: 'Remove {name}',
@@ -69,6 +69,7 @@ export const en: Dictionary = {
     estimateNotice: 'An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.',
     fine: 'Assumes 90% inverter efficiency, 25% inverter headroom, {dod}% depth of discharge, 1,100 W per ton of cooling, {starts}, copper cable with {insulation} °C insulation at {ambient} °C{bundled}. NEC ampacity tables; verify against local code. Inverter sizes are continuous watts, not VA, at room temperature; the 25% headroom covers power factor and heat.',
     fineStartsOne: 'one motor starting at a time', fineStartsTwo: 'two motors starting together', fineStartsAll: 'every motor starting at once', fineBundled: ', bundled',
+    fineAcDuty: ' Air conditioning runs {typical} of each hour on a typical day and {hard} on a hard day.',
     fineRatings: " Assumed ratings, not a maker's datasheet: each {battery} battery gives {cont} A continuous and {peak} A peak for {peakSeconds} s, at most {parallel} in parallel, and {shortCircuit} A per Ah into a short; each {inverter} inverter surges to {surge} for {surgeSeconds} s.",
     footer1: '{name} · {count} appliances · {running} running · {peak} peak', footer2: '{hours} h at {volts} V · {load} of load', footer3: '{batteries} · {inverter} · {gauge}', footerEmpty: 'Nothing selected yet',
     back: 'Back', next: 'Next: backup window', nextSolar: 'Next: solar panels', buildKit: 'Build my kit', startOver: 'Start over',
@@ -144,6 +145,7 @@ export const en: Dictionary = {
     parallelStrings: (p) => `${p.strings} parallel strings drift out of balance. Prefer bigger units or a higher voltage.`,
     dominantLoad: (p) => `${p.itemName} is ${p.sharePct}% of the energy. Dropping it is the cheapest way to shrink the bank.`,
     splitPhase: (p) => `${p.itemName} usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.`,
+    lockedRotor: (p) => `${p.itemName}: the start-up surge is a rule of thumb, and the nameplate's locked-rotor amps can be higher. Check locked-rotor amps × volts against the inverter's surge, or fit a soft starter.`,
     inverterUndersized: (p) => {
       const [inverter, unit, running] = [p.inverterW ?? 0, p.unitW ?? 0, p.runningW ?? 0].map((n) => n.toLocaleString('en-US'))
       const isUnder = (p.inverterW ?? 0) < (p.runningW ?? 0)
