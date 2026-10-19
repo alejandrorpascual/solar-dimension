@@ -90,6 +90,8 @@ export const VOLTAGE_HINTS: Record<Voltage, string> = {
   36: 'Uncommon; golf-cart banks',
   48: 'Whole-home, 3 kW and up',
 }
+/** The bank voltage only two stock inverters are sold for (4 and 5 kW), so most kits at it come out oversized. */
+export const FEW_INVERTERS_VOLTAGE: Voltage = 36
 
 /** One battery as sold, with the discharge its BMS (or, for lead-acid, its maker) allows. */
 export interface BatteryUnit {
