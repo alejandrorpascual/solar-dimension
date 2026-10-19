@@ -427,7 +427,7 @@ test('a router alone at 48 V says why its bank is large and names 12 V; at 12 V 
   await page.goto('/?step=4')
   await expect(page.getByRole('heading', { name: 'Kit for Garita' })).toBeVisible()
   const note = page.getByText(/^This bank holds/)
-  await expect(note).toHaveText('This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest of any voltage.')
+  await expect(note).toHaveText('This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
   await page.getByRole('button', { name: 'Step 2: Backup window' }).click()
   await page.getByRole('button', { name: /^12 V/ }).click()
   await page.getByRole('button', { name: 'Step 4: Your kit' }).click()

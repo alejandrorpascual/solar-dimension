@@ -25,17 +25,21 @@ const isNoWorse = (other: SizingResult, kit: SizingResult): boolean => {
   return other.warnings.every((w) => codes.has(w.code))
 }
 
+/** True when the bank in use is the automatic pick. One picked by hand is large because the user chose it, not because of the inverter. */
+const isAutoPick = (r: SizingResult): boolean => r.batteryUnit === null || r.batteryOptions.some((o) => o.isAuto && o.id === r.batteryUnit)
+
 /** Smallest bank first; on a tie the higher voltage, which carries the same power on less current. */
 const bySmallestBank = (a: Alternative, b: Alternative): number => a.bankWh - b.bankWh || b.volts - a.volts
 
 /**
  * The note for a bank of at least OVERSIZE_RATIO times the energy the load needs, when another voltage sizes a smaller
  * one: the bank has to carry the inverter's full current, so a small load still gets a bank big enough for that.
- * The kit is measured with its own battery pick; the other voltages with their automatic one. Null otherwise.
+ * Only the automatic battery pick gets the note, and a need that rounds to 0 Wh gets none. Null otherwise.
  */
 export function oversizeNote(project: Project, appliances: readonly CatalogItem[]): OversizeNote | null {
   const kit = computeProject(project, appliances)
-  if (kit.empty || !kit.battery || kit.battery.bankWh < OVERSIZE_RATIO * kit.requiredWh) return null
+  if (kit.empty || !kit.battery || !isAutoPick(kit) || kit.requiredWh <= 0) return null
+  if (kit.battery.bankWh < OVERSIZE_RATIO * kit.requiredWh) return null
   const bankWh = kit.battery.bankWh
   const smallest = VOLTAGES.filter((v) => v !== kit.volts)
     .map((volts) => ({ volts, r: computeProject({ ...project, volts, batteryUnit: null }, appliances) }))

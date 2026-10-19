@@ -42,9 +42,22 @@ describe('oversizeNote', () => {
     expect(oversizeNote(project({ micro: 2 }, { hours: 1, chemistry: 'agm' }), CATALOG_SNAPSHOT)).toMatchObject({ volts: 24, bankWh: 14400 })
   })
 
-  test('a battery picked by hand is the bank the note measures; the other voltages use their automatic pick', () => {
+  test("a battery picked by hand gets no note: its size is the user's choice, not the inverter's doing", () => {
     // A router at 48 V on a 48 V 314 Ah battery: 15.1 kWh for 209 Wh.
-    expect(oversizeNote(project({ router: 1 }, { batteryUnit: '48-314' }), CATALOG_SNAPSHOT)).toEqual({ ratio: 72, needWh: 209, inverterW: 3000, volts: 12, bankWh: 1200 })
+    expect(oversizeNote(project({ router: 1 }, { batteryUnit: '48-314' }), CATALOG_SNAPSHOT)).toBeNull()
+    // A fridge for 24 h at 48 V: no note on its 4.8 kWh automatic bank (2.9 times), and none on the 15.1 kWh one picked by hand.
+    expect(oversizeNote(project({ fridge: 1 }, { hours: 24, batteryUnit: '48-314' }), CATALOG_SNAPSHOT)).toBeNull()
+  })
+
+  test('picking the battery the automatic pick chose gets the same note as leaving it on automatic', () => {
+    // The router's automatic bank at 48 V is one 48 V 100 Ah battery.
+    expect(oversizeNote(project({ router: 1 }, { batteryUnit: '48-100' }), CATALOG_SNAPSHOT)).toEqual({ ratio: 22, needWh: 209, inverterW: 3000, volts: 12, bankWh: 1200 })
+  })
+
+  test('a load whose need rounds to 0 Wh gets no note', () => {
+    // 1 W at 10% for 1 h is 0.1 Wh, which rounds to 0; the 48 V kit still gets a 4.8 kWh bank.
+    const tiny = { id: 'custom1', name: 'Tiny', watts: 1, surge: 1, note: '', duty: 0.1 }
+    expect(oversizeNote(project({ custom1: 1 }, { hours: 1, custom: [tiny] }), CATALOG_SNAPSHOT)).toBeNull()
   })
 
   test('a project with nothing selected gets no note', () => {

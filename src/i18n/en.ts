@@ -62,7 +62,7 @@ export const en: Dictionary = {
     fuseSpec: '{amps} A class {class}{perRun}', fuseNote: 'Inline on the positive lead, as close to the bank as possible', perRun: ' per run', perInverter: ' per inverter', perRunOfInverter: ' per run, {n} runs to each inverter',
     fuseAicNote: '{aic} kA interrupting rating', stringFuseSpec: '{amps} A class {class}, one per parallel string', stringFuseNote: "On each string's positive lead, so a shorted string drops out alone",
     batteriesCurrentNote: '{cont} A continuous, {peak} A peak from the bank (assumed ratings)',
-    oversizeNote: 'This bank holds {ratio}× the {need} the load needs: it has to carry the full current of a {inverter} inverter. At {volts} V the kit would size a {bank} bank, the smallest of any voltage.',
+    oversizeNote: 'This bank holds {ratio}× the {need} the load needs: it has to carry the full current of a {inverter} inverter. At {volts} V the kit would size a {bank} bank, the smallest that passes the same checks.',
     batterySize: 'Battery size', batterySizeHelp: 'Pick the battery you plan to buy. Auto takes the size that passes the most checks, then the fewest batteries.', batteryAuto: 'Auto',
     batteryRecommended: 'Best fit', batteryGroup: '{v} V batteries', batteryInSeries: '{n} in series', manyStrings: 'Many parallel strings',
     batteryCountOne: '{count} battery', batteryCountMany: '{count} batteries', panelCountOne: '{count} panel', panelCountMany: '{count} panels',
