@@ -95,4 +95,15 @@ describe('csvFor', () => {
   test('drops the blocks that are switched off', () => {
     expect(csvFor(result, buildParts(result, en, 'en'), { appliances: false, parts: true }, en)).not.toContain('Refrigerator')
   })
+
+  test('a microwave set to 5% of each hour lists 1,440 Wh over 24 h, where its typical 8% lists 2,304', () => {
+    const microwave = (dutyOverrides: Record<string, number>) => {
+      const day = compute({ qty: { micro: 1 }, hours: 24, volts: 48, chemistry: 'lifepo4', dutyOverrides }, CATALOG_SNAPSHOT)
+      return csvFor(day, [], { appliances: true, parts: false }, en).slice(1).split('\r\n')
+    }
+    expect(microwave({ micro: 0.05 }).slice(0, 2)).toEqual([
+      'Appliance,Kind,Quantity,Each (W),Running (W),Average (W),Wh over 24 h', 'Microwave (1000 W),Cycles on and off,1,1200,1200,60,1440',
+    ])
+    expect(microwave({})[1]).toBe('Microwave (1000 W),Cycles on and off,1,1200,1200,96,2304')
+  })
 })

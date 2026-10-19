@@ -1,0 +1,16 @@
+$ npm ci --silent && npm run typecheck && npm run test:coverage && npm run build   # exit 0
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+> test:coverage
+> vitest run --coverage
+ Test Files  102 passed (102)
+      Tests  1718 passed (1718)
+Statements   : 98.31% ( 3216/3271 )
+Branches     : 93.91% ( 2501/2663 )
+Functions    : 99.36% ( 1089/1096 )
+Lines        : 98.89% ( 2421/2448 )
+> build
+> vite build
+✓ built in 642ms
+✓ built in 290ms
+✓ built in 644ms
