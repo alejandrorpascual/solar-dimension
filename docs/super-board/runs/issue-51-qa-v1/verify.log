@@ -1,0 +1,43 @@
+# Verify commands, run in a clone of issue-51-show-checks-lists-every-line-and-the-failed-check @ ce2ecdf
+# (config verify_commands: npm ci && npm run typecheck && npm run test:coverage && npm run build)
+
+## npm ci --prefer-offline: added 395 packages
+
+## npm run typecheck: exit 0
+
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+
+
+## npm run test:coverage (run 1): exit 1
+
+ RUN  v5.0.1 <clone>
+      Coverage enabled with v8
+
+ ❯ src/lib/solar.test.ts (27 tests | 2 failed) 13939ms
+   ❯ string length against the charge voltage (8)
+     × any tapped count becomes the nearest count that wires as equal strings on the fewest controllers, a tie rounding up, never past the roof 5059ms
+   ❯ controllers, breakers and taps (5)
+     × adding panel n lights it and removing it leaves the most panels below n that wire; every tile can light, on every voltage and roof 8302ms
+ Test Files  1 failed | 96 passed (97)
+      Tests  2 failed | 1616 passed (1618)
+
+## npm run test:coverage (run 2): exit 1
+     × adding panel n lights it and removing it leaves the most panels below n that wire; every tile can light, on every voltage and roof 5727ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed | 96 passed (97)
+      Tests  1 failed | 1617 passed (1618)
+# Both failures are 5 s timeouts in src/lib/solar.test.ts, which this branch does not touch; load average was 108-141 (other lanes on this machine).
+
+## npx vitest run src/lib/solar.test.ts (alone): Test Files 1 passed (1) · Tests 27 passed (27) · 1.47 s
+## CI on the PR merge commit 83eb103: Test Files 98 passed (98) · Tests 1657 passed (1657) (see ci-e2e.log)
+
+## npx vitest run --coverage --testTimeout=30000 (load average 27): exit 0
+ Test Files  97 passed (97)
+      Tests  1618 passed (1618)
+ All files  |   98.27 |    93.81 |   99.35 |   98.84 |  (stmts / branch / funcs / lines)
+
+## npm run build: exit 0
+ℹ Generated .output/nitro.json
+
+[nitro] ✔ You can preview this build using npx vite preview
