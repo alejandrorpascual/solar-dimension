@@ -1,0 +1,6 @@
+{
+  "effort": "base",
+  "excludeAuthors": ["alejandrorpascual-bot"],
+  "excludeBranches": ["main"],
+  "autoReview": ["open"]
+}

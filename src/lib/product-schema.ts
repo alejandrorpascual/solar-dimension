@@ -1,9 +1,6 @@
 import { z } from 'zod'
+import { PRODUCT_LIMITS } from './product-limits'
 
-/** Upper bounds that catch a slipped unit or digit; no real product comes near them. */
-export const PRODUCT_LIMITS = {
-  WATTS: 100_000, VOLTS: 1000, AMPS: 2000, PERCENT: 100, YEARS: 30, CYCLES: 100_000, SECONDS: 3600, UNITS: 100, KWH: 1000, AH: 5000,
-} as const
 const MAX_SURGE_LEVELS = 6
 export const MAX_EXTRA_SPECS = 8
 const MAX_BRANDS = 30

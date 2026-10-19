@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { expect, request, test, type FileChooser, type Page } from '@playwright/test'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { quotesEn } from '../src/i18n/quotes-en'
@@ -7,12 +8,26 @@ import { firstProjectId, markEmailVerified } from './db'
 /** How long one click waits for the file picker before the next try. */
 const CHOOSER_WAIT_MS = 3_000
 
-/** A real one-page PDF, so the server's page check passes; the stub picks the sample quote by file name. */
-export async function quotePdf(name: string): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
+/**
+ * The pages of a test quote: the sample quotes cite pages 1 and 2, and a reading that cites a page past the file's last
+ * is implausible.
+ */
+const QUOTE_PDF_PAGES = 2
+
+/** A real PDF, so the server's page check passes; the stub picks the sample quote by file name. One argument, for `.map`. */
+export const quotePdf = (name: string) => quotePdfOfPages(name, QUOTE_PDF_PAGES)
+
+/** The same with `pages` pages: fewer than the reading cites make the reading implausible. */
+export async function quotePdfOfPages(name: string, pages: number): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
   const doc = await PDFDocument.create()
-  const page = doc.addPage()
-  page.drawText(`Cotización ${name}`, { x: 50, y: 700, size: 14, font: await doc.embedFont(StandardFonts.Helvetica) })
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+  for (let n = 1; n <= pages; n++) doc.addPage().drawText(`Cotización ${name}, página ${n}`, { x: 50, y: 700, size: 14, font })
   return { name: `${name}.pdf`, mimeType: 'application/pdf', buffer: Buffer.from(await doc.save()) }
+}
+
+/** A real PDF saved with an owner and a user password, as an upload: the server refuses it as locked. */
+export function lockedPdf(): { name: string; mimeType: string; buffer: Buffer } {
+  return { name: 'locked.pdf', mimeType: 'application/pdf', buffer: readFileSync('src/lib/fixtures/password-protected.pdf') }
 }
 
 /**
