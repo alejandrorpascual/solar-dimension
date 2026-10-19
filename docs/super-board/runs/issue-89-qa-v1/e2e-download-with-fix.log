@@ -1,0 +1,20 @@
+Running 16 tests using 5 workers
+
+  ✓   1 [desktop] › e2e/download.spec.ts:39:1 › the CSV parts list carries the solar parts when panels are chosen (2.0s)
+  ✓   4 [desktop] › e2e/download.spec.ts:97:3 › a PDF capture still running after 30 s ends in the failed message and saves no file (3.6s)
+  ✓   3 [desktop] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone (3.7s)
+  ✓   2 [desktop] › e2e/download.spec.ts:57:1 › export progress is visible while the file is being prepared (3.8s)
+  ✓   5 [desktop] › e2e/download.spec.ts:97:3 › a PNG capture still running after 30 s ends in the failed message and saves no file (4.0s)
+  ✓   8 [desktop] › e2e/download.spec.ts:157:1 › a CSV has no printed pages, so there is no larger view to open (1.6s)
+  ✓   6 [desktop] › e2e/download.spec.ts:120:1 › the parts list comes first, and the load schedule gets a PDF page of its own (3.6s)
+  ✓  10 [desktop] › e2e/download.spec.ts:226:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @phone (2.5s)
+  ✓   7 [desktop] › e2e/download.spec.ts:131:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (3.1s)
+  ✓  12 [desktop] › e2e/download.spec.ts:239:1 › the checks print last on the sheet and can be left out (1.3s)
+  ✓   9 [desktop] › e2e/download.spec.ts:166:1 › notes and failing checks stay on the sheet and in the files with their Include boxes unticked (3.2s)
+  ✓  11 [desktop] › e2e/download.spec.ts:226:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @phone (2.8s)
+  ✓  15 [phone] › e2e/download.spec.ts:226:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @phone (2.8s)
+  ✓  16 [phone] › e2e/download.spec.ts:226:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @phone (3.7s)
+  ✓  13 [phone] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone (4.0s)
+  ✓  14 [phone] › e2e/download.spec.ts:131:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (4.0s)
+
+  16 passed (18.3s)

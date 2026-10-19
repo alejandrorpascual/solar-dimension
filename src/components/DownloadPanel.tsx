@@ -1,6 +1,6 @@
 import { CircleCheck, Download, LoaderCircle, Maximize2, Share2 } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
-import { canShareFiles, renderPdf, renderPng, saveBlob, shareFile } from '../client/export-file'
+import { canShareFiles, renderPdf, renderPng, saveBlob, shareFile, withinCaptureLimit } from '../client/export-file'
 import { useLocale } from '../hooks/useLocale'
 import { usePreparedImage } from '../hooks/usePreparedImage'
 import { usePreviewScale } from '../hooks/usePreviewScale'
@@ -105,7 +105,7 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
       saveBlob(new Blob([csvFor(result, parts, { appliances: include.appliances, parts: include.parts }, t)], { type: 'text/csv;charset=utf-8' }), name)
       return
     }
-    saveBlob(format === 'pdf' ? await renderPdf(sheetNode()) : await renderPng(sheetNode()), name)
+    saveBlob(await withinCaptureLimit(format === 'pdf' ? renderPdf(sheetNode()) : renderPng(sheetNode())), name)
   }, 'success')
   // `run` calls the task synchronously, so navigator.share starts inside the tap's activation window.
   const share = () => {

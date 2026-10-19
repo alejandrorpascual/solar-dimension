@@ -1,0 +1,53 @@
+# e2e/download.spec.ts new tests, fix reverted (src/client/export-file.ts and src/components/DownloadPanel.tsx from origin/staging 8087ee4)
+Running 2 tests using 2 workers
+  ✘  2 [desktop] › e2e/download.spec.ts:97:3 › a PDF capture still running after 30 s ends in the failed message and saves no file (7.2s)
+  ✘  1 [desktop] › e2e/download.spec.ts:97:3 › a PNG capture still running after 30 s ends in the failed message and saves no file (8.2s)
+  1) [desktop] › e2e/download.spec.ts:97:3 › a PDF capture still running after 30 s ends in the failed message and saves no file 
+    Error: expect(locator).toHaveText(expected) failed
+    Locator: getByRole('alert')
+    Expected: "Could not create the file. Try again."
+    Timeout: 5000ms
+    Error: element(s) not found
+    Call log:
+      - Expect "toHaveText" getByRole('alert') with timeout 5000ms
+      - waiting for getByRole('alert')
+      108 |     await started
+      109 |     await page.clock.fastForward(30_000)
+    > 110 |     await expect(page.getByRole('alert')).toHaveText('Could not create the file. Try again.')
+          |                                           ^
+      111 |     await expect(page.getByRole('progressbar')).toHaveCount(0)
+      112 |     await expect(page.getByRole('button', { name: button })).toBeEnabled()
+      113 |     expect(saved).toHaveLength(0)
+        at <clone>/e2e/download.spec.ts:110:43
+    Error Context: test-results/download-a-PDF-capture-sti-39950-d-message-and-saves-no-file-desktop/error-context.md
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/download-a-PDF-capture-sti-39950-d-message-and-saves-no-file-desktop/trace.zip
+    Usage:
+        npx playwright show-trace test-results/download-a-PDF-capture-sti-39950-d-message-and-saves-no-file-desktop/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  2) [desktop] › e2e/download.spec.ts:97:3 › a PNG capture still running after 30 s ends in the failed message and saves no file 
+    Error: expect(locator).toHaveText(expected) failed
+    Locator: getByRole('alert')
+    Expected: "Could not create the file. Try again."
+    Timeout: 5000ms
+    Error: element(s) not found
+    Call log:
+      - Expect "toHaveText" getByRole('alert') with timeout 5000ms
+      - waiting for getByRole('alert')
+      108 |     await started
+      109 |     await page.clock.fastForward(30_000)
+    > 110 |     await expect(page.getByRole('alert')).toHaveText('Could not create the file. Try again.')
+          |                                           ^
+      111 |     await expect(page.getByRole('progressbar')).toHaveCount(0)
+      112 |     await expect(page.getByRole('button', { name: button })).toBeEnabled()
+      113 |     expect(saved).toHaveLength(0)
+        at <clone>/e2e/download.spec.ts:110:43
+    Error Context: test-results/download-a-PNG-capture-sti-07e76-d-message-and-saves-no-file-desktop/error-context.md
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/download-a-PNG-capture-sti-07e76-d-message-and-saves-no-file-desktop/trace.zip
+    Usage:
+        npx playwright show-trace test-results/download-a-PNG-capture-sti-07e76-d-message-and-saves-no-file-desktop/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  2 failed
+    [desktop] › e2e/download.spec.ts:97:3 › a PDF capture still running after 30 s ends in the failed message and saves no file 
+    [desktop] › e2e/download.spec.ts:97:3 › a PNG capture still running after 30 s ends in the failed message and saves no file 

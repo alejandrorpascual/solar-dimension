@@ -77,6 +77,44 @@ test('export progress is visible while the file is being prepared', async ({ pag
   await expect(page.getByRole('status').filter({ hasText: 'File ready. Download started.' })).toBeVisible()
 })
 
+/**
+ * A capture that never finishes: the PDF one waits on its library, the PNG one on the canvas encoding. `underway`
+ * settles once the capture has started, which is also once its 30 s limit is counting, so the test can run the clock out.
+ */
+const STUCK_CAPTURES = [
+  {
+    file: 'PDF', format: /^Spec sheet \(PDF\)/, button: 'Download PDF',
+    hold: (page: Page) => page.route(/jspdf.*\.js/, () => {}),
+    underway: (page: Page) => page.waitForRequest(/jspdf.*\.js/),
+  },
+  {
+    file: 'PNG', format: /^Summary image \(PNG\)/, button: 'Download image',
+    hold: (page: Page) => page.addInitScript(() => { HTMLCanvasElement.prototype.toBlob = () => { document.documentElement.dataset.held = 'true' } }),
+    underway: (page: Page) => page.waitForFunction(() => document.documentElement.dataset.held === 'true'),
+  },
+] as const
+
+for (const { file, format, button, hold, underway } of STUCK_CAPTURES) {
+  test(`a ${file} capture still running after 30 s ends in the failed message and saves no file`, async ({ page }) => {
+    await page.clock.install()
+    await hold(page)
+    await page.goto('/?step=4')
+    await showDownload(page)
+    await page.getByRole('radio', { name: format }).check()
+    const saved: Download[] = []
+    page.on('download', (download) => saved.push(download))
+    const started = underway(page)
+    await page.getByRole('button', { name: button }).click()
+    await expect(page.getByRole('progressbar', { name: 'Preparing the file…' })).toBeVisible()
+    await started
+    await page.clock.fastForward(30_000)
+    await expect(page.getByRole('alert')).toHaveText('Could not create the file. Try again.')
+    await expect(page.getByRole('progressbar')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: button })).toBeEnabled()
+    expect(saved).toHaveLength(0)
+  })
+}
+
 const pdfPageCount = async (file: Download) =>
   (await readFile((await file.path())!)).toString('latin1').match(/\/Type\s*\/Page\b/g)?.length ?? 0
 
