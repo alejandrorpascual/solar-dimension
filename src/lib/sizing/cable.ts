@@ -108,6 +108,12 @@ export function sizeMainCable(
   if (sized.fuse.a > ampacityAt(sized.gaugeIndex)) {
     warnings.push({ code: 'fuseAboveCable', params: { fuseA: sized.fuse.a, maxA: Math.round(ampacityAt(sized.gaugeIndex)), count: runs } })
   }
+  const runDropPct = dropPct(g, perRun, cond.runLengthM, volts)
+  // Judged to a tenth, as it prints: a drop the sheet shows as 3.0% is not called over 3%.
+  const shownDropPct = Math.round(runDropPct * TENTHS) / TENTHS
+  if (shownDropPct > SIZING.MAX_DROP_PCT) {
+    warnings.push({ code: 'cableDrop', params: { dropPct: shownDropPct, maxDropPct: SIZING.MAX_DROP_PCT } })
+  }
   const startupDropPct = dropPct(g, surgeAmps / runs, cond.runLengthM, volts)
   if (startupDropPct > SIZING.MAX_STARTUP_DROP_PCT) {
     warnings.push({ code: 'startupDrop', params: { dropPct: Math.round(startupDropPct * 10) / 10 } })
@@ -117,7 +123,7 @@ export function sizeMainCable(
   }
   return {
     amps, perRun, runs, designA, conductors, gauge: g, ampacity: ampacityAt(sized.gaugeIndex),
-    dropPct: dropPct(g, perRun, cond.runLengthM, volts), startupDropPct, fuse: sized.fuse, warnings,
+    dropPct: runDropPct, startupDropPct, fuse: sized.fuse, warnings,
   }
 }
 

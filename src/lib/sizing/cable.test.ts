@@ -115,6 +115,19 @@ describe('sizeMainCable', () => {
     expect(bank(120).warnings.map((w) => w.code)).toContain('fuseAboveBank')
   })
 
+  test('warns when even the largest gauge drops more than 3% at full load, as the drop prints, to a tenth', () => {
+    // 3 kW at 12 V over 10 m: two runs of 4/0 at 139 A each drop 3.7%.
+    const far = sizeMainCable(277.8, 555.6, 12, { ...room, runLengthM: 10 }, GAUGES, FUSES, noBank)
+    expect(far).toMatchObject({ runs: 2, gauge: { awg: '4/0 AWG' } })
+    expect(far.warnings).toContainEqual({ code: 'cableDrop', params: { dropPct: 3.7, maxDropPct: 3 } })
+    expect(sizeMainCable(277.8, 555.6, 12, room, GAUGES, FUSES, noBank).warnings.map((w) => w.code)).not.toContain('cableDrop')
+    // 3.04% prints as 3.0%: not over the limit as the sheet shows it.
+    const edge = sizeMainCable(277.8, 555.6, 12, { ...room, runLengthM: 8.2 }, GAUGES, FUSES, noBank)
+    expect(Math.round(edge.dropPct * 10) / 10).toBe(3)
+    expect(edge.dropPct).toBeGreaterThan(3)
+    expect(edge.warnings.map((w) => w.code)).not.toContain('cableDrop')
+  })
+
   test('warns on a start-up drop the inverter would not ride through, and on air too hot for any cable', () => {
     const far = sizeMainCable(90, 1800, 12, { ...room, runLengthM: 10 }, GAUGES, FUSES, noBank)
     expect(far.warnings.map((w) => w.code)).toContain('startupDrop')

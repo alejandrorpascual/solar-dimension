@@ -184,6 +184,7 @@ export const en: Dictionary = {
     fuseSurge: (p) => `Start-up pushes ${p.surgeA?.toLocaleString('en-US')} A through a ${p.fuseA} A fuse for ${p.seconds} s; it may blow on a normal start. The next size up still protects the cable.`,
     fuseInterrupt: (p) => `A shorted bank can deliver about ${p.shortCircuitA?.toLocaleString('en-US')} A, more than the fuse's ${p.aicA?.toLocaleString('en-US')} A interrupting rating. Use a fuse rated for it or fewer strings.`,
     fuseVoltage: (p) => `The ${p.fuseA} A fuse is listed for only ${p.maxVdc} V DC, and a ${p.volts} V bank needs ${p.needVdc} V DC or more: it may not break a fault. Use a fuse listed for at least ${p.needVdc} V DC.`,
+    cableDrop: (p) => `The cable drops ${p.dropPct}% at full load, more than the ${p.maxDropPct}% it is sized for, even on the largest gauge. Shorten the run or pick a higher bank voltage.`,
     startupDrop: (p) => `The cable drops ${p.dropPct}% at start-up current; the inverter may cut out when a motor starts. Shorten the run or go up a gauge.`,
     cableAmbient: (p) => `No cable in the table is rated for ${p.ambientC} °C air. Move the run somewhere cooler.`,
     cableUndersized: (p) => `${p.gauge} for the ${CONDUCTORS[p.conductor!]} carries only ${p.maxA?.toLocaleString('en-US')} A after derating, under the ${p.needA?.toLocaleString('en-US')} A design current of each cable. ${cableRemedy(p)}`,
