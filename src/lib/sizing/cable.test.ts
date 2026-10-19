@@ -77,6 +77,8 @@ describe('sizeMainCable', () => {
     // 2 kW at 12 V: 231 A of design current is over 4/0, so two runs of 116 A, which 1 AWG would carry.
     expect(sizeMainCable(185.2, 370.4, 12, room, GAUGES, FUSES, noBank)).toMatchObject({ runs: 2, gauge: { awg: '1/0 AWG' }, ampacity: 150 })
     expect(sizeMainCable(20, 40, 48, room, GAUGES, FUSES, noBank, { fixedRuns: 2 })).toMatchObject({ runs: 2, gauge: { awg: '1/0 AWG' } })
+    // A list that stops at 4 AWG parallels the largest it has.
+    expect(sizeMainCable(20, 40, 48, room, GAUGES.slice(0, 3), FUSES, noBank, { fixedRuns: 2 }).gauge.awg).toBe('4 AWG')
     // Two inverters on a run each: 6 AWG, the least that takes the smallest 60 A fuse.
     expect(sizeMainCable(40, 80, 48, room, GAUGES, FUSES, noBank, { feeds: 2 })).toMatchObject({ runs: 2, gauge: { awg: '6 AWG' } })
   })
