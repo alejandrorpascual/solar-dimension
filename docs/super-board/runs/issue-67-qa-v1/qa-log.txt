@@ -1,0 +1,35 @@
+QA v1 for #67 · PR #151 · builder head 42332ef · 2026-10-19
+
+Local checks (a clone of 42332ef, plus one new unit test)
+- npm ci && npm run typecheck && npm run test:coverage && npm run build: exit 0. 100 files, 1683 tests. All files: lines 98.89%, branches 93.9%.
+- src/lib/oversize.ts, covered by its own tests: 100% statements, branches, functions and lines.
+- npx vitest run src/lib/oversize.test.ts src/i18n/i18n.test.ts: 43/43 passed.
+- New test in src/lib/persistence.test.ts ("a store saved with a 36 V project loads..."). With 36 removed from ProjectSchema.volts it fails: "expected undefined to deeply equal [['Garita', 36]]". With 36 put back it passes. Full suite: 1684/1684.
+
+e2e
+- Not run locally. The guard-secrets hook refused the link to .env.test.local, and e2e/test-env.ts will not run without that file.
+- CI run 39334840318 on 42332ef: 245 passed, 6 skipped, 0 failed. These passed on desktop: kit-builder.spec.ts:412 (English and Español), :425 and :438.
+
+Screenshots
+- These are component renders, not the live page. BackupWindow and KitSummary (with KitQuickEdit) were rendered from this branch's code with react-dom/server, using the app CSS (tokens, base, components, solar, rail and quotes). The router loader data was stubbed with the catalog snapshot. Playwright Chromium took the shots at 1920x1080, 1024x768 and 375x667.
+- The shots have no app header, rail or footer, and the web fonts did not load.
+- before-*.png shows the same render from the merge base, 073a7ca.
+
+Render log (name | viewport | notes found | horizontal overflow | note text)
+ac1-router-48v-note-en | desktop | note-count=1 | h-overflow-px=0 | This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest of any voltage.
+ac1-router-48v-note-en | tablet | note-count=1 | h-overflow-px=0 | This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest of any voltage.
+ac1-router-48v-note-en | mobile | note-count=1 | h-overflow-px=0 | This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest of any voltage.
+ac1-router-48v-note-es | desktop | note-count=1 | h-overflow-px=0 | Este banco guarda 22 veces los 209 Wh que necesita la carga: tiene que dar toda la corriente de un inversor de 3,000 W. A 12 V el kit llevaría un banco de 1.2 kWh, el más pequeño de todos los voltajes.
+ac1-router-48v-note-es | mobile | note-count=1 | h-overflow-px=0 | Este banco guarda 22 veces los 209 Wh que necesita la carga: tiene que dar toda la corriente de un inversor de 3,000 W. A 12 V el kit llevaría un banco de 1.2 kWh, el más pequeño de todos los voltajes.
+ac2-router-12v-no-note-en | desktop | note-count=0 | h-overflow-px=0 | 
+ac4-36v-caveat-en | desktop | note-count=1 | h-overflow-px=0 | Few inverters are sold for 36 V, so most kits come out oversized: a larger inverter than the load needs, and a bank big enough to carry its current.
+ac4-36v-caveat-en | tablet | note-count=1 | h-overflow-px=0 | Few inverters are sold for 36 V, so most kits come out oversized: a larger inverter than the load needs, and a bank big enough to carry its current.
+ac4-36v-caveat-en | mobile | note-count=1 | h-overflow-px=0 | Few inverters are sold for 36 V, so most kits come out oversized: a larger inverter than the load needs, and a bank big enough to carry its current.
+ac4-36v-caveat-es | desktop | note-count=1 | h-overflow-px=0 | Se venden pocos inversores para 36 V, así que la mayoría de los kits salen sobredimensionados: un inversor más grande de lo que pide la carga y un banco capaz de darle toda su corriente.
+ac4-36v-caveat-es | mobile | note-count=1 | h-overflow-px=0 | Se venden pocos inversores para 36 V, así que la mayoría de los kits salen sobredimensionados: un inversor más grande de lo que pide la carga y un banco capaz de darle toda su corriente.
+ac4-48v-no-caveat-en | desktop | note-count=0 | h-overflow-px=0 | 
+ac5-fridge-36v-sizes-en | desktop | note-count=1 | h-overflow-px=0 | This bank holds 13× the 549 Wh the load needs: it has to carry the full current of a 4,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest of any voltage.
+before-ac1-router-48v desktop note-count=0
+before-ac1-router-48v mobile note-count=0
+before-ac4-36v desktop note-count=0
+before-ac4-36v mobile note-count=0
