@@ -44,6 +44,8 @@ export const CustomLoadSchema = z.object({
   watts: z.number().positive(),
   surge: z.number().positive(),
   note: z.string(),
+  /** Share of each hour it runs, set on the form below 100%; a load saved without one runs nonstop, as it always did. */
+  duty: z.number().gt(0).lte(1).optional(),
 })
 
 /**

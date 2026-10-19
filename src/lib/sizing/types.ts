@@ -1,7 +1,11 @@
 import type { BmsComms, CatalogItem, ChemistryId, FuseClass, InsulationC, LoadKind, SurgeClass, Voltage } from '../catalog'
 import type { SolarChoice, SolarPick } from '../solar'
 
-export interface CustomLoadLike { id: string; name: string; watts: number; surge: number; note: string }
+export interface CustomLoadLike {
+  id: string; name: string; watts: number; surge: number; note: string
+  /** Share of each hour it runs; absent means nonstop. Under 1 it cycles, so a duty override applies. */
+  duty?: number
+}
 
 /** How many motors may start in the same instant: a count, or every one at once (a grid drop with nothing staged). */
 export type SimultaneousStarts = number | 'all'

@@ -104,6 +104,21 @@ test('a custom appliance that no longer parses is dropped by itself; the project
   expect(parsed.projects[0]?.qty).toEqual({ fridge: 1, custom1: 1, custom2: 1 })
 })
 
+test('a custom appliance keeps the share of each hour it runs; one saved before it had one reads as before', () => {
+  const pump = { id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 1035 W', duty: 0.3 }
+  const old = { id: 'custom2', name: 'Heater', watts: 750, surge: 750, note: 'Custom · 750 W' }
+  const custom = StoreSchema.parse({ version: 1, projects: [{ ...project, custom: [pump, old] }], currentId: 'p1' }).projects[0]?.custom
+  expect(custom).toEqual([pump, old])
+  expect(custom?.[1]).not.toHaveProperty('duty')
+})
+
+test('a custom appliance whose saved duty is not a share of an hour is dropped by itself', () => {
+  const load = { id: 'custom1', name: 'Pump', watts: 500, surge: 500, note: 'Custom · 500 W' }
+  for (const duty of [0, -0.2, 1.5, '0.3', null]) {
+    expect(StoreSchema.parse({ version: 1, projects: [{ ...project, custom: [{ ...load, duty }] }], currentId: 'p1' }).projects[0]?.custom, String(duty)).toEqual([])
+  }
+})
+
 test('an unreadable custom list reads as empty instead of losing every saved project', () => {
   const store = { version: 1, projects: [project, { ...project, id: 'p2', custom: 'oops' }, { ...project, id: 'p3', custom: null }], currentId: 'p1' }
   expect(StoreSchema.parse(store).projects.map((p) => [p.id, p.custom])).toEqual([['p1', []], ['p2', []], ['p3', []]])

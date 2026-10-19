@@ -101,6 +101,25 @@ describe('compute', () => {
     expect(r.surgeW).toBe(2500)
   })
 
+  test('a custom load that runs part of each hour cycles: a 1,035 W pump at 30% for 24 h counts 7,452 Wh', () => {
+    const custom = [{ id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 1035 W', duty: 0.3 }]
+    const r = compute({ qty: { custom1: 1 }, custom, hours: 24, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.items[0]).toMatchObject({ kind: 'cycling', effectiveDuty: 0.3, overridden: false, wh: 7452 })
+    expect(r.loadWh).toBe(7452)
+  })
+
+  test('a cycling custom load takes a duty override', () => {
+    const custom = [{ id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 1035 W', duty: 0.3 }]
+    const r = compute({ qty: { custom1: 1 }, custom, hours: 24, volts: 48, chemistry: 'lifepo4', dutyOverrides: { custom1: 0.5 } }, CATALOG_SNAPSHOT)
+    expect(r.items[0]).toMatchObject({ kind: 'cycling', effectiveDuty: 0.5, overridden: true, wh: 12420 })
+  })
+
+  test('a custom load saved without a duty still runs nonstop, and an override does not shrink it', () => {
+    const custom = [{ id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 1035 W' }]
+    const r = compute({ qty: { custom1: 1 }, custom, hours: 24, volts: 48, chemistry: 'lifepo4', dutyOverrides: { custom1: 0.5 } }, CATALOG_SNAPSHOT)
+    expect(r.items[0]).toMatchObject({ kind: 'continuous', effectiveDuty: 1, overridden: false, wh: 24840 })
+  })
+
   test('catalog appends custom loads after the built-in list', () => {
     const list = catalog(CATALOG_SNAPSHOT, [{ id: 'custom1', name: 'X', watts: 10, surge: 10, note: 'Custom · 10 W' }])
     expect(list.at(-1)).toMatchObject({ id: 'custom1', cat: 'Custom', duty: 1, isCustom: true })
