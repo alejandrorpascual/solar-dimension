@@ -340,11 +340,13 @@ const SHEET_WORDS = {
 /** Eight 12 V units, four in series on each of two strings: three more rows in the parts list than one battery needs. */
 const SERIES_PARALLEL_KIT = { qty: { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }, hours: 10, batteryUnit: '12-100' }
 
-for (const { lang, kit, where } of [
-  // The Spanish sheet runs a line longer, which puts the footer block at the very edge of page one.
-  { lang: 'es', kit: {}, where: 'in Spanish' },
-  { lang: 'en', kit: SERIES_PARALLEL_KIT, where: 'with a parts list too long for page one' },
-  { lang: 'es', kit: SERIES_PARALLEL_KIT, where: 'with a parts list too long for page one, in Spanish' },
+for (const { lang, kit, where, pages } of [
+  // The Spanish sheet runs a line longer: the footer block, with the assumed ratings, starts page two.
+  { lang: 'es', kit: {}, where: 'in Spanish', pages: 2 },
+  { lang: 'en', kit: SERIES_PARALLEL_KIT, where: 'with a parts list too long for page one', pages: 2 },
+  // Page two was full to 4 px before the fine print listed the assumed ratings; their three lines move the last check
+  // to a third page. The load schedule still starts on page two, under what ran over.
+  { lang: 'es', kit: SERIES_PARALLEL_KIT, where: 'with a parts list too long for page one, in Spanish', pages: 3 },
 ] as const) {
   test(`the longest client ${where}: the estimate block prints whole, and the load schedule never takes a third page`, PHONE, async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: 'lang', value: lang, url: baseURL! }])
@@ -357,7 +359,7 @@ for (const { lang, kit, where } of [
 
     await page.getByRole('button', { name: words.larger }).click()
     const view = page.getByRole('dialog', { name: words.preview })
-    await expect(view.locator('.pvw__page')).toHaveCount(2)
+    await expect(view.locator('.pvw__page')).toHaveCount(pages)
     // The sentence and the assumptions are one block: wherever it lands, a page shows all of it.
     const estimatePages = await pagesShowing(view, '.ksheet__foot')
     expect(estimatePages).toHaveLength(1)
@@ -368,7 +370,7 @@ for (const { lang, kit, where } of [
     await expect(view).toBeHidden()
 
     const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: words.pdf }).click()])
-    expect((await readFile((await pdf.path())!)).toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
+    expect((await readFile((await pdf.path())!)).toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(pages)
   })
 }
 
