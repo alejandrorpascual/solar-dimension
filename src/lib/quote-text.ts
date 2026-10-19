@@ -303,11 +303,14 @@ function unclearText(t: Dictionary, c: ItemCheck, kit: KitNeeds): { label: strin
 
 /**
  * The help above the enter-a-total form: the total is missing, or the amounts don't add up. A reading that still doesn't
- * hold once read again (takesTypedTotal) asks instead for the total as the quote writes it.
+ * hold once read again (takesTypedTotal) names the checks it failed, then asks for the total as the quote writes it.
  */
 export function totalHelp(t: Dictionary, u: UnrankedQuote): string {
   const x = u.quote.extraction
-  if (x !== null && !isFixedByTotal(x)) return x.lines.length === 0 ? t.quotes.noLinesTotalHelp : t.quotes.misreadTotalHelp
+  if (x !== null && !isFixedByTotal(x)) {
+    if (x.lines.length === 0) return t.quotes.noLinesTotalHelp
+    return [...failedCheckSentences(t, checkExtraction(x)), t.quotes.misreadTotalAction].join(' ')
+  }
   return u.reason === 'no_total' ? t.quotes.noTotalHelp : t.quotes.checkNumbersHelp
 }
 
@@ -315,6 +318,12 @@ export function totalHelp(t: Dictionary, u: UnrankedQuote): string {
 const MISREAD_REASONS: readonly (readonly [CheckFailure, QuoteKey])[] = [
   ['bad_currency', 'misreadCurrency'], ['line_mismatch', 'misreadLines'], ['bad_qty', 'misreadQty'],
 ]
+
+/** One sentence per failed check a typed total wouldn't fix, or a general one when none of them has its own. */
+function failedCheckSentences(t: Dictionary, failures: readonly CheckFailure[]): string[] {
+  const reasons = MISREAD_REASONS.filter(([f]) => failures.includes(f)).map(([, key]) => t.quotes[key])
+  return reasons.length > 0 ? reasons : [t.quotes.misreadOther]
+}
 
 /**
  * Why a reading waits to be read again rather than for a total: a number no real quote states (a 5,120 kWh battery, a
@@ -324,9 +333,7 @@ export function misreadText(t: Dictionary, x: QuoteExtraction, pages: number | n
   const failures = checkExtraction(x, pages)
   if (failures.includes('implausible')) return canReadAgain ? t.quotes.implausibleHelp : t.quotes.implausibleHelpNoRetry
   if (x.lines.length === 0) return canReadAgain ? t.quotes.noLinesHelp : t.quotes.noLinesHelpNoRetry
-  const reasons = MISREAD_REASONS.filter(([f]) => failures.includes(f)).map(([, key]) => t.quotes[key])
-  const action = canReadAgain ? t.quotes.misreadAction : t.quotes.misreadActionNoRetry
-  return [...(reasons.length > 0 ? reasons : [t.quotes.misreadOther]), action].join(' ')
+  return [...failedCheckSentences(t, failures), canReadAgain ? t.quotes.misreadAction : t.quotes.misreadActionNoRetry].join(' ')
 }
 
 /**

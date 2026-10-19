@@ -793,7 +793,7 @@ test('a total that failed its check is asked for in an empty field; a misread li
   await setQuoteTotalOverride(email, projectId, null)
   await setQuoteRetries(email, projectId, 1)
   await page.reload()
-  await expect(row).toContainText(quotesEn.misreadTotalHelp)
+  await expect(row).toContainText(`${quotesEn.misreadLines} ${quotesEn.misreadTotalAction}`)
   await expect(field).toHaveValue('')
   await field.fill('6,480')
   await row.getByRole('button', { name: quotesEn.save, exact: true }).click()

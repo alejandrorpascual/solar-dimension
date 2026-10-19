@@ -99,8 +99,20 @@ describe('totalHelp', () => {
       "Some amounts don't add up. Correct the total to compare this quote.",
     )
   })
-  test('read again and still not holding, a reading asks for the total as the quote writes it', () => {
-    expect(totalHelp(en, unranked({ extraction: lineOff, retries: 1 }))).toBe(en.quotes.misreadTotalHelp)
+  test('read again and still not holding, a reading names the check that failed, then asks for the total as the quote writes it', () => {
+    const badCurrency = { ...SAMPLE_QUOTES.solartec, currency: 'RD$' }
+    expect(totalHelp(en, unranked({ extraction: lineOff, retries: 1 }))).toBe(
+      "On some lines, the quantity times the unit price doesn't make the line total. We read it again with the same result. If the quote is written that way (a discount on a line, say), enter its total to compare it.",
+    )
+    expect(totalHelp(en, unranked({ extraction: badCurrency, retries: 1 }))).toBe(
+      "We couldn't tell which currency its prices are in. We read it again with the same result. If the quote is written that way (a discount on a line, say), enter its total to compare it.",
+    )
+    expect(totalHelp(es, unranked({ extraction: lineOff, retries: 1 }))).toBe(
+      'En algunas líneas, la cantidad por el precio unitario no da el total de la línea. La leímos de nuevo con el mismo resultado. Si la cotización está escrita así (con un descuento en una línea, por ejemplo), escribe su total para compararla.',
+    )
+    expect(totalHelp(es, unranked({ extraction: badCurrency, retries: 1 }))).toBe(
+      'No pudimos saber en qué moneda están sus precios. La leímos de nuevo con el mismo resultado. Si la cotización está escrita así (con un descuento en una línea, por ejemplo), escribe su total para compararla.',
+    )
     expect(totalHelp(es, unranked({ extraction: noLines, retries: 1 }))).toBe(es.quotes.noLinesTotalHelp)
   })
   test('before it is read again, a reading with no lines says so rather than blaming its line amounts', () => {

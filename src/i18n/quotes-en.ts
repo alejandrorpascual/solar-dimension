@@ -173,7 +173,7 @@ export const quotesEn = {
   implausibleHelpNoRetry: "Some numbers we read can't be right for a real quote, like a size or amount far too large or a page the file doesn't have, so a total wouldn't fix it. Upload a clearer copy.",
   noLinesHelp: "We couldn't read any lines in this quote, so a total alone wouldn't say what it includes. Read it again, or upload a clearer copy.",
   noLinesHelpNoRetry: "We couldn't read any lines in this quote, so a total alone wouldn't say what it includes. Upload a clearer copy.",
-  misreadTotalHelp: "We read it again and some line amounts, quantities or the currency still don't hold together. If the quote is written that way (a discount on a line, say), enter its total to compare it.",
+  misreadTotalAction: 'We read it again with the same result. If the quote is written that way (a discount on a line, say), enter its total to compare it.',
   noLinesTotalHelp: "We read it again and still couldn't read any lines. If the quote lists none, enter its total to compare it.",
   save: 'Save',
   retry: 'Retry',
