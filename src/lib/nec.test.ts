@@ -19,7 +19,7 @@ const NEC_310_16: readonly (readonly [string, number, number])[] = [
 
 /**
  * Table 310.15(B)(1): the air from and to (°C, both included), then the factor for 75 °C and 90 °C insulation; 0 where
- * the code gives none. The first row is "10 or less", read from the coldest air the kit accepts.
+ * the code gives none. The first row is "10 or less": -10 °C stands in for colder air. The kit itself offers 30-50 °C.
  */
 const NEC_AMBIENT: readonly (readonly [number, number, number, number])[] = [
   [-10, 10, 1.2, 1.15],
