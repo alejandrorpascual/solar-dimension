@@ -199,6 +199,23 @@ describe('battery unit choice', () => {
     expect(r.warnings).toContainEqual({ code: 'roofLimited', params: { fit: 2, need: 5 } })
   })
 
+  test('a 48 V roof that holds one panel lists no panels and says the string is too short', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 5, panels: null, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
+    expect(r.solar?.panels).toBe(0)
+    expect(r.solar?.dailyWh).toBe(0)
+    expect(r.warnings).toContainEqual({ code: 'stringTooShort', params: { volts: 48, count: 2, fit: 1 } })
+    // No "it still refills over more days": with no panels it does not.
+    expect(r.warnings.some((w) => w.code === 'roofLimited')).toBe(false)
+  })
+
+  test('a 24 V roof that holds one panel keeps it and warns only that the roof is small', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 24, chemistry: 'lifepo4', solar: { roofM2: 5, panels: null, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
+    expect(r.solar?.panels).toBe(1)
+    expect(r.solar?.dailyWh).toBe(1980)
+    expect(r.warnings.some((w) => w.code === 'stringTooShort')).toBe(false)
+    expect(r.warnings.some((w) => w.code === 'roofLimited')).toBe(true)
+  })
+
   test('an empty project with panels sizes nothing and warns nothing', () => {
     const r = compute({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
     expect(r.solar?.panels).toBe(0)

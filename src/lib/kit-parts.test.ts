@@ -176,7 +176,7 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     const panels = parts.find((p) => p.id === 'solarPanels')!
     expect(panels.qty).toBe('10')
     expect(panels.spec).toBe(locale === 'es' ? '550 W monocristalino, 2.28 × 1.13 m' : '550 W monocrystalline, 2.28 × 1.13 m')
-    expect(panels.note).toContain(locale === 'es' ? '2 cadenas de hasta 5 en serie' : '2 strings of up to 5 in series')
+    expect(panels.note).toContain(locale === 'es' ? '2 cadenas de 5 en serie' : '2 strings of 5 in series')
     expect(parts.find((p) => p.id === 'chargeController')!.qty).toBe('1')
     expect(parts.find((p) => p.id === 'chargeController')!.spec).toContain('MPPT 100 A')
     expect(parts.find((p) => p.id === 'pvCable')!.qty).toBe('2')
@@ -188,8 +188,13 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(buildParts(r, t, locale).some((p) => p.group === 'solar')).toBe(false)
   })
 
-  test('a one-panel kit says "panel" in the mounting spec', () => {
+  test('a 48 V kit on a roof that holds one panel has no solar rows', () => {
     const r = compute({ qty: DEFAULT_QTY, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-200', solar: { roofM2: 5, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    expect(buildParts(r, t, locale).some((p) => p.group === 'solar')).toBe(false)
+  })
+
+  test('a one-panel kit says "panel" in the mounting spec', () => {
+    const r = compute({ qty: DEFAULT_QTY, hours: 10, volts: 24, chemistry: 'lifepo4', solar: { roofM2: 5, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
     const mounting = buildParts(r, t, locale).find((p) => p.id === 'mounting')!
     expect(mounting.spec).toBe(locale === 'es' ? 'Rieles de aluminio y grapas para 1 panel' : 'Aluminium rails and mid/end clamps for 1 panel')
   })

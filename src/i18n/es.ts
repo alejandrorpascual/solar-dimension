@@ -108,7 +108,7 @@ export const es: Dictionary = {
     pvDisconnectSpec: 'Breaker de CC de {amps} A, 500 V', pvDisconnectNote: 'Entre los paneles y el controlador, accesible desde el suelo',
     mountingSpec: 'Rieles de aluminio y grapas para {panels}', mountingNote: 'Inclinación de 10° hacia el sur en techo plano; a ras en techo inclinado',
     solarTag: 'Solar', fineSolar: ' La parte solar supone paneles de {w}, 75% de eficiencia de panel a batería y {sun} horas de sol pleno al día.',
-    stringsOne: '1 cadena de {n} en serie', stringsMany: '{strings} cadenas de hasta {n} en serie',
+    stringsOne: '1 cadena de {n} en serie', stringsMany: '{strings} cadenas de {n} en serie',
     average: 'Promedio', averageWatts: 'Promedio (W)', kind: 'Tipo',
     runsLabel: 'Funciona', dutyOf: '{name}: parte de cada hora que funciona', dutyOption: '{pct}% de cada hora', dutyTypical: '{pct}% · típico', dutyNonstop: '100% · no se apaga',
     rename: 'Renombrar', projectActions: 'Más acciones de {name}', stepLocked: 'Agrega al menos un aparato primero', stepGo: 'Paso {n}: {label}', dutyRuns: 'Funciona · {pct}% de cada hora', dutyBursts: '~{min} min por hora', dutyTypicalAt: 'típico {pct}%', averageDrawFor: '~{w} de promedio entre los {qty}',
@@ -188,6 +188,12 @@ export const es: Dictionary = {
       ? 'No se pudo cargar 1 aparato de este proyecto, así que este kit lo deja fuera. Recarga en un minuto; si sigue faltando, agrégalo de nuevo.'
       : `No se pudieron cargar ${p.count} aparatos de este proyecto, así que este kit los deja fuera. Recarga en un minuto; si siguen faltando, agrégalos de nuevo.`,
     roofLimited: (p) => `En tu techo caben ${p.fit} paneles; con ${p.need} el banco se recargaría en un día despejado. Igual se recarga en más días de sol.`,
+    stringTooShort: (p) => {
+      const fits = `en el techo ${p.fit === 1 ? 'cabe' : 'caben'} solo ${p.fit}`
+      return p.volts === 36
+        ? `A 36 V un panel es marginal: en un día caluroso no alcanza el voltaje al que carga el controlador, y ${fits}. Este kit no lleva paneles; haz espacio para ${p.count} en serie.`
+        : `Una cadena necesita al menos ${p.count} paneles en serie para cargar un banco de ${p.volts} V, y ${fits}. Este kit no lleva paneles; haz espacio para ${p.count} o más.`
+    },
   },
   parts: { inverter: 'Inversor', batteries: 'Baterías', mainCable: 'Cable principal', interconnects: 'Interconexiones', stringLeads: 'Cables de rama', fuse: 'Fusible', stringFuses: 'Fusibles por rama', solarPanels: 'Paneles solares', chargeController: 'Controlador de carga', pvCable: 'Cable fotovoltaico', pvDisconnect: 'Seccionador FV', mounting: 'Estructura'  },
   kinds: { continuous: 'Siempre encendidos', cycling: 'Encienden y apagan', momentary: 'Ráfagas cortas' },

@@ -235,7 +235,7 @@ export type WarningCode =
   | 'inverterUndersized' | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'startupDrop' | 'cableAmbient'
   | 'cableUndersized'
   | 'missingAppliances'
-  | 'roofLimited'
+  | 'roofLimited' | 'stringTooShort'
 
 export interface WarningParams {
   /** The inverter's rating: the whole set's when units work in parallel, with how many there are and one unit's rating. */

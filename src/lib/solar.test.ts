@@ -1,9 +1,13 @@
 import { describe, expect, test } from 'vitest'
-import { panelsFit, panelsToRefill, recommendedPanels, sizeSolar, SOLAR } from './solar'
+import { minSeries, panelsFit, panelsToRefill, recommendedPanels, sizeSolar, SOLAR } from './solar'
 
 // The design's sample: 48 V, 2 × 48 V 200 Ah = 19,200 Wh bank, 1,100 W average draw.
 const BANK_WH = 19_200
 const AVERAGE_W = 1_100
+const VOLTAGES = [12, 24, 36, 48] as const
+/** Charge voltage plus the 5 V an MPPT controller needs above it, per bank voltage. */
+const NEEDS_V = { 12: 19.4, 24: 33.8, 36: 48.2, 48: 62.6 } as const
+const hotVmp = (inSeries: number) => inSeries * SOLAR.PANEL_VMP * SOLAR.HOT_VMP_DERATE
 
 describe('panelsFit', () => {
   test('three square metres per panel, rounded down, never negative', () => {
@@ -68,7 +72,8 @@ describe('sizeSolar', () => {
   test('a tapped count overrides the recommendation and is clamped to the roof', () => {
     expect(sizeSolar({ ...base, solar: { ...base.solar, panels: 12 } })!.panels).toBe(12)
     expect(sizeSolar({ ...base, solar: { ...base.solar, panels: 12 } })!.isRecommended).toBe(false)
-    expect(sizeSolar({ ...base, solar: { ...base.solar, panels: 40 } })!.panels).toBe(13)
+    // Clamped to the 13 the roof fits; 13 does not split into equal strings and 14 is past the roof, so 12.
+    expect(sizeSolar({ ...base, solar: { ...base.solar, panels: 40 } })!.panels).toBe(12)
     expect(sizeSolar({ ...base, solar: { ...base.solar, panels: 0 } })!.panels).toBe(0)
   })
 
@@ -104,25 +109,36 @@ describe('sizeSolar', () => {
     expect(s.breakerA).toBe(20)
   })
 
-  test('every controller gets its own string and is rated for the panels it carries', () => {
-    // 100 A at 14.4 V passes 2 panels, so 5 panels need 3 controllers (2 + 2 + 1), one string each; no controller sees more than 2 × 550 / 14.4 = 76 A
+  test('at 12 V an odd count runs as one-panel strings, two to a controller', () => {
+    // 100 A at 14.4 V passes 2 panels, so no string is longer than 2; 5 does not split into 2s, so 5 strings of 1
+    // on 3 controllers (2 + 2 + 1 strings). The fullest carries 2 × 550 / 14.4 = 76 A behind 2 × 14 A × 1.25 = 35 A.
     const s = sizeSolar({ ...base, volts: 12, solar: { roofM2: 40, panels: 5, sunHours: 5 } })!
+    expect(s.panels).toBe(5)
     expect(s.controllers).toBe(3)
     expect(s.controllerA).toBe(80)
-    expect(s.strings).toBe(3)
-    expect(s.perString).toBe(2)
-    expect(s.stringVoc).toBe(99)
-    expect(s.pvCablePairs).toBe(3)
-    expect(s.breakerA).toBe(20)
+    expect(s.strings).toBe(5)
+    expect(s.perString).toBe(1)
+    expect(s.stringVoc).toBe(50)
+    expect(s.pvCablePairs).toBe(5)
+    expect(s.breakerA).toBe(40)
   })
 
-  test('an uneven split rounds the string length up', () => {
-    // 7 panels → 2 strings of 4 (not 5 + 2); 3,850 W / 57.6 V = 67 A → 1 controller
-    const s = sizeSolar({ ...base, solar: { roofM2: 40, panels: 7, sunHours: 5 } })!
+  test('7 panels on a roof that fits 8 become 2 strings of 4', () => {
+    const s = sizeSolar({ ...base, solar: { roofM2: 25, panels: 7, sunHours: 5 } })!
+    expect(s.fit).toBe(8)
+    expect(s.panels).toBe(8)
     expect(s.strings).toBe(2)
     expect(s.perString).toBe(4)
     expect(s.stringVoc).toBe(198)
     expect(s.controllers).toBe(1)
+  })
+
+  test('a count that does not split rounds down when rounding up would pass the roof', () => {
+    const s = sizeSolar({ ...base, solar: { roofM2: 21, panels: 7, sunHours: 5 } })!
+    expect(s.fit).toBe(7)
+    expect(s.panels).toBe(6)
+    expect(s.strings).toBe(2)
+    expect(s.perString).toBe(3)
   })
 
   test('no panels gives zero production and no refill time', () => {
@@ -139,5 +155,84 @@ describe('sizeSolar', () => {
     const s = sizeSolar({ ...base, solar: { roofM2: 9999, panels: null, sunHours: 99 } })!
     expect(s.roofM2).toBe(SOLAR.ROOF_RANGE[1])
     expect(s.sunHours).toBe(SOLAR.SUN_RANGE[1])
+  })
+})
+
+describe('string length against the charge voltage', () => {
+  const base = { bankWh: BANK_WH, averageW: AVERAGE_W }
+
+  test("one panel's hot maximum-power voltage clears 24 V and falls short of 36 V", () => {
+    expect(hotVmp(1)).toBeGreaterThan(NEEDS_V[24])
+    expect(hotVmp(1)).toBeLessThan(NEEDS_V[36])
+  })
+
+  test('strings need 2 panels in series at 36 and 48 V, 1 at 12 and 24 V', () => {
+    expect(VOLTAGES.map(minSeries)).toEqual([1, 1, 2, 2])
+  })
+
+  test('48 V on a 5 m² roof has no yield and says the string is too short', () => {
+    const s = sizeSolar({ ...base, volts: 48, solar: { roofM2: 5, panels: null, sunHours: 4.8 } })!
+    expect(s.fit).toBe(1)
+    expect(s.panels).toBe(0)
+    expect(s.dailyWh).toBe(0)
+    expect(s.strings).toBe(0)
+    expect(s.isTooShort).toBe(true)
+  })
+
+  test('one panel at 12 or 24 V still gives a yield', () => {
+    for (const volts of [12, 24] as const) {
+      const s = sizeSolar({ ...base, volts, solar: { roofM2: 5, panels: null, sunHours: 4.8 } })!
+      expect(s.panels).toBe(1)
+      expect(s.dailyWh).toBe(1980)
+      expect(s.isTooShort).toBe(false)
+    }
+  })
+
+  test('the recommendation starts at the shortest string that charges', () => {
+    // 1,000 Wh refills from one panel; at 48 V that panel needs a second in series.
+    const pick = (volts: 24 | 48) => sizeSolar({ bankWh: 1000, averageW: AVERAGE_W, volts, solar: { roofM2: 40, panels: null, sunHours: 5 } })!
+    expect(pick(48).recommended).toBe(2)
+    expect(pick(48).perString).toBe(2)
+    expect(pick(24).recommended).toBe(1)
+  })
+
+  test('a tapped single panel at 48 V becomes a string of 2', () => {
+    const s = sizeSolar({ ...base, volts: 48, solar: { roofM2: 40, panels: 1, sunHours: 5 } })!
+    expect(s.panels).toBe(2)
+    expect(s.strings).toBe(1)
+    expect(s.perString).toBe(2)
+  })
+
+  test('across every voltage and 1–166 panels, the shortest string charges or there is no yield', () => {
+    for (const volts of VOLTAGES) {
+      for (let panels = 1; panels <= panelsFit(SOLAR.ROOF_RANGE[1]); panels++) {
+        for (const roofM2 of [5, 500]) {
+          const s = sizeSolar({ ...base, volts, solar: { roofM2, panels, sunHours: 5 } })!
+          if (s.panels === 0) {
+            expect([volts, panels, roofM2, s.dailyWh, s.isTooShort]).toEqual([volts, panels, roofM2, 0, true])
+          } else {
+            expect(hotVmp(s.perString), `${volts} V · ${panels} on ${roofM2} m²`).toBeGreaterThan(NEEDS_V[volts])
+          }
+        }
+      }
+    }
+  })
+
+  test('across 1–166 panels, every string has the same length and they add up to the panel count', () => {
+    for (const volts of VOLTAGES) {
+      for (let panels = 1; panels <= panelsFit(SOLAR.ROOF_RANGE[1]); panels++) {
+        const s = sizeSolar({ ...base, volts, solar: { roofM2: 500, panels, sunHours: 5 } })!
+        expect(s.strings * s.perString, `${volts} V · ${panels} panels`).toBe(s.panels)
+        expect(s.perString).toBeLessThanOrEqual(SOLAR.MAX_PER_STRING)
+        expect(s.controllerA).toBeLessThanOrEqual(SOLAR.CONTROLLER_AMPS[SOLAR.CONTROLLER_AMPS.length - 1]!)
+      }
+    }
+  })
+
+  test('25 panels give 5 strings of 5', () => {
+    const s = sizeSolar({ ...base, volts: 48, solar: { roofM2: 100, panels: 25, sunHours: 5 } })!
+    expect(s.panels).toBe(25)
+    expect(s.strings).toBe(5)
+    expect(s.perString).toBe(5)
   })
 })
