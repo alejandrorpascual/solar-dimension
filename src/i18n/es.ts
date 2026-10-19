@@ -182,6 +182,7 @@ export const es: Dictionary = {
     fuseAboveCable: (p) => `Ni ${p.count} tramos del cable más grueso soportan más de ${p.maxA?.toLocaleString('es-419')} A cada uno, menos que el fusible de ${p.fuseA} A que necesitan. Sube el voltaje o reduce la carga.`,
     fuseSurge: (p) => `El arranque pasa ${p.surgeA?.toLocaleString('es-419')} A por un fusible de ${p.fuseA} A durante ${p.seconds} s; puede quemarse en un arranque normal. El siguiente tamaño aún protege el cable.`,
     fuseInterrupt: (p) => `Un banco en corto puede entregar unos ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible. Usa un fusible con esa capacidad o menos ramas.`,
+    fuseVoltage: (p) => `El fusible de ${p.fuseA} A solo está certificado para ${p.maxVdc} V CC, y un banco de ${p.volts} V necesita ${p.needVdc} V CC o más: podría no cortar una falla. Usa un fusible certificado para al menos ${p.needVdc} V CC.`,
     startupDrop: (p) => `El cable cae ${p.dropPct}% con la corriente de arranque; el inversor puede apagarse cuando arranque un motor. Acorta el tramo o sube un calibre.`,
     cableAmbient: (p) => `Ningún cable de la tabla está certificado para aire a ${p.ambientC} °C. Lleva el tramo a un lugar más fresco.`,
     cableUndersized: (p) => `El ${p.gauge} para ${CONDUCTORS[p.conductor!]} solo soporta ${p.maxA?.toLocaleString('es-419')} A tras la corrección, menos que la corriente de diseño de ${p.needA?.toLocaleString('es-419')} A de cada cable. ${cableRemedy(p)}`,

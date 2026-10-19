@@ -1,0 +1,172 @@
+[
+  {
+    "id": "ambientFactor <= to <",
+    "ac": "AC1",
+    "file": "src/lib/nec.ts",
+    "caught": true,
+    "failing": [
+      "× air from -10 to 10 °C takes 1.2 on 75 °C cable and 1.15 on 90 °C cable 4ms",
+      "× air from 11 to 15 °C takes 1.15 on 75 °C cable and 1.12 on 90 °C cable 1ms",
+      "× air from 16 to 20 °C takes 1.11 on 75 °C cable and 1.08 on 90 °C cable 1ms",
+      "× air from 21 to 25 °C takes 1.05 on 75 °C cable and 1.04 on 90 °C cable 0ms",
+      "× air from 26 to 30 °C takes 1 on 75 °C cable and 1 on 90 °C cable 0ms",
+      "× air from 31 to 35 °C takes 0.94 on 75 °C cable and 0.96 on 90 °C cable 0ms"
+    ]
+  },
+  {
+    "id": "ambientFactor always the 90 °C column",
+    "ac": "AC1",
+    "file": "src/lib/nec.ts",
+    "caught": true,
+    "failing": [
+      "× air from -10 to 10 °C takes 1.2 on 75 °C cable and 1.15 on 90 °C cable 4ms",
+      "× air from 11 to 15 °C takes 1.15 on 75 °C cable and 1.12 on 90 °C cable 0ms",
+      "× air from 16 to 20 °C takes 1.11 on 75 °C cable and 1.08 on 90 °C cable 2ms",
+      "× air from 21 to 25 °C takes 1.05 on 75 °C cable and 1.04 on 90 °C cable 1ms",
+      "× air from 31 to 35 °C takes 0.94 on 75 °C cable and 0.96 on 90 °C cable 0ms",
+      "× air from 36 to 40 °C takes 0.88 on 75 °C cable and 0.91 on 90 °C cable 0ms"
+    ]
+  },
+  {
+    "id": "ampsAt always the 90 °C column",
+    "ac": "AC1",
+    "file": "src/lib/nec.ts",
+    "caught": true,
+    "failing": [
+      "× 8 AWG copper carries 50 A in the 75 °C column and 55 A in the 90 °C column 4ms",
+      "× 6 AWG copper carries 65 A in the 75 °C column and 75 A in the 90 °C column 0ms",
+      "× 4 AWG copper carries 85 A in the 75 °C column and 95 A in the 90 °C column 0ms",
+      "× 2 AWG copper carries 115 A in the 75 °C column and 130 A in the 90 °C column 0ms",
+      "× 1 AWG copper carries 130 A in the 75 °C column and 145 A in the 90 °C column 0ms",
+      "× 1/0 AWG copper carries 150 A in the 75 °C column and 170 A in the 90 °C column 1ms"
+    ]
+  },
+  {
+    "id": "bundleFactor >= to >",
+    "ac": "AC2",
+    "file": "src/lib/nec.ts",
+    "caught": true,
+    "failing": [
+      "× 4 to 6 current-carrying conductors together take 0.8 4ms",
+      "× 7 to 9 current-carrying conductors together take 0.7 2ms",
+      "× 10 to 20 current-carrying conductors together take 0.5 0ms",
+      "× 21 to 30 current-carrying conductors together take 0.45 1ms",
+      "× 31 to 40 current-carrying conductors together take 0.4 0ms",
+      "× 41 to 100 current-carrying conductors together take 0.35 0ms"
+    ]
+  },
+  {
+    "id": "fuseVoltage < to <=",
+    "ac": "AC3",
+    "file": "src/lib/sizing/fuse.ts",
+    "caught": true,
+    "failing": [
+      "× a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not 4ms",
+      "FAIL  src/lib/sizing/fuse.test.ts > pickFuse > a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not"
+    ]
+  },
+  {
+    "id": "fuseVoltage never raised",
+    "ac": "AC3",
+    "file": "src/lib/sizing/fuse.ts",
+    "caught": true,
+    "failing": [
+      "× with no fuse listed for the bank voltage it still picks one, and warns that it is not rated for it 5ms",
+      "× a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not 1ms",
+      "× a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages 5ms",
+      "FAIL  src/lib/kit-checks.test.ts > kitChecks > a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages",
+      "FAIL  src/lib/sizing/fuse.test.ts > pickFuse > with no fuse listed for the bank voltage it still picks one, and warns that it is not rated for it",
+      "FAIL  src/lib/sizing/fuse.test.ts > pickFuse > a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not"
+    ]
+  },
+  {
+    "id": "neededVdc drops the 1.25 margin",
+    "ac": "AC3",
+    "file": "src/lib/sizing/fuse.ts",
+    "caught": true,
+    "failing": [
+      "× with no fuse listed for the bank voltage it still picks one, and warns that it is not rated for it 4ms",
+      "× a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not 1ms",
+      "× a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages 5ms",
+      "FAIL  src/lib/kit-checks.test.ts > kitChecks > a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages",
+      "FAIL  src/lib/sizing/fuse.test.ts > pickFuse > with no fuse listed for the bank voltage it still picks one, and warns that it is not rated for it",
+      "FAIL  src/lib/sizing/fuse.test.ts > pickFuse > a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not"
+    ]
+  },
+  {
+    "id": "Fuse check does not own fuseVoltage",
+    "ac": "AC3",
+    "file": "src/lib/kit-checks.ts",
+    "caught": true,
+    "failing": [
+      "× a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages 5ms",
+      "FAIL  src/lib/kit-checks.test.ts > kitChecks > a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages"
+    ]
+  },
+  {
+    "id": "fuseAboveCable never raised",
+    "ac": "AC4",
+    "file": "src/lib/sizing/cable.ts",
+    "caught": true,
+    "failing": [
+      "× gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less 5ms",
+      "FAIL  src/lib/sizing-matrix.test.ts > every stock kit at the default cable conditions > gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less"
+    ]
+  },
+  {
+    "id": "fuse picked at 1.0x the run, not 1.25x",
+    "ac": "AC4",
+    "file": "src/lib/sizing/fuse.ts",
+    "caught": true,
+    "failing": [
+      "× gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less 9ms",
+      "FAIL  src/lib/sizing-matrix.test.ts > every stock kit at the default cable conditions > gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less"
+    ]
+  },
+  {
+    "id": "gauge never steps up for drop",
+    "ac": "AC4",
+    "file": "src/lib/sizing/cable.ts",
+    "caught": false,
+    "failing": []
+  },
+  {
+    "id": "gauge never steps up for drop (whole unit suite)",
+    "ac": "AC4",
+    "file": "src/lib/sizing/cable.ts",
+    "caught": true,
+    "failing": [
+      "× a long run steps the gauge up for voltage drop 4ms",
+      "× gives each string its share over a short unbundled lead with its own fuse 0ms",
+      "FAIL  src/lib/sizing/cable.test.ts > sizeMainCable > a long run steps the gauge up for voltage drop",
+      "FAIL  src/lib/sizing/cable.test.ts > sizeBankWiring > gives each string its share over a short unbundled lead with its own fuse"
+    ]
+  },
+  {
+    "id": "main run's fuseAboveCable dropped, string leads' kept (matrix only)",
+    "ac": "AC4",
+    "file": "src/lib/sizing.ts",
+    "caught": true,
+    "failing": [
+      "× gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less 6ms",
+      "FAIL  src/lib/sizing-matrix.test.ts > every stock kit at the default cable conditions > gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less"
+    ]
+  },
+  {
+    "id": "main run's fuseAboveCable dropped, string leads' kept (whole engine suite)",
+    "ac": "AC4",
+    "file": "src/lib/sizing.ts",
+    "caught": true,
+    "failing": [
+      "× gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less 88ms",
+      "FAIL  src/lib/sizing-matrix.test.ts > every stock kit at the default cable conditions > gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less"
+    ]
+  },
+  {
+    "id": "fuseVoltage read from any listed fuse, not the picked one (whole engine suite)",
+    "ac": "AC3",
+    "file": "src/lib/sizing/fuse.ts",
+    "caught": false,
+    "failing": []
+  }
+]

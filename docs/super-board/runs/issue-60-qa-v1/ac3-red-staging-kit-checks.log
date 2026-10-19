@@ -1,0 +1,41 @@
+
+ RUN  v5.0.1 .
+
+ ❯ src/lib/kit-checks.test.ts (20 tests | 1 failed) 35ms
+   ❯ kitChecks (18)
+     × a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/kit-checks.test.ts > kitChecks > a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages
+AssertionError: expected { id: 'fuse', name: 'Fuse', …(2) } to match object { status: 'warn', …(1) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "lines": [
+-     "The 100 A fuse is listed for only 32 V DC, and a 48 V bank needs 60 V DC or more: it may not break a fault. Use a fuse listed for at least 60 V DC.",
++     "100 A class ANL: under the cable's 115 A, 6 kA interrupting, start-up 35 A within what it holds",
+    ],
+-   "status": "warn",
++   "status": "pass",
+  }
+
+ ❯ src/lib/kit-checks.test.ts:247:24
+    245|     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemist…
+    246|     const fuse = (locale: 'en' | 'es') => kitChecks(locale === 'en' ? …
+    247|     expect(fuse('en')).toMatchObject({
+       |                        ^
+    248|       status: 'warn',
+    249|       lines: ['The 100 A fuse is listed for only 32 V DC, and a 48 V b…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 19 passed (20)
+   Start at  12:12:05
+   Duration  289ms (transform 61%, import 22%, tests 16%, worker 1%)
+

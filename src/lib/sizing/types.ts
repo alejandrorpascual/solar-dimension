@@ -237,7 +237,7 @@ export interface CablePick {
 export type WarningCode =
   | 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase'
   | 'inverterUndersized' | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'startupDrop' | 'cableAmbient'
-  | 'cableUndersized'
+  | 'cableUndersized' | 'fuseVoltage'
   | 'missingAppliances'
   | 'roofLimited' | 'stringTooShort'
 
@@ -279,6 +279,9 @@ export interface WarningParams {
   surgeA?: number
   shortCircuitA?: number
   aicA?: number
+  /** The DC voltage a fuse is listed for, and the least its bank needs: the bank voltage with the charging margin. */
+  maxVdc?: number
+  needVdc?: number
   dropPct?: number
   ambientC?: number
   conductor?: ConductorKind

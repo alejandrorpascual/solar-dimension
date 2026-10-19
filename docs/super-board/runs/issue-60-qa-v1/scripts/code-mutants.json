@@ -1,0 +1,155 @@
+[
+  {
+    "id": "ambientFactor <= to <",
+    "ac": "AC1",
+    "file": "src/lib/nec.ts",
+    "from": "ambientC <= r.maxC",
+    "to": "ambientC < r.maxC",
+    "specs": [
+      "src/lib/nec.test.ts"
+    ]
+  },
+  {
+    "id": "ambientFactor always the 90 °C column",
+    "ac": "AC1",
+    "file": "src/lib/nec.ts",
+    "from": "return insulationC === 75 ? row.f75 : row.f90",
+    "to": "return row.f90",
+    "specs": [
+      "src/lib/nec.test.ts"
+    ]
+  },
+  {
+    "id": "ampsAt always the 90 °C column",
+    "ac": "AC1",
+    "file": "src/lib/nec.ts",
+    "from": "return insulationC === 75 ? g.amps75 : g.amps90",
+    "to": "return g.amps90",
+    "specs": [
+      "src/lib/nec.test.ts"
+    ]
+  },
+  {
+    "id": "bundleFactor >= to >",
+    "ac": "AC2",
+    "file": "src/lib/nec.ts",
+    "from": "currentCarrying >= r.minConductors",
+    "to": "currentCarrying > r.minConductors",
+    "specs": [
+      "src/lib/nec.test.ts"
+    ]
+  },
+  {
+    "id": "fuseVoltage < to <=",
+    "ac": "AC3",
+    "file": "src/lib/sizing/fuse.ts",
+    "from": "if (fuse.maxVdc < needVdc) {",
+    "to": "if (fuse.maxVdc <= needVdc) {",
+    "specs": [
+      "src/lib/sizing/fuse.test.ts",
+      "src/lib/kit-checks.test.ts"
+    ]
+  },
+  {
+    "id": "fuseVoltage never raised",
+    "ac": "AC3",
+    "file": "src/lib/sizing/fuse.ts",
+    "from": "if (fuse.maxVdc < needVdc) {",
+    "to": "if (false) {",
+    "specs": [
+      "src/lib/sizing/fuse.test.ts",
+      "src/lib/kit-checks.test.ts"
+    ]
+  },
+  {
+    "id": "neededVdc drops the 1.25 margin",
+    "ac": "AC3",
+    "file": "src/lib/sizing/fuse.ts",
+    "from": "const neededVdc = (volts: Voltage): number => volts * SIZING.FUSE_VOLTAGE_MARGIN",
+    "to": "const neededVdc = (volts: Voltage): number => volts",
+    "specs": [
+      "src/lib/sizing/fuse.test.ts",
+      "src/lib/kit-checks.test.ts"
+    ]
+  },
+  {
+    "id": "Fuse check does not own fuseVoltage",
+    "ac": "AC3",
+    "file": "src/lib/kit-checks.ts",
+    "from": "fuse: ['fuseVoltage', 'fuseAboveBank',",
+    "to": "fuse: ['fuseAboveBank',",
+    "specs": [
+      "src/lib/kit-checks.test.ts"
+    ]
+  },
+  {
+    "id": "fuseAboveCable never raised",
+    "ac": "AC4",
+    "file": "src/lib/sizing/cable.ts",
+    "from": "    warnings.push({ code: 'fuseAboveCable',",
+    "to": "    if (false) warnings.push({ code: 'fuseAboveCable',",
+    "specs": [
+      "src/lib/sizing-matrix.test.ts"
+    ]
+  },
+  {
+    "id": "fuse picked at 1.0x the run, not 1.25x",
+    "ac": "AC4",
+    "file": "src/lib/sizing/fuse.ts",
+    "from": "const minA = ctx.perRunA * SIZING.NEC_CONTINUOUS",
+    "to": "const minA = ctx.perRunA",
+    "specs": [
+      "src/lib/sizing-matrix.test.ts"
+    ]
+  },
+  {
+    "id": "gauge never steps up for drop",
+    "ac": "AC4",
+    "file": "src/lib/sizing/cable.ts",
+    "from": "    while (gi < last && dropPct(gauges[gi]!, perRun, cond.runLengthM, volts) > SIZING.MAX_DROP_PCT) gi++",
+    "to": "",
+    "specs": [
+      "src/lib/sizing-matrix.test.ts"
+    ]
+  },
+  {
+    "id": "gauge never steps up for drop (whole unit suite)",
+    "ac": "AC4",
+    "file": "src/lib/sizing/cable.ts",
+    "from": "    while (gi < last && dropPct(gauges[gi]!, perRun, cond.runLengthM, volts) > SIZING.MAX_DROP_PCT) gi++",
+    "to": "",
+    "specs": [
+      "src/lib"
+    ]
+  },
+  {
+    "id": "main run's fuseAboveCable dropped, string leads' kept (matrix only)",
+    "ac": "AC4",
+    "file": "src/lib/sizing.ts",
+    "from": "protection: [...main.warnings,",
+    "to": "protection: [...main.warnings.filter((w) => w.code !== 'fuseAboveCable'),",
+    "specs": [
+      "src/lib/sizing-matrix.test.ts"
+    ]
+  },
+  {
+    "id": "main run's fuseAboveCable dropped, string leads' kept (whole engine suite)",
+    "ac": "AC4",
+    "file": "src/lib/sizing.ts",
+    "from": "protection: [...main.warnings,",
+    "to": "protection: [...main.warnings.filter((w) => w.code !== 'fuseAboveCable'),",
+    "specs": [
+      "src/lib"
+    ]
+  },
+  {
+    "id": "fuseVoltage read from any listed fuse, not the picked one (whole engine suite)",
+    "ac": "AC3",
+    "file": "src/lib/sizing/fuse.ts",
+    "from": "if (fuse.maxVdc < needVdc) {",
+    "to": "if (ctx.fuses.some((f) => f.maxVdc < needVdc)) {",
+    "specs": [
+      "src/lib"
+    ]
+  }
+]

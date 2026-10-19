@@ -1,0 +1,95 @@
+
+ RUN  v5.0.1 .
+
+ ❯ src/lib/sizing/fuse.test.ts (10 tests | 2 failed) 8ms
+   ❯ pickFuse (10)
+     × with no fuse listed for the bank voltage it still picks one, and warns that it is not rated for it 4ms
+     × a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not 1ms
+ ❯ src/lib/kit-checks.test.ts (20 tests | 1 failed) 44ms
+   ❯ kitChecks (18)
+     × a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/kit-checks.test.ts > kitChecks > a fuse list with nothing rated for the bank voltage fails the fuse check, in both languages
+AssertionError: expected { id: 'fuse', name: 'Fuse', …(2) } to match object { status: 'warn', …(1) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "lines": [
+-     "The 100 A fuse is listed for only 32 V DC, and a 48 V bank needs 60 V DC or more: it may not break a fault. Use a fuse listed for at least 60 V DC.",
++     "100 A class ANL: under the cable's 115 A, 6 kA interrupting, start-up 35 A within what it holds",
+    ],
+-   "status": "warn",
++   "status": "pass",
+  }
+
+ ❯ src/lib/kit-checks.test.ts:247:24
+    245|     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemist…
+    246|     const fuse = (locale: 'en' | 'es') => kitChecks(locale === 'en' ? …
+    247|     expect(fuse('en')).toMatchObject({
+       |                        ^
+    248|       status: 'warn',
+    249|       lines: ['The 100 A fuse is listed for only 32 V DC, and a 48 V b…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/lib/sizing/fuse.test.ts > pickFuse > with no fuse listed for the bank voltage it still picks one, and warns that it is not rated for it
+AssertionError: expected [] to deeply equal [ { code: 'fuseVoltage', …(1) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "code": "fuseVoltage",
+-     "params": {
+-       "fuseA": 100,
+-       "maxVdc": 32,
+-       "needVdc": 60,
+-       "volts": 48,
+-     },
+-   },
+- ]
++ []
+
+ ❯ src/lib/sizing/fuse.test.ts:72:24
+     70|     const r = pickFuse(ctx({ fuses: only32, volts: 48 }))
+     71|     expect(r.fuse).toMatchObject({ a: 100, maxVdc: 32 })
+     72|     expect(r.warnings).toEqual([{ code: 'fuseVoltage', params: { fuseA…
+       |                        ^
+     73|     // The same fuse on a 12 V bank is rated for the 15 V it needs.
+     74|     expect(pickFuse(ctx({ fuses: only32, volts: 12 })).warnings).toEqu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/lib/sizing/fuse.test.ts > pickFuse > a fuse listed for exactly 1.25 × the bank voltage is rated for it, and one a volt under is not
+AssertionError: expected [] to deeply equal [ 'fuseVoltage' ]
+
+- Expected
++ Received
+
+- [
+-   "fuseVoltage",
+- ]
++ []
+
+ ❯ src/lib/sizing/fuse.test.ts:80:92
+     78|     const listedFor = (maxVdc: number) => [{ a: 100, class: 'T' as con…
+     79|     expect(pickFuse(ctx({ fuses: listedFor(60), volts: 48 })).warnings…
+     80|     expect(pickFuse(ctx({ fuses: listedFor(59), volts: 48 })).warnings…
+       |                                                                                            ^
+     81|   })
+     82| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 27 passed (30)
+   Start at  12:12:05
+   Duration  316ms (transform 62%, import 19%, tests 17%, worker 2%)
+
