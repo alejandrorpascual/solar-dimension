@@ -77,6 +77,13 @@ describe.each(['en', 'es'] as const)('finePrint (%s)', (locale) => {
     expect(finePrint(t, r, DOD_PCT, locale)).not.toContain(es ? 'aire acondicionado' : 'Air conditioning')
   })
 
+  test('says every appliance counts in every hour of the window', () => {
+    const r = compute({ qty: { micro: 1 }, hours: 24, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(finePrint(t, r, DOD_PCT, locale)).toContain(es
+      ? 'Cada aparato cuenta en todas las horas del respaldo.'
+      : 'Every appliance counts in every hour of the window.')
+  })
+
   test('a kit with nothing selected has no battery to list ratings for', () => {
     const r = compute({ qty: {}, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(finePrint(t, r, DOD_PCT, locale)).not.toContain(es ? 'Valores supuestos' : 'Assumed ratings')
