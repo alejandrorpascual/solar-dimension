@@ -8,6 +8,10 @@ const PIXEL_RATIO = 2
 const SHEET_BACKGROUND = '#FFFFFF'
 const A4_PT = { w: 595.28, h: 841.89 }
 const PAGE_IMAGE_ALIAS = 'kit-sheet'
+/** A capture still running after this is given up on: a stalled phone would otherwise say "Preparing the file…" for good. */
+const CAPTURE_TIMEOUT_MS = 30_000
+/** How long a download link stays valid after its click. iPhone Safari reads the file some time after the handler returns. */
+const REVOKE_AFTER_MS = 40_000
 
 /**
  * The node is the preview, shown scaled down with a CSS transform. Its layout size is unscaled, so capturing at that
@@ -80,6 +84,18 @@ export async function renderPdf(node: HTMLElement): Promise<Blob> {
   return doc.output('blob')
 }
 
+/**
+ * The capture's file, or a rejection once the time is up. The capture libraries cannot be cancelled, so a file that
+ * arrives after the limit is dropped, never saved.
+ */
+export function withinCaptureLimit<T>(capture: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const expired = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`The kit file was not ready after ${CAPTURE_TIMEOUT_MS / 1000} s`)), CAPTURE_TIMEOUT_MS)
+  })
+  return Promise.race([capture, expired]).finally(() => clearTimeout(timer))
+}
+
 export function saveBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -88,8 +104,8 @@ export function saveBlob(blob: Blob, fileName: string): void {
   document.body.append(a)
   a.click()
   a.remove()
-  // Revoke on the next task: some browsers start the download only after the click handler returns.
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  // Not at once: iPhone Safari starts the download after the click handler returns, and a revoked link saves nothing.
+  setTimeout(() => URL.revokeObjectURL(url), REVOKE_AFTER_MS)
 }
 
 /** Whether this browser can hand a file to the system share sheet (most phones; few desktops). */
