@@ -204,3 +204,32 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(buildParts(r, t, locale).some((p) => p.group === 'solar')).toBe(false)
   })
 })
+
+describe('solar rows on every bank voltage and roof', () => {
+  const t = getDictionary('en')
+  /** Panels in series a string needs to charge each bank: one panel's hot Vmp clears 24 V and falls short of 36 V. */
+  const SHORTEST = { 12: 1, 24: 1, 36: 2, 48: 2 } as const
+
+  test('a kit lists the solar rows with equal strings, or none, no yield and a warning that the string is too short', () => {
+    for (const volts of [12, 24, 36, 48] as const) {
+      for (let roofM2 = 5; roofM2 <= 500; roofM2 += 5) {
+        for (const panels of [null, 1, 7]) {
+          const r = compute({ qty: DEFAULT_QTY, hours: 10, volts, chemistry: 'lifepo4', solar: { roofM2, panels, sunHours: 5 } }, CATALOG_SNAPSHOT)
+          const s = r.solar!
+          const rows = buildParts(r, t, 'en').filter((p) => p.group === 'solar')
+          const tooShort = r.warnings.filter((w) => w.code === 'stringTooShort')
+          const at = `${volts} V · ${panels ?? 'recommended'} on ${roofM2} m²`
+          if (s.panels > 0) {
+            expect(rows.map((p) => p.id), at).toEqual(['solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'])
+            expect(rows[0]!.qty, at).toBe(String(s.strings * s.perString))
+            expect(rows[0]!.note, at).toContain(s.strings === 1 ? `1 string of ${s.perString} in series` : `${s.strings} strings of ${s.perString} in series`)
+            expect(tooShort, at).toEqual([])
+          } else {
+            expect([rows.length, s.dailyWh], at).toEqual([0, 0])
+            expect(tooShort, at).toEqual([{ code: 'stringTooShort', params: { volts, count: SHORTEST[volts], fit: s.fit } }])
+          }
+        }
+      }
+    }
+  })
+})

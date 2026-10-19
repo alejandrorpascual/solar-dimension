@@ -229,6 +229,23 @@ describe('string length against the charge voltage', () => {
     }
   })
 
+  test('any tapped count becomes the nearest count that wires as equal strings, a tie rounding up, never past the roof', () => {
+    // Lengths a string may have: from the shortest that charges to 5, and at 12 V at most the 2 one 100 A controller passes.
+    const lengths = { 12: [1, 2], 24: [1, 2, 3, 4, 5], 36: [2, 3, 4, 5], 48: [2, 3, 4, 5] } as const
+    for (const volts of VOLTAGES) {
+      const wires = (n: number) => n === 0 || lengths[volts].some((len) => n % len === 0)
+      for (let roofM2 = SOLAR.ROOF_RANGE[0]; roofM2 <= SOLAR.ROOF_RANGE[1]; roofM2 += SOLAR.ROOF_STEP) {
+        const fit = panelsFit(roofM2)
+        const wirable = Array.from({ length: fit + 1 }, (_, n) => n).filter(wires)
+        for (let tapped = 0; tapped <= fit; tapped++) {
+          const nearest = [...wirable].sort((a, b) => Math.abs(a - tapped) - Math.abs(b - tapped) || b - a)[0]
+          const s = sizeSolar({ ...base, volts, solar: { roofM2, panels: tapped, sunHours: 5 } })!
+          expect(s.panels, `${volts} V · ${tapped} tapped on ${roofM2} m²`).toBe(nearest)
+        }
+      }
+    }
+  })
+
   test('25 panels give 5 strings of 5', () => {
     const s = sizeSolar({ ...base, volts: 48, solar: { roofM2: 100, panels: 25, sunHours: 5 } })!
     expect(s.panels).toBe(25)
