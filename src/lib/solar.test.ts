@@ -1,9 +1,12 @@
 import { describe, expect, test } from 'vitest'
-import { minSeries, nextWirable, panelsFit, panelsToRefill, recommendedPanels, sizeSolar, SOLAR } from './solar'
+import { CHEMISTRIES } from './catalog'
+import { minSeries, nextWirable, panelsFit, panelsToRefill, sizeSolar, SOLAR } from './solar'
 
 // The design's sample: 48 V, 2 × 48 V 200 Ah = 19,200 Wh bank, 1,100 W average draw.
 const BANK_WH = 19_200
 const AVERAGE_W = 1_100
+/** A bank that gives back all it holds and keeps all it is given, so the wiring tests read in plain panel arithmetic. */
+const LOSSLESS = { dod: 1, chargeEff: 1 }
 const VOLTAGES = [12, 24, 36, 48] as const
 /** Charge voltage plus the 5 V an MPPT controller needs above it, per bank voltage. */
 const NEEDS_V = { 12: 19.4, 24: 33.8, 36: 48.2, 48: 62.6 } as const
@@ -31,15 +34,31 @@ describe('panelsToRefill', () => {
   })
 })
 
-describe('recommendedPanels', () => {
-  test('is the refill count, capped by the roof', () => {
-    expect(recommendedPanels({ bankWh: BANK_WH, roofM2: 40, sunHours: 5 })).toBe(10)
-    expect(recommendedPanels({ bankWh: BANK_WH, roofM2: 20, sunHours: 5 })).toBe(6)
+describe('refilling the usable energy over charge losses', () => {
+  const pick = (chemistry: typeof CHEMISTRIES.lifepo4) =>
+    sizeSolar({ solar: { roofM2: 40, panels: null, sunHours: 4.5 }, bankWh: 10_000, chemistry, volts: 48, averageW: AVERAGE_W })!
+
+  test('a 10 kWh LiFePO4 bank at 4.5 sun hours recommends 5 panels and a 10 kWh AGM bank 4', () => {
+    // One panel: 550 × 4.5 × 0.75 = 1,856 Wh a clear day.
+    // LiFePO4: 10,000 × 0.85 usable / 0.92 charge efficiency = 9,239 Wh → 4.98 → 5. AGM: 10,000 × 0.5 / 0.8 = 6,250 Wh → 3.37 → 4.
+    expect([pick(CHEMISTRIES.lifepo4), pick(CHEMISTRIES.agm)].map((s) => [s.need, s.recommended, s.panels])).toEqual([[5, 5, 5], [4, 4, 4]])
+  })
+
+  test("coverage is exactly 100% when a clear day's yield equals a day's use over the inverter's 0.9", () => {
+    // 4 panels at 5 h: 2,200 × 5 × 0.75 = 8,250 Wh into the bank. A day's use of 7,425 Wh at the appliances (309.375 W × 24 h)
+    // takes 7,425 / 0.9 = 8,250 Wh out of it.
+    const s = sizeSolar({ solar: { roofM2: 40, panels: 4, sunHours: 5 }, bankWh: 10_000, chemistry: CHEMISTRIES.lifepo4, volts: 48, averageW: 309.375 })!
+    expect([s.dailyWh, s.dailyUseWh, s.coverRatio]).toEqual([8250, 7425, 1])
+  })
+
+  test('the refill time is the usable energy over charge losses', () => {
+    // 9,239 Wh into 5 × 550 × 0.75 = 2,062.5 W of charge is 4.48 h, inside the 4.5 h of sun; 6,250 / (4 × 412.5) = 3.79 h.
+    expect([pick(CHEMISTRIES.lifepo4), pick(CHEMISTRIES.agm)].map((s) => [Number(s.refillHours?.toFixed(2)), s.refillsInOneDay])).toEqual([[4.48, true], [3.79, true]])
   })
 })
 
 describe('sizeSolar', () => {
-  const base = { solar: { roofM2: 40, panels: null, sunHours: 5 }, bankWh: BANK_WH, volts: 48 as const, averageW: AVERAGE_W }
+  const base = { solar: { roofM2: 40, panels: null, sunHours: 5 }, bankWh: BANK_WH, chemistry: LOSSLESS, volts: 48 as const, averageW: AVERAGE_W }
 
   test('returns null without a solar choice', () => {
     expect(sizeSolar({ ...base, solar: null })).toBeNull()
@@ -56,7 +75,8 @@ describe('sizeSolar', () => {
     expect(s.dailyWh).toBe(20625)
     expect(s.cloudyWh).toBe(8250)
     expect(s.dailyUseWh).toBe(26400)
-    expect(s.coverRatio).toBeCloseTo(0.78, 2)
+    // 20,625 Wh against the 26,400 / 0.9 = 29,333 Wh a day's use takes out of the bank.
+    expect(s.coverRatio).toBeCloseTo(0.703, 3)
     expect(s.refillHours).toBeCloseTo(4.65, 1)
     expect(s.refillsInOneDay).toBe(true)
     expect(s.strings).toBe(2)
@@ -152,7 +172,7 @@ describe('sizeSolar', () => {
 })
 
 describe('string length against the charge voltage', () => {
-  const base = { bankWh: BANK_WH, averageW: AVERAGE_W }
+  const base = { bankWh: BANK_WH, chemistry: LOSSLESS, averageW: AVERAGE_W }
 
   test("one panel's hot maximum-power voltage clears 24 V and falls short of 36 V, so strings need 2 in series at 36 and 48 V", () => {
     expect([hotVmp(1) > NEEDS_V[24], hotVmp(1) < NEEDS_V[36]]).toEqual([true, true])
@@ -171,7 +191,7 @@ describe('string length against the charge voltage', () => {
 
   test('the recommendation and a tapped single panel start at the shortest string that charges', () => {
     // 1,000 Wh refills from one panel; at 48 V that panel needs a second in series.
-    const pick = (volts: 24 | 48, panels: number | null = null) => sizeSolar({ bankWh: 1000, averageW: AVERAGE_W, volts, solar: { roofM2: 40, panels, sunHours: 5 } })!
+    const pick = (volts: 24 | 48, panels: number | null = null) => sizeSolar({ bankWh: 1000, chemistry: LOSSLESS, averageW: AVERAGE_W, volts, solar: { roofM2: 40, panels, sunHours: 5 } })!
     expect([pick(48).recommended, pick(48).perString, pick(24).recommended]).toEqual([2, 2, 1])
     expect([pick(48, 1).panels, pick(48, 1).strings, pick(48, 1).perString]).toEqual([2, 1, 2])
   })
@@ -227,7 +247,7 @@ describe('string length against the charge voltage', () => {
 })
 
 describe('controllers, breakers and taps', () => {
-  const base = { bankWh: BANK_WH, averageW: AVERAGE_W }
+  const base = { bankWh: BANK_WH, chemistry: LOSSLESS, averageW: AVERAGE_W }
   const pick = (volts: (typeof VOLTAGES)[number], roofM2: number, panels: number | null, bankWh = BANK_WH) => sizeSolar({ ...base, bankWh, volts, solar: { roofM2, panels, sunHours: 5 } })!
 
   test('across every voltage and 1–166 panels, the fewest controllers carry them, each with its breaker covering the strings on it, never more than 2', () => {

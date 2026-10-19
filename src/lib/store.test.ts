@@ -7,7 +7,6 @@ import {
   hasSameLoads, rekeySeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
   renameProject, setSolarIn, takenLoadIds, unreadCustomCount, withSetAside, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
-import { SOLAR } from './solar'
 import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema, StoreSchema, type Project, type Store } from './schema'
 
 describe('project store', () => {
@@ -382,7 +381,8 @@ test('setSolarIn turns panels on with the defaults and off again', () => {
   const store = initialStore()
   const id = currentProject(store).id
   const on = setSolarIn(store, id, true)
-  expect(currentProject(on).solar).toEqual({ roofM2: 40, panels: null, sunHours: SOLAR.DEFAULT_SUN_HOURS })
+  // 4.5 h sits on the sun slider's half-hour grid.
+  expect(currentProject(on).solar).toEqual({ roofM2: 40, panels: null, sunHours: 4.5 })
   expect(currentProject(setSolarIn(on, id, false)).solar).toBeNull()
   expect(setSolarIn(store, 'nope', true)).toBe(store)
 })
