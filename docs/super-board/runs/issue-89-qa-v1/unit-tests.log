@@ -1,0 +1,16 @@
+
+ RUN  v5.0.1 <clone>
+
+ ✓ src/client/export-file.test.ts > saveBlob > clicks a link to the file under its name 3ms
+ ✓ src/client/export-file.test.ts > saveBlob > keeps the link alive for 40 s after the click, for a phone that starts the download late 1ms
+ ✓ src/client/export-file.test.ts > withinCaptureLimit > passes the file through when the capture finishes in time 1ms
+ ✓ src/client/export-file.test.ts > withinCaptureLimit > passes the capture's own error through 1ms
+ ✓ src/client/export-file.test.ts > withinCaptureLimit > gives up on a capture still running after 30 s 1ms
+ ✓ src/client/export-file.test.ts > withinCaptureLimit > drops a file that arrives after the limit 0ms
+ ✓ src/client/export-file.test.ts > withinCaptureLimit > leaves no timer running once the capture is done 0ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  15:38:31
+   Duration  112ms (transform 60%, tests 18%, import 17%, worker 5%)
+
