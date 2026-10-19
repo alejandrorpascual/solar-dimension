@@ -256,6 +256,8 @@ def validate(text, kind, meta=None):
         for i, page in enumerate(value):
             pr = page['data']['repository']['pullRequest']
             require(re.fullmatch(r'[0-9a-f]{40}', pr['headRefOid']) and pr['state'] in ('OPEN', 'CLOSED', 'MERGED'), 'PR identity missing')
+            require(isinstance(pr['body'], str) and isinstance(pr['baseRefName'], str)
+                    and isinstance(page['data']['repository']['defaultBranchRef']['name'], str), 'PR body or base missing')
             heads.add(pr['headRefOid'])
             links = pr['closingIssuesReferences']
             require(type(links['pageInfo']['hasNextPage']) is bool and links['pageInfo']['hasNextPage'] == (i < len(value) - 1), 'approval pagination incomplete')
