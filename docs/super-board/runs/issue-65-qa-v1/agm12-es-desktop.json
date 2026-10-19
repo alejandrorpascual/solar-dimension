@@ -1,0 +1,21 @@
+{
+  "checks": [
+    "Tamaño del inversor240 W en marcha con un inversor de 1,000 W · 1,290 W durante 3 s, dentro de sus 2,000 W de arranque supuestos240 W en marcha + 1,050 W (Refrigerador) arrancando",
+    "Corriente continua de la bateríaEl banco entrega 120 A continuos supuestos; el inversor toma hasta 93 A",
+    "Corriente pico de la bateríaEl pico supuesto del banco, 400 A, cubre los 119 A de arranque durante 3 s",
+    "Ramas en paralelo2 en paralelo, dentro del límite supuesto de 4",
+    "Fusible125 A clase T: bajo los 130 A del cable, 20 kA de interrupción, arranque de 119 A dentro de lo que aguanta",
+    "Cable1 AWG soporta 130 A tras la corrección (30 °C) para 116 A de diseño · 1.2% de caída al arrancar"
+  ],
+  "rows": [
+    "ParteEspecificaciónCantidad",
+    "Inversor1,000 W continuos, no VA, onda pura, entrada 12 V CC2,000 W de arranque · cubre 240 W en marcha, 1,290 W pico×1",
+    "Baterías12 V 200 Ah AGM1 en serie × 2 en paralelo (1S2P) · banco de 4.8 kWh, 2.4 kWh utilizables · 120 A continuos, 400 A pico del banco (valores supuestos) · Mismo modelo y edad en cada rama · Cables de igual largo a las barras colectoras · Un fusible en cada rama×2",
+    "Cable principal1 AWG (42.4 mm²) de cobre, 1.5 m cada unoDe batería a inversor · 116 A de corriente de diseño · 130 A tras la corrección · 1.2% de caída al arrancar×2",
+    "Cables de rama6 AWG (13.3 mm²) de cobre, 30 cm cada unoUn positivo y un negativo de cada rama a las barras colectoras (barras no incluidas) · 58 A de corriente de diseño · 65 A tras la corrección×4",
+    "Fusible125 A clase TEn línea en el cable positivo, lo más cerca posible del banco · 20 kA de capacidad de interrupción×1",
+    "Fusibles por rama60 A clase T, uno por rama en paraleloEn el positivo de cada rama, para que una rama en corto se aísle sola×2"
+  ],
+  "fine": "Supone 90% de eficiencia del inversor, 25% de margen, 50% de profundidad de descarga, 1,100 W por tonelada de refrigeración, un solo motor arrancando a la vez, cable de cobre con aislamiento de 90 °C a 30 °C. Tablas de ampacidad NEC; verifica con la normativa local. Los tamaños de inversor son vatios continuos, no VA, a temperatura ambiente; el margen de 25% cubre el factor de potencia y el calor. Valores supuestos, no de la ficha de un fabricante: cada batería de 12 V 200 Ah AGM entrega 60 A continuos y 200 A pico durante 5 s, como máximo 4 en paralelo, y 12 A por Ah en cortocircuito; cada inversor de 1,000 W arranca hasta 2,000 W durante 3 s.",
+  "horizontalOverflowPx": 0
+}

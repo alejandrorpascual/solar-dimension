@@ -1,0 +1,21 @@
+ src/i18n/en.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M1 drop assumed from checkParallelSingle (en)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/kit-checks.test.ts > kitChecks > a sound kit passes all six checks, each with a line that names its figures
+ FAIL  src/lib/kit-checks.test.ts > kitChecks > the pass lines resting on a generic rating say it is assumed, the fuse and cable lines do not (en)
+      Tests  2 failed | 19 passed (21)
+ src/lib/fine-print.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M2 drop ratingsLine from finePrint
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/fine-print.test.ts > finePrint (en) > a LiFePO₄ kit lists the battery and inverter ratings it was sized with, as the catalog states them
+ FAIL  src/lib/fine-print.test.ts > finePrint (en) > a AGM kit lists the battery and inverter ratings it was sized with, as the catalog states them
+ FAIL  src/lib/fine-print.test.ts > finePrint (en) > inverters in parallel give one unit's surge, the rating each of them is sized with
+ src/lib/fine-print.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M3 set surge instead of one unit's surge
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/fine-print.test.ts > finePrint (en) > inverters in parallel give one unit's surge, the rating each of them is sized with
+ FAIL  src/lib/fine-print.test.ts > finePrint (es) > inverters in parallel give one unit's surge, the rating each of them is sized with
+      Tests  2 failed | 10 passed (12)

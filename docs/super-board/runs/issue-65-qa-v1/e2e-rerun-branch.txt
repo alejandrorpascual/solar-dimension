@@ -1,0 +1,24 @@
+  ✓   4 [desktop] › e2e/download.spec.ts:93:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (4.2s)
+  ✓   1 [desktop] › e2e/download.spec.ts:57:1 › export progress is visible while the file is being prepared (4.9s)
+  ✓   5 [desktop] › e2e/download.spec.ts:39:1 › the CSV parts list carries the solar parts when panels are chosen (5.2s)
+  ✘   2 [desktop] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone (6.0s)
+  ✘   3 [desktop] › e2e/download.spec.ts:82:1 › the parts list comes first, and the load schedule gets a PDF page of its own (6.0s)
+  ✓   6 [desktop] › e2e/download.spec.ts:119:1 › a CSV has no printed pages, so there is no larger view to open (2.3s)
+  ✓   8 [desktop] › e2e/download.spec.ts:188:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @phone (2.8s)
+  ✓   7 [desktop] › e2e/download.spec.ts:128:1 › notes and failing checks stay on the sheet and in the files with their Include boxes unticked (3.4s)
+  ✓  11 [desktop] › e2e/download.spec.ts:201:1 › the checks print last on the sheet and can be left out (2.0s)
+  ✓  10 [desktop] › e2e/download.spec.ts:188:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @phone (3.4s)
+  ✓  14 [phone] › e2e/download.spec.ts:93:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (3.1s)
+  ✓   9 [desktop] › e2e/quotes.spec.ts:804:1 › a ranked quote whose reading needs a check can be read again from its card (9.1s)
+  ✓  15 [phone] › e2e/download.spec.ts:188:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @phone (3.8s)
+  ✘  13 [phone] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone (5.5s)
+  ✓  12 [desktop] › e2e/shared-browser.spec.ts:101:1 › a session that ended without a sign-out leaves nothing either (9.5s)
+  ✓  16 [phone] › e2e/download.spec.ts:188:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @phone (2.7s)
+  1) [desktop] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone 
+  2) [desktop] › e2e/download.spec.ts:82:1 › the parts list comes first, and the load schedule gets a PDF page of its own 
+  3) [phone] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone 
+  3 failed
+    [desktop] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone 
+    [desktop] › e2e/download.spec.ts:82:1 › the parts list comes first, and the load schedule gets a PDF page of its own 
+    [phone] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone 
+  13 passed (30.5s)

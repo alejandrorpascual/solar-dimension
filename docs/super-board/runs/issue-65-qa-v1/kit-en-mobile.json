@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "Inverter size240 W running on a 3,000 W inverter · 1,290 W for 3 s, within its assumed 6,000 W surge rating240 W running + 1,050 W (Refrigerator) starting",
+    "Battery continuous currentBank gives an assumed 100 A continuous; the inverter draws up to 69 A",
+    "Battery peak currentBank peak of an assumed 200 A covers the 30 A start-up for 3 s",
+    "Parallel stringsOne string, nothing to balance · assumed limit of 16 in parallel",
+    "Fuse100 A class T: under the cable's 115 A, 20 kA interrupting, start-up 30 A within what it holds",
+    "Cable2 AWG carries 115 A after derating (30 °C) for a 87 A design current · 0.1% drop at start-up"
+  ],
+  "rows": [
+    "PartSpecificationQuantity",
+    "Inverter3,000 W continuous, not VA, pure sine, 48 V DC input6,000 W surge · covers 240 W running, 1,290 W peak×1",
+    "Batteries48 V 100 Ah LiFePO₄1 in series × 1 in parallel (1S1P) · 4.8 kWh bank, 4.1 kWh usable · 100 A continuous, 200 A peak from the bank (assumed ratings)×1",
+    "Main cable2 AWG (33.6 mm²) copper, 1.5 m eachBattery to inverter · 87 A design current · 115 A after derating · 0.1% drop at start-up×2",
+    "Fuse100 A class TInline on the positive lead, as close to the bank as possible · 20 kA interrupting rating×1"
+  ],
+  "fine": "Assumes 90% inverter efficiency, 25% inverter headroom, 85% depth of discharge, 1,100 W per ton of cooling, one motor starting at a time, copper cable with 90 °C insulation at 30 °C. NEC ampacity tables; verify against local code. Inverter sizes are continuous watts, not VA, at room temperature; the 25% headroom covers power factor and heat. Assumed ratings, not a maker's datasheet: each 48 V 100 Ah LiFePO₄ battery gives 100 A continuous and 200 A peak for 5 s, at most 16 in parallel, and 25 A per Ah into a short; each 3,000 W inverter surges to 6,000 W for 5 s.",
+  "horizontalOverflowPx": 0
+}
