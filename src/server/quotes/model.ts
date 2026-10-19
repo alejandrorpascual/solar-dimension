@@ -74,7 +74,9 @@ export function classifyError(e: unknown): ModelError {
 
 /**
  * The Responses API request for one quote. `store: false`, because installer quotes carry names and addresses, and
- * OpenAI would otherwise keep the response for 30 days.
+ * OpenAI would otherwise keep the response for at least 30 days so it can be fetched again. It does not cover
+ * OpenAI's abuse-monitoring logs, which may hold what each API call sends and gets back for up to 30 days unless the
+ * organisation has Zero Data Retention; the privacy page says so.
  */
 export function extractRequest(input: ModelInput, model: string) {
   return {

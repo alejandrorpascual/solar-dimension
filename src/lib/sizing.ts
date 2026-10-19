@@ -3,13 +3,13 @@ import { ambientFactor, ampsAt, bundleFactor } from './nec'
 import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate, type BankDemand } from './sizing/battery'
 import { canInterruptFault, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
 import { dcAmps, pickInverter, toInverterPick } from './sizing/inverter'
-import { selectItems, surgeProfile } from './sizing/loads'
+import { selectItems, surgeProfile, unitsOf } from './sizing/loads'
 import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
 import type {
   BatteryOption, BatteryPick, CableConditions, CustomLoadLike, SelectedItem, SimultaneousStarts, SizingInput, SizingResult, Warning,
 } from './sizing/types'
 import { buildWarnings, inverterNotes, parallelNotes } from './sizing/warnings'
-import { panelsToRefill, sizeSolar, type SolarPick } from './solar'
+import { minSeries, panelsToRefill, sizeSolar, type SolarPick } from './solar'
 
 export type * from './sizing/types'
 
@@ -26,7 +26,7 @@ const tenth = (n: number) => Math.round(n * 10) / 10
 
 export function catalog(appliances: readonly CatalogItem[], custom: readonly CustomLoadLike[] = []): CatalogItem[] {
   const extra: CatalogItem[] = custom.map((c) => ({
-    id: c.id, name: c.name, cat: 'Custom', watts: c.watts, surge: c.surge, duty: 1, note: c.note, isCustom: true,
+    id: c.id, name: c.name, cat: 'Custom', watts: c.watts, surge: c.surge, duty: c.duty ?? 1, note: c.note, isCustom: true,
   }))
   return [...appliances, ...extra]
 }
@@ -37,8 +37,11 @@ export function catalog(appliances: readonly CatalogItem[], custom: readonly Cus
  */
 function missingCount(list: readonly CatalogItem[], qty: Record<string, number>): number {
   const known = new Set(list.map((i) => i.id))
-  return Object.entries(qty).filter(([id, n]) => n > 0 && !known.has(id)).length
+  return Object.entries(qty).filter(([id, n]) => unitsOf(n) > 0 && !known.has(id)).length
 }
+
+/** Whether the engine can size an item: finite running and surge watts. One it cannot is left out and counted as missing. */
+const isSizable = (i: CatalogItem): boolean => Number.isFinite(i.watts) && Number.isFinite(i.surge)
 
 function normalizeStarts(v: SimultaneousStarts | undefined): SimultaneousStarts {
   if (v === 'all') return 'all'
@@ -68,6 +71,12 @@ const toOption = (c: BankCandidate, ctx: RuntimeContext, autoId: string | undefi
   }
 }
 
+/** A roof too small for one string that charges says so; otherwise a roof short of a day's refill says that. */
+function solarWarnings(solar: SolarPick, bankWh: number, volts: Voltage): Warning[] {
+  if (solar.isTooShort) return [{ code: 'stringTooShort', params: { volts, count: minSeries(volts), fit: solar.fit } }]
+  return solar.isRoofLimited ? [{ code: 'roofLimited', params: { fit: solar.wiredFit, need: panelsToRefill(bankWh, solar.sunHours) } }] : []
+}
+
 /** True when the kit has a solar array worth showing: panels chosen and at least one appliance. */
 export const hasPanels = (r: SizingResult): r is SizingResult & { solar: SolarPick } =>
   r.solar !== null && r.solar.panels > 0 && !r.empty
@@ -75,11 +84,12 @@ export const hasPanels = (r: SizingResult): r is SizingResult & { solar: SolarPi
 export function compute(input: SizingInput, appliances: readonly CatalogItem[], hardware: HardwareCatalog = DEFAULT_HARDWARE): SizingResult {
   const hours = clamp(finite(input.hours, 10), HOURS_RANGE[0], HOURS_RANGE[1])
   const volts: Voltage = VOLTAGES.includes(input.volts) ? input.volts : 48
-  const chem = hardware.chemistries[input.chemistry] ?? hardware.chemistries.lifepo4
+  // An own key only: a name such as "toString" would otherwise find a method on the object's prototype.
+  const chem = Object.hasOwn(hardware.chemistries, input.chemistry) ? hardware.chemistries[input.chemistry] : hardware.chemistries.lifepo4
   const starts = normalizeStarts(input.simultaneousStarts)
   const cond = normalizeCable(input)
 
-  const list = catalog(appliances, input.custom)
+  const list = catalog(appliances, input.custom).filter(isSizable)
   const items = selectItems(list, input.qty ?? {}, hours, input.dutyOverrides ?? {})
   const missing = missingCount(list, input.qty ?? {})
   const runningW = sum(items, (i) => i.totalWatts)
@@ -116,9 +126,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   // An empty project still gets a (smallest) bank from autoPick; panels for it would be nonsense, so size against 0.
   const bankWh = items.length === 0 ? 0 : battery?.bankWh ?? 0
   const solar = sizeSolar({ solar: input.solar ?? null, bankWh, volts, averageW })
-  const roofWarning: Warning[] = solar && items.length > 0 && solar.isRoofLimited
-    ? [{ code: 'roofLimited', params: { fit: solar.fit, need: panelsToRefill(bankWh, solar.sunHours) } }]
-    : []
+  const solarWarning = solar && items.length > 0 ? solarWarnings(solar, bankWh, volts) : []
 
   const main = sizeMain(battery)
   const wiring = sizeBankWiring({ ...wires, battery, main })
@@ -156,7 +164,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
         items, inverter, runningW, surgeProfile: profile, amps: inverter.continuousA, volts, battery, loadWh,
         protection: [...main.warnings, ...undersized('mainCable', main, { cond, volts }), ...wiring.warnings], missing, startupA,
       }),
-      ...roofWarning,
+      ...solarWarning,
     ],
     batteryOptions: candidates.map((c) => toOption(c, runtimeCtx, auto?.id)),
     batteryUnit: chosen?.id ?? null,

@@ -25,6 +25,7 @@ SHA = re.compile(r"[0-9a-f]{40}\Z")
 SCOPE = re.compile(r"[0-9a-f]{64}\Z")
 BLOCK = re.compile(r"Reason tag:[^\n]*🙋|^approval-request:", re.M)
 DONE = re.compile(r"\s*done[.!]?\s*\Z", re.I)
+CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+([\w.-]+/[\w.-]+)?#([1-9][0-9]*)\b", re.I)
 
 
 def scope_for(plan):
@@ -56,6 +57,11 @@ def parse_request(comment):
         return value
     except (ValueError, TypeError):
         return None
+
+
+def closing_issues(body, repo):
+    """Same-repository issues a PR body closes: `Closes #N`, `Fixes owner/repo#N`."""
+    return {int(number) for prefix, number in CLOSES.findall(body) if not prefix or prefix.lower() == repo}
 
 
 def timestamp(value):
@@ -160,32 +166,40 @@ class GitHub:
         # Paginate linked issues too: an omitted newer request must never make
         # an older approval authoritative. Remote-repository links are ignored.
         query = '''query($owner:String!,$repo:String!,$pr:Int!,$endCursor:String){
-          repository(owner:$owner,name:$repo){pullRequest(number:$pr){headRefOid state
+          repository(owner:$owner,name:$repo){defaultBranchRef{name}
+            pullRequest(number:$pr){headRefOid state baseRefName body
             closingIssuesReferences(first:100,after:$endCursor){
               pageInfo{hasNextPage endCursor} nodes{number repository{nameWithOwner}}
             }}}}'''
         owner, name = self.repo.split("/")
         pages = self.read("api", "graphql", "--paginate", "--slurp", "-f", f"query={query}",
                           "-F", f"owner={owner}", "-F", f"repo={name}", "-F", f"pr={number}")
-        heads, issues = set(), set()
+        snapshots, issues = set(), set()
         if not isinstance(pages, list) or not pages:
             raise ValueError("unreadable PR")
         for page in pages:
             if page.get("errors"):
                 raise ValueError("incomplete PR response")
-            pr = page["data"]["repository"]["pullRequest"]
+            repository = page["data"]["repository"]
+            pr = repository["pullRequest"]
             if pr["state"] != "OPEN":
                 raise ValueError("PR is not open")
-            heads.add(pr["headRefOid"])
+            if not isinstance(pr["body"], str):
+                raise ValueError("unreadable PR body")
+            snapshots.add((pr["headRefOid"], pr["baseRefName"], repository["defaultBranchRef"]["name"], pr["body"]))
             links = pr["closingIssuesReferences"]
             for issue in links["nodes"]:
                 if issue["repository"]["nameWithOwner"].lower() == self.repo:
                     issues.add(issue["number"])
-        if links["pageInfo"]["hasNextPage"] or len(heads) != 1:
+        if links["pageInfo"]["hasNextPage"] or len(snapshots) != 1:
             raise ValueError("PR changed or issue links are incomplete")
-        head = heads.pop()
+        head, base, default, body = snapshots.pop()
         if not SHA.fullmatch(head):
             raise ValueError("unreadable PR head")
+        # GitHub links closing issues only for PRs into the default branch, so a
+        # PR into staging names its issue in the body. Adding links never drops one.
+        if not issues or base != default:
+            issues |= closing_issues(body, self.repo)
         return head, issues
 
     def check(self, number, head=None, scope=None, issue=None):

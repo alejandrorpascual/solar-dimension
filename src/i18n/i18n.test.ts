@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { CATEGORIES } from '../lib/catalog'
 import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
+import { CUSTOM_DUTY_MIN_PCT } from '../lib/custom'
 import { en } from './en'
 import { es } from './es'
 import { applianceName, applianceNote, batteryCount, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
@@ -24,6 +25,12 @@ describe('dictionaries', () => {
       expect(d.warnings.parallelStrings(p)).toContain('7')
       expect(d.warnings.dominantLoad(p)).toContain('54')
     }
+  })
+  test('a string too short to charge names the panels it needs, and 36 V reads as marginal', () => {
+    expect(en.warnings.stringTooShort({ volts: 48, count: 2, fit: 1 })).toBe('A string needs at least 2 panels in series to charge a 48 V bank, and the roof holds only 1. This kit lists no panels; make room for 2 or more.')
+    expect(es.warnings.stringTooShort({ volts: 48, count: 2, fit: 1 })).toBe('Una cadena necesita al menos 2 paneles en serie para cargar un banco de 48 V, y en el techo cabe solo 1. Este kit no lleva paneles; haz espacio para 2 o más.')
+    expect(en.warnings.stringTooShort({ volts: 36, count: 2, fit: 1 })).toMatch(/^At 36 V one panel is marginal: /)
+    expect(es.warnings.stringTooShort({ volts: 36, count: 2, fit: 1 })).toMatch(/^A 36 V un panel es marginal: /)
   })
   test('the engineering-check warnings render their figures in both languages', () => {
     const p = { surgeW: 9400, seconds: 3, ratedW: 7500, inverterW: 5000, inverterSurgeW: 10000, tooLong: true, needA: 463, maxA: 540, strings: 9, unitLabel: '12 V 200 Ah AGM', fuseA: 200, surgeA: 309, shortCircuitA: 21600, aicA: 20000, dropPct: 12.5, ambientC: 90 }
@@ -133,6 +140,11 @@ describe('tr', () => {
     expect(tr(es, 'kitFor', { name: 'Casa' })).toBe('Kit para Casa')
     expect(tr(en, 'kitFor')).toBe('Kit for ')
     expect(tr(en, 'back')).toBe('Back')
+  })
+
+  test('the custom form duty error names the 5% floor and 100% in both languages', () => {
+    expect(tr(en, 'errDuty', { min: CUSTOM_DUTY_MIN_PCT })).toBe('Enter how much of each hour it runs, from 5 to 100%. Leave it empty if it never stops.')
+    expect(tr(es, 'errDuty', { min: CUSTOM_DUTY_MIN_PCT })).toBe('Escribe qué parte de cada hora funciona, de 5 a 100%. Déjalo vacío si no se apaga nunca.')
   })
 })
 

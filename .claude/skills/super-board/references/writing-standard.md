@@ -170,11 +170,16 @@ zone). Get the stamp with `super-board-pr-body.sh --time --config <cfg>`.
 **Before | After** — two columns, one row per viewport, both shas in the header. Images are
 committed on the branch; raw URLs are pinned to the commit that holds them.
 
+Desktop and tablet cells also hold a crop of the changed part, under the full shot, when the
+change is narrower than the page (run.md → "Crop of the changed part"). A 1920 px shot shows here
+at 480 px, so a 400 px card in it is 100 px wide and reads like a phone screen. Give the crop
+its own width, at most 480.
+
 ```
 ## Before | After
 | | Before `5a2363b` | After `3f9c2a1` |
 |---|---|---|
-| Desktop | <img src="https://github.com/acme/app/raw/3f9c2a1/docs/ui/before-desktop.png" width="480"> | <img src="https://github.com/acme/app/raw/3f9c2a1/docs/ui/after-desktop.png" width="480"> |
+| Desktop | <img src="https://github.com/acme/app/raw/3f9c2a1/docs/ui/before-desktop.png" width="480"><br><img src="https://github.com/acme/app/raw/3f9c2a1/docs/ui/before-desktop-crop.png" width="400"> | <img src="https://github.com/acme/app/raw/3f9c2a1/docs/ui/after-desktop.png" width="480"><br><img src="https://github.com/acme/app/raw/3f9c2a1/docs/ui/after-desktop-crop.png" width="400"> |
 | Mobile | <img src="https://github.com/acme/app/raw/3f9c2a1/docs/ui/before-mobile.png" width="220"> | <img src="https://github.com/acme/app/raw/3f9c2a1/docs/ui/after-mobile.png" width="220"> |
 ```
 

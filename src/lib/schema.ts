@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { SIZING } from './catalog'
+import { MAX_APPLIANCE_SURGE, MAX_APPLIANCE_WATTS, SIZING } from './catalog'
 import { CUSTOM_NAME_MAX } from './custom'
 import { RequesterSchema } from './requester'
 import { SOLAR } from './solar'
@@ -41,9 +41,12 @@ export const DEFAULT_ELECTRICAL: Electrical = ElectricalSchema.parse({})
 export const CustomLoadSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).max(CUSTOM_NAME_MAX),
-  watts: z.number().positive(),
-  surge: z.number().positive(),
+  /** Held to the catalog's ceiling; a saved load above it is left out like any other that no longer parses. */
+  watts: z.number().positive().max(MAX_APPLIANCE_WATTS),
+  surge: z.number().positive().max(MAX_APPLIANCE_SURGE),
   note: z.string(),
+  /** Share of each hour it runs, set on the form below 100%; a load saved without one runs nonstop, as it always did. */
+  duty: z.number().gt(0).lte(1).optional(),
 })
 
 /**

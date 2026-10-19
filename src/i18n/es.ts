@@ -30,9 +30,10 @@ export const es: Dictionary = {
     add: 'Agregar', addOne: 'Agregar {name}', qtyOf: 'Cantidad de {name}', removeOne: 'Quitar un {name}', remove: 'Quitar {name}',
     running: 'en marcha', surge: 'arranque', runningSurgeLine: '{watts} W en marcha · {surge} de arranque', splitPhase: 'Requiere un inversor de 240 V / fase partida',
     customTitle: '¿No está en la lista?', customHelp: 'Escribe los vatios de la etiqueta, o los voltios y amperios y nosotros los multiplicamos.',
-    watts: 'Vatios', voltsAmps: 'Voltios × amperios', name: 'Nombre', runningW: 'W en marcha', volts: 'Voltios', amps: 'Amperios', surgeOptional: 'W de arranque (opcional)', sameAsRunning: 'igual que en marcha', addAppliance: 'Agregar aparato',
-    errName: 'Ponle un nombre al aparato.', errNameLong: 'El nombre puede tener hasta {max} caracteres.', errVa: 'Ingresa voltios y amperios que den al menos 1 vatio.', errWatts: 'Ingresa al menos 1 vatio en marcha.', errSurge: 'El arranque no puede ser menor que los vatios en marcha.',
+    watts: 'Vatios', voltsAmps: 'Voltios × amperios', name: 'Nombre', runningW: 'W en marcha', volts: 'Voltios', amps: 'Amperios', surgeOptional: 'W de arranque (opcional)', sameAsRunning: 'igual que en marcha', dutyPctLabel: '% de cada hora que funciona', addAppliance: 'Agregar aparato',
+    errName: 'Ponle un nombre al aparato.', errNameLong: 'El nombre puede tener hasta {max} caracteres.', errVa: 'Ingresa voltios y amperios que den de 1 a {maxW} vatios.', errWatts: 'Ingresa de 1 a {maxW} vatios en marcha.', errSurge: 'El arranque debe ir de los vatios en marcha hasta {maxSurge} W.',
     errThousands: 'Escribe los vatios como número entero sin separador: 1500, no 1.500 ni 1,500.',
+    errDuty: 'Escribe qué parte de cada hora funciona, de {min} a 100%. Déjalo vacío si no se apaga nunca.',
     customUnreadOne: 'No se pudo cargar 1 aparato personalizado de este proyecto, así que el kit lo deja fuera. Agrégalo de nuevo abajo y luego quita el que no cargó.',
     customUnreadMany: 'No se pudieron cargar {count} aparatos personalizados de este proyecto, así que el kit los deja fuera. Agrégalos de nuevo abajo y luego quita los que no cargaron.',
     customUnreadClearOne: 'Quitar el que no cargó', customUnreadClearMany: 'Quitar los que no cargaron',
@@ -108,7 +109,7 @@ export const es: Dictionary = {
     pvDisconnectSpec: 'Breaker de CC de {amps} A, 500 V', pvDisconnectNote: 'Entre los paneles y el controlador, accesible desde el suelo',
     mountingSpec: 'Rieles de aluminio y grapas para {panels}', mountingNote: 'Inclinación de 10° hacia el sur en techo plano; a ras en techo inclinado',
     solarTag: 'Solar', fineSolar: ' La parte solar supone paneles de {w}, 75% de eficiencia de panel a batería y {sun} horas de sol pleno al día.',
-    stringsOne: '1 cadena de {n} en serie', stringsMany: '{strings} cadenas de hasta {n} en serie',
+    stringsOne: '1 cadena de {n} en serie', stringsMany: '{strings} cadenas de {n} en serie',
     average: 'Promedio', averageWatts: 'Promedio (W)', kind: 'Tipo',
     runsLabel: 'Funciona', dutyOf: '{name}: parte de cada hora que funciona', dutyOption: '{pct}% de cada hora', dutyTypical: '{pct}% · típico', dutyNonstop: '100% · no se apaga',
     rename: 'Renombrar', projectActions: 'Más acciones de {name}', stepLocked: 'Agrega al menos un aparato primero', stepGo: 'Paso {n}: {label}', dutyRuns: 'Funciona · {pct}% de cada hora', dutyBursts: '~{min} min por hora', dutyTypicalAt: 'típico {pct}%', averageDrawFor: '~{w} de promedio entre los {qty}',
@@ -188,6 +189,12 @@ export const es: Dictionary = {
       ? 'No se pudo cargar 1 aparato de este proyecto, así que este kit lo deja fuera. Recarga en un minuto; si sigue faltando, agrégalo de nuevo.'
       : `No se pudieron cargar ${p.count} aparatos de este proyecto, así que este kit los deja fuera. Recarga en un minuto; si siguen faltando, agrégalos de nuevo.`,
     roofLimited: (p) => `En tu techo caben ${p.fit} paneles; con ${p.need} el banco se recargaría en un día despejado. Igual se recarga en más días de sol.`,
+    stringTooShort: (p) => {
+      const fits = `en el techo ${p.fit === 1 ? 'cabe' : 'caben'} solo ${p.fit}`
+      return p.volts === 36
+        ? `A 36 V un panel es marginal: en un día caluroso no alcanza el voltaje al que carga el controlador, y ${fits}. Este kit no lleva paneles; haz espacio para ${p.count} en serie.`
+        : `Una cadena necesita al menos ${p.count} paneles en serie para cargar un banco de ${p.volts} V, y ${fits}. Este kit no lleva paneles; haz espacio para ${p.count} o más.`
+    },
   },
   parts: { inverter: 'Inversor', batteries: 'Baterías', mainCable: 'Cable principal', interconnects: 'Interconexiones', stringLeads: 'Cables de rama', fuse: 'Fusible', stringFuses: 'Fusibles por rama', solarPanels: 'Paneles solares', chargeController: 'Controlador de carga', pvCable: 'Cable fotovoltaico', pvDisconnect: 'Seccionador FV', mounting: 'Estructura'  },
   kinds: { continuous: 'Siempre encendidos', cycling: 'Encienden y apagan', momentary: 'Ráfagas cortas' },
@@ -208,7 +215,7 @@ export const es: Dictionary = {
       { heading: 'Qué guardamos', body: 'Tu correo y tu nombre y, si inicias sesión con Google, el identificador de tu cuenta de Google. También guardamos los proyectos que guardes: aparatos, horas, voltaje y elección de baterías y, si los añades, los datos del solicitante para la ficha (nombre, número de documento, teléfono, correo y dirección). Los clientes que guardas con "Guardar en mis clientes", y un formulario de cliente que cerraste sin guardar, se quedan solo en este navegador. Si subes cotizaciones de instaladores, guardamos los archivos y los precios y componentes que leemos de ellos.' },
       { heading: 'Para qué', body: 'Para iniciar tu sesión y mantener tus proyectos en todos tus dispositivos. Si subes cotizaciones de instaladores, también las leemos para compararlas con tu kit (mira Cotizaciones más abajo).' },
       { heading: 'Con quién lo compartimos', body: 'No vendemos ni compartimos tus datos, salvo con los proveedores que hacen funcionar la app: Vercel y Neon para el alojamiento y la base de datos y, si subes cotizaciones de instaladores, OpenAI para leerlas (mira Cotizaciones más abajo).' },
-      { heading: 'Cotizaciones', body: 'Si subes cotizaciones de instaladores, guardamos los archivos de forma privada en Vercel y enviamos cada uno a OpenAI para leer sus precios y componentes, enviándolo de nuevo si falla una lectura o lo reintentas. OpenAI no entrena con los datos enviados a través de su API. Guardamos cuántas cotizaciones subes cada mes para aplicar el límite mensual; ese recuento se mantiene aunque borres una cotización. Al eliminar una cotización, o el proyecto al que pertenece, se elimina el archivo.' },
+      { heading: 'Cotizaciones', body: 'Si subes cotizaciones de instaladores, guardamos los archivos de forma privada en Vercel y enviamos cada uno a OpenAI para leer sus precios y componentes, enviándolo de nuevo si falla una lectura o lo reintentas. OpenAI no entrena con los datos enviados a través de su API. OpenAI puede conservar cada archivo que le enviamos hasta 30 días para detectar abusos, o más tiempo si la ley lo exige o hace falta para evitar daños. Guardamos cuántas cotizaciones subes cada mes para aplicar el límite mensual; ese recuento se mantiene aunque borres una cotización. Al eliminar una cotización, o el proyecto al que pertenece, se elimina el archivo.' },
       { heading: 'Datos de Google', body: 'Solo pedimos tu perfil básico (nombre y correo). No accedemos a Gmail, Drive ni a nada más de tu cuenta de Google.' },
       { heading: 'Cookies', body: 'Una cookie de sesión para iniciar sesión y una de idioma. Sin anuncios ni rastreo.' },
       { heading: 'Borrar tus datos', body: 'Escribe a {email} y borraremos tu cuenta y tus proyectos.' },

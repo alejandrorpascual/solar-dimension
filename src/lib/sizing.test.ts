@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { DEFAULT_HARDWARE } from './catalog'
+import { DEFAULT_HARDWARE, type ChemistryId } from './catalog'
 import { catalog, compute } from './sizing'
 
 const ESSENTIALS = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
@@ -101,6 +101,25 @@ describe('compute', () => {
     expect(r.surgeW).toBe(2500)
   })
 
+  test('a custom load that runs part of each hour cycles: a 1,035 W pump at 30% for 24 h counts 7,452 Wh', () => {
+    const custom = [{ id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 1035 W', duty: 0.3 }]
+    const r = compute({ qty: { custom1: 1 }, custom, hours: 24, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.items[0]).toMatchObject({ kind: 'cycling', effectiveDuty: 0.3, overridden: false, wh: 7452 })
+    expect(r.loadWh).toBe(7452)
+  })
+
+  test('a cycling custom load takes a duty override', () => {
+    const custom = [{ id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 1035 W', duty: 0.3 }]
+    const r = compute({ qty: { custom1: 1 }, custom, hours: 24, volts: 48, chemistry: 'lifepo4', dutyOverrides: { custom1: 0.5 } }, CATALOG_SNAPSHOT)
+    expect(r.items[0]).toMatchObject({ kind: 'cycling', effectiveDuty: 0.5, overridden: true, wh: 12420 })
+  })
+
+  test('a custom load saved without a duty still runs nonstop, and an override does not shrink it', () => {
+    const custom = [{ id: 'custom1', name: 'Pool pump', watts: 1035, surge: 2500, note: 'Custom · 1035 W' }]
+    const r = compute({ qty: { custom1: 1 }, custom, hours: 24, volts: 48, chemistry: 'lifepo4', dutyOverrides: { custom1: 0.5 } }, CATALOG_SNAPSHOT)
+    expect(r.items[0]).toMatchObject({ kind: 'continuous', effectiveDuty: 1, overridden: false, wh: 24840 })
+  })
+
   test('catalog appends custom loads after the built-in list', () => {
     const list = catalog(CATALOG_SNAPSHOT, [{ id: 'custom1', name: 'X', watts: 10, surge: 10, note: 'Custom · 10 W' }])
     expect(list.at(-1)).toMatchObject({ id: 'custom1', cat: 'Custom', duty: 1, isCustom: true })
@@ -121,6 +140,51 @@ describe('compute', () => {
     const custom = [{ id: 'custom1', name: 'Pump', watts: 500, surge: 500, note: '' }]
     const withCustom = compute({ qty: { custom1: 1 }, custom, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
     expect(withCustom.warnings.some((w) => w.code === 'missingAppliances')).toBe(false)
+  })
+})
+
+describe('inputs a saved project would refuse', () => {
+  const KIT = { hours: 10, volts: 48, chemistry: 'lifepo4' } as const
+  /** The path of every NaN anywhere in the result, so one cannot hide in a nested field. */
+  const nanPaths = (value: unknown, path = 'result'): string[] => {
+    if (typeof value === 'number') return Number.isNaN(value) ? [path] : []
+    if (value !== null && typeof value === 'object') return Object.entries(value).flatMap(([k, v]) => nanPaths(v, `${path}.${k}`))
+    return []
+  }
+
+  test('a quantity of 0.5 gives an empty kit and no zero-quantity item', () => {
+    const r = compute({ ...KIT, qty: { lights: 0.5 } }, CATALOG_SNAPSHOT)
+    expect(r.empty).toBe(true)
+    expect(r.items).toEqual([])
+    expect(r.warnings).toEqual([])
+  })
+
+  test('an infinite quantity is left out instead of throwing', () => {
+    const r = compute({ ...KIT, qty: { fridge: Infinity, lights: 1 } }, CATALOG_SNAPSHOT)
+    expect(r.items.map((i) => [i.id, i.qty])).toEqual([['lights', 1]])
+  })
+
+  test('an unknown chemistry, even an inherited object key, sizes as LiFePO4 without throwing', () => {
+    const lifepo4 = compute({ ...KIT, qty: ESSENTIALS }, CATALOG_SNAPSHOT)
+    for (const chemistry of ['nimh', 'toString', 'constructor', '__proto__', 'hasOwnProperty']) {
+      expect(compute({ ...KIT, qty: ESSENTIALS, chemistry: chemistry as ChemistryId }, CATALOG_SNAPSHOT), chemistry).toEqual(lifepo4)
+    }
+  })
+
+  test('a load with NaN watts is left out and counted as missing, and no result field is NaN', () => {
+    const custom = [{ id: 'custom1', name: 'Broken', watts: NaN, surge: NaN, note: '' }]
+    const r = compute({ ...KIT, qty: { ...ESSENTIALS, custom1: 1 }, custom }, CATALOG_SNAPSHOT)
+    expect(nanPaths(r)).toEqual([])
+    expect(r.runningW).toBe(465)
+    expect(r.warnings).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
+  })
+
+  test('a load with finite running watts but a NaN surge is left out too, and no result field is NaN', () => {
+    const custom = [{ id: 'custom1', name: 'Broken start', watts: 100, surge: NaN, note: '' }]
+    const r = compute({ ...KIT, qty: { ...ESSENTIALS, custom1: 1 }, custom }, CATALOG_SNAPSHOT)
+    expect(nanPaths(r)).toEqual([])
+    expect(r.runningW).toBe(465)
+    expect(r.warnings).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
   })
 })
 
@@ -197,6 +261,31 @@ describe('battery unit choice', () => {
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 6, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
     expect(r.solar?.panels).toBe(2)
     expect(r.warnings).toContainEqual({ code: 'roofLimited', params: { fit: 2, need: 5 } })
+  })
+
+  test('a 48 V roof that holds 11 panels but wires 10 says it holds the 10', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 24, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 35, panels: null, sunHours: 3 } }, CATALOG_SNAPSHOT)
+    expect([r.solar?.fit, r.solar?.panels, r.warnings.find((w) => w.code === 'roofLimited')?.params]).toEqual([11, 10, { fit: 10, need: 11 }])
+  })
+
+  test('a 48 V roof that holds one panel lists no panels and says the string is too short', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 5, panels: null, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
+    expect([r.solar?.panels, r.solar?.dailyWh]).toEqual([0, 0])
+    expect(r.warnings).toContainEqual({ code: 'stringTooShort', params: { volts: 48, count: 2, fit: 1 } })
+    // No "it still refills over more days": with no panels it does not.
+    expect(r.warnings.some((w) => w.code === 'roofLimited')).toBe(false)
+  })
+
+  test('a 24 V roof that holds one panel keeps it and warns only that the roof is small', () => {
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 24, chemistry: 'lifepo4', solar: { roofM2: 5, panels: null, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
+    expect([r.solar?.panels, r.solar?.dailyWh]).toEqual([1, 1980])
+    expect(r.warnings.map((w) => w.code).filter((c) => c === 'stringTooShort' || c === 'roofLimited')).toEqual(['roofLimited'])
+  })
+
+  test('a 48 V roof with every panel tapped off is not called too short', () => {
+    // Removing panel 2 of 2 at 48 V asks for 0: the roof holds 13, so the string is not the reason there are none.
+    const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels: 0, sunHours: 4.8 } }, CATALOG_SNAPSHOT)
+    expect([r.solar?.panels, r.solar?.isTooShort, r.warnings.some((w) => w.code === 'stringTooShort')]).toEqual([0, false, false])
   })
 
   test('an empty project with panels sizes nothing and warns nothing', () => {

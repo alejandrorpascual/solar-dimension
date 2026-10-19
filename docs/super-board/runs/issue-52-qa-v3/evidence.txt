@@ -1,0 +1,48 @@
+Issue #52 · QA v3 · head 1d5f2fd (R1 + R2 rebuild on staging 6eb9329), no new test code
+Run in a git clone --local of the repo, not a worktree. The app ran on the Neon e2e test database.
+
+verify (npm ci --silent && npm run typecheck && npm run test:coverage && npm run build): exit 0
+  96 files, 1572 tests, 98.24% statements (3132/3188), build ok
+unit: npx vitest run src/lib/quote-items.test.ts src/lib/quote-text.test.ts · 147 passed
+e2e: E2E_PORT=4104 npx playwright test e2e/quote-evidence.spec.ts · passed on desktop and phone (iPhone 13)
+  The server got a throwaway BETTER_AUTH_SECRET made for this run, as CI makes one (ci.yml "Make a throwaway auth secret").
+
+AC1 two battery lines, two quotes:
+  unit quote-items.test.ts:340 (both cited) · :350 (R1: a bank left to confirm by a line with no capacity cites it)
+  unit quote-text.test.ts:200 (two quote boxes, EN + ES, each with its page) · :212 (R2: one quote row shows once)
+  e2e  e2e/quote-evidence.spec.ts:37 (two boxes after splitting SolarTec's battery line) · screenshots ac1-ac2-*
+AC2 arithmetic, EN and ES:
+  unit quote-text.test.ts:220 :225 :235 :240, each EN + ES
+  e2e  e2e/quote-evidence.spec.ts:28 :30 :38 (EN) · :46 :48 (ES) · screenshots ac2-arithmetic-es-*
+AC3 cable cites its thickest line:
+  unit quote-items.test.ts:368 (ok) :375 (too thin) :384 (parallel runs) :395 (no readable size)
+  e2e  e2e/quote-evidence.spec.ts:32 renders the one quote box; SolarTec has one wiring line, so the
+       thickest-line choice is proven at the unit rung only, where it is decided · screenshots ac3-*
+component rung: n/a, the repo has no component test runner
+
+Mutants on 1d5f2fd (one at a time, the file restored after each, src clean after): 18/19 killed
+unit rung (the two quote test files, plus quote-caveats.test.ts for the caveats mutant):
+- R1 battery left to confirm cites only its sized lines: 1 test fails (quote-items.test.ts:350)
+- R1 panels left to confirm cite only their sized lines: 1 (quote-items.test.ts:355)
+- R2 a repeated quote row shows twice: 1 (quote-text.test.ts:212)
+- evidence drops its page: 2 · battery cites only its first sized line: 2 · inverter cites only its first: 1
+- cable cites every wiring line when ok / too thin / in parallel runs: 1 each · unsized cable cites a fitting: 1
+- two lines lose their brackets: 1 · one unit prints "1 ×": 2 · no inverter arithmetic on a pass: 1
+- Spanish "85 %" spacing: 2 · Spanish surge word: 1 · "unclear" ignores the evidence list: 10
+- "confirm the size" ignores the evidence list: 1 (quote-caveats.test.ts)
+- SURVIVED: a bank that passes on its sized lines also cites a line with no capacity (quote-items.ts:213)
+e2e rung:
+- the item list shows only the first quote box (ItemList.tsx): e2e/quote-evidence.spec.ts:37 fails
+
+Screenshots, 1920×1080 / 1024×768 / 375×667, from a capture run that is not committed:
+  ac1-ac2-two-battery-quotes-en-*  two quote boxes and "(4 × 5.12 kWh + 2 × 2.4 kWh) × 85% depth of discharge"
+  ac2-arithmetic-es-*              the same in Spanish, "× 85 % de descarga", "Página 2", "de arranque"
+  ac3-cable-thickest-line-*        the unsplit SolarTec quote: one box under Main cables
+  No sideways scroll at any of the three widths (scrollWidth <= viewport width, asserted before each shot).
+  before-*                         staging 6eb9329's src on the same two-line bank: one quote box, "25.3 kWh × 85%"
+                                   and no inverter arithmetic (src restored to 1d5f2fd after the capture)
+
+Test gaps (not written):
+- Medium: the surviving mutant above. A bank that passes on its sized lines alone cites only those lines; no test
+  pins that choice, so citing the unsized line too would also pass every test.
+- Low: a unit capacity past two decimals prints rounded (8.0384 kWh as 8.04 kWh). Unchanged from v1.

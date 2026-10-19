@@ -1,0 +1,21 @@
+# Edge probes on 02749c3 (throwaway test, not committed)
+[PROBE] SIZING.MAX_QTY (saved qty cap) => 100
+[PROBE] ProjectSchema accepts qty 0.5 => false
+[PROBE] compute qty fridge 1e15 => THREW RangeError: Invalid array length @     at src/lib/sizing/loads.ts:66:27
+[PROBE] compute qty fridge 100 (cap) => 15000
+[PROBE] compute qty fridge -1, lights 1 => [["lights",1]]
+[PROBE] compute qty fridge NaN, lights 1 => [["lights",1]]
+[PROBE] compute qty fridge -Infinity, lights 1 => [["lights",1]]
+[PROBE] compute qty lights 1.9 => [["lights",1]]
+[PROBE] compute qty ghost 0.5 (unknown id) warnings => []
+[PROBE] compute custom watts Infinity warnings => [{"code":"missingAppliances","params":{"count":1}}]
+[PROBE] form watts 30000.4 => {"ok":true,"item":{"id":"custom1","name":"a","watts":30000,"surge":30000,"note":"Custom · 30000 W"}}
+[PROBE] form watts 30000.5 => {"ok":false,"error":"errWatts"}
+[PROBE] form watts 3e4 => {"ok":true,"item":{"id":"custom1","name":"a","watts":30000,"surge":30000,"note":"Custom · 30000 W"}}
+[PROBE] form watts 30,000 => {"ok":false,"error":"errThousands"}
+[PROBE] form watts Infinity => {"ok":false,"error":"errWatts"}
+[PROBE] form surge 120000.4 => {"ok":true,"item":{"id":"custom1","name":"a","watts":1000,"surge":120000,"note":"Custom · 1000 W"}}
+[PROBE] form surge 120000.5 => {"ok":false,"error":"errSurge"}
+[PROBE] form surge Infinity => {"ok":true,"item":{"id":"custom1","name":"a","watts":100,"surge":100,"note":"Custom · 100 W"}}
+[PROBE] form va 240 x 125.002 => {"ok":true,"item":{"id":"custom1","name":"a","watts":30000,"surge":30000,"note":"Custom · 240 V × 125.002 A"}}
+[PROBE] schema custom watts 30000.4 => 0

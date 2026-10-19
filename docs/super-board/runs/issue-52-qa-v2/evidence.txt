@@ -1,0 +1,32 @@
+Issue #52 · QA v2 · rebased head 918f55b (staging 6eb9329 merged into 30b790d), no new test code
+Run in a git clone --local of the repo, not a worktree.
+
+verify (npm ci --silent && npm run typecheck && npm run test:coverage && npm run build): exit 0
+  96 files, 1569 tests, 98.24% statements (3132/3188), build ok
+unit: npx vitest run src/lib/quote-items.test.ts src/lib/quote-text.test.ts · 144 passed
+
+What the rebase changed: the PR's own diff is the reviewed one plus one e2e helper (misreadQuoteSpec from #130)
+kept beside splitQuoteBattery in e2e/db.ts. Staging's #130 also edited src/lib/quote-text.ts and its test file.
+Those merged without conflict; the quote-text.test.ts AI-18 tests moved down 15 lines.
+#130's plausibility check runs when a quote is read and when a typed total is offered, never on a ready quote.
+So the e2e's split battery (a 2.4 kWh line, no volts or Ah, page 2 of the stub) leaves SolarTec ranked.
+
+AC1 two battery lines, two quotes: quote-items.test.ts:340 · quote-text.test.ts:200 EN + ES · e2e/quote-evidence.spec.ts:37
+AC2 arithmetic, EN and ES: quote-text.test.ts:212 :217 :227 :232 · e2e/quote-evidence.spec.ts:38 :46-48
+AC3 cable cites its thickest line: quote-items.test.ts:357 :364 :373 :384 · e2e/quote-evidence.spec.ts:32
+component rung: n/a, the repo has no component test runner
+
+Mutants on 918f55b (applied one at a time, the two quote test files run, file restored, clone clean after): 12/12 killed
+- evidence keeps only the first line: 4 tests fail
+- cable cites every wiring line when ok / too thin / in parallel runs: 1 test fails each
+- two lines lose their brackets: 1 · one unit prints "1 ×": 2 · no inverter arithmetic on a pass: 1
+- evidence drops its page: 1 · Spanish "85 %" spacing: 2 · Spanish surge word: 1 · English wording: 3
+- "unclear" ignores the evidence list (sources.length >= 0): 10
+
+e2e and screenshots: not run here. The session's guard-secrets hook refused linking .env.test.local into the clone,
+so the app could not start on the test database. CI runs e2e/quote-evidence.spec.ts on 918f55b and saves
+evidence-<desktop|phone>-<en|es>.png to its playwright-results artifact.
+
+Test gaps (not written), unchanged from v1:
+- Low: two lines sharing one source text show the same quote twice
+- Low: a unit capacity past two decimals prints rounded (8.0384 kWh as 8.04 kWh)

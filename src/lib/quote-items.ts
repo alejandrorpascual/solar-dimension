@@ -71,12 +71,17 @@ export function kitNeeds(r: SizingResult): KitNeeds {
   }
 }
 
+/** One summed line: how many units it counts and one unit's rating (W or Wh). */
+export interface Term { qty: number; each: number }
+
 /** What an item check found, as numbers; quote-text.ts turns them into words. */
 export interface ItemFacts {
   watts?: number; surgeWatts?: number; surgeUnknown?: boolean; shortW?: number; shortSurgeW?: number
+  /** The lines summed into `watts`, or into the bank before depth of discharge, and those summed into `surgeWatts`. */
+  terms?: readonly Term[]; surgeTerms?: readonly Term[]
   usableWh?: number; shortWh?: number
-  /** The bank before depth of discharge, and the depth applied when every line shares one; `dodAssumed` when no line names its chemistry. */
-  nominalWh?: number; dod?: number; dodAssumed?: boolean
+  /** The depth of discharge applied when every line shares one; `dodAssumed` when no line names its chemistry. */
+  dod?: number; dodAssumed?: boolean
   /** Usable energy at the lowest and the highest depth of discharge, when the verdict depends on a chemistry the quote doesn't name. */
   usableLowWh?: number; usableHighWh?: number
   /** A battery line states no capacity, and the lines that do don't reach the kit on their own. */
@@ -97,7 +102,10 @@ export interface ItemFacts {
   batteryYears?: number; inverterYears?: number
   confirmed?: boolean
 }
-export interface ItemCheck { id: ItemId; status: ItemStatus; facts: ItemFacts; source: QuoteLine['source'] | null }
+/** Where a quote says something: the page and the words of one of its lines. */
+export type Evidence = QuoteLine['source']
+/** `sources` cites every line the check read: all the lines it summed or compared and any with no readable size that leave it to confirm, or the one line that decides it (the thickest cable, a fuse too small or too big). */
+export interface ItemCheck { id: ItemId; status: ItemStatus; facts: ItemFacts; sources: readonly Evidence[] }
 
 /** A DC run is a positive and a negative lead: what a wiring line's quantity is counted in. */
 const LEADS_PER_RUN = 2
@@ -112,12 +120,13 @@ const FITTINGS = /terminal|conector|connector|zapata|\blugs?\b|mc4|conduit|tubo|
 const PARALLEL_MIN_AWG = '1/0 AWG'
 const PARALLEL_MIN_MM2 = GAUGES.find((g) => g.awg === PARALLEL_MIN_AWG)!.mm2
 
-const check = (id: ItemId, status: ItemStatus, facts: ItemFacts = {}, source: QuoteLine['source'] | null = null): ItemCheck =>
-  ({ id, status, facts, source })
+const check = (id: ItemId, status: ItemStatus, facts: ItemFacts = {}, sources: readonly Evidence[] = []): ItemCheck =>
+  ({ id, status, facts, sources })
 const ofKind = (x: QuoteExtraction, kind: LineKind, optional: boolean): QuoteLine[] =>
   x.lines.filter((l) => l.kind === kind && l.optional === optional)
 const sum = (ls: readonly QuoteLine[], f: (l: QuoteLine) => number): number => ls.reduce((a, l) => a + f(l), 0)
-const sourceOf = (ls: readonly QuoteLine[]): QuoteLine['source'] | null => ls[0]?.source ?? null
+const termsSum = (ts: readonly Term[]): number => ts.reduce((a, t) => a + t.qty * t.each, 0)
+const sourcesOf = (ls: readonly QuoteLine[]): Evidence[] => ls.map((l) => l.source)
 /** The lowest price among the lines that have one: a bundled extra split into lines leaves its parts at 0. */
 const cheapestPriced = (ls: readonly QuoteLine[]): number | undefined => {
   const prices = ls.map((l) => l.lineTotal).filter((p) => p > 0)
@@ -127,25 +136,26 @@ const cheapestPriced = (ls: readonly QuoteLine[]): number | undefined => {
 /** No included line of `kind`: missing when the quote offers it only as an optional extra, otherwise unknown. */
 function absent(id: ItemId, x: QuoteExtraction, kind: LineKind): ItemCheck {
   const extras = ofKind(x, kind, true)
-  return extras.length ? check(id, 'missing', { optionalPrice: cheapestPriced(extras) }, sourceOf(extras)) : check(id, 'unknown')
+  return extras.length ? check(id, 'missing', { optionalPrice: cheapestPriced(extras) }, sourcesOf(extras)) : check(id, 'unknown')
 }
 
 function checkInverter(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const lines = ofKind(x, 'inverter', false)
   const sized = lines.filter((l) => l.specs.watts !== null)
-  if (sized.length === 0) return check('inverter', 'unknown', {}, sourceOf(lines))
-  const watts = sum(sized, (l) => (l.specs.watts ?? 0) * l.qty)
-  const surgeKnown = sized.every((l) => l.specs.surgeWatts !== null)
-  const surgeWatts = surgeKnown ? sum(sized, (l) => (l.specs.surgeWatts ?? 0) * l.qty) : null
+  if (sized.length === 0) return check('inverter', 'unknown', {}, sourcesOf(lines))
+  const terms = sized.map((l) => ({ qty: l.qty, each: l.specs.watts ?? 0 }))
+  const watts = termsSum(terms)
+  const surgeTerms = sized.every((l) => l.specs.surgeWatts !== null) ? sized.map((l) => ({ qty: l.qty, each: l.specs.surgeWatts ?? 0 })) : null
+  const surge: ItemFacts = surgeTerms === null ? { surgeUnknown: true } : { surgeWatts: termsSum(surgeTerms), surgeTerms }
+  const surgeWatts = surge.surgeWatts ?? null
   const shortW = Math.max(0, kit.runningW - watts)
   const shortSurgeW = surgeWatts === null ? 0 : Math.max(0, kit.surgeW - surgeWatts)
   const facts: ItemFacts = {
-    watts,
-    ...(surgeWatts === null ? { surgeUnknown: true } : { surgeWatts }),
+    watts, terms, ...surge,
     ...(shortW > 0 ? { shortW } : {}),
     ...(shortSurgeW > 0 ? { shortSurgeW } : {}),
   }
-  return check('inverter', inverterStatus(shortW, shortSurgeW, surgeWatts === null && watts < kit.surgeW), facts, sourceOf(sized))
+  return check('inverter', inverterStatus(shortW, shortSurgeW, surgeWatts === null && watts < kit.surgeW), facts, sourcesOf(sized))
 }
 
 /**
@@ -187,11 +197,11 @@ function checkBattery(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const lines = ofKind(x, 'battery', false)
   const sized = lines.flatMap((l) => {
     const wh = lineWh(l)
-    return wh === null ? [] : [{ l, wh: wh * l.qty, ...dodRange(l) }]
+    return wh === null ? [] : [{ l, unitWh: wh, wh: wh * l.qty, ...dodRange(l) }]
   })
-  if (sized.length === 0) return check('battery', 'unknown', {}, sourceOf(lines))
-  const source = sourceOf(sized.map((s) => s.l))
-  const nominalWh = sized.reduce((a, s) => a + s.wh, 0)
+  if (sized.length === 0) return check('battery', 'unknown', {}, sourcesOf(lines))
+  const sources = sourcesOf(sized.map((s) => s.l))
+  const terms = sized.map((s) => ({ qty: s.l.qty, each: s.unitWh }))
   const lowWh = sized.reduce((a, s) => a + s.wh * s.low, 0)
   const highWh = sized.reduce((a, s) => a + s.wh * s.high, 0)
   const dodAssumed = sized.every((s) => s.low !== s.high)
@@ -200,12 +210,12 @@ function checkBattery(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
     const ds = new Set(sized.map((s) => s[bound]))
     return ds.size === 1 ? { dod: [...ds][0]!, ...(dodAssumed ? { dodAssumed } : {}) } : {}
   }
-  if (lowWh >= kit.usableWh) return check('battery', 'ok', { usableWh: lowWh, nominalWh, ...applied('low') }, source)
+  if (lowWh >= kit.usableWh) return check('battery', 'ok', { usableWh: lowWh, terms, ...applied('low') }, sources)
   const capacityPartial = sized.length < lines.length
   if (highWh < kit.usableWh && !capacityPartial) {
-    return check('battery', 'short', { usableWh: highWh, shortWh: kit.usableWh - highWh, nominalWh, ...applied('high') }, source)
+    return check('battery', 'short', { usableWh: highWh, shortWh: kit.usableWh - highWh, terms, ...applied('high') }, sources)
   }
-  return check('battery', 'unknown', { usableLowWh: lowWh, usableHighWh: highWh, nominalWh, ...(capacityPartial ? { capacityPartial } : {}) }, source)
+  return check('battery', 'unknown', { usableLowWh: lowWh, usableHighWh: highWh, terms, ...(capacityPartial ? { capacityPartial } : {}) }, sourcesOf(lines))
 }
 
 interface Feature { id: 'charger' | 'wifi'; kind: LineKind; flag: 'hasCharger' | 'hasWifi' }
@@ -216,14 +226,14 @@ function checkFeature(x: QuoteExtraction, { id, kind, flag }: Feature): ItemChec
     return amps === null ? {} : { amps }
   }
   const lines = ofKind(x, kind, false)
-  if (lines.length) return check(id, 'ok', ampsOf(lines), sourceOf(lines))
+  if (lines.length) return check(id, 'ok', ampsOf(lines), sourcesOf(lines))
   const inverters = ofKind(x, 'inverter', false)
   const builtIn = inverters.filter((l) => l.specs[flag] === true)
-  if (builtIn.length) return check(id, 'ok', { builtIn: true, ...ampsOf(builtIn) }, sourceOf(builtIn))
+  if (builtIn.length) return check(id, 'ok', { builtIn: true, ...ampsOf(builtIn) }, sourcesOf(builtIn))
   const optional = absent(id, x, kind)
   if (optional.status === 'missing') return optional
   const denied = inverters.filter((l) => l.specs[flag] === false)
-  return denied.length ? check(id, 'missing', {}, sourceOf(denied)) : optional
+  return denied.length ? check(id, 'missing', {}, sourcesOf(denied)) : optional
 }
 
 /** The thickest wiring line whose size can be read, with that size. */
@@ -279,14 +289,14 @@ function checkCables(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const lines = ofKind(x, 'wiring', false)
   if (lines.length === 0) return absent('cables', x, 'wiring')
   const top = mainCable(lines, kit)
-  if (top === null) return check('cables', 'unknown', { sizeUnknown: true }, sourceOf([...lines.filter(isOpenCable), ...lines]))
+  if (top === null) return check('cables', 'unknown', { sizeUnknown: true }, [(lines.find(isOpenCable) ?? lines[0]!).source])
   const gauge = top.size.label
-  if (top.size.mm2 < kit.cableMm2 * MM2_TOLERANCE) return check('cables', 'short', { gauge }, top.line.source)
+  if (top.size.mm2 < kit.cableMm2 * MM2_TOLERANCE) return check('cables', 'short', { gauge }, [top.line.source])
   const ampacity = runAmpacity(top.size.mm2, kit)
   const runs = ampacity === null ? 1 : runsFor(kit.designA, ampacity)
-  if (runs === 1) return check('cables', 'ok', { gauge }, top.line.source)
+  if (runs === 1) return check('cables', 'ok', { gauge }, [top.line.source])
   const isCounted = runsOf(lines, top.size.mm2) >= runs || runsOf(lines, kit.mainMm2) >= kit.cableRuns
-  return check('cables', isCounted ? 'ok' : 'unknown', { gauge, runs, ...(isCounted ? {} : { runsUnstated: true }) }, top.line.source)
+  return check('cables', isCounted ? 'ok' : 'unknown', { gauge, runs, ...(isCounted ? {} : { runsUnstated: true }) }, [top.line.source])
 }
 
 /** "T" in "Clase T", "class-T" or "clase tipo T". */
@@ -319,28 +329,28 @@ function checkFuse(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const lines = ofKind(x, 'fuse', false)
   if (lines.length === 0) return absent('fuse', x, 'fuse')
   const rated = lines.filter((l) => l.specs.fuseAmps !== null)
-  if (rated.length === 0) return check('fuse', 'unknown', { sizeUnknown: true }, sourceOf(lines))
+  if (rated.length === 0) return check('fuse', 'unknown', { sizeUnknown: true }, sourcesOf(lines))
   const top = rated.reduce((a, b) => ((b.specs.fuseAmps ?? 0) > (a.specs.fuseAmps ?? 0) ? b : a))
   const amps = top.specs.fuseAmps ?? 0
-  if (amps < kit.fuseA) return check('fuse', 'short', { amps }, top.source)
+  if (amps < kit.fuseA) return check('fuse', 'short', { amps }, [top.source])
   const wiring = ofKind(x, 'wiring', false)
   const cable = mainCable(wiring, kit)
   const ampacity = cable === null ? null : runAmpacity(cable.size.mm2, kit)
   // A fuse no larger than the kit's own never fails for its size, even where the kit's own cable falls short of it.
   if (cable !== null && ampacity !== null && amps > Math.max(ampacity, kit.fuseA)) {
     const gauge = cable.size.label
-    if (cable.size.mm2 < PARALLEL_MIN_MM2 * MM2_TOLERANCE) return check('fuse', 'short', { amps, gauge, maxA: Math.round(ampacity) }, top.source)
+    if (cable.size.mm2 < PARALLEL_MIN_MM2 * MM2_TOLERANCE) return check('fuse', 'short', { amps, gauge, maxA: Math.round(ampacity) }, [top.source])
     const runs = runsFor(amps, ampacity)
-    if (runsOf(wiring, cable.size.mm2) < runs) return check('fuse', 'unknown', { amps, gauge, runs, runsUnstated: true }, top.source)
+    if (runsOf(wiring, cable.size.mm2) < runs) return check('fuse', 'unknown', { amps, gauge, runs, runsUnstated: true }, [top.source])
   }
   const main = rated.filter((l) => (l.specs.fuseAmps ?? 0) >= kit.fuseA)
   const classes = main.map(fuseClassOf)
   const otherClass = classes.find((c): c is string => c !== null && c !== kit.fuseClass)
-  if (otherClass !== undefined) return check('fuse', 'unknown', { amps, fuseClass: otherClass, kitClass: kit.fuseClass }, top.source)
-  if (classes.includes(null)) return check('fuse', 'unknown', { amps, classUnstated: true, kitClass: kit.fuseClass }, top.source)
+  if (otherClass !== undefined) return check('fuse', 'unknown', { amps, fuseClass: otherClass, kitClass: kit.fuseClass }, sourcesOf(main))
+  if (classes.includes(null)) return check('fuse', 'unknown', { amps, classUnstated: true, kitClass: kit.fuseClass }, sourcesOf(main))
   const carriesA = sum(main, (l) => (l.specs.fuseAmps ?? 0) * l.qty)
-  if (carriesA < kit.fuseA * kit.fuseCount) return check('fuse', 'unknown', { amps, fuses: sum(main, (l) => l.qty) }, top.source)
-  return check('fuse', 'ok', { amps }, top.source)
+  if (carriesA < kit.fuseA * kit.fuseCount) return check('fuse', 'unknown', { amps, fuses: sum(main, (l) => l.qty) }, sourcesOf(main))
+  return check('fuse', 'ok', { amps }, sourcesOf(main))
 }
 
 /** A quoted array this close to the kit's counts as it: panels come in steps (545 W, 550 W), and so do their counts. */
@@ -362,16 +372,16 @@ function checkPanels(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const lines = ofKind(x, 'panel', false)
   if (lines.length === 0) return absent('panels', x, 'panel')
   const sized = lines.filter((l) => l.specs.panelWatts !== null)
-  if (sized.length === 0) return check('panels', 'unknown', { sizeUnknown: true }, sourceOf(lines))
+  if (sized.length === 0) return check('panels', 'unknown', { sizeUnknown: true }, sourcesOf(lines))
   const arrayW = quotedArrayW(x)
-  if (arrayW >= kit.arrayW * ARRAY_TOLERANCE) return check('panels', 'ok', { arrayW }, sourceOf(sized))
+  if (arrayW >= kit.arrayW * ARRAY_TOLERANCE) return check('panels', 'ok', { arrayW }, sourcesOf(sized))
   const status: ItemStatus = sized.length < lines.length ? 'unknown' : 'short'
-  return check('panels', status, { arrayW, shortArrayW: kit.arrayW - arrayW, ...(status === 'unknown' ? { sizeUnknown: true } : {}) }, sourceOf(sized))
+  return check('panels', status, { arrayW, shortArrayW: kit.arrayW - arrayW, ...(status === 'unknown' ? { sizeUnknown: true } : {}) }, sourcesOf(status === 'unknown' ? lines : sized))
 }
 
 function checkInstallation(x: QuoteExtraction): ItemCheck {
   const lines = ofKind(x, 'labor', false)
-  return lines.length ? check('installation', 'ok', {}, sourceOf(lines)) : absent('installation', x, 'labor')
+  return lines.length ? check('installation', 'ok', {}, sourcesOf(lines)) : absent('installation', x, 'labor')
 }
 
 function checkWarranty(x: QuoteExtraction): ItemCheck {

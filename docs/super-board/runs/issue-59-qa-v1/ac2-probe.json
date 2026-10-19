@@ -1,0 +1,49 @@
+{
+  "chromium": "153.0.8010.12",
+  "cases": [
+    {
+      "label": "small-640x480-orientation-1",
+      "sameFileReturned": false,
+      "input": {
+        "name": "phone-photo.jpeg",
+        "type": "image/jpeg",
+        "bytes": 2936,
+        "width": 640,
+        "height": 480,
+        "exifMarker": true,
+        "app1Segment": true
+      },
+      "output": {
+        "name": "phone-photo.jpg",
+        "type": "image/jpeg",
+        "bytes": 2814,
+        "width": 640,
+        "height": 480,
+        "exifMarker": false,
+        "app1Segment": false
+      }
+    },
+    {
+      "label": "small-640x480-orientation-6",
+      "sameFileReturned": false,
+      "input": {
+        "name": "phone-photo.jpeg",
+        "type": "image/jpeg",
+        "bytes": 2936,
+        "width": 480,
+        "height": 640,
+        "exifMarker": true,
+        "app1Segment": true
+      },
+      "output": {
+        "name": "phone-photo.jpg",
+        "type": "image/jpeg",
+        "bytes": 2869,
+        "width": 480,
+        "height": 640,
+        "exifMarker": false,
+        "app1Segment": false
+      }
+    }
+  ]
+}

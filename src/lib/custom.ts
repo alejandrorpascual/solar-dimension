@@ -1,4 +1,5 @@
 import type { UiKey } from '../i18n/types'
+import { MAX_APPLIANCE_SURGE, MAX_APPLIANCE_WATTS, SIZING } from './catalog'
 
 export interface CustomForm {
   name: string
@@ -7,12 +8,14 @@ export interface CustomForm {
   volts: string
   amps: string
   surge: string
+  /** Percent of each hour it runs; empty means 100. */
+  dutyPct: string
 }
 
-export const EMPTY_FORM: CustomForm = { name: '', mode: 'watts', watts: '', volts: '', amps: '', surge: '' }
+export const EMPTY_FORM: CustomForm = { name: '', mode: 'watts', watts: '', volts: '', amps: '', surge: '', dutyPct: '' }
 
-export interface ParsedCustomLoad { id: string; name: string; watts: number; surge: number; note: string }
-export type CustomError = Extract<UiKey, 'errName' | 'errNameLong' | 'errVa' | 'errWatts' | 'errSurge' | 'errThousands'>
+export interface ParsedCustomLoad { id: string; name: string; watts: number; surge: number; note: string; duty?: number }
+export type CustomError = Extract<UiKey, 'errName' | 'errNameLong' | 'errVa' | 'errWatts' | 'errSurge' | 'errThousands' | 'errDuty'>
 export type ParseResult = { ok: true; item: ParsedCustomLoad } | { ok: false; error: CustomError }
 
 const ID_PREFIX = 'custom'
@@ -30,6 +33,17 @@ export const CUSTOM_NAME_MAX = 80
  */
 const THOUSANDS = /^\d{1,3}([.,]\d{3})+$/
 const isGrouped = (v: string): boolean => THOUSANDS.test(v.trim())
+
+const PERCENT = 100
+/** The lowest percent the form takes: the floor the duty picker clamps an override to. */
+export const CUSTOM_DUTY_MIN_PCT = SIZING.DUTY_MIN * PERCENT
+
+/** The share of each hour from the form's percent: 1 when left empty, null when it is not one the duty picker could hold. */
+function dutyOf(pct: string): number | null {
+  if (pct.trim() === '') return 1
+  const n = Number(pct)
+  return Number.isFinite(n) && n >= CUSTOM_DUTY_MIN_PCT && n <= PERCENT ? n / PERCENT : null
+}
 
 function num(v: string): number {
   const n = Number(v)
@@ -52,12 +66,15 @@ export function parseCustom(form: CustomForm, existingIds: readonly string[]): P
   if (name.length > CUSTOM_NAME_MAX) return { ok: false, error: 'errNameLong' }
   if ((!isVa && isGrouped(form.watts)) || isGrouped(form.surge)) return { ok: false, error: 'errThousands' }
   const watts = Math.round(computed)
-  // Whole, finite watts are what is stored: a load that rounds to zero, or volts × amps that overflow, would be one the saved project refuses.
-  if (!(watts >= 1 && Number.isFinite(watts))) {
+  // Whole watts within the catalog's ceiling are what is stored: a load that rounds to zero, or one above the ceiling
+  // (volts × amps that overflow included), would be one the saved project refuses.
+  if (!(watts >= 1 && watts <= MAX_APPLIANCE_WATTS)) {
     return { ok: false, error: isVa ? 'errVa' : 'errWatts' }
   }
   const surge = num(form.surge)
-  if (surge > 0 && surge < computed) return { ok: false, error: 'errSurge' }
+  if (surge > 0 && (surge < computed || Math.round(surge) > MAX_APPLIANCE_SURGE)) return { ok: false, error: 'errSurge' }
+  const duty = dutyOf(form.dutyPct)
+  if (duty === null) return { ok: false, error: 'errDuty' }
   return {
     ok: true,
     item: {
@@ -66,6 +83,8 @@ export function parseCustom(form: CustomForm, existingIds: readonly string[]): P
       watts,
       surge: Math.round(surge > 0 ? surge : computed),
       note: isVa ? `Custom · ${volts} V × ${amps} A` : `Custom · ${watts} W`,
+      // Only a load that cycles stores a duty, so one at 100% is saved exactly as before.
+      ...(duty < 1 ? { duty } : {}),
     },
   }
 }

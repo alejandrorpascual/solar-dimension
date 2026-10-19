@@ -1,0 +1,2 @@
+PASS en · section "Quotes" · retention sentence found 1x
+PASS es · section "Cotizaciones" · retention sentence found 1x

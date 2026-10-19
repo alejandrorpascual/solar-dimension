@@ -176,7 +176,7 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     const panels = parts.find((p) => p.id === 'solarPanels')!
     expect(panels.qty).toBe('10')
     expect(panels.spec).toBe(locale === 'es' ? '550 W monocristalino, 2.28 × 1.13 m' : '550 W monocrystalline, 2.28 × 1.13 m')
-    expect(panels.note).toContain(locale === 'es' ? '2 cadenas de hasta 5 en serie' : '2 strings of up to 5 in series')
+    expect(panels.note).toContain(locale === 'es' ? '2 cadenas de 5 en serie' : '2 strings of 5 in series')
     expect(parts.find((p) => p.id === 'chargeController')!.qty).toBe('1')
     expect(parts.find((p) => p.id === 'chargeController')!.spec).toContain('MPPT 100 A')
     expect(parts.find((p) => p.id === 'pvCable')!.qty).toBe('2')
@@ -188,8 +188,13 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(buildParts(r, t, locale).some((p) => p.group === 'solar')).toBe(false)
   })
 
-  test('a one-panel kit says "panel" in the mounting spec', () => {
+  test('a 48 V kit on a roof that holds one panel has no solar rows', () => {
     const r = compute({ qty: DEFAULT_QTY, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-200', solar: { roofM2: 5, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    expect(buildParts(r, t, locale).some((p) => p.group === 'solar')).toBe(false)
+  })
+
+  test('a one-panel kit says "panel" in the mounting spec', () => {
+    const r = compute({ qty: DEFAULT_QTY, hours: 10, volts: 24, chemistry: 'lifepo4', solar: { roofM2: 5, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
     const mounting = buildParts(r, t, locale).find((p) => p.id === 'mounting')!
     expect(mounting.spec).toBe(locale === 'es' ? 'Rieles de aluminio y grapas para 1 panel' : 'Aluminium rails and mid/end clamps for 1 panel')
   })
@@ -197,5 +202,34 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
   test('an empty project has no solar rows even with panels chosen', () => {
     const r = compute({ qty: {}, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-200', solar: { roofM2: 40, panels: null, sunHours: 5 } }, CATALOG_SNAPSHOT)
     expect(buildParts(r, t, locale).some((p) => p.group === 'solar')).toBe(false)
+  })
+})
+
+describe('solar rows on every bank voltage and roof', () => {
+  const t = getDictionary('en')
+  /** Panels in series a string needs to charge each bank: one panel's hot Vmp clears 24 V and falls short of 36 V. */
+  const SHORTEST = { 12: 1, 24: 1, 36: 2, 48: 2 } as const
+
+  test('a kit lists the solar rows with equal strings, or none, no yield and a warning that the string is too short', () => {
+    for (const volts of [12, 24, 36, 48] as const) {
+      for (let roofM2 = 5; roofM2 <= 500; roofM2 += 5) {
+        for (const panels of [null, 1, 7]) {
+          const r = compute({ qty: DEFAULT_QTY, hours: 10, volts, chemistry: 'lifepo4', solar: { roofM2, panels, sunHours: 5 } }, CATALOG_SNAPSHOT)
+          const s = r.solar!
+          const rows = buildParts(r, t, 'en').filter((p) => p.group === 'solar')
+          const tooShort = r.warnings.filter((w) => w.code === 'stringTooShort')
+          const at = `${volts} V · ${panels ?? 'recommended'} on ${roofM2} m²`
+          if (s.panels > 0) {
+            expect(rows.map((p) => p.id), at).toEqual(['solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'])
+            expect(rows[0]!.qty, at).toBe(String(s.strings * s.perString))
+            expect(rows[0]!.note, at).toContain(s.strings === 1 ? `1 string of ${s.perString} in series` : `${s.strings} strings of ${s.perString} in series`)
+            expect([tooShort, r.warnings.find((w) => w.code === 'roofLimited')?.params.fit], at).toEqual([[], s.isRoofLimited ? s.wiredFit : undefined])
+          } else {
+            expect([rows.length, s.dailyWh], at).toEqual([0, 0])
+            expect(tooShort, at).toEqual([{ code: 'stringTooShort', params: { volts, count: SHORTEST[volts], fit: s.fit } }])
+          }
+        }
+      }
+    }
   })
 })

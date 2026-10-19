@@ -339,7 +339,7 @@ column), never built unchecked. `qa` cards are not pre-flighted: nothing is buil
 for affected feature selection, actual host readiness and new run-owned proof.
 Record uncovered/stale optional coverage alongside ordinary issue AC checks.
 4b. **Test-gap check** (super-qa → "Test-gap check (after build)"): map every AC to unit / component / e2e tests, hunt edge cases, write the High gaps red-first. A High gap that needs app code changed → Fail (step 7) with the gap list. Medium/Low go in the handoff under `Test gaps (not written)`.
-5. Run the tests. Capture evidence to `docs/super-board/runs/issue-<N>-qa-v<N>/`. For UI/visual ACs, capture screenshots at the standard viewports (1920×1080 desktop, 1024×768 tablet, 375×667 mobile). Commit the screenshots to the issue branch BEFORE writing the comment (the markdown image URLs depend on the files being present on the branch).
+5. Run the tests. Capture evidence to `docs/super-board/runs/issue-<N>-qa-v<N>/`. For UI/visual ACs, capture screenshots at the standard viewports (1920×1080 desktop, 1024×768 tablet, 375×667 mobile), plus a desktop and tablet crop of the changed part when it is narrower than the page (see "Crop of the changed part" below). Commit the screenshots to the issue branch BEFORE writing the comment (the markdown image URLs depend on the files being present on the branch).
 6. **Pass** → commit test files + screenshots to same branch + push → tick the `ac` block with proof lines, write `visual` for UI, append a `history` row, rewrite `status` → `[qa] [report] ✅` PR comment with results + evidence path **+ inline screenshot embeds** (see "Screenshot embed format" below) → issue comment with the SAME inline screenshot embeds → move card QA → Review. Clean up worktree.
 7. **Fail** → leave failing ACs unchecked with the reason, append a `history` row, rewrite `status` → `[qa] [report] ❌` PR comment with per-AC expected/actual + repro file:line + evidence path + "what fixed should look like" **+ inline screenshot embeds of the broken state** → issue comment with the same inline screenshots (showing what's wrong) → increment rebuild counter → move card QA → Ready (label `loop:rebuild-N`). Clean up worktree.
 
@@ -350,16 +350,23 @@ Inline screenshots in the GitHub comment using raw-URL markdown so they render d
 ```markdown
 | Viewport | Screenshot |
 |---|---|
-| Desktop 1920×1080 | ![desktop](https://github.com/<OWNER>/<REPO>/raw/<SHA>/docs/super-board/runs/issue-<N>-qa-v<V>/desktop.png) |
-| Tablet 1024×768  | ![tablet](https://github.com/<OWNER>/<REPO>/raw/<SHA>/docs/super-board/runs/issue-<N>-qa-v<V>/tablet.png) |
+| Desktop 1920×1080 | ![desktop](https://github.com/<OWNER>/<REPO>/raw/<SHA>/docs/super-board/runs/issue-<N>-qa-v<V>/desktop.png)<br>![desktop crop](https://github.com/<OWNER>/<REPO>/raw/<SHA>/docs/super-board/runs/issue-<N>-qa-v<V>/desktop-crop.png) |
+| Tablet 1024×768  | ![tablet](https://github.com/<OWNER>/<REPO>/raw/<SHA>/docs/super-board/runs/issue-<N>-qa-v<V>/tablet.png)<br>![tablet crop](https://github.com/<OWNER>/<REPO>/raw/<SHA>/docs/super-board/runs/issue-<N>-qa-v<V>/tablet-crop.png) |
 | Mobile 375×667   | ![mobile](https://github.com/<OWNER>/<REPO>/raw/<SHA>/docs/super-board/runs/issue-<N>-qa-v<V>/mobile.png) |
 ```
+
+**Crop of the changed part.** GitHub shrinks a 1920 px shot to fit: to the comment's width in a comment, and to 480 px (a quarter of its size) in the PR's Before | After table. A change inside a 400 px card then shows about 100 px wide, which reads like a phone screen. So when the change sits in one part of the page narrower than the viewport (a card, a row, a dialog), also save a crop of that part at desktop and tablet:
+
+- Take it with Playwright `await page.locator('<the changed part>').screenshot({ path: '<shot>-desktop-crop.png' })`, in the same run and state as the full shot. Any tool that cuts the full shot to the element's box works too.
+- Pick the smallest element that holds the whole change and its heading or label. In a tall card, crop the changed rows, not the whole card.
+- Embed the crop under the full shot in the same cell, as in the table above.
+- Skip the crop when the change spans the page width (a header, a page layout), and at mobile, where the part already fills the 375 px width.
 
 Substitution rules:
 - `<OWNER>/<REPO>` — read from `git remote get-url origin` (parse owner/name).
 - `<SHA>` — the commit that added the screenshots (`git rev-parse HEAD` right after committing them), never a branch name: the branch is deleted on merge and a branch URL breaks. Push before you post.
 - `<N>` and `<V>` — issue number + QA version (`v1`, `v2`, ...).
-- File names — keep them stable and descriptive (`desktop.png`, `tablet.png`, `mobile.png`, or `before-fix-desktop.png` / `after-fix-desktop.png` for rebuild-pass cases).
+- File names — keep them stable and descriptive (`desktop.png`, `tablet.png`, `mobile.png`, or `before-fix-desktop.png` / `after-fix-desktop.png` for rebuild-pass cases). A crop takes its full shot's name plus `-crop` (`ac1-two-quotes-desktop-crop.png`).
 
 For non-visual ACs (API tests, migration SQL, etc.), skip the screenshot block but keep the evidence-path line. Tests output (logs, REPORT.md) still goes in the evidence folder.
 
