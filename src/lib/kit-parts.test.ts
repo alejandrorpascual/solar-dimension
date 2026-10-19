@@ -60,10 +60,10 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(parts.find(p => p.id === 'mainCable')).toMatchObject({ qty: '4' })
     const links = parts.find(p => p.id === 'interconnects')!
     expect(links.qty).toBe('2')
-    expect(links.spec).toBe(locale === 'es' ? 'Puentes 1 AWG, 30 cm cada uno' : '1 AWG jumpers, 30 cm each')
+    expect(links.spec).toBe(locale === 'es' ? 'Puentes 1/0 AWG, 30 cm cada uno' : '1/0 AWG jumpers, 30 cm each')
     expect(links.note).toBe(locale === 'es'
-      ? 'Entre baterías en serie · 2 puentes idénticos lado a lado en cada enlace · 116 A de corriente de diseño cada uno · 130 A tras la corrección'
-      : 'Between batteries in series · 2 identical jumpers side by side at every link · 116 A design current each · 130 A after derating')
+      ? 'Entre baterías en serie · 2 puentes idénticos lado a lado en cada enlace · 116 A de corriente de diseño cada uno · 150 A tras la corrección'
+      : 'Between batteries in series · 2 identical jumpers side by side at every link · 116 A design current each · 150 A after derating')
   })
 
   test('three in series on two main runs: four jumpers, two at each link, at the same design current the main cable row states', () => {
