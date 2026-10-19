@@ -1,0 +1,24 @@
+# AC tests run against origin/staging 8087ee4 source (the fix reverted, tests kept)
+     × a load is held to the catalog ceiling of 30,000 W running and 120,000 W surge 5ms
+     × one saved above the catalog ceiling of 30,000 W running or 120,000 W surge is dropped with the notice 5ms
+     × a quantity of 0.5 gives an empty kit and no zero-quantity item 7ms
+     × an infinite quantity is left out instead of throwing 1ms
+     × an unknown chemistry, even an inherited object key, sizes as LiFePO4 without throwing 1ms
+     × a load with NaN watts is left out and counted as missing, and no result field is NaN 2ms
+     × a load with finite running watts but a NaN surge is left out too, and no result field is NaN 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/custom.test.ts > parseCustom > a load is held to the catalog ceiling of 30,000 W running and 120,000 W surge
+AssertionError: expected { ok: true, …(1) } to deeply equal { ok: false, error: 'errWatts' }
+ FAIL  src/lib/sizing.test.ts > inputs a saved project would refuse > a quantity of 0.5 gives an empty kit and no zero-quantity item
+AssertionError: expected false to be true // Object.is equality
+ FAIL  src/lib/sizing.test.ts > inputs a saved project would refuse > an infinite quantity is left out instead of throwing
+RangeError: Invalid array length
+ FAIL  src/lib/sizing.test.ts > inputs a saved project would refuse > an unknown chemistry, even an inherited object key, sizes as LiFePO4 without throwing
+TypeError: Cannot read properties of undefined (reading 'filter')
+ FAIL  src/lib/sizing.test.ts > inputs a saved project would refuse > a load with NaN watts is left out and counted as missing, and no result field is NaN
+AssertionError: expected [ 'result.items.6.watts', …(117) ] to deeply equal []
+ FAIL  src/lib/sizing.test.ts > inputs a saved project would refuse > a load with finite running watts but a NaN surge is left out too, and no result field is NaN
+AssertionError: expected [ 'result.items.6.surge', …(1) ] to deeply equal []
+ FAIL  src/lib/store.test.ts > a custom appliance the project could not read back > one saved above the catalog ceiling of 30,000 W running or 120,000 W surge is dropped with the notice
+AssertionError: expected [ 'custom1', 'custom2', 'custom3' ] to deeply equal [ 'custom3' ]
+      Tests  7 failed | 139 passed (146)

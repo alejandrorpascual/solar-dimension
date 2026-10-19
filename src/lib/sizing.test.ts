@@ -178,6 +178,14 @@ describe('inputs a saved project would refuse', () => {
     expect(r.runningW).toBe(465)
     expect(r.warnings).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
   })
+
+  test('a load with finite running watts but a NaN surge is left out too, and no result field is NaN', () => {
+    const custom = [{ id: 'custom1', name: 'Broken start', watts: 100, surge: NaN, note: '' }]
+    const r = compute({ ...KIT, qty: { ...ESSENTIALS, custom1: 1 }, custom }, CATALOG_SNAPSHOT)
+    expect(nanPaths(r)).toEqual([])
+    expect(r.runningW).toBe(465)
+    expect(r.warnings).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
+  })
 })
 
 describe('battery unit choice', () => {
