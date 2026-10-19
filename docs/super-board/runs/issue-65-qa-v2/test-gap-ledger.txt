@@ -1,0 +1,38 @@
+Test-gap check, QA v2, head 7f01987872a7b2d8f6144d24ac413ee39dbd4033 (range 6eb9329...7f01987)
+Round 2 changed only e2e/download.spec.ts (1 page -> 2 for the English default sheet with Appliance list unticked).
+src/ and README.md are byte-identical to round 1 (789771f).
+
+Ledger: AC | unit | component | e2e
+AC1 assumed / supuesto on surge, battery continuous, battery peak, parallel pass lines and the batteries note; fuse and cable lines without it
+  unit: src/lib/kit-checks.test.ts:53 (en + es, one-string and two-string kits), :20-25, :47-48, :137-140 (inverter sets); src/lib/kit-parts.test.ts:155-157
+  component: none (KitSheet.test.ts does not assert the words) | e2e: none
+AC2 finePrint lists the unit's continuous A, peak A and s, parallel limit, short-circuit A per Ah, inverter surge W and s, read from the catalog
+  unit: src/lib/fine-print.test.ts:22 (LiFePO4 48 V and AGM 12 V, en + es, values from CHEMISTRIES and INVERTERS), :45 (inverter set gives one unit's surge)
+  component: n/a, pure text | e2e: n/a
+AC3 inverter spec has "continuous" and "not VA" (en), "continuos" and "no VA" (es)
+  unit: src/lib/kit-parts.test.ts:150, :123, :139 | component: n/a
+  e2e: e2e/kit-builder.spec.ts:433, :437, :545, :551, :562, :581 (CSV) - green in CI on this head
+AC4 README Sizing assumptions lists the same ratings
+  n/a: prose; checked by hand against a fresh catalog dump (readme-vs-catalog.txt)
+
+Page count (the round 1 failure)
+  e2e/download.spec.ts:35 and :95 expect 2 pages; e2e/requester.spec.ts:362, :373 expect 3 for the Spanish series-parallel sheet with the longest client.
+  All green in CI on this head (e2e-ci-7f01987.txt). Can they fail? The same sheet rendered from staging src prints 1 page
+  (harness-measurements.json "before-sheet-no-appliances-en": 1 page; the last block ends 10.9 px above the A4 edge), so
+  the new expectation is red against the old app. Fine print block: 89 px on staging, 138 px here (+49 px).
+
+Edge cases
+  empty kit: pinned, src/lib/fine-print.test.ts:63 (no ratings sentence)
+  inverters in parallel: pinned, src/lib/fine-print.test.ts:45; src/lib/kit-checks.test.ts:137
+  panel kit order: pinned, src/lib/fine-print.test.ts:55
+  locale formatting: n/a, every number in the ratings sentence is under 1,000 or goes through fmtInt / fmtW
+  narrow screen: harness, after-kit-en-mobile and after-kit-es-mobile at 375 px, scrollWidth 375 (no sideways scroll)
+
+Test the tests: 4 throwaway mutations, each red, each reverted (mutations.txt).
+
+Test gaps (not written)
+  Medium: src/lib/fine-print.ts:17 reads short-circuit A per Ah from CHEMISTRIES, not the HardwareCatalog compute() was
+          given, and skips a unit's shortCircuitA. No caller passes other hardware today (src/lib/project-summary.ts:20)
+          and no unit sets shortCircuitA, so the sheet is right today. Witness: compute(input, appliances, { ...DEFAULT_HARDWARE,
+          chemistries: { ...CHEMISTRIES, lifepo4: { ...CHEMISTRIES.lifepo4, shortCircuitPerAh: 30 } } }) still prints 25.
+  Low: no e2e reads an "assumed" check line on screen; the unit tests above pin the words.

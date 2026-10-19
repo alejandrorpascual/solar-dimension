@@ -1,0 +1,112 @@
+CI job 118190370259 (workflow CI, check "verify": success) on head 7f01987872a7b2d8f6144d24ac413ee39dbd4033
+It runs typecheck, test:coverage, build and the full e2e suite (npm run e2e, retries 1 in CI) on the Neon e2e branch.
+Lines for the specs this PR touches, then the summary:
+✓   25 [desktop] › e2e/download.spec.ts:40:1 › the CSV parts list carries the solar parts when panels are chosen (1.4s)
+✓   26 [desktop] › e2e/download.spec.ts:58:1 › export progress is visible while the file is being prepared (2.0s)
+✓   27 [desktop] › e2e/download.spec.ts:83:1 › the parts list comes first, and the load schedule gets a PDF page of its own (3.0s)
+✓   28 [desktop] › e2e/download.spec.ts:98:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (951ms)
+✓   29 [desktop] › e2e/download.spec.ts:124:1 › a CSV has no printed pages, so there is no larger view to open (595ms)
+✓   30 [desktop] › e2e/download.spec.ts:133:1 › notes and failing checks stay on the sheet and in the files with their Include boxes unticked (3.9s)
+✓   31 [desktop] › e2e/download.spec.ts:193:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @phone (1.2s)
+✓   32 [desktop] › e2e/download.spec.ts:193:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @phone (1.2s)
+✓   33 [desktop] › e2e/download.spec.ts:206:1 › the checks print last on the sheet and can be left out (576ms)
+✓   48 [desktop] › e2e/kit-builder.spec.ts:9:1 › shell renders the stepper, a Home project and step navigation @phone (595ms)
+✓   49 [desktop] › e2e/kit-builder.spec.ts:21:1 › the stepper jumps straight to any step (645ms)
+✓   50 [desktop] › e2e/kit-builder.spec.ts:39:1 › moving between steps does not wait on the server (971ms)
+✘   24 [desktop] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone (30.1s)
+✓   51 [desktop] › e2e/kit-builder.spec.ts:56:1 › the kit edits appliances and the window in place, shows what moved, and undoes it (1.4s)
+✓   53 [desktop] › e2e/kit-builder.spec.ts:83:1 › the full list is split into one labeled section per category (1.9s)
+✓   52 [desktop] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone (retry #1) (3.1s)
+✓   54 [desktop] › e2e/kit-builder.spec.ts:102:1 › a condo can type 32 cameras, and the AC list is grouped by compressor type (1.2s)
+✓   55 [desktop] › e2e/kit-builder.spec.ts:128:1 › a new project can be created, renamed and deleted @phone (1.6s)
+✓   57 [desktop] › e2e/kit-builder.spec.ts:203:1 › clicking another project's card away from its name opens that project @phone (1.1s)
+✓   56 [desktop] › e2e/kit-builder.spec.ts:146:1 › project names can be erased with backspace and replaced @phone (2.3s)
+✓   59 [desktop] › e2e/kit-builder.spec.ts:217:1 › quick edit on another project's card shows its steppers without opening it @phone (1.1s)
+✓   58 [desktop] › e2e/kit-builder.spec.ts:226:1 › with quick edit open, a click between stepper rows opens nothing @phone (1.2s)
+✓   60 [desktop] › e2e/kit-builder.spec.ts:245:1 › project cards show each kit and quick edit a project without opening it (1.3s)
+✓   61 [desktop] › e2e/kit-builder.spec.ts:269:1 › appliances can be added, filtered and a custom load created from volts × amps (1.3s)
+✓   62 [desktop] › e2e/kit-builder.spec.ts:293:1 › the custom form explains what is missing (656ms)
+✓   63 [desktop] › e2e/kit-builder.spec.ts:302:1 › the custom form questions watts typed with a thousands separator, and keeps a name to what a saved project holds (1.2s)
+✓   64 [desktop] › e2e/kit-builder.spec.ts:319:1 › a saved custom appliance that no longer loads stays reported until it is removed, and a new one does not take its place (1.3s)
+✓   65 [desktop] › e2e/kit-builder.spec.ts:361:1 › hours, voltage and chemistry change the sizing summary (734ms)
+✓   66 [desktop] › e2e/kit-builder.spec.ts:384:3 › the kit says it is an estimate between the parts list and the checks, in English @phone (688ms)
+✓   67 [desktop] › e2e/kit-builder.spec.ts:396:3 › a kit with nothing selected has no parts to qualify, so it shows no estimate sentence, in English (648ms)
+✓   68 [desktop] › e2e/kit-builder.spec.ts:384:3 › the kit says it is an estimate between the parts list and the checks, in Español @phone (1.2s)
+✓   69 [desktop] › e2e/kit-builder.spec.ts:396:3 › a kit with nothing selected has no parts to qualify, so it shows no estimate sentence, in Español (1.1s)
+✓   71 [desktop] › e2e/kit-builder.spec.ts:413:3 › Privacy and Terms of use open from under step 2, without signing in (1.1s)
+✓   70 [desktop] › e2e/kit-builder.spec.ts:413:3 › Privacy and Terms of use open from under step 1, without signing in (1.3s)
+✓   72 [desktop] › e2e/kit-builder.spec.ts:413:3 › Privacy and Terms of use open from under step 3, without signing in (939ms)
+✓   73 [desktop] › e2e/kit-builder.spec.ts:413:3 › Privacy and Terms of use open from under step 4, without signing in (1.2s)
+✓   74 [desktop] › e2e/kit-builder.spec.ts:425:1 › full flow: appliances → window → kit, and the project survives a reload @phone (1.5s)
+✓   75 [desktop] › e2e/kit-builder.spec.ts:442:1 › the language switch shows the app in Spanish and remembers it (2.0s)
+✓   76 [desktop] › e2e/kit-builder.spec.ts:456:3 › on a device whose preferred languages put Spanish first among the supported ones › opens in Spanish without touching the switch, and a manual choice still wins (1.5s)
+✓   78 [desktop] › e2e/kit-builder.spec.ts:495:1 › a cycling appliance's on-time can be changed on the kit, moves the runtime, and is undone (993ms)
+✓   77 [desktop] › e2e/kit-builder.spec.ts:467:1 › the battery size can be chosen on the kit, is remembered, and Auto brings back the fewest batteries (2.2s)
+✓   79 [desktop] › e2e/kit-builder.spec.ts:518:1 › on the narrowest phone the quotes card wraps its long Spanish sign-in label instead of widening the page @phone (1.1s)
+✓   81 [desktop] › e2e/kit-builder.spec.ts:554:1 › a load past the largest inverter gets inverters in parallel, each with its own cable runs and fuses (1.2s)
+✓   80 [desktop] › e2e/kit-builder.spec.ts:533:1 › motors starting together and a hot cable run change the inverter, the checks and the assumptions (3.3s)
+✓  143 [desktop] › e2e/requester.spec.ts:36:1 › the spec sheet prints the requester band, and Include takes it off (2.3s)
+✓  144 [desktop] › e2e/requester.spec.ts:77:1 › a client added in the Download panel prints on the sheet and stays after a reload (1.7s)
+✓  146 [desktop] › e2e/requester.spec.ts:121:1 › a person in the United States is not asked for an ID (1.0s)
+✓  145 [desktop] › e2e/requester.spec.ts:98:1 › the form explains a bad RIF, caps long text, and Escape closes only the form @phone (1.5s)
+✓  148 [desktop] › e2e/requester.spec.ts:164:1 › a saved client can be edited and deleted from the list, and the project keeps its copy (1.7s)
+✓  147 [desktop] › e2e/requester.spec.ts:143:1 › a saved client is one tap away in a new project (1.9s)
+✓  150 [desktop] › e2e/requester.spec.ts:216:1 › with a long list of saved clients, "Use on the sheet" stays on screen @phone (1.4s)
+✓  149 [desktop] › e2e/requester.spec.ts:189:1 › closing the form keeps what was typed, across a reload, until Start over (2.0s)
+✓  151 [desktop] › e2e/requester.spec.ts:234:1 › Remove takes the client off this project (2.4s)
+✓  153 [desktop] › e2e/requester.spec.ts:273:1 › a cédula added later to a client saved without one prints on the sheet (1.1s)
+✓  152 [desktop] › e2e/requester.spec.ts:245:1 › a signed-in client comes back from the account on a fresh browser (3.4s)
+✓  154 [desktop] › e2e/requester.spec.ts:286:1 › clients saved while signed out are not offered to an account that signs in on the same browser (2.9s)
+✓  155 [desktop] › e2e/requester.spec.ts:305:1 › a client with every field at its longest still leaves the parts list whole on page one @phone (3.2s)
+✓  156 [desktop] › e2e/requester.spec.ts:351:3 › the longest client in Spanish: the estimate block prints whole, and the load schedule never takes a third page @phone (3.9s)
+✓  157 [desktop] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one: the estimate block prints whole, and the load schedule never takes a third page @phone (4.1s)
+-  159 [desktop] › e2e/requester.spec.ts:399:1 › with the phone keyboard open, the form sheet ends above it and its last field can be reached @phone
+-  160 [desktop] › e2e/requester.spec.ts:414:1 › on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tapped @phone
+✓  158 [desktop] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one, in Spanish: the estimate block prints whole, and the load schedule never takes a third page @phone (3.8s)
+✓  196 [phone] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone (3.7s)
+✓  197 [phone] › e2e/download.spec.ts:98:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (2.2s)
+✓  198 [phone] › e2e/download.spec.ts:193:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @phone (2.6s)
+✓  199 [phone] › e2e/download.spec.ts:193:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @phone (4.6s)
+✓  205 [phone] › e2e/kit-builder.spec.ts:9:1 › shell renders the stepper, a Home project and step navigation @phone (1.1s)
+✓  206 [phone] › e2e/kit-builder.spec.ts:128:1 › a new project can be created, renamed and deleted @phone (2.4s)
+✓  207 [phone] › e2e/kit-builder.spec.ts:146:1 › project names can be erased with backspace and replaced @phone (2.9s)
+✓  208 [phone] › e2e/kit-builder.spec.ts:203:1 › clicking another project's card away from its name opens that project @phone (2.0s)
+✓  209 [phone] › e2e/kit-builder.spec.ts:217:1 › quick edit on another project's card shows its steppers without opening it @phone (1.6s)
+✓  211 [phone] › e2e/kit-builder.spec.ts:384:3 › the kit says it is an estimate between the parts list and the checks, in English @phone (511ms)
+✓  210 [phone] › e2e/kit-builder.spec.ts:226:1 › with quick edit open, a click between stepper rows opens nothing @phone (1.8s)
+✓  212 [phone] › e2e/kit-builder.spec.ts:384:3 › the kit says it is an estimate between the parts list and the checks, in Español @phone (1.0s)
+✓  213 [phone] › e2e/kit-builder.spec.ts:425:1 › full flow: appliances → window → kit, and the project survives a reload @phone (1.2s)
+✓  214 [phone] › e2e/kit-builder.spec.ts:518:1 › on the narrowest phone the quotes card wraps its long Spanish sign-in label instead of widening the page @phone (1.1s)
+✓  232 [phone] › e2e/requester.spec.ts:98:1 › the form explains a bad RIF, caps long text, and Escape closes only the form @phone (2.3s)
+✓  233 [phone] › e2e/requester.spec.ts:216:1 › with a long list of saved clients, "Use on the sheet" stays on screen @phone (2.1s)
+✓  234 [phone] › e2e/requester.spec.ts:305:1 › a client with every field at its longest still leaves the parts list whole on page one @phone (3.3s)
+✓  235 [phone] › e2e/requester.spec.ts:351:3 › the longest client in Spanish: the estimate block prints whole, and the load schedule never takes a third page @phone (3.8s)
+✓  236 [phone] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one: the estimate block prints whole, and the load schedule never takes a third page @phone (3.9s)
+✓  238 [phone] › e2e/requester.spec.ts:399:1 › with the phone keyboard open, the form sheet ends above it and its last field can be reached @phone (2.0s)
+✓  237 [phone] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one, in Spanish: the estimate block prints whole, and the load schedule never takes a third page @phone (4.1s)
+✓  239 [phone] › e2e/requester.spec.ts:414:1 › on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tapped @phone (2.1s)
+
+  1) [desktop] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.check: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('radio', { name: /^Parts list \(CSV\)/ })
+
+
+       5 |
+       6 | async function downloadAs(page: Page, format: RegExp, button: string): Promise<Download> {
+    >  7 |   await page.getByRole('radio', { name: format }).check()
+         |                                                   ^
+       8 |   const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: button }).click()])
+       9 |   return file
+      10 | }
+
+  1 flaky
+    [desktop] › e2e/download.spec.ts:12:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone 
+  6 skipped
+  235 passed (4.5m)
+
+The flaky test timed out at e2e/download.spec.ts:17, the first (CSV) download, waiting for the panel's radio: before any
+line this PR changed. Its retry passed in 3.1 s, and the phone project ran it green first time (test 196).

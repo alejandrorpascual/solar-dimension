@@ -70,7 +70,7 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
     case 'batteryPeak':
       return tr(t, 'checkBatteryPeakOk', { bankA: a(b.bankPeakA), needA: a(startupA), seconds: r.surgeSeconds })
     case 'parallel':
-      return b.parallel > 1 ? tr(t, 'checkParallelOk', { parallel: b.parallel, max: b.unit.maxParallel }) : t.ui.checkParallelSingle
+      return tr(t, b.parallel > 1 ? 'checkParallelOk' : 'checkParallelSingle', { parallel: b.parallel, max: b.unit.maxParallel })
     case 'fuse':
       return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, startA: a(startupA / c.runs) })
     case 'cable':

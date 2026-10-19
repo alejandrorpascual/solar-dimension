@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "Tamaño del inversor240 W en marcha con un inversor de 3,000 W · 1,290 W durante 3 s, dentro de sus 6,000 W de arranque supuestos240 W en marcha + 1,050 W (Refrigerador) arrancando",
+    "Corriente continua de la bateríaEl banco entrega 100 A continuos supuestos; el inversor toma hasta 69 A",
+    "Corriente pico de la bateríaEl pico supuesto del banco, 200 A, cubre los 30 A de arranque durante 3 s",
+    "Ramas en paraleloUna sola rama, nada que balancear · límite supuesto de 16 en paralelo",
+    "Fusible100 A clase T: bajo los 115 A del cable, 20 kA de interrupción, arranque de 30 A dentro de lo que aguanta",
+    "Cable2 AWG soporta 115 A tras la corrección (30 °C) para 87 A de diseño · 0.1% de caída al arrancar"
+  ],
+  "rows": [
+    "ParteEspecificaciónCantidad",
+    "Inversor3,000 W continuos, no VA, onda pura, entrada 48 V CC6,000 W de arranque · cubre 240 W en marcha, 1,290 W pico×1",
+    "Baterías48 V 100 Ah LiFePO₄1 en serie × 1 en paralelo (1S1P) · banco de 4.8 kWh, 4.1 kWh utilizables · 100 A continuos, 200 A pico del banco (valores supuestos)×1",
+    "Cable principal2 AWG (33.6 mm²) de cobre, 1.5 m cada unoDe batería a inversor · 87 A de corriente de diseño · 115 A tras la corrección · 0.1% de caída al arrancar×2",
+    "Fusible100 A clase TEn línea en el cable positivo, lo más cerca posible del banco · 20 kA de capacidad de interrupción×1"
+  ],
+  "fine": "Supone 90% de eficiencia del inversor, 25% de margen, 85% de profundidad de descarga, 1,100 W por tonelada de refrigeración, un solo motor arrancando a la vez, cable de cobre con aislamiento de 90 °C a 30 °C. Tablas de ampacidad NEC; verifica con la normativa local. Los tamaños de inversor son vatios continuos, no VA, a temperatura ambiente; el margen de 25% cubre el factor de potencia y el calor. Valores supuestos, no de la ficha de un fabricante: cada batería de 48 V 100 Ah LiFePO₄ entrega 100 A continuos y 200 A pico durante 5 s, como máximo 16 en paralelo, y 25 A por Ah en cortocircuito; cada inversor de 3,000 W arranca hasta 6,000 W durante 5 s.",
+  "horizontalOverflowPx": 0
+}

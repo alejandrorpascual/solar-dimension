@@ -17,12 +17,12 @@ describe('kitChecks', () => {
     expect(checks.map((c) => c.id)).toEqual(CHECK_IDS)
     expect(checks.every((c) => c.status === 'pass')).toBe(true)
     const by = Object.fromEntries(checks.map((c) => [c.id, c]))
-    expect(by.surge!.lines[0]).toBe('465 W running on a 3,000 W inverter · 1,515 W for 3 s, within its 6,000 W surge rating')
+    expect(by.surge!.lines[0]).toBe('465 W running on a 3,000 W inverter · 1,515 W for 3 s, within its assumed 6,000 W surge rating')
     expect(by.surge!.lines[1]).toBe('465 W running + 1,050 W (Refrigerator) starting')
-    expect(kitChecks(es, kit(ESSENTIALS), 'es')[0]!.lines[0]).toBe('465 W en marcha con un inversor de 3,000 W · 1,515 W durante 3 s, dentro de sus 6,000 W de arranque')
-    expect(by.batteryContinuous!.lines).toEqual(['Bank gives 200 A continuous; the inverter draws up to 69 A'])
-    expect(by.batteryPeak!.lines).toEqual(['Bank peak 400 A covers the 35 A start-up for 3 s'])
-    expect(by.parallel!.lines).toEqual(['One string, nothing to balance'])
+    expect(kitChecks(es, kit(ESSENTIALS), 'es')[0]!.lines[0]).toBe('465 W en marcha con un inversor de 3,000 W · 1,515 W durante 3 s, dentro de sus 6,000 W de arranque supuestos')
+    expect(by.batteryContinuous!.lines).toEqual(['Bank gives an assumed 200 A continuous; the inverter draws up to 69 A'])
+    expect(by.batteryPeak!.lines).toEqual(['Bank peak of an assumed 400 A covers the 35 A start-up for 3 s'])
+    expect(by.parallel!.lines).toEqual(['One string, nothing to balance · assumed limit of 16 in parallel'])
     expect(by.fuse!.lines[0]).toBe("100 A class T: under the cable's 115 A, 20 kA interrupting, start-up 35 A within what it holds")
     expect(by.cable!.lines[0]).toBe('2 AWG carries 115 A after derating (30 °C) for a 87 A design current · 0.1% drop at start-up')
   })
@@ -41,11 +41,29 @@ describe('kitChecks', () => {
     expect(r.surgeProfile.starters.length).toBeGreaterThanOrEqual(1)
   })
 
-  test('parallel strings report the maker limit, and the bundled cable says so', () => {
+  test('parallel strings report the assumed limit, and the bundled cable says so', () => {
     const r = kit(ESSENTIALS, { volts: 12, cable: { bundled: true } })
     const by = Object.fromEntries(kitChecks(en, r, 'en').map((c) => [c.id, c]))
-    expect(by.parallel!.lines).toEqual(['2 in parallel, within the 4 the maker allows'])
+    expect(by.parallel!.lines).toEqual(['2 in parallel, within the assumed limit of 4'])
+    expect(kitChecks(es, r, 'es').find((c) => c.id === 'parallel')!.lines).toEqual(['2 en paralelo, dentro del límite supuesto de 4'])
     expect(by.cable!.lines[0]).toContain('(30 °C · bundled)')
+  })
+
+  // The battery and inverter ratings are generic, not a maker's datasheet; the fuse and cable lines rest on code tables.
+  test.each([['en', 'assumed'], ['es', 'supuesto']] as const)('the pass lines resting on a generic rating say it is assumed, the fuse and cable lines do not (%s)', (locale, word) => {
+    const t = locale === 'en' ? en : es
+    // One string at 48 V, two in parallel at 12 V: both of the parallel check's pass lines.
+    for (const r of [kit(ESSENTIALS), kit(ESSENTIALS, { volts: 12 })]) {
+      const by = Object.fromEntries(kitChecks(t, r, locale).map((c) => [c.id, c]))
+      for (const id of ['surge', 'batteryContinuous', 'batteryPeak', 'parallel'] as const) {
+        expect(by[id]!.status).toBe('pass')
+        expect(by[id]!.lines[0]).toContain(word)
+      }
+      for (const id of ['fuse', 'cable'] as const) {
+        expect(by[id]!.status).toBe('pass')
+        expect(by[id]!.lines.join(' ')).not.toContain(word)
+      }
+    }
   })
 
   test('with several runs the cable line reads per run', () => {
@@ -116,10 +134,10 @@ describe('kitChecks', () => {
     const r = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 7000, surge: 7000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
     const lines = (locale: 'en' | 'es') => Object.fromEntries(kitChecks(locale === 'en' ? en : es, r, locale).map((c) => [c.id, c.lines[0]]))
     expect(kitChecks(en, r, 'en').map((c) => c.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass'])
-    expect(lines('en').surge).toBe('7,000 W running on 2 × 5,000 W inverters (10.0 kW together) · 7,000 W for 0 s, within their 20.0 kW surge rating')
-    expect(lines('es').surge).toBe('7,000 W en marcha con 2 inversores de 5,000 W (10.0 kW en total) · 7,000 W durante 0 s, dentro de sus 20.0 kW de arranque')
-    expect(lines('en').batteryContinuous).toMatch(/^Bank gives \d+ A continuous; the 2 inverters draw up to 231 A together$/)
-    expect(lines('es').batteryContinuous).toMatch(/^El banco entrega \d+ A continuos; los 2 inversores toman hasta 231 A en total$/)
+    expect(lines('en').surge).toBe('7,000 W running on 2 × 5,000 W inverters (10.0 kW together) · 7,000 W for 0 s, within their assumed 20.0 kW surge rating')
+    expect(lines('es').surge).toBe('7,000 W en marcha con 2 inversores de 5,000 W (10.0 kW en total) · 7,000 W durante 0 s, dentro de sus 20.0 kW de arranque supuestos')
+    expect(lines('en').batteryContinuous).toMatch(/^Bank gives an assumed \d+ A continuous; the 2 inverters draw up to 231 A together$/)
+    expect(lines('es').batteryContinuous).toMatch(/^El banco entrega \d+ A continuos supuestos; los 2 inversores toman hasta 231 A en total$/)
     // The 162 A start-up is split between the two fuses.
     expect(lines('en').fuse).toBe("150 A class T: under the cable's 150 A, 20 kA interrupting, start-up 81 A within what it holds")
     expect(lines('en').cable).toContain('2 × 1/0 AWG carries 150 A after derating')
