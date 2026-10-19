@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test'
 import { switchLanguage } from './header'
+import { PHONE } from './phone'
+
+const TOO_SHORT_48 = 'A string needs at least 2 panels in series to charge a 48 V bank, and the roof holds only 1. This kit lists no panels; make room for 2 or more.'
 
 test('a fresh project is battery-only and the step can be skipped', async ({ page }) => {
   await page.goto('/?step=3')
@@ -94,4 +97,60 @@ test('the step reads in Spanish', async ({ page }) => {
   await page.getByRole('button', { name: /^Sí, agregar paneles/ }).click()
   await expect(page.getByText('Recomendado · recarga el banco en un día')).toBeVisible()
   await switchLanguage(page, 'English')
+})
+
+test('a 48 V roof that holds one panel lists none and says the string is too short; at 24 V the panel stays', PHONE, async ({ page }) => {
+  await page.goto('/?step=3')
+  await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  const planner = page.getByRole('group', { name: /Roof planner/ })
+  const less = page.getByRole('button', { name: 'Five square metres less' })
+  for (let i = 0; i < 7; i++) await less.click()
+  await expect(page.getByText('5 m²')).toBeVisible()
+  await expect(planner.getByRole('button')).toHaveCount(1)
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(0)
+  await expect(page.getByText(/^0 panels · /)).toBeVisible()
+  await expect(page.getByText(TOO_SHORT_48)).toBeVisible()
+  await expect(page.getByText(/^Recommended · /)).toHaveCount(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+  // Tapping the one tile asks for a panel that cannot charge alone, so it stays empty.
+  await planner.getByRole('button', { name: 'Add panel 1' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await expect(page.getByRole('rowheader', { name: /Solar panels/ })).toHaveCount(0)
+  await expect(page.getByRole('rowheader', { name: /Charge controller/ })).toHaveCount(0)
+  await expect(page.getByRole('status').filter({ hasText: TOO_SHORT_48 })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'Your roof holds' })).toHaveCount(0)
+
+  await page.goto('/?step=2')
+  await page.getByRole('button', { name: /^24 V/ }).click()
+  await page.goto('/?step=3')
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(1)
+  await expect(page.getByText(/^1 panel · /)).toBeVisible()
+  await expect(page.getByText(TOO_SHORT_48)).toHaveCount(0)
+})
+
+test('7 panels on a roof that fits 8 wire as 2 strings of 4, and removing the last panel always drops the count', async ({ page }) => {
+  await page.goto('/?step=3')
+  await page.getByRole('button', { name: /^Yes, add panels/ }).click()
+  const planner = page.getByRole('group', { name: /Roof planner/ })
+  const less = page.getByRole('button', { name: 'Five square metres less' })
+  for (let i = 0; i < 3; i++) await less.click()
+  await expect(page.getByText('25 m²')).toBeVisible()
+  await expect(planner.getByRole('button')).toHaveCount(8)
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(5)
+  // 7 does not split into equal strings at 48 V; 6 and 8 are as near, and a tie rounds up.
+  await planner.getByRole('button', { name: 'Add panel 7' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(8)
+  // Asking for 7 would round straight back to 8, so removing panel 8 leaves 6.
+  await planner.getByRole('button', { name: 'Remove panel 8' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(6)
+  await planner.getByRole('button', { name: 'Add panel 7' }).click()
+  await expect(planner.getByRole('button', { pressed: true })).toHaveCount(8)
+
+  await page.getByRole('button', { name: 'Build my kit' }).click()
+  const row = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: /Solar panels/ }) })
+  await expect(row).toContainText('×8')
+  await expect(row).toContainText('2 strings of 4 in series')
 })

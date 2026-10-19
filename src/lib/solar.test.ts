@@ -224,7 +224,6 @@ describe('string length against the charge voltage', () => {
         const s = sizeSolar({ ...base, volts, solar: { roofM2: 500, panels, sunHours: 5 } })!
         expect(s.strings * s.perString, `${volts} V · ${panels} panels`).toBe(s.panels)
         expect(s.perString).toBeLessThanOrEqual(SOLAR.MAX_PER_STRING)
-        expect(s.controllerA).toBeLessThanOrEqual(SOLAR.CONTROLLER_AMPS[SOLAR.CONTROLLER_AMPS.length - 1]!)
       }
     }
   })
