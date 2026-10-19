@@ -52,7 +52,7 @@ const itemOf = (items: readonly ItemCheck[], id: ItemId): ItemCheck | undefined 
  * for any item the quote mentions without enough to judge it. Confirming that an item the quote leaves out is included
  * (a charger, the installation) is a fact the installer gave, not a size.
  */
-export const confirmsSize = (c: ItemCheck): boolean => SIZED_ITEMS.includes(c.id) || c.source !== null
+export const confirmsSize = (c: ItemCheck): boolean => SIZED_ITEMS.includes(c.id) || c.sources.length > 0
 
 const isNear = (a: number, b: number): boolean => Math.abs(a - b) <= b * VOLTAGE_TOLERANCE
 

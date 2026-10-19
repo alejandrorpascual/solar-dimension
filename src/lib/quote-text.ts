@@ -1,8 +1,8 @@
 import { trq, type Dictionary, type QuoteKey } from '../i18n'
 import { checkExtraction, hasTotal, isFixedByTotal, linesWithTax } from './quote-checks'
-import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtW } from '../i18n/format'
+import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtNumber, fmtW } from '../i18n/format'
 import { entryKey, entryName, nothingRead, quoteSubtitle, type EntryOption, type QuoteView, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
-import { HIGHEST_DOD_CHEMISTRY, LOWEST_DOD_CHEMISTRY, STRIP_ITEMS, type ItemCheck, type ItemFacts, type ItemId, type ItemStatus, type KitNeeds } from './quote-items'
+import { HIGHEST_DOD_CHEMISTRY, LOWEST_DOD_CHEMISTRY, STRIP_ITEMS, type ItemCheck, type ItemFacts, type ItemId, type ItemStatus, type KitNeeds, type Term } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
 import type { QuoteExtraction, QuoteStatus } from './quote-schema'
@@ -82,7 +82,7 @@ export function gapText(t: Dictionary, r: RankedQuote, kit: KitNeeds): string {
  * others it doesn't mention at all. The two read differently: "doesn't mention a battery charger", "doesn't confirm the
  * size and number of the main cables".
  */
-export const isUnclear = (c: ItemCheck): boolean => c.status === 'unknown' && c.source !== null
+export const isUnclear = (c: ItemCheck): boolean => c.status === 'unknown' && c.sources.length > 0
 
 /** A quote's unknown must-haves, split into those it doesn't mention and those it leaves to confirm. */
 function unknownGroups(r: RankedQuote): { unmentioned: ItemId[]; unclear: ItemCheck[] } {
@@ -213,7 +213,7 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
       const need = f.shortW ? trq(t, 'needsW', { w: fmtW(kit.runningW, L) }) : trq(t, 'needsSurge', { w: fmtW(kit.surgeW, L) })
       // The user's confirmation wins over what the quote leaves unsaid.
       const unstated = f.surgeUnknown ? q.surgeNotStated : null
-      return { label: f.watts !== undefined ? fmtW(f.watts, L) : q.included, detail: short ? need : confirmed ?? unstated }
+      return { label: f.watts !== undefined ? fmtW(f.watts, L) : q.included, detail: short ? need : confirmed ?? unstated ?? inverterMath(t, f) }
     }
     case 'battery':
       return {
@@ -238,11 +238,28 @@ export function itemText(t: Dictionary, c: ItemCheck, kit: KitNeeds, currency: s
   }
 }
 
-/** How a bank's usable energy was counted: "9.6 kWh × 85% depth of discharge"; null when its lines mix depths. */
+/** Each line a check read, in the quote's own words with its page: "“Batería LiFePO4 5.12 kWh × 8” · Page 1". Lines read from one quote row show it once. */
+export function evidenceLines(t: Dictionary, c: ItemCheck): string[] {
+  return [...new Set(c.sources.filter((s) => s.text).map((s) => (s.page ? `“${s.text}” · ${trq(t, 'evidence', { page: s.page })}` : `“${s.text}”`)))]
+}
+
+/** Summed lines as the quote counts them: "2 × 5,000 W + 3,000 W", one unit without its "1 ×". */
+const termsText = (t: Dictionary, terms: readonly Term[], unit: (n: number) => string): string =>
+  terms.map(({ qty, each }) => (qty === 1 ? unit(each) : `${fmtNumber(qty, t.locale)} × ${unit(each)}`)).join(' + ')
+
+/** How a bank's usable energy was counted: "8 × 5.12 kWh × 85% depth of discharge"; null when its lines mix depths. */
 function batteryMath(t: Dictionary, f: ItemFacts): string | null {
-  if (f.nominalWh === undefined || f.dod === undefined) return null
-  const params = { nominal: fmtKwh(f.nominalWh, t.locale), pct: Math.round(f.dod * PERCENT) }
+  if (f.terms === undefined || f.dod === undefined) return null
+  const sum = termsText(t, f.terms, (wh) => `${fmtNumber(wh / 1000, t.locale)} kWh`)
+  const params = { bank: f.terms.length > 1 ? `(${sum})` : sum, pct: Math.round(f.dod * PERCENT) }
   return trq(t, f.dodAssumed ? 'batteryMathAssumed' : 'batteryMath', params)
+}
+
+/** How an inverter's ratings were counted: "2 × 5,000 W running · 2 × 10.0 kW surge"; null when its surge is not stated. */
+function inverterMath(t: Dictionary, f: ItemFacts): string | null {
+  if (f.terms === undefined || f.surgeTerms === undefined) return null
+  const w = (n: number) => fmtW(n, t.locale)
+  return trq(t, 'inverterMath', { running: termsText(t, f.terms, w), surge: termsText(t, f.surgeTerms, w) })
 }
 
 function fuseShortText(t: Dictionary, f: ItemFacts, kit: KitNeeds): string {
