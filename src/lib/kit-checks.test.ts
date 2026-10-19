@@ -323,4 +323,25 @@ describe('the locked-rotor note', () => {
     const r = compute({ qty: { charger: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, [...CATALOG_SNAPSHOT, charger])
     expect(lockedRotor(r)).toEqual([])
   })
+
+  // No catalog motor sits on these edges, so a motor is added with its start read from the surge ratio alone.
+  const motorKit = (watts: number, surge: number) => {
+    const motor = { id: 'motor', name: 'Motor', cat: 'Work' as const, watts, surge, duty: 0.5, note: '' }
+    return compute({ qty: { motor: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, [...CATALOG_SNAPSHOT, motor])
+  }
+
+  test.each([
+    { motor: 'of 250 W starting at 3×', watts: 250, surge: 750 },
+    { motor: 'starting just past 2×', watts: 500, surge: 1005 },
+  ])('shows for a motor $motor', ({ watts, surge }) => {
+    expect(lockedRotor(motorKit(watts, surge))).toHaveLength(1)
+  })
+
+  test.each([
+    { motor: 'of 249 W starting at 3×', watts: 249, surge: 747 },
+    { motor: 'starting at exactly 2×, a plain motor', watts: 500, surge: 1000 },
+    { motor: 'starting at 4×, past the rule of thumb', watts: 500, surge: 2000 },
+  ])('does not show for a motor $motor', ({ watts, surge }) => {
+    expect(lockedRotor(motorKit(watts, surge))).toEqual([])
+  })
 })
