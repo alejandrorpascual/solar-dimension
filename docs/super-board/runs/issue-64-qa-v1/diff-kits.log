@@ -1,0 +1,6 @@
+npx tsx diff-kits.ts <origin/staging src> <27a1cf9 src> · every catalog item alone, x2 and with the essentials, each AC with a pump, washer or gate · 2/8/24 h · 12/24/48 V · LiFePO4 + AGM
+kits run on both: 3006
+bank, inverter, cable, typical/light runtime or other notes differ: 0
+hard-day runtime lower on the branch: 1399 · same: 1607 · higher: 0
+AC kits with a nonzero staging hard day that did not get lower: 0
+kits without an AC whose hard day moved: 0
