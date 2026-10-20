@@ -5,10 +5,12 @@ A logical read gets three total attempts. Success resets its own sequence; other
 reads cannot reset it. Permanent query/auth errors stop on the first attempt.
 The halt file is shared through the main checkout, including linked worktrees.
 Only an explicit new run clears it with --resume after preserving the old reason.
-Mutations never enter this retry helper. For the agent-facing kinds in FORMS, a
-payload that fails its shape on every attempt is the caller's malformed read, not
-an outage: that call exits 64 with the valid form and the run keeps going. Scripts
-whose commands are fixed set SB_GITHUB_READ_STRICT=1 to keep halting on it.
+Mutations never enter this retry helper. A read the caller got wrong is not an
+outage: a payload that fails its shape on every attempt, or gh refusing its own
+arguments (never retried), fails only that call with exit 64 and the run keeps
+going. Scripts whose commands are fixed set SB_GITHUB_READ_STRICT=1 to keep
+halting on both. `pr view --json files` stops at 100 files, so `--kind metadata`
+takes the file list from REST pages.
 """
 from __future__ import annotations
 
@@ -111,6 +113,19 @@ def permanent_error(text):
                      r'Could not resolve to (?:a|an) |missing required scopes', text, re.I) is not None
 
 
+def usage_error(text):
+    """gh rejected its own arguments (a flag pair, an unknown --json field) before asking GitHub."""
+    return re.search(r'^Usage:\s+gh |^Unknown JSON field', text, re.M) is not None
+
+
+def misread(reason, kind, operation, attempts):
+    """Only this call fails (exit 64); fixed-command scripts halt, since their reads are never wrong."""
+    if os.environ.get('SB_GITHUB_READ_STRICT'):
+        halt(reason, attempts, operation)
+    form = f' Valid form: --kind {kind} -- {FORMS[kind]}' if kind in FORMS else ''
+    raise ValueError(f'{reason}; this call failed, the run continues.{form}')
+
+
 def require(condition, why):
     if not condition:
         raise ValueError(why)
@@ -171,14 +186,20 @@ def validate(text, kind, meta=None):
         return text
     value = json.loads(text)
     no_errors(value)
-    if kind == 'metadata':
+    if kind in ('metadata', 'pr-view'):
         require(isinstance(value, dict), 'PR metadata is not an object')
-        require(isinstance(value.get('files'), list) and isinstance(value.get('labels'), list)
-                and isinstance(value.get('body'), str), 'PR policy fields missing')
+        require(isinstance(value.get('labels'), list) and isinstance(value.get('body'), str), 'PR policy fields missing')
         require(all(type(value.get(k)) is int and value[k] >= 0 for k in ('additions', 'deletions', 'changedFiles')), 'PR counts missing')
-        require(value['changedFiles'] == len(value['files']), 'PR file list truncated')
-        require(all(isinstance(f, dict) and isinstance(f.get('path'), str) and f['path'] for f in value['files']), 'PR paths missing')
         require(all(isinstance(l, dict) and isinstance(l.get('name'), str) for l in value['labels']), 'PR labels missing')
+        if kind == 'metadata':
+            require(isinstance(value.get('files'), list), 'PR policy fields missing')
+            require(value['changedFiles'] == len(value['files']), 'PR file list truncated')
+            require(all(isinstance(f, dict) and isinstance(f.get('path'), str) and f['path'] for f in value['files']), 'PR paths missing')
+    elif kind == 'pr-files':
+        require(isinstance(value, list) and bool(value) and all(isinstance(p, list) for p in value), 'PR file pages missing')
+        require(all(isinstance(f, dict) and isinstance(f.get('filename'), str) and f['filename']
+                    and type(f.get('additions')) is int and type(f.get('deletions')) is int
+                    for page in value for f in page), 'PR file fields missing')
     elif kind == 'items':
         require(isinstance(value, dict) and isinstance(value.get('items'), list), 'board items missing')
         require(type(value.get('totalCount')) is int and value['totalCount'] == len(value['items']), 'board item list incomplete')
@@ -292,7 +313,42 @@ def validate(text, kind, meta=None):
     return value
 
 
+def repo_of(args):
+    """owner/name from gh's --repo, which also takes host, URL and SSH forms."""
+    for i, arg in enumerate(args):
+        value = args[i + 1] if arg in ('-R', '--repo') and i + 1 < len(args) else arg[7:] if arg.startswith('--repo=') else None
+        if value:
+            url = re.search(r'github\.com[:/]([^/]+/[^/]+?)(?:\.git)?/?$', value)
+            return url[1] if url else value
+    return '{owner}/{repo}'
+
+
+def read_metadata(args, recovering=False):
+    operation = {'args': args, 'kind': 'metadata', 'meta': None}
+    if args[:2] != ['pr', 'view'] or len(args) < 3 or not re.fullmatch(r'[1-9][0-9]*', args[2]):
+        misread('--kind metadata reads one PR by number', 'metadata', operation, 1)
+    files = ['api', f'repos/{repo_of(args)}/pulls/{args[2]}/files?per_page=100', '--paginate', '--slurp']
+    for attempt in range(1, 4):
+        # Two reads can disagree while GitHub recomputes a fresh push, so the pair is read again.
+        _, pr = read(args, 'pr-view', recovering=recovering)
+        _, pages = read(files, 'pr-files', recovering=recovering)
+        value = dict(pr, files=[{'path': f['filename'], 'additions': f['additions'], 'deletions': f['deletions']}
+                                for page in pages for f in page])
+        output = json.dumps(value)
+        try:
+            validate(output, 'metadata')
+            return output, value
+        except ValueError as error:
+            last = f'GitHub required read returned incomplete evidence: {error}'
+        if attempt < 3:
+            print(f'[github-read] {last}; retry {attempt + 1}/3', file=sys.stderr)
+            time.sleep(max(0, float(os.environ.get('SB_GITHUB_RETRY_DELAY', '1'))) * attempt)
+    misread(f'{last} on all 3 attempts', 'metadata', operation, 3)
+
+
 def read(args, kind='json', meta=None, recovering=False):
+    if kind == 'metadata':
+        return read_metadata(args, recovering)
     if not read_only(args):
         raise ValueError('retry helper accepts read-only GitHub commands only')
     if not recovering:
@@ -315,6 +371,8 @@ def read(args, kind='json', meta=None, recovering=False):
                     diagnostic += json.dumps([p.get('errors', []) for p in (payload if isinstance(payload, list) else [payload]) if isinstance(p, dict)])
                 except ValueError:
                     pass
+            if result.returncode and usage_error(result.stderr):
+                misread('gh rejected the read: ' + result.stderr.strip().splitlines()[0], kind, operation, attempt)
             if permanent_error(diagnostic):
                 halt('GitHub rejected a required read (query, authentication, or permission error); fix it before restarting', attempt, operation)
             if result.returncode:
@@ -336,14 +394,14 @@ def read(args, kind='json', meta=None, recovering=False):
         if attempt < 3:
             print(f'[github-read] {last}; retry {attempt + 1}/3', file=sys.stderr)
             time.sleep(max(0, delay) * attempt)
-    if shape_only and kind in FORMS and not os.environ.get('SB_GITHUB_READ_STRICT'):
-        raise ValueError(f'{last}; this call failed, the run continues. Valid form: --kind {kind} -- {FORMS[kind]}')
+    if shape_only:
+        misread(f'{last} on all 3 attempts', kind, operation, 3)
     halt(f'{last}; stopped after 3 failed attempts', 3, operation)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--kind', choices=('json','scalar','issue-number','head','state','diff','metadata','items','issues','issue-history','quota','projects','project','fields','status-field','permission','comments','approval','merge-state','body','dedupe','prs-open','prs-merged','issues-closed','issue','object','array'))
+    parser.add_argument('--kind', choices=('json','scalar','issue-number','head','state','diff','metadata','pr-view','pr-files','items','issues','issue-history','quota','projects','project','fields','status-field','permission','comments','approval','merge-state','body','dedupe','prs-open','prs-merged','issues-closed','issue','object','array'))
     parser.add_argument('--issue-history', help='complete paginated all-state issue history for owner/name')
     parser.add_argument('--meta')
     parser.add_argument('--check', action='store_true')
