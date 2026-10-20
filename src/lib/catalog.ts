@@ -59,6 +59,8 @@ export const SIZING = {
   WATTS_PER_TON: 1100,
   MAX_QTY: 100,
   SPLIT_PHASE_W: 3000,
+  /** An air conditioner this size or larger is usually sold for 240 V, whatever its running watts. */
+  SPLIT_PHASE_TONS: 1.5,
   /** NEC 210.19 / 706.30: conductors and overcurrent devices carry 125% of a continuous load. */
   NEC_CONTINUOUS: 1.25,
   /** NEC 110.14(C): terminations are rated 75 °C, so a 90 °C conductor's ampacity is capped at the 75 °C column. */
@@ -68,8 +70,11 @@ export const SIZING = {
   /** Voltage drop at start-up current the inverter still rides through. */
   MAX_STARTUP_DROP_PCT: 10,
   DUTY_MIN: 0.05,
-  /** Runtime scenarios: how cycling duties and inverter efficiency move on a light day and on a hard one. */
-  SCENARIO: { optimistic: { duty: 0.8, eff: 0.93 }, worst: { duty: 1.3, eff: 0.85 } },
+  /**
+   * Runtime scenarios: how cycling duties and inverter efficiency move on a light day and on a hard one. A hot day keeps
+   * an air conditioner's compressor on, so the hard day runs every AC at `acDuty`, whatever its catalog duty.
+   */
+  SCENARIO: { optimistic: { duty: 0.8, eff: 0.93 }, worst: { duty: 1.3, eff: 0.85, acDuty: 1 } },
   /** Seconds a start-up surge lasts, by class. */
   SURGE_SECONDS: { inrush: 0.02, motor: 1, compressor: 3 } as Record<SurgeClass, number>,
   /** How many times its rating a fuse holds, and for how long, before a start-up blows it. */
@@ -217,5 +222,10 @@ export const DEFAULT_HARDWARE: HardwareCatalog = { chemistries: CHEMISTRIES, inv
 /** What the appliance picker offers: the catalog without retired items. The engine still counts retired ones. */
 export const forPicker = (items: readonly CatalogItem[]): CatalogItem[] => items.filter((i) => !i.retired)
 
-/** Whether an appliance needs a 240 V split-phase inverter (3 kW or more). */
-export const needsSplitPhase = (item: { watts: number }): boolean => item.watts >= SIZING.SPLIT_PHASE_W
+/** Whether an appliance needs a 240 V split-phase inverter: 3 kW or more, or an air conditioner of 1.5 tons or more. */
+export const needsSplitPhase = (item: { watts: number; tons?: number }): boolean =>
+  item.watts >= SIZING.SPLIT_PHASE_W || (item.tons ?? 0) >= SIZING.SPLIT_PHASE_TONS
+
+/** The well pump is sold for 120 V and for 240 V alike, so only its nameplate says which one the user has. */
+const NAMEPLATE_240V_ID = 'well'
+export const mayRunOn240V = (item: { id: string }): boolean => item.id === NAMEPLATE_240V_ID

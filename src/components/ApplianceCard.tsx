@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, applianceNote, tr } from '../i18n'
 import { fmtInt, fmtW } from '../i18n/format'
-import { needsSplitPhase, type CatalogItem } from '../lib/catalog'
+import { mayRunOn240V, needsSplitPhase, type CatalogItem } from '../lib/catalog'
 import type { DutyHint } from '../lib/load-kinds'
 import type { SelectedItem } from '../lib/sizing'
 import { clampQty, parseQty } from '../lib/store'
@@ -58,6 +58,7 @@ export function ApplianceCard({ item, title, qty, onInc, onDec, onSet, onRemove,
         <div className="card__name">{title ?? name}</div>
         <div className="card__spec num">{tr(t, 'runningSurgeLine', { watts: fmtInt(item.watts, locale), surge: fmtW(item.surge, locale) })}</div>
         {needsSplitPhase(item) && <div className="card__spec card__spec--warn">{t.ui.splitPhase}</div>}
+        {mayRunOn240V(item) && <div className="card__spec card__spec--warn">{t.ui.checkNameplate240}</div>}
         {item.isCustom && <div className="card__spec">{applianceNote(t, item)}</div>}
         {duty && !on && <DutyHintLine hint={duty} />}
       </div>

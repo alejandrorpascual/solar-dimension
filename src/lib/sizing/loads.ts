@@ -5,6 +5,11 @@ const SECONDS_PER_HOUR = 3600
 /** A surge this many times the running watts is a compressor against pressure; twice is a plain motor. */
 const COMPRESSOR_RATIO = 3
 const MOTOR_RATIO = 2
+/**
+ * About 1/3 HP. A smaller motor (a fan, a fridge, a parking barrier) stays small next to an inverter's surge even at
+ * several times its running watts, so its locked-rotor start is not worth a note.
+ */
+const LOCKED_ROTOR_MIN_W = 250
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
@@ -22,6 +27,15 @@ export function surgeClassOf(item: CatalogItem): SurgeClass | null {
   const ratio = item.surge / item.watts
   if (item.cat === 'Kitchen' && ratio >= COMPRESSOR_RATIO) return 'compressor'
   return ratio >= MOTOR_RATIO ? 'motor' : 'inrush'
+}
+
+/**
+ * Whether a motor of 1/3 HP or more has a start-up taken from the rule of thumb for a motor or a conventional
+ * compressor: above a plain motor's 2× and at most 3× its running watts. Its nameplate locked-rotor current can be higher.
+ */
+export function hasRuleOfThumbStart(item: SelectedItem): boolean {
+  const ratio = item.surge / item.watts
+  return item.startClass !== 'inrush' && item.watts >= LOCKED_ROTOR_MIN_W && ratio > MOTOR_RATIO && ratio <= COMPRESSOR_RATIO
 }
 
 /** The share of each hour the appliance runs: the user's override, the momentary burst math, or the catalog duty. */

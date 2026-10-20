@@ -1,0 +1,49 @@
+// Differential check for issue #64: run the same kits through the engine on origin/staging and on the PR head.
+// Usage: npx tsx diff-kits.ts <root-of-src-a> <root-of-src-b>
+import { pathToFileURL } from 'node:url'
+
+const [rootA, rootB] = process.argv.slice(2)
+const load = async (root: string) => ({
+  sizing: await import(pathToFileURL(`${root}/src/lib/sizing.ts`).href),
+  snap: await import(pathToFileURL(`${root}/src/lib/catalog-snapshot.ts`).href),
+})
+
+const DEFAULT_QTY = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
+const a = await load(rootA)
+const b = await load(rootB)
+const ids: string[] = a.snap.CATALOG_SNAPSHOT.map((i: { id: string }) => i.id)
+const acs = ids.filter((id) => id.startsWith('ac'))
+const kits: Record<string, number>[] = [DEFAULT_QTY]
+for (const id of ids) { kits.push({ [id]: 1 }); kits.push({ [id]: 2 }); kits.push({ ...DEFAULT_QTY, [id]: 1 }) }
+for (const x of acs) for (const y of ['washer', 'well', 'sump', 'gate-slide']) kits.push({ ...DEFAULT_QTY, [x]: 1, [y]: 1 })
+kits.push({ ...DEFAULT_QTY, ac1c: 2, ac2i: 1, well: 1, washer: 1 })
+
+const pick = (r: any) => JSON.stringify({
+  requiredWh: r.requiredWh, runningW: r.runningW, surgeW: r.surgeW,
+  battery: r.battery && { unitLabel: r.battery.unitLabel, count: r.battery.count, bankWh: r.battery.bankWh, config: r.battery.config, hoursActual: r.battery.hoursActual,
+    typical: r.battery.runtime.typical, optimistic: r.battery.runtime.optimistic },
+  inverter: r.inverter && { w: r.inverter.w, count: r.inverter.count, unitW: r.inverter.unitW },
+  cable: r.cable && JSON.stringify(r.cable),
+  otherWarnings: r.warnings.map((w: any) => w.code).filter((c: string) => c !== 'lockedRotor'),
+})
+
+let nonAcWorstChanged = 0, runs = 0, picksDiffer = 0, worstLower = 0, worstHigher = 0, worstSame = 0, acKitsWorstNotLower = 0
+const diffs: string[] = []
+for (const qty of kits) for (const hours of [2, 8, 24]) for (const volts of [12, 24, 48]) for (const chemistry of ['lifepo4', 'agm']) {
+  const input = { qty, hours, volts, chemistry }
+  let ra, rb
+  try { ra = a.sizing.compute(input, a.snap.CATALOG_SNAPSHOT); rb = b.sizing.compute(input, b.snap.CATALOG_SNAPSHOT) } catch (e) { continue }
+  runs++
+  if (pick(ra) !== pick(rb)) { picksDiffer++; if (diffs.length < 5) diffs.push(`${JSON.stringify(input)}\n  staging ${pick(ra)}\n  branch  ${pick(rb)}`) }
+  const wa = ra.battery?.runtime.worst ?? 0, wb = rb.battery?.runtime.worst ?? 0
+  if (wb < wa - 1e-9) worstLower++; else if (wb > wa + 1e-9) worstHigher++; else worstSame++
+  const hasAc = Object.keys(qty).some((id) => acs.includes(id))
+  if (hasAc && wa > 0 && !(wb < wa - 1e-9)) acKitsWorstNotLower++
+  if (!hasAc && Math.abs(wb - wa) > 1e-9) nonAcWorstChanged++
+}
+console.log(`kits run on both: ${runs}`)
+console.log(`bank, inverter, cable, typical/light runtime or other notes differ: ${picksDiffer}`)
+console.log(`hard-day runtime lower on the branch: ${worstLower} · same: ${worstSame} · higher: ${worstHigher}`)
+console.log(`AC kits with a nonzero staging hard day that did not get lower: ${acKitsWorstNotLower}`)
+console.log(`kits without an AC whose hard day moved: ${nonAcWorstChanged}`)
+for (const d of diffs) console.log(d)

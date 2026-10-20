@@ -94,3 +94,9 @@ test('needsSplitPhase starts at 3 kW', () => {
   expect(needsSplitPhase({ watts: 2999 })).toBe(false)
   expect(needsSplitPhase({ watts: 3000 })).toBe(true)
 })
+
+test('needsSplitPhase also takes an air conditioner of 1.5 tons or more, of either type, whatever its watts', () => {
+  const byId = (id: string) => CATALOG_SNAPSHOT.find((a) => a.id === id)!
+  for (const id of ['ac15i', 'ac15c', 'ac2i', 'ac2c', 'ac3i', 'ac3c']) expect(needsSplitPhase(byId(id)), id).toBe(true)
+  for (const id of ['ac1i', 'ac1c', 'fridge']) expect(needsSplitPhase(byId(id)), id).toBe(false)
+})

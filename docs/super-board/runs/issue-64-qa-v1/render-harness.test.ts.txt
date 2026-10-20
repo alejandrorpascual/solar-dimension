@@ -1,0 +1,52 @@
+// Temporary QA harness for issue #64 (never committed): renders the real step-1 AC section, step-4 summary and
+// spec sheet to static HTML so they can be screenshotted without a running server.
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { test, vi } from 'vitest'
+
+const state = vi.hoisted(() => ({ locale: 'en' as 'en' | 'es' }))
+vi.mock('./hooks/useRootData', async () => {
+  const { CATALOG_SNAPSHOT } = await import('./lib/catalog-snapshot')
+  return { useRootData: () => ({ locale: state.locale, user: null, googleEnabled: false, catalog: CATALOG_SNAPSHOT, quotePollMs: 60_000 }) }
+})
+
+import { ApplianceGrid } from './components/ApplianceGrid'
+import { KitSheet } from './components/KitSheet'
+import { KitSummary } from './components/KitSummary'
+import { getDictionary } from './i18n'
+import { CATALOG_SNAPSHOT } from './lib/catalog-snapshot'
+import { buildParts } from './lib/kit-parts'
+import { compute } from './lib/sizing'
+import { DEFAULT_QTY, initialStore } from './lib/store'
+
+const OUT = process.env.QA_OUT ?? ''
+const CSS = process.env.QA_CSS ?? ''
+const FONTS = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap'
+const page = (body: string, lang: string) => `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="${FONTS}"><link rel="stylesheet" href="${CSS}">
+</head><body><main class="page">${body}</main></body></html>`
+
+const KITS = {
+  conventional: { qty: { ...DEFAULT_QTY, ac1c: 1 }, hours: 8, volts: 48 as const, chemistry: 'lifepo4' as const },
+  inverter: { qty: { ...DEFAULT_QTY, ac1i: 1 }, hours: 8, volts: 48 as const, chemistry: 'lifepo4' as const },
+}
+const EVERYTHING = { summary: true, appliances: true, parts: true, checks: true, notes: true, requester: false }
+
+test('render', () => {
+  mkdirSync(OUT, { recursive: true })
+  for (const locale of ['en', 'es'] as const) {
+    state.locale = locale
+    const t = getDictionary(locale)
+    for (const [name, input] of Object.entries(KITS)) {
+      const r = compute(input, CATALOG_SNAPSHOT)
+      const summary = renderToStaticMarkup(createElement(KitSummary, { result: r, baseline: null, projectName: 'Home', quickEdit: null, onBatteryUnit: () => {} }))
+      writeFileSync(`${OUT}/summary-${name}-${locale}.html`, page(summary, locale))
+      const sheet = renderToStaticMarkup(createElement(KitSheet, { projectName: 'Home', result: r, parts: buildParts(r, t, locale), requester: null, include: EVERYTHING, date: '19 Oct 2026', t, locale }))
+      writeFileSync(`${OUT}/sheet-${name}-${locale}.html`, page(`<div style="width:794px;margin:0 auto;background:#fff">${sheet}</div>`, locale))
+      writeFileSync(`${OUT}/runtime-${name}-${locale}.json`, JSON.stringify(r.battery?.runtime))
+    }
+    const grid = renderToStaticMarkup(createElement(ApplianceGrid, { store: initialStore(), commit: () => {} }))
+    writeFileSync(`${OUT}/grid-${locale}.html`, page(grid, locale))
+  }
+})

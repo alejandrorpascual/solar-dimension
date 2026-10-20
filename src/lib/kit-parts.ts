@@ -1,5 +1,6 @@
 import { panelCount, tr, type Dictionary, type Locale, type UiKey } from '../i18n'
 import { fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
+import { needsSplitPhase } from './catalog'
 import { hasPanels, type CablePick, type ConductorKind, type InverterPick, type SizingResult } from './sizing'
 import { headroomPct } from './sizing/inverter'
 import { SOLAR } from './solar'
@@ -101,8 +102,10 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
     ...r.parallelNotes.map((n) => t.parallelNotes[n]),
   ])
   const w = (n: number) => fmtW(n, locale)
+  // A 240 V appliance needs a 120/240 V split-phase output, so a supplier reading the row quotes that kind of inverter.
+  const output = r.items.some(needsSplitPhase) ? t.ui.splitPhaseOutput : ''
   const base: Part[] = [
-    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.unitW), volts: r.volts }), note: inverterNote(r, t, locale), qty: String(r.inverter.count) },
+    { id: 'inverter', name: t.parts.inverter, spec: tr(t, 'inverterSpec', { w: w(r.inverter.unitW), volts: r.volts, output }), note: inverterNote(r, t, locale), qty: String(r.inverter.count) },
     { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: batteriesNote, qty: String(b.count) },
     {
       id: 'mainCable' satisfies ConductorKind, name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }),
