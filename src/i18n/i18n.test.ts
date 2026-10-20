@@ -80,6 +80,10 @@ describe('dictionaries', () => {
     expect(en.privacy.sections[0]?.body).toContain('client details for the spec sheet')
     expect(es.privacy.sections[0]?.body).toContain('datos del solicitante para la ficha')
   })
+  test("step 3's help text and coverage line promise no covered outage or day, in both languages", () => {
+    for (const d of [en, es]) expect([d.ui.q3Help, d.ui.coverHead].join(' ')).not.toMatch(/cover|cubr|cubi/i)
+    expect([en.ui.coverHead, es.ui.coverHead].every(Boolean)).toBe(true)
+  })
   test('the roof warning names what fits and what is needed in both languages', () => {
     expect(en.warnings.roofLimited({ fit: 6, need: 10 })).toContain('6')
     expect(en.warnings.roofLimited({ fit: 6, need: 10 })).toContain('10')

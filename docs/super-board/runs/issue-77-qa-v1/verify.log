@@ -1,0 +1,21 @@
+# npm run typecheck
+
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+
+typecheck exit=0
+
+# npm run test:coverage (summary)
+10: Test Files  96 passed (96)
+11:      Tests  1616 passed (1616)
+22:All files          |   98.27 |    93.79 |   99.35 |   98.84 |                   
+51:  sizing.ts        |     100 |    94.52 |     100 |     100 | 93-94,124-127     
+52:  solar.ts         |   98.68 |    96.55 |     100 |   98.27 | 161               
+66:coverage exit=0
+
+# npm run build (tail)
+✓ built in 3.44s
+ℹ Generated .output/nitro.json
+
+[nitro] ✔ You can preview this build using npx vite preview
+build exit=0

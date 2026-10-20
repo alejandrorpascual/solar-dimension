@@ -263,6 +263,20 @@ describe('battery unit choice', () => {
     expect(r.warnings).toContainEqual({ code: 'roofLimited', params: { fit: 2, need: 5 } })
   })
 
+  test('the roof warning names the count the recommendation refills the usable energy with', () => {
+    // 9,600 × 0.85 usable / 0.92 charge efficiency = 8,870 Wh over 550 × 4.5 × 0.75 = 1,856 Wh a panel → 4.78 → 5, not the 6 the nominal 9,600 Wh would take.
+    const kit = (roofM2: number) => compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2, panels: null, sunHours: 4.5 } }, CATALOG_SNAPSHOT)
+    expect([kit(40).battery?.bankWh, kit(40).solar?.recommended]).toEqual([9600, 5])
+    expect(kit(10).warnings).toContainEqual({ code: 'roofLimited', params: { fit: 3, need: 5 } })
+  })
+
+  test('tapping every panel off on a small roof gives no roof warning', () => {
+    // 10 m² holds 3 of the 5 the bank needs: the recommended 3 warn, a tapped 0 does not.
+    const kit = (panels: number | null) => compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 10, panels, sunHours: 4.5 } }, CATALOG_SNAPSHOT)
+    const roofWarnings = (panels: number | null) => kit(panels).warnings.filter((w) => w.code === 'roofLimited' || w.code === 'stringTooShort')
+    expect([roofWarnings(null).map((w) => w.code), kit(0).solar?.panels, roofWarnings(0)]).toEqual([['roofLimited'], 0, []])
+  })
+
   test('a 48 V roof that holds 11 panels but wires 10 says it holds the 10', () => {
     const r = compute({ qty: ESSENTIALS, hours: 24, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 35, panels: null, sunHours: 3 } }, CATALOG_SNAPSHOT)
     expect([r.solar?.fit, r.solar?.panels, r.warnings.find((w) => w.code === 'roofLimited')?.params]).toEqual([11, 10, { fit: 10, need: 11 }])

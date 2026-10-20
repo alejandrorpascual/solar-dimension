@@ -1,4 +1,4 @@
-import type { Voltage } from './catalog'
+import { SIZING, type Chemistry, type Voltage } from './catalog'
 
 /** Panel, roof and electrical assumptions the solar side of the kit is built on. Shown in the fine print. */
 export const SOLAR = {
@@ -15,7 +15,8 @@ export const SOLAR = {
   /** Panel to battery: soiling, temperature, wiring and controller losses. */
   SYSTEM_EFF: 0.75,
   CLOUDY_SHARE: 0.4,
-  DEFAULT_SUN_HOURS: 4.8,
+  /** On the slider's half-hour grid. */
+  DEFAULT_SUN_HOURS: 4.5,
   SUN_RANGE: [3, 6.5] as const,
   SUN_STEP: 0.5,
   ROOF_RANGE: [5, 500] as const,
@@ -45,6 +46,8 @@ export interface SolarChoice {
 export interface SolarInput {
   solar: SolarChoice | null
   bankWh: number
+  /** How much of the bank is usable and how much of what the panels put in it keeps. */
+  chemistry: Pick<Chemistry, 'dod' | 'chargeEff'>
   volts: Voltage
   /** Duty-weighted average draw of the selected load; a day's use is 24 h of it. */
   averageW: number
@@ -57,6 +60,8 @@ export interface SolarPick {
   fit: number
   /** The most panels at or under the fit that wire: one planner tile each, the count the roof line names, and what the roof limit compares. */
   wiredFit: number
+  /** Panels that refill the usable energy in one clear day, before the roof and the wiring round it. */
+  need: number
   recommended: number
   panels: number
   isRecommended: boolean
@@ -67,9 +72,13 @@ export interface SolarPick {
   roofUsedM2: number
   dailyWh: number
   cloudyWh: number
+  /** A day's use at the appliances. */
   dailyUseWh: number
+  /** A clear day's yield over what a day's use takes out of the bank: the use over the inverter's losses. */
   coverRatio: number
-  /** Hours of peak sun to refill the whole bank from empty; null with no panels. */
+  /** What the panels put in to refill the bank from empty: its usable energy over the charge losses. */
+  refillWh: number
+  /** Hours of peak sun to refill the bank from empty; null with no panels. */
   refillHours: number | null
   refillsInOneDay: boolean
   /** Clear days to refill the bank when it takes more than one; null with no panels. */
@@ -97,14 +106,10 @@ export function panelsFit(roofM2: number): number {
 /** Watt-hours one panel puts into the bank on a clear day. */
 const perPanelDayWh = (sunHours: number) => SOLAR.PANEL_W * sunHours * SOLAR.SYSTEM_EFF
 
-/** The fewest panels that refill the whole bank in one clear day. */
-export function panelsToRefill(bankWh: number, sunHours: number): number {
-  if (bankWh <= 0 || sunHours <= 0) return 0
-  return Math.ceil(bankWh / perPanelDayWh(sunHours))
-}
-
-export function recommendedPanels(p: { bankWh: number; roofM2: number; sunHours: number }): number {
-  return Math.min(panelsFit(p.roofM2), panelsToRefill(p.bankWh, p.sunHours))
+/** The fewest panels that put `refillWh` into the bank in one clear day. */
+export function panelsToRefill(refillWh: number, sunHours: number): number {
+  if (refillWh <= 0 || sunHours <= 0) return 0
+  return Math.ceil(refillWh / perPanelDayWh(sunHours))
 }
 
 /** Smallest listed rating at or above `need`; the largest when none is. */
@@ -183,9 +188,10 @@ export function sizeSolar(input: SolarInput): SolarPick | null {
   const roofM2 = clamp(finite(input.solar.roofM2, SOLAR.ROOF_RANGE[0]), SOLAR.ROOF_RANGE[0], SOLAR.ROOF_RANGE[1])
   const sunHours = clamp(finite(input.solar.sunHours, SOLAR.DEFAULT_SUN_HOURS), SOLAR.SUN_RANGE[0], SOLAR.SUN_RANGE[1])
   const bankWh = Math.max(0, finite(input.bankWh, 0))
+  const refillWh = (bankWh * input.chemistry.dod) / input.chemistry.chargeEff
   const fit = panelsFit(roofM2)
   const wiredFit = nextWirable(fit + 1, -1, input.volts)
-  const need = panelsToRefill(bankWh, sunHours)
+  const need = panelsToRefill(refillWh, sunHours)
   // The recommendation rounds up from the shortest string that charges to a count that wires, within the roof; a tap rounds to the nearest.
   const wanted = Math.min(fit, need > 0 ? Math.max(need, minSeries(input.volts)) : 0)
   const recommended = nextWirable(Math.min(wanted, wiredFit) - 1, 1, input.volts)
@@ -196,12 +202,12 @@ export function sizeSolar(input: SolarInput): SolarPick | null {
   const arrayW = panels * SOLAR.PANEL_W
   const dailyWh = Math.round(arrayW * sunHours * SOLAR.SYSTEM_EFF)
   const dailyUseWh = Math.round(Math.max(0, finite(input.averageW, 0)) * HOURS_PER_DAY)
-  const refillHours = arrayW > 0 ? bankWh / (arrayW * SOLAR.SYSTEM_EFF) : null
+  const refillHours = arrayW > 0 ? refillWh / (arrayW * SOLAR.SYSTEM_EFF) : null
   const refillsInOneDay = refillHours !== null && refillHours <= sunHours
   const electrical = sizeElectrical(panels, input.volts)
 
   return {
-    roofM2, sunHours, volts: input.volts, fit, wiredFit, recommended, panels,
+    roofM2, sunHours, volts: input.volts, fit, wiredFit, need, recommended, panels,
     isRecommended: panels === recommended,
     isRoofLimited: wiredFit < need,
     isTooShort: asked > 0 && panels === 0,
@@ -210,10 +216,11 @@ export function sizeSolar(input: SolarInput): SolarPick | null {
     dailyWh,
     cloudyWh: Math.round(dailyWh * SOLAR.CLOUDY_SHARE),
     dailyUseWh,
-    coverRatio: dailyUseWh > 0 ? dailyWh / dailyUseWh : 0,
+    coverRatio: dailyUseWh > 0 ? dailyWh / (dailyUseWh / SIZING.INVERTER_EFF) : 0,
+    refillWh,
     refillHours,
     refillsInOneDay,
-    refillDays: refillHours === null ? null : refillsInOneDay ? null : bankWh / dailyWh,
+    refillDays: refillHours === null ? null : refillsInOneDay ? null : refillWh / dailyWh,
     ...electrical,
     stringVoc: Math.round(electrical.perString * SOLAR.PANEL_VOC),
     pvCablePairs: electrical.strings,

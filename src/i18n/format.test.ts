@@ -18,6 +18,11 @@ test('keeps watts below 10 kW in W', () => {
 test('formats watts as kilowatts with one decimal', () => {
   expect(fmtKw(5500, 'en')).toBe('5.5 kW')
   expect(fmtKw(5500, 'es')).toBe('5.5 kW')
+  expect(fmtKw(1000, 'en')).toBe('1.0 kW')
+})
+
+test('an array under 1 kW, such as one 550 W panel, reads in watts', () => {
+  expect([fmtKw(550, 'en'), fmtKw(550, 'es'), fmtKw(0, 'en')]).toEqual(['550 W', '550 W', '0 W'])
 })
 
 test('formats a date the way each language writes it', () => {
