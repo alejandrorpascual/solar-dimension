@@ -35,6 +35,12 @@ describe('csvFor', () => {
     expect(spanish.slice(0, 5)).toEqual(['Nombre del proyecto;"Casa; playa"', 'Fecha;19 oct 2026', 'Horas sin red eléctrica;10 h', 'Voltaje del banco;48 V', ''])
   })
 
+  test('a project named like a formula opens as text in the name row, never as a formula', () => {
+    const named = (projectName: string, delimiter: KitCsvFile['delimiter']) => rows(csvFor(result, [], { appliances: false, parts: false }, en, { ...FILE, projectName, delimiter }))[0]
+    expect(named('=HYPERLINK("https://example.com")', ',')).toBe(`Project name,"'=HYPERLINK(""https://example.com"")"`)
+    expect(named('@SUM(A1:A9)', ';')).toBe("Project name;'@SUM(A1:A9)")
+  })
+
   test('with browser locale es-VE the cells split on ";", with en-US on ","', () => {
     const forLocale = (locale: string) => body(csvFor(result, buildParts(result, en, 'en'), { appliances: true, parts: true }, en, { ...FILE, delimiter: csvDelimiter(locale) }))
     const venezuela = forLocale('es-VE')

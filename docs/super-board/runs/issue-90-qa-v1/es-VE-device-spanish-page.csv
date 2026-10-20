@@ -1,0 +1,20 @@
+﻿Nombre del proyecto;Home
+Fecha;19 oct 2026
+Horas sin red eléctrica;10 h
+Voltaje del banco;48 V
+
+Aparato;Tipo;Cantidad;C/u (W);En marcha (W);Promedio (W);Wh en 10 h
+Iluminación LED (10 focos);Siempre encendidos;1;90;90;90;900
+"TV LED de 55""";Siempre encendidos;1;120;120;120;1200
+Router Wi-Fi + módem;Siempre encendidos;1;20;20;20;200
+Laptop;Siempre encendidos;1;65;65;65;650
+Cargador de celular;Siempre encendidos;2;10;20;20;200
+Refrigerador;Encienden y apagan;1;150;150;53;525
+
+Parte;Especificación;Nota;Cantidad
+Inversor;3,000 W continuos, no VA, onda pura, entrada 48 V CC;6,000 W de arranque · cubre 465 W en marcha, 1,515 W pico;1
+Baterías;48 V 200 Ah LiFePO₄;1 en serie × 1 en paralelo (1S1P) · banco de 9.6 kWh, 8.2 kWh utilizables · 200 A continuos, 400 A pico del banco (valores supuestos);1
+Cable principal;2 AWG (33.6 mm²) de cobre, 1.5 m cada uno;De batería a inversor · 87 A de corriente de diseño · 115 A tras la corrección · 0.1% de caída al arrancar;2
+Fusible;100 A clase T;En línea en el cable positivo, lo más cerca posible del banco · 20 kA de capacidad de interrupción;1
+
+Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada.

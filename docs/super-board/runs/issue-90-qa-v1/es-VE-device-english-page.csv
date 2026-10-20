@@ -1,0 +1,20 @@
+﻿Project name;Home
+Date;Oct 19, 2026
+Hours without the grid;10 h
+Battery voltage;48 V
+
+Appliance;Kind;Quantity;Each (W);Running (W);Average (W);Wh over 10 h
+LED lighting (10 bulbs);Always on;1;90;90;90;900
+TV, 55-inch LED;Always on;1;120;120;120;1200
+Wi-Fi router + modem;Always on;1;20;20;20;200
+Laptop;Always on;1;65;65;65;650
+Phone charger;Always on;2;10;20;20;200
+Refrigerator;Cycles on and off;1;150;150;53;525
+
+Part;Specification;Note;Quantity
+Inverter;3,000 W continuous, not VA, pure sine, 48 V DC input;6,000 W surge · covers 465 W running, 1,515 W peak;1
+Batteries;48 V 200 Ah LiFePO₄;1 in series × 1 in parallel (1S1P) · 9.6 kWh bank, 8.2 kWh usable · 200 A continuous, 400 A peak from the bank (assumed ratings);1
+Main cable;2 AWG (33.6 mm²) copper, 1.5 m each;Battery to inverter · 87 A design current · 115 A after derating · 0.1% drop at start-up;2
+Fuse;100 A class T;Inline on the positive lead, as close to the bank as possible · 20 kA interrupting rating;1
+
+An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.
