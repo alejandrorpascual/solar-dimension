@@ -1,0 +1,8 @@
+$ npx vitest run src/lib/export-csv.test.ts src/lib/kit-csv.test.ts   # head 934b2fa
+ Test Files  2 passed (2)
+      Tests  34 passed (34)
+$ npm run typecheck   # exit 0
+$ npm run test:coverage
+ Test Files  103 passed (103)
+      Tests  1734 passed (1734)
+All files          |   98.32 |    93.95 |   99.36 |    98.9 |                   

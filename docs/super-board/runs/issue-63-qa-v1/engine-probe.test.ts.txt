@@ -1,0 +1,66 @@
+// Throwaway QA probe for issue #63: prints engine output as evidence. Never committed.
+import { writeFileSync } from 'node:fs'
+import { test } from 'vitest'
+import { getDictionary } from '../i18n'
+import { GAUGES, INVERTERS, VOLTAGES } from './catalog'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
+import { kitChecks } from './kit-checks'
+import { buildParts } from './kit-parts'
+import { compute, type SizingInput } from './sizing'
+
+const en = getDictionary('en')
+const es = getDictionary('es')
+const custom = (watts: number) => [{ id: 'x', name: 'Load', watts, surge: watts, note: '' }]
+const kit = (watts: number, volts: 12 | 24 | 48, cable: SizingInput['cable'] = {}) =>
+  compute({ qty: { x: 1 }, custom: custom(watts), hours: 1, volts, chemistry: 'lifepo4', cable }, CATALOG_SNAPSHOT)
+
+function describeKit(label: string, r: ReturnType<typeof compute>): string[] {
+  const enCable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
+  const esCable = kitChecks(es, r, 'es').find((c) => c.id === 'cable')!
+  const enNote = buildParts(r, en, 'en').find((p) => p.id === 'mainCable')!
+  const esNote = buildParts(r, es, 'es').find((p) => p.id === 'mainCable')!
+  return [
+    `## ${label}`,
+    `inverter ${r.inverter.count} x ${r.inverter.w / r.inverter.count} W · runs ${r.cable.runs} · gauge ${r.cable.gauge} · drop ${r.cable.dropPct}% · start-up ${r.cable.startupDropPct}% · warnings [${r.warnings.map((w) => w.code).join(', ')}]`,
+    `EN main cable row: ${enNote.spec} | qty ${enNote.qty} | ${enNote.note}`,
+    `ES main cable row: ${esNote.spec} | qty ${esNote.qty} | ${esNote.note}`,
+    `EN Cable check: ${enCable.status} · ${enCable.lines.join(' / ')}`,
+    `ES Cable check: ${esCable.status} · ${esCable.lines.join(' / ')}`,
+    '',
+  ]
+}
+
+test('probe', () => {
+  const out: string[] = ['# Issue #63 QA probe: engine output', '']
+  out.push(...describeKit('AC2 · 1,500 W load at 12 V, default 1.5 m run (2 kW inverter)', kit(1500, 12)))
+  out.push(...describeKit('AC3 · 2,000 W load at 12 V, 10 m run (3 kW inverter)', kit(2000, 12, { runLengthM: 10 })))
+  out.push(...describeKit('AC3 back · 2,000 W load at 12 V, 1.5 m run', kit(2000, 12, { runLengthM: 1.5 })))
+  out.push(...describeKit('Issue example · 12 V, 4 kW inverter, 10 m run', kit(2900, 12, { runLengthM: 10 })))
+  out.push(...describeKit('Single run · default 48 V kit', compute({ qty: { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)))
+
+  // Independent AC1 sweep: loads stepped by 250 W rather than aimed at each set, every voltage, air, insulation, bundling and three lengths.
+  const floor = GAUGES.findIndex((g) => g.awg === '1/0 AWG')
+  const maxW = Math.max(...INVERTERS.map((i) => i.w * (i.maxParallel ?? 1)))
+  let kits = 0
+  let paralleled = 0
+  const multiInverterParalleled: string[] = []
+  const breaches: string[] = []
+  for (const volts of VOLTAGES) for (let watts = 250; watts <= maxW; watts += 250)
+    for (const ambientC of [-10, 30, 40, 50]) for (const insulationC of [75, 90] as const) for (const bundled of [false, true]) for (const runLengthM of [1.5, 5, 10]) {
+      const r = kit(watts, volts, { ambientC, insulationC, bundled, runLengthM })
+      if (r.empty) continue
+      kits++
+      if (r.cable.runs <= r.inverter.count) continue
+      paralleled++
+      if (r.inverter.count > 1) multiInverterParalleled.push(`${volts} V ${watts} W ${r.inverter.count} inv ${r.cable.runs} runs ${r.cable.gauge}`)
+      const gi = GAUGES.findIndex((g) => g.awg === r.cable.gauge)
+      if (gi < floor) breaches.push(`${volts} V · ${watts} W · ${ambientC} °C · ${insulationC} °C · ${bundled ? 'bundled' : 'open'} · ${runLengthM} m: ${r.cable.runs} × ${r.cable.gauge}`)
+      const links = r.cable.links
+      if (links && links.perPosition > 1 && GAUGES.findIndex((g) => g.awg === links.gauge) < floor) breaches.push(`links ${volts} V ${watts} W: ${links.perPosition} × ${links.gauge}`)
+    }
+  out.push('## AC1 independent sweep (250 W steps × 12/24/48 V × -10/30/40/50 °C × 75/90 °C × open/bundled × 1.5/5/10 m)')
+  out.push(`kits ${kits} · more than one run per inverter ${paralleled} · of those with 2+ inverters ${multiInverterParalleled.length} · under 1/0 AWG ${breaches.length}`)
+  out.push(...breaches.slice(0, 20))
+  out.push(...multiInverterParalleled.slice(0, 5))
+  writeFileSync(process.env.QA_PROBE_OUT ?? '/dev/stdout', out.join('\n') + '\n')
+})

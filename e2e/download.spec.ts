@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Download, type Page } from '@playwright/test'
 import { readSheetPdf } from '../src/lib/pdf-fixtures'
+import { switchLanguage } from './header'
 import { PHONE } from './phone'
 import { showDownload } from './projects'
 
@@ -9,6 +10,62 @@ async function downloadAs(page: Page, format: RegExp, button: string): Promise<D
   const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: button }).click()])
   return file
 }
+
+/** A downloaded CSV's lines, without the BOM. */
+async function csvLines(file: Download): Promise<string[]> {
+  return (await readFile((await file.path())!, 'utf8')).replace(/^﻿/, '').split('\r\n')
+}
+
+/** The date the sheet preview prints above the project's name: the CSV's date row repeats it. */
+const sheetDate = async (page: Page) => (await page.locator('.ksheet').filter({ visible: true }).locator('.ksheet__kicker span').nth(1).textContent()) ?? ''
+
+test.describe('on a device set to Spanish (Venezuela), where decimals take a comma', () => {
+  test.use({ locale: 'es-VE' })
+
+  test('the CSV splits cells on ";" and opens with the project rows, in the page language whichever it is', async ({ page }) => {
+    await page.goto('/?step=4')
+    await expect(page.getByRole('heading', { name: 'Kit para Home' })).toBeVisible()
+    await showDownload(page, 'Descargar')
+    const fecha = await sheetDate(page)
+    const spanish = await csvLines(await downloadAs(page, /^Lista de partes \(CSV\)/, 'Descargar CSV'))
+    expect(spanish.slice(0, 6)).toEqual([
+      'Nombre del proyecto;Home', `Fecha;${fecha}`, 'Horas sin red eléctrica;10 h', 'Voltaje del banco;48 V', '',
+      'Aparato;Tipo;Cantidad;C/u (W);En marcha (W);Promedio (W);Wh en 10 h',
+    ])
+    expect(spanish).toContain('Refrigerador;Encienden y apagan;1;150;150;53;525')
+
+    // The separator follows the device, not the page: in English the file still splits on ";", so the comma in the TV's
+    // name and in the date stays inside its cell, unquoted.
+    await switchLanguage(page, 'English')
+    await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+    const date = await sheetDate(page)
+    expect(date).toContain(',')
+    const english = await csvLines(await downloadAs(page, /^Parts list \(CSV\)/, 'Download CSV'))
+    expect(english.slice(0, 6)).toEqual([
+      'Project name;Home', `Date;${date}`, 'Hours without the grid;10 h', 'Battery voltage;48 V', '',
+      'Appliance;Kind;Quantity;Each (W);Running (W);Average (W);Wh over 10 h',
+    ])
+    expect(english).toContain('TV, 55-inch LED;Always on;1;120;120;120;1200')
+  })
+})
+
+test.describe('on a device set to English (US)', () => {
+  test.use({ locale: 'en-US' })
+
+  test('the CSV splits cells on ",", quotes a cell holding a comma, and opens with the project rows', async ({ page }) => {
+    await page.goto('/?step=4')
+    await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+    await showDownload(page)
+    const date = await sheetDate(page)
+    expect(date).toContain(',')
+    const lines = await csvLines(await downloadAs(page, /^Parts list \(CSV\)/, 'Download CSV'))
+    expect(lines.slice(0, 6)).toEqual([
+      'Project name,Home', `Date,"${date}"`, 'Hours without the grid,10 h', 'Battery voltage,48 V', '',
+      'Appliance,Kind,Quantity,Each (W),Running (W),Average (W),Wh over 10 h',
+    ])
+    expect(lines).toContain('"TV, 55-inch LED",Always on,1,120,120,120,1200')
+  })
+})
 
 test('the kit downloads as a CSV parts list and a PDF spec sheet', PHONE, async ({ page }) => {
   await page.goto('/?step=4')

@@ -1,0 +1,75 @@
+"""Apply one mutant at a time to the clone, run the issue's tests, restore the file. Mutations never reach a commit."""
+import subprocess
+import sys
+from pathlib import Path
+
+CLONE = Path(sys.argv[1])
+TESTS = sys.argv[2:] or [
+    'src/lib/sizing/cable.test.ts', 'src/lib/sizing-matrix.test.ts', 'src/lib/sizing.test.ts',
+    'src/lib/kit-checks.test.ts', 'src/lib/kit-parts.test.ts', 'src/lib/kit-conductors.test.ts', 'src/lib/quote-items.test.ts',
+]
+
+MUTANTS = [
+    ('M1 drop the 1/0 floor', 'src/lib/sizing/cable.ts',
+     '    if (runs > feeds) gi = Math.max(gi, parallelFloor)\n', ''),
+    ('M2 floor on any second run, not per inverter', 'src/lib/sizing/cable.ts',
+     'if (runs > feeds) gi = Math.max(gi, parallelFloor)', 'if (runs > 1) gi = Math.max(gi, parallelFloor)'),
+    ('M3 floor replaces the needed gauge', 'src/lib/sizing/cable.ts',
+     'gi = Math.max(gi, parallelFloor)', 'gi = parallelFloor'),
+    ('M4 floor at 2/0 (mm2 > 53.5)', 'src/lib/sizing/cable.ts',
+     'g.mm2 >= SIZING.MIN_PARALLEL_MM2', 'g.mm2 > SIZING.MIN_PARALLEL_MM2'),
+    ('M5 drop warning at >= 3%', 'src/lib/sizing/cable.ts',
+     'if (shownDropPct > SIZING.MAX_DROP_PCT)', 'if (shownDropPct >= SIZING.MAX_DROP_PCT)'),
+    ('M6 drop judged unrounded', 'src/lib/sizing/cable.ts',
+     'if (shownDropPct > SIZING.MAX_DROP_PCT)', 'if (runDropPct > SIZING.MAX_DROP_PCT)'),
+    ('M7 drop warning only past 3.5%', 'src/lib/sizing/cable.ts',
+     'if (shownDropPct > SIZING.MAX_DROP_PCT)', 'if (shownDropPct > SIZING.MAX_DROP_PCT + 0.5)'),
+    ('M8 drop warning dropped', 'src/lib/sizing/cable.ts',
+     "    warnings.push({ code: 'cableDrop', params: { dropPct: shownDropPct, maxDropPct: SIZING.MAX_DROP_PCT } })\n", ''),
+    ('M9 cable check does not own cableDrop', 'src/lib/kit-checks.ts',
+     "cable: ['highCurrent', 'cableDrop', 'startupDrop',", "cable: ['highCurrent', 'startupDrop',"),
+    ('M10 check line prints start-up drop twice', 'src/lib/kit-checks.ts',
+     'runDrop: c.dropPct, drop: c.startupDropPct', 'runDrop: c.startupDropPct, drop: c.startupDropPct'),
+    ('M11 parts note prints start-up drop twice', 'src/lib/kit-parts.ts',
+     'runDrop: c.dropPct, drop: c.startupDropPct', 'runDrop: c.startupDropPct, drop: c.startupDropPct'),
+    ('M12 lugs note on any 2+ runs', 'src/lib/kit-parts.ts',
+     'c.runs > r.inverter.count ?', 'c.runs > 1 ?'),
+    ('M13 lugs note never', 'src/lib/kit-parts.ts',
+     "c.runs > r.inverter.count ? t.ui.mainCableParallelNote : ''", "''"),
+]
+
+
+def run_tests() -> tuple[bool, str]:
+    proc = subprocess.run(['npx', 'vitest', 'run', *TESTS], cwd=CLONE, capture_output=True, text=True)
+    tail = [line for line in proc.stdout.splitlines() if 'Tests ' in line or 'Test Files' in line]
+    return proc.returncode == 0, ' | '.join(s.strip() for s in tail)
+
+
+def main() -> int:
+    ok, summary = run_tests()
+    print(f'baseline: {"green" if ok else "RED"} · {summary}')
+    if not ok:
+        return 1
+    survivors = 0
+    for name, rel, old, new in MUTANTS:
+        path = CLONE / rel
+        original = path.read_text()
+        if original.count(old) != 1:
+            print(f'{name}: SKIPPED, pattern found {original.count(old)} times')
+            survivors += 1
+            continue
+        path.write_text(original.replace(old, new))
+        try:
+            green, summary = run_tests()
+        finally:
+            path.write_text(original)
+        verdict = 'SURVIVED' if green else 'killed'
+        survivors += green
+        print(f'{name}: {verdict} · {summary}')
+    clean = subprocess.run(['git', 'status', '--porcelain', '--', 'src'], cwd=CLONE, capture_output=True, text=True).stdout
+    print(f'restored: {"yes" if not clean.strip() else "NO: " + clean}')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -24,7 +24,8 @@ describe('kitChecks', () => {
     expect(by.batteryPeak!.lines).toEqual(['Bank peak of an assumed 400 A covers the 35 A start-up for 3 s'])
     expect(by.parallel!.lines).toEqual(['One string, nothing to balance · assumed limit of 16 in parallel'])
     expect(by.fuse!.lines[0]).toBe("100 A class T: under the cable's 115 A, 20 kA interrupting, start-up 35 A within what it holds")
-    expect(by.cable!.lines[0]).toBe('2 AWG carries 115 A after derating (30 °C) for a 87 A design current · 0.1% drop at start-up')
+    expect(by.cable!.lines[0]).toBe('2 AWG carries 115 A after derating (30 °C) for a 87 A design current · 0.2% drop, 0.1% at start-up')
+    expect(kitChecks(es, kit(ESSENTIALS), 'es').at(-1)!.lines[0]).toBe('2 AWG soporta 115 A tras la corrección (30 °C) para 87 A de diseño · 0.2% de caída, 0.1% al arrancar')
   })
 
   test('names come from the dictionary in both languages', () => {
@@ -39,6 +40,24 @@ describe('kitChecks', () => {
     expect(by.batteryContinuous!.lines[0]).toContain('BMS would cut out')
     expect(by.surge!.lines.at(-1)).toContain('Refrigerator')
     expect(r.surgeProfile.starters.length).toBeGreaterThanOrEqual(1)
+  })
+
+  test('3 kW at 12 V over a 10 m run drops more than 3% at full load: the cable check warns and says so', () => {
+    const custom = [{ id: 'x', name: 'Load', watts: 2000, surge: 2000, note: '' }]
+    const r = kit({ x: 1 }, { custom, hours: 1, volts: 12, cable: { runLengthM: 10 } })
+    expect([r.inverter.w, r.cable.runs, r.cable.gauge, r.cable.dropPct]).toEqual([3000, 2, '4/0 AWG', 3.7])
+    const cable = (t: typeof en, locale: 'en' | 'es') => kitChecks(t, r, locale).find((c) => c.id === 'cable')!
+    expect(cable(en, 'en')).toMatchObject({ status: 'warn', lines: ['The cable drops 3.7% at full load, more than the 3% it is sized for, even on the largest gauge. Shorten the run or pick a higher bank voltage.'] })
+    expect(cable(es, 'es').lines).toEqual(['El cable cae 3.7% a plena carga, más del 3% previsto, aun con el calibre más grueso. Acorta el tramo o elige un voltaje de banco mayor.'])
+  })
+
+  test('4 kW at 12 V over a 10 m run, the kit the ticket found: three runs of 4/0 drop 3.3%, a little over 3%, and the cable check says so', () => {
+    const custom = [{ id: 'x', name: 'Load', watts: 2900, surge: 2900, note: '' }]
+    const r = kit({ x: 1 }, { custom, hours: 1, volts: 12, cable: { runLengthM: 10 } })
+    expect([r.inverter.w, r.cable.runs, r.cable.gauge, r.cable.dropPct]).toEqual([4000, 3, '4/0 AWG', 3.3])
+    const cable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
+    expect(cable.status).toBe('warn')
+    expect(cable.lines).toContain('The cable drops 3.3% at full load, more than the 3% it is sized for, even on the largest gauge. Shorten the run or pick a higher bank voltage.')
   })
 
   test('parallel strings report the assumed limit, and the bundled cable says so', () => {

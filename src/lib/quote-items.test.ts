@@ -168,7 +168,7 @@ describe('charger and Wi-Fi', () => {
 })
 
 describe('cables and fuse', () => {
-  /** The 48 V kit of the audit's probe C2: 5.9 kW running on an 8 kW inverter, so 2 runs of 1 AWG (231 A design) and 2 × 125 A. */
+  /** The 48 V kit of the audit's probe C2: 5.9 kW running on an 8 kW inverter, so 2 runs in parallel of 1/0 AWG (231 A design) and 2 × 125 A. */
   const c2 = kitNeeds(compute({ qty: { ac2i: 2, fridge: 1, micro: 1, lights: 2 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT))
   const wiring = (awg: string, qty = 1) => line('wiring', 1, { qty, specs: { awg } })
   /** A wiring line as the quote writes it, so its words can say what its quantity counts. */
@@ -177,8 +177,8 @@ describe('cables and fuse', () => {
   const judge = (kit: KitNeeds, lines: QuoteLine[], id: ItemId) => checkItems(extraction(lines), kit).find((c) => c.id === id)!
 
   test('the probe kit is what the engine prints', () => {
-    expect(c2).toMatchObject({ cableGauge: '1 AWG', cableRuns: 2, designA: 231, fuseA: 125, fuseCount: 2, fuseClass: 'T' })
-    expect(c2.ampacityByGauge['1 AWG']).toBe(130)
+    expect(c2).toMatchObject({ cableGauge: '1/0 AWG', cableRuns: 2, designA: 231, fuseA: 125, fuseCount: 2, fuseClass: 'T' })
+    expect(c2.ampacityByGauge['1/0 AWG']).toBe(150)
   })
   test('cables thicker than the kit are ok, thinner are short', () => {
     expect(item(SAMPLE_QUOTES.solartec, 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
@@ -215,20 +215,20 @@ describe('cables and fuse', () => {
     }
   })
   test('a size the kit needs two runs of is ok only when the quote counts their four leads; a count never fails it (AI-03)', () => {
-    expect(judge(c2, [wiring('1')], 'cables')).toMatchObject({ status: 'unknown', facts: { gauge: '1 AWG', runs: 2, runsUnstated: true } })
-    expect(judge(c2, [wiring('1', 4)], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '1 AWG', runs: 2 } })
-    expect(judge(c2, [wiring('1', 4)], 'cables').facts.runsUnstated).toBeUndefined()
+    expect(judge(c2, [wiring('1/0')], 'cables')).toMatchObject({ status: 'unknown', facts: { gauge: '1/0 AWG', runs: 2, runsUnstated: true } })
+    expect(judge(c2, [wiring('1/0', 4)], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '1/0 AWG', runs: 2 } })
+    expect(judge(c2, [wiring('1/0', 4)], 'cables').facts.runsUnstated).toBeUndefined()
   })
   test('a quantity in metres, or not a whole number, counts no leads', () => {
-    for (const x of [written('Cable 1 AWG, 10 m', '1', 10), written('Cable cal. 1, 12 mts', '1', 12), written('Cable 1 AWG', '1', 12.5)]) {
+    for (const x of [written('Cable 1/0 AWG, 10 m', '1/0', 10), written('Cable cal. 1/0, 12 mts', '1/0', 12), written('Cable 1/0 AWG', '1/0', 12.5)]) {
       expect(judge(c2, [x], 'cables')).toMatchObject({ status: 'unknown', facts: { runs: 2, runsUnstated: true } })
     }
-    for (const text of ['Cable 1 AWG, 4 tramos de 2 m', 'Cable 1 AWG 12 mtrs', 'Cable 1 AWG 12 ml', 'Cable 1 AWG, precio por metro']) {
-      expect(judge(c2, [written(text, '1', 12)], 'cables').status).toBe('unknown')
+    for (const text of ['Cable 1/0 AWG, 4 tramos de 2 m', 'Cable 1/0 AWG 12 mtrs', 'Cable 1/0 AWG 12 ml', 'Cable 1/0 AWG, precio por metro']) {
+      expect(judge(c2, [written(text, '1/0', 12)], 'cables').status).toBe('unknown')
     }
-    expect(judge(c2, [written('Cable 1 AWG, 4 piezas', '1', 4)], 'cables').status).toBe('ok')
+    expect(judge(c2, [written('Cable 1/0 AWG, 4 piezas', '1/0', 4)], 'cables').status).toBe('ok')
     // Pesos written "M.N." or "m/n" are no length.
-    expect(judge(c2, [written('Cable 1 AWG, 4 pzas, $1,250.00 M.N.', '1', 4)], 'cables').status).toBe('ok')
+    expect(judge(c2, [written('Cable 1/0 AWG, 4 pzas, $1,250.00 M.N.', '1/0', 4)], 'cables').status).toBe('ok')
     expect(judge(KIT, [written('Cable 4/0 AWG, 12 m', '4/0', 12), fuse(450)], 'fuse')).toMatchObject({ status: 'unknown', facts: { runs: 2, runsUnstated: true } })
   })
   test('runs are counted in whole micro-amps, so float noise in a factor asks for no extra run', () => {

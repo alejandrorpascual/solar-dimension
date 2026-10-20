@@ -1,0 +1,5 @@
+# Mutants on src/lib/export-csv.ts at 934b2fa; the two CSV test files run after each, file restored clean
+M1 csvDelimiter always ','                         -> 2 failed | 32 passed
+M2 csvCell quotes only on a comma (pre-fix rule)   -> 5 failed | 29 passed
+M3 project rows dropped                            -> 7 failed | 27 passed
+M4 formula guard removed                           -> 8 failed | 26 passed

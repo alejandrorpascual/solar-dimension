@@ -5,7 +5,7 @@ import { useLocale } from '../hooks/useLocale'
 import { usePreparedImage } from '../hooks/usePreparedImage'
 import { usePreviewScale } from '../hooks/usePreviewScale'
 import { fmtDate } from '../i18n/format'
-import { exportFileName } from '../lib/export-csv'
+import { csvDelimiter, exportFileName } from '../lib/export-csv'
 import { csvFor } from '../lib/kit-csv'
 import { buildParts } from '../lib/kit-parts'
 import type { Requester } from '../lib/requester'
@@ -102,7 +102,9 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
     await new Promise<void>((resolve) => requestAnimationFrame(() => { setTimeout(resolve, 0) }))
     const name = exportFileName(project.name, format)
     if (format === 'csv') {
-      saveBlob(new Blob([csvFor(result, parts, { appliances: include.appliances, parts: include.parts }, t)], { type: 'text/csv;charset=utf-8' }), name)
+      // The separator follows the browser's locale, not the UI language: Excel splits on the system's list separator.
+      const file = { projectName: project.name, date: sheetProps.date, delimiter: csvDelimiter(navigator.language) }
+      saveBlob(new Blob([csvFor(result, parts, { appliances: include.appliances, parts: include.parts }, t, file)], { type: 'text/csv;charset=utf-8' }), name)
       return
     }
     // The PDF's title, language and running line come from the same props the sheet prints.

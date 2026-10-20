@@ -67,6 +67,8 @@ export const SIZING = {
   TERMINATION_C: 75 as InsulationC,
   AMBIENT_DEFAULT_C: 30,
   MAX_RUNS: 6,
+  /** NEC 310.10(G): conductors in parallel are 1/0 AWG (53.5 mm²) or larger. */
+  MIN_PARALLEL_MM2: 53.5,
   /** Voltage drop at start-up current the inverter still rides through. */
   MAX_STARTUP_DROP_PCT: 10,
   DUTY_MIN: 0.05,
@@ -114,6 +116,8 @@ export interface Chemistry {
   label: string
   short: string
   dod: number
+  /** Share of the energy put into the bank that it keeps; the rest is lost charging. */
+  chargeEff: number
   /** Peukert exponent (1 = capacity does not shrink with current) and the hour rate the Ah is quoted at. */
   peukertK: number
   ratedHours: number
@@ -131,7 +135,7 @@ const agm = (v: number, ah: number): BatteryUnit =>
 
 export const CHEMISTRIES: Record<ChemistryId, Chemistry> = {
   lifepo4: {
-    id: 'lifepo4', label: 'LiFePO₄ lithium', short: 'LiFePO₄', dod: 0.85, peukertK: 1, ratedHours: 20, shortCircuitPerAh: 25,
+    id: 'lifepo4', label: 'LiFePO₄ lithium', short: 'LiFePO₄', dod: 0.85, chargeEff: 0.92, peukertK: 1, ratedHours: 20, shortCircuitPerAh: 25,
     units: [
       lfp(12, 100, 100, 4), lfp(12, 200, 200, 4), lfp(12, 300, 200, 4), lfp(12, 400, 250, 4),
       lfp(24, 100, 100, 4), lfp(24, 200, 200, 4),
@@ -140,7 +144,7 @@ export const CHEMISTRIES: Record<ChemistryId, Chemistry> = {
     ],
   },
   agm: {
-    id: 'agm', label: 'AGM lead-acid', short: 'AGM', dod: 0.5, peukertK: 1.15, ratedHours: 20, shortCircuitPerAh: 12,
+    id: 'agm', label: 'AGM lead-acid', short: 'AGM', dod: 0.5, chargeEff: 0.8, peukertK: 1.15, ratedHours: 20, shortCircuitPerAh: 12,
     units: [agm(6, 225), agm(12, 100), agm(12, 200)],
   },
 }

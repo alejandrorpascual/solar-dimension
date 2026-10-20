@@ -9,7 +9,7 @@ import type {
   BatteryOption, BatteryPick, CableConditions, CustomLoadLike, SelectedItem, SimultaneousStarts, SizingInput, SizingResult, Warning,
 } from './sizing/types'
 import { buildWarnings, inverterNotes, parallelNotes } from './sizing/warnings'
-import { minSeries, panelsToRefill, sizeSolar, type SolarPick } from './solar'
+import { minSeries, sizeSolar, type SolarPick } from './solar'
 
 export type * from './sizing/types'
 
@@ -71,10 +71,10 @@ const toOption = (c: BankCandidate, ctx: RuntimeContext, autoId: string | undefi
   }
 }
 
-/** A roof too small for one string that charges says so; otherwise a roof short of a day's refill says that. */
-function solarWarnings(solar: SolarPick, bankWh: number, volts: Voltage): Warning[] {
+/** A roof too small for one string that charges says so; otherwise a roof short of a day's refill says that, unless every panel is tapped off. */
+function solarWarnings(solar: SolarPick, volts: Voltage): Warning[] {
   if (solar.isTooShort) return [{ code: 'stringTooShort', params: { volts, count: minSeries(volts), fit: solar.fit } }]
-  return solar.isRoofLimited ? [{ code: 'roofLimited', params: { fit: solar.wiredFit, need: panelsToRefill(bankWh, solar.sunHours) } }] : []
+  return solar.isRoofLimited && solar.panels > 0 ? [{ code: 'roofLimited', params: { fit: solar.wiredFit, need: solar.need } }] : []
 }
 
 /** True when the kit has a solar array worth showing: panels chosen and at least one appliance. */
@@ -125,8 +125,8 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   const averageW = Math.round(loadWh / hours)
   // An empty project still gets a (smallest) bank from autoPick; panels for it would be nonsense, so size against 0.
   const bankWh = items.length === 0 ? 0 : battery?.bankWh ?? 0
-  const solar = sizeSolar({ solar: input.solar ?? null, bankWh, volts, averageW })
-  const solarWarning = solar && items.length > 0 ? solarWarnings(solar, bankWh, volts) : []
+  const solar = sizeSolar({ solar: input.solar ?? null, bankWh, chemistry: chem, volts, averageW })
+  const solarWarning = solar && items.length > 0 ? solarWarnings(solar, volts) : []
 
   const main = sizeMain(battery)
   const wiring = sizeBankWiring({ ...wires, battery, main })
