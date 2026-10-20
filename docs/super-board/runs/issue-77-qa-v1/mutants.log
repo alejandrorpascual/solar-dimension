@@ -1,0 +1,49 @@
+## M1-coverage-without-inverter (src/lib/solar.ts)
+-    coverRatio: dailyUseWh > 0 ? dailyWh / (dailyUseWh / SIZING.INVERTER_EFF) : 0,
++    coverRatio: dailyUseWh > 0 ? dailyWh / dailyUseWh : 0,
+M1-coverage-without-inverter: KILLED
+× coverage is exactly 100% when a clear day's yield equals a day's use over the inverter's 0.9 4ms
+× sizes the recommended array at 48 V 0ms
+FAIL  src/lib/solar.test.ts > refilling the usable energy over charge losses > coverage is exactly 100% when a clear day's yield equals a day's use over the inverter's 0.9
+## M2-refill-without-charge-eff (src/lib/solar.ts)
+-  const refillWh = (bankWh * input.chemistry.dod) / input.chemistry.chargeEff
++  const refillWh = bankWh * input.chemistry.dod
+M2-refill-without-charge-eff: KILLED
+× sizes the solar side from the bank it picked and the average draw 8ms
+× warns when the roof cannot hold the panels that refill the bank 9ms
+× a 48 V roof that holds 11 panels but wires 10 says it holds the 10 1ms
+## M3-refill-nominal (src/lib/solar.ts)
+-  const refillWh = (bankWh * input.chemistry.dod) / input.chemistry.chargeEff
++  const refillWh = bankWh
+M3-refill-nominal: KILLED
+× the roof warning names the count the recommendation refills the usable energy with 5ms
+× a 10 kWh LiFePO4 bank at 4.5 sun hours recommends 5 panels and a 10 kWh AGM bank 4 6ms
+× the refill time is the usable energy over charge losses 1ms
+## M4-warn-on-tapped-zero (src/lib/sizing.ts)
+-  return solar.isRoofLimited && solar.panels > 0 ? [{ code: 'roofLimited', params: { fit: solar.wiredFit, need: solar.need } }] : []
++  return solar.isRoofLimited ? [{ code: 'roofLimited', params: { fit: solar.wiredFit, need: solar.need } }] : []
+M4-warn-on-tapped-zero: KILLED
+× tapping every panel off on a small roof gives no roof warning 7ms
+FAIL  src/lib/sizing.test.ts > battery unit choice > tapping every panel off on a small roof gives no roof warning
+## M5-kw-below-1kw (src/i18n/format.ts)
+-  if (w < 1000) return `${fmtInt(w, locale)} W`
+M5-kw-below-1kw: KILLED
+× an array under 1 kW, such as one 550 W panel, reads in watts 4ms
+FAIL  src/i18n/format.test.ts > an array under 1 kW, such as one 550 W panel, reads in watts
+## M6-default-sun-4.8 (src/lib/solar.ts)
+-  DEFAULT_SUN_HOURS: 4.5,
++  DEFAULT_SUN_HOURS: 4.8,
+M6-default-sun-4.8: KILLED
+× setSolarIn turns panels on with the defaults and off again 7ms
+FAIL  src/lib/store.test.ts > setSolarIn turns panels on with the defaults and off again
+## M7-refill-days-nominal (src/lib/solar.ts)
+-    refillDays: refillHours === null ? null : refillsInOneDay ? null : refillWh / dailyWh,
++    refillDays: refillHours === null ? null : refillsInOneDay ? null : bankWh / dailyWh,
+M7-refill-days-nominal: SURVIVED (tests green)
+## M8-warning-need-nominal (src/lib/sizing.ts)
+-  return solar.isRoofLimited && solar.panels > 0 ? [{ code: 'roofLimited', params: { fit: solar.wiredFit, need: solar.need } }] : []
++  return solar.isRoofLimited && solar.panels > 0 ? [{ code: 'roofLimited', params: { fit: solar.wiredFit, need: solar.need + 1 } }] : []
+M8-warning-need-nominal: KILLED
+× warns when the roof cannot hold the panels that refill the bank 8ms
+× the roof warning names the count the recommendation refills the usable energy with 1ms
+× a 48 V roof that holds 11 panels but wires 10 says it holds the 10 1ms

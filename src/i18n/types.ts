@@ -68,7 +68,7 @@ export type UiKey =
   | 'q3' | 'q3Help' | 'solarNo' | 'solarNoHelp' | 'solarYes' | 'solarYesHelp' | 'solarSkipped'
   | 'roofSpace' | 'roofLess' | 'roofMore' | 'roofFitsOne' | 'roofFitsMany' | 'roofHint' | 'plannerLabel' | 'plannerTile' | 'addPanel' | 'removePanel'
   | 'panelsLine' | 'recommendedPill' | 'recommendedPillLimited' | 'backToRecommended' | 'sunHours' | 'sunHint'
-  | 'clearDay' | 'flowSun' | 'flowBank' | 'flowHome' | 'coverFull' | 'coverPart' | 'coverAxis'
+  | 'clearDay' | 'flowSun' | 'flowBank' | 'flowHome' | 'coverHead' | 'coverAxis'
   | 'refillSameDay' | 'refillDays' | 'noPanelsYet' | 'cloudyDay' | 'cloudyNote' | 'solarAssumptions'
   | 'solarRecharge' | 'solarRechargeSub' | 'nextSolar' | 'footerSolar' | 'footerSolarNone' | 'footer4Solar'
   | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'pvCableSpec' | 'pvCableNote'
