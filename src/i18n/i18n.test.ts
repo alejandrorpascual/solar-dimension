@@ -146,6 +146,11 @@ describe('tr', () => {
     expect(tr(en, 'back')).toBe('Back')
   })
 
+  test('step 2 says every appliance counts in every hour of the window, in both languages', () => {
+    expect(en.ui.q2Help).toBe('The bank is sized for this many hours of your selected load, at the voltage you pick. Every appliance counts in every hour of the window.')
+    expect(es.ui.q2Help).toBe('El banco se dimensiona para estas horas de tu carga, al voltaje que elijas. Cada aparato cuenta en todas las horas del respaldo.')
+  })
+
   test('the custom form duty error names the 5% floor and 100% in both languages', () => {
     expect(tr(en, 'errDuty', { min: CUSTOM_DUTY_MIN_PCT })).toBe('Enter how much of each hour it runs, from 5 to 100%. Leave it empty if it never stops.')
     expect(tr(es, 'errDuty', { min: CUSTOM_DUTY_MIN_PCT })).toBe('Escribe qué parte de cada hora funciona, de 5 a 100%. Déjalo vacío si no se apaga nunca.')

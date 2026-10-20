@@ -149,4 +149,10 @@ describe('the spec sheet says what it is', () => {
       expect(sheetText(STRESS_12V, 'es', include).split('\n')).toContain(ES)
     }
   })
+
+  test('the assumptions start by saying every appliance counts in every hour of the window, in English and Spanish', () => {
+    const lineAfter = (text: string, sentence: string) => text.split('\n')[text.split('\n').indexOf(sentence) + 1]
+    expect(lineAfter(sheetText(SOUND, 'en'), EN)).toMatch(/^Every appliance counts in every hour of the window\. Assumes 90%/)
+    expect(lineAfter(sheetText(SOUND, 'es'), ES)).toMatch(/^Cada aparato cuenta en todas las horas del respaldo\. Supone 90%/)
+  })
 })

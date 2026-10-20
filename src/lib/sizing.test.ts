@@ -651,6 +651,14 @@ describe('engineering checks', () => {
     expect(at48(ESSENTIALS, { dutyOverrides: { ghost: 0.5 } }).loadWh).toBe(base.loadWh)
   })
 
+  test('a microwave set to 5% of each hour counts 1,440 Wh over 24 h, not the 2,304 Wh of its typical 8%', () => {
+    const day = (dutyOverrides: Record<string, number> = {}) =>
+      compute({ qty: { micro: 1 }, hours: 24, volts: 48, chemistry: 'lifepo4', dutyOverrides }, CATALOG_SNAPSHOT)
+    expect(day().loadWh).toBe(2304)
+    expect(day({ micro: 0.05 }).loadWh).toBe(1440)
+    expect(day({ micro: 0.05 }).items[0]).toMatchObject({ wh: 1440, effectiveDuty: 0.05, overridden: true })
+  })
+
   test('motors starting together add their surges, largest first; "all" counts every unit of a quantity', () => {
     const one = at48({ fridge: 2, ac2c: 1, well: 1 })
     const two = at48({ fridge: 2, ac2c: 1, well: 1 }, { simultaneousStarts: 2 })

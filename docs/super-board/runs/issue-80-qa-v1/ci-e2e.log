@@ -1,0 +1,4 @@
+CI verify job on head 5623be659f588bff80376673891be1b03399b56f (npm run e2e with CI=true, desktop + phone projects)
+https://github.com/alejandrorpascual/solar-dimension/actions/runs/39341470472/job/118363776807
+check: verify success 2026-10-19T23:25:26Z -> 2026-10-19T23:30:45Z
+annotation: 🎭 Playwright Run Summary | 6 skipped 241 passed (4.1m)
