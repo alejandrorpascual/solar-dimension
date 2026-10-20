@@ -1,0 +1,37 @@
+QA v2 for #67 · PR #151 · builder head 177f9bd (rebuild after review round 1) · 2026-10-19
+
+Local checks (a clone of 177f9bd, plus two new unit tests in src/lib/oversize.test.ts)
+- npm ci && npm run typecheck && npm run test:coverage && npm run build: exit 0. 100 files, 1688 tests. All files: lines 98.89%, branches 93.92%.
+- npx vitest run src/lib/oversize.test.ts: 13/13 passed.
+- Branch merged with origin/staging c3c31c1 (a local probe, not pushed): oversize, i18n and persistence tests 76/76 passed.
+
+Review thread R4 ([qa]): a bank of exactly 3 times its need
+- New test oversize.test.ts:40. A 153 W load running all 8 h is 1,224 Wh. After 90% inverter efficiency and 85% depth of
+  discharge it needs 1,600 Wh, and the 48 V kit's 4,800 Wh bank is exactly 3 times that. The note shows, ratio 3.
+- Mutant: `<` to `<=` at oversize.ts:42. The new test fails: "expected null to match object { ratio: 3, needWh: 1600 }",
+  1 failed, 11 passed. With `<` restored: 12/12.
+
+Test-gap check: one more surviving mutant, now pinned
+- Mutant: `<` to `<=` at oversize.ts:46, which names a voltage that sizes the same bank, not a smaller one. It passed
+  all 12 tests. A search over every catalog item (1 and 2 units, 1 to 24 h, 4 voltages, 2 chemistries) found 221
+  kits where it shows a note the issue does not ask for.
+- New test oversize.test.ts:22: a microwave for 1 h at 24 V needs 125 Wh and gets a 2.4 kWh bank (19 times). 12 V
+  sizes the same 2.4 kWh and no voltage sizes less, so no note. The test also asserts those bank sizes first, so it
+  cannot pass on a changed catalog without saying so.
+- Mutant run: "expected { ratio: 19, needWh: 125, ... } to be null", 1 failed, 12 passed. Restored: 13/13.
+- Both mutations were undone, and oversize.ts matches HEAD (git diff empty).
+
+e2e
+- Not run here. The guard-secrets hook refused the link to .env.test.local, and e2e/test-env.ts will not run without it.
+- CI on PR head 177f9bd: run 39341023074, job 118362305565, on the merge of 177f9bd into staging c3c31c1 (50b6ffb).
+  Unit 1717 passed. e2e 245 passed, 6 skipped, 0 failed. These passed on desktop: kit-builder.spec.ts:412 (English and
+  Español), :425 and :438.
+
+Screenshots
+- Component renders, not the live page, made the same way as v1. KitStep (with its real oversizeNote and KitQuickEdit
+  wiring; QuotesCard left out) and BackupWindow were rendered from this branch's code with react-dom/server, with the
+  root loader data stubbed to the catalog snapshot and the locale. The page used the app's styles.css and web fonts.
+  Playwright Chromium took the shots at 1920x1080, 1024x768 and 375x667. No header, rail or footer.
+- The step 4 crop is the note. The step 2 crop runs from the "Battery voltage" label to the caveat.
+- render-log.txt lists, for every shot, how many notes were found, the horizontal overflow in px, and the note text.
+  Every shot has 0 px of horizontal overflow.

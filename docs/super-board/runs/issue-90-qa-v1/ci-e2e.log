@@ -1,0 +1,6 @@
+# CI run 39350000683, job verify, 934b2fa merged into staging b33e229 (extract)
+# https://github.com/alejandrorpascual/solar-dimension/actions/runs/39350000683/job/118391693025
+  249 passed (3.4m)
+  6 skipped
+  ✓   24 [desktop] › e2e/download.spec.ts:24:3 › on a device set to Spanish (Venezuela), where decimals take a comma › the CSV splits cells on ";" and opens with the project rows, in the page language whichever it is (1.1s)
+  ✓   25 [desktop] › e2e/download.spec.ts:54:3 › on a device set to English (US) › the CSV splits cells on ",", quotes a cell holding a comma, and opens with the project rows (561ms)
