@@ -12,7 +12,18 @@ const project = (qty: Record<string, number>, patch: Partial<Project> = {}): Pro
 describe('oversizeNote', () => {
   test('a router alone for 8 h at 48 V gets the note, naming 12 V as the voltage that sizes the smallest bank', () => {
     // CALC-19: 209 Wh needed, a 3 kW inverter and a 4.8 kWh bank at 48 V; 12 V sizes one 12 V 100 Ah battery.
-    expect(oversizeNote(project({ router: 1 }), CATALOG_SNAPSHOT)).toEqual({ ratio: 22, needWh: 209, inverterW: 3000, volts: 12, bankWh: 1200 })
+    expect(oversizeNote(project({ router: 1 }), CATALOG_SNAPSHOT))
+      .toEqual({ ratio: 22, needWh: 209, isSmallestBank: false, kitVolts: 48, inverterW: 3000, volts: 12, bankWh: 1200 })
+  })
+
+  test('a router alone for 8 h at 24 V gets the note saying no 24 V bank is smaller, not that the inverter makes it big', () => {
+    // One 24 V 100 Ah battery (2.4 kWh) is the smallest 24 V bank, and it already carries the 2 kW inverter's current.
+    expect(oversizeNote(project({ router: 1 }, { volts: 24 }), CATALOG_SNAPSHOT))
+      .toEqual({ ratio: 11, needWh: 209, isSmallestBank: true, kitVolts: 24, inverterW: 2000, volts: 12, bankWh: 1200 })
+  })
+
+  test('a fridge for 8 h at 24 V gets the same reason: its 2.4 kWh bank is the smallest 24 V bank, 4 times its need', () => {
+    expect(oversizeNote(project({ fridge: 1 }, { volts: 24 }), CATALOG_SNAPSHOT)).toMatchObject({ ratio: 4, isSmallestBank: true, kitVolts: 24 })
   })
 
   test('the same router at 12 V gets no note: no other voltage sizes a smaller bank', () => {
@@ -46,7 +57,8 @@ describe('oversizeNote', () => {
 
   test('a fridge for 8 h at 36 V gets the note: the 4 kW inverter needs a 7.2 kWh bank, 12 V sizes 1.2 kWh', () => {
     // CALC-34: only the 4 and 5 kW stock inverters are sold for 36 V.
-    expect(oversizeNote(project({ fridge: 1 }, { volts: 36 }), CATALOG_SNAPSHOT)).toEqual({ ratio: 13, needWh: 549, inverterW: 4000, volts: 12, bankWh: 1200 })
+    expect(oversizeNote(project({ fridge: 1 }, { volts: 36 }), CATALOG_SNAPSHOT))
+      .toEqual({ ratio: 13, needWh: 549, isSmallestBank: false, kitVolts: 36, inverterW: 4000, volts: 12, bankWh: 1200 })
   })
 
   test('two voltages that size the same smallest bank: the higher one is named, it carries less current', () => {
@@ -59,6 +71,14 @@ describe('oversizeNote', () => {
     expect(oversizeNote(project({ micro: 2 }, { hours: 1, chemistry: 'agm' }), CATALOG_SNAPSHOT)).toMatchObject({ volts: 24, bankWh: 14400 })
   })
 
+  test('a bank bigger than the smallest its voltage allows is put down to the inverter, even when it is not the smallest that carries the current', () => {
+    // The same two microwaves on AGM at 48 V: the automatic pick takes eight 12 V 200 Ah (19.2 kWh) over twelve 12 V 100 Ah
+    // (14.4 kWh) for fewer batteries. Four 12 V 100 Ah make 4.8 kWh, the smallest 48 V AGM bank.
+    const agm = project({ micro: 2 }, { hours: 1, chemistry: 'agm' })
+    expect(computeProject(agm, CATALOG_SNAPSHOT).battery).toMatchObject({ unitAh: 200, count: 8, bankWh: 19200 })
+    expect(oversizeNote(agm, CATALOG_SNAPSHOT)).toMatchObject({ isSmallestBank: false, kitVolts: 48, inverterW: 3000 })
+  })
+
   test("a battery picked by hand gets no note: its size is the user's choice, not the inverter's doing", () => {
     // A router at 48 V on a 48 V 314 Ah battery: 15.1 kWh for 209 Wh.
     expect(oversizeNote(project({ router: 1 }, { batteryUnit: '48-314' }), CATALOG_SNAPSHOT)).toBeNull()
@@ -68,7 +88,8 @@ describe('oversizeNote', () => {
 
   test('picking the battery the automatic pick chose gets the same note as leaving it on automatic', () => {
     // The router's automatic bank at 48 V is one 48 V 100 Ah battery.
-    expect(oversizeNote(project({ router: 1 }, { batteryUnit: '48-100' }), CATALOG_SNAPSHOT)).toEqual({ ratio: 22, needWh: 209, inverterW: 3000, volts: 12, bankWh: 1200 })
+    expect(oversizeNote(project({ router: 1 }, { batteryUnit: '48-100' }), CATALOG_SNAPSHOT))
+      .toEqual({ ratio: 22, needWh: 209, isSmallestBank: false, kitVolts: 48, inverterW: 3000, volts: 12, bankWh: 1200 })
   })
 
   test('a load whose need rounds to 0 Wh gets no note', () => {

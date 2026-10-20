@@ -108,9 +108,9 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
       </div>
       {oversize && (
         <p className="note-box">
-          {tr(t, 'oversizeNote', {
-            ratio: oversize.ratio, need: `${fmtInt(oversize.needWh, locale)} Wh`, inverter: fmtW(oversize.inverterW, locale),
-            volts: oversize.volts, bank: fmtKwh(oversize.bankWh, locale),
+          {tr(t, oversize.isSmallestBank ? 'oversizeNoteSmallest' : 'oversizeNote', {
+            ratio: fmtInt(oversize.ratio, locale), need: `${fmtInt(oversize.needWh, locale)} Wh`, inverter: fmtW(oversize.inverterW, locale),
+            kitVolts: oversize.kitVolts, volts: oversize.volts, bank: fmtKwh(oversize.bankWh, locale),
           })}
         </p>
       )}

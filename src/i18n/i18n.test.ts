@@ -122,6 +122,11 @@ describe('dictionaries', () => {
     expect(tr(en, 'oversizeNote', p)).toBe('This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
     expect(tr(es, 'oversizeNote', p)).toBe('Este banco guarda 22 veces los 209 Wh que necesita la carga: tiene que dar toda la corriente de un inversor de 3,000 W. A 12 V el kit llevaría un banco de 1.2 kWh, el más pequeño que cumple las mismas verificaciones.')
   })
+  test('when the bank is the smallest its voltage allows, the oversize note says so instead of blaming the inverter, in both languages', () => {
+    const p = { ratio: 11, need: '209 Wh', kitVolts: 24, volts: 12, bank: '1.2 kWh' }
+    expect(tr(en, 'oversizeNoteSmallest', p)).toBe('This bank holds 11× the 209 Wh the load needs: the kit cannot build a smaller bank at 24 V. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
+    expect(tr(es, 'oversizeNoteSmallest', p)).toBe('Este banco guarda 11 veces los 209 Wh que necesita la carga: el kit no puede armar un banco más pequeño a 24 V. A 12 V el kit llevaría un banco de 1.2 kWh, el más pequeño que cumple las mismas verificaciones.')
+  })
   test('the uncommon-voltage caveat says few inverters are sold for it and most kits come out oversized, in both languages', () => {
     expect(tr(en, 'fewInvertersNote', { volts: 36 })).toBe('Few inverters are sold for 36 V, so most kits come out oversized: a larger inverter than the load needs, and a bank big enough to carry its current.')
     expect(tr(es, 'fewInvertersNote', { volts: 36 })).toBe('Se venden pocos inversores para 36 V, así que la mayoría de los kits salen sobredimensionados: un inversor más grande de lo que pide la carga y un banco capaz de darle toda su corriente.')

@@ -63,6 +63,7 @@ export const es: Dictionary = {
     fuseAicNote: '{aic} kA de capacidad de interrupción', stringFuseSpec: '{amps} A clase {class}, uno por rama en paralelo', stringFuseNote: 'En el positivo de cada rama, para que una rama en corto se aísle sola',
     batteriesCurrentNote: '{cont} A continuos, {peak} A pico del banco (valores supuestos)',
     oversizeNote: 'Este banco guarda {ratio} veces los {need} que necesita la carga: tiene que dar toda la corriente de un inversor de {inverter}. A {volts} V el kit llevaría un banco de {bank}, el más pequeño que cumple las mismas verificaciones.',
+    oversizeNoteSmallest: 'Este banco guarda {ratio} veces los {need} que necesita la carga: el kit no puede armar un banco más pequeño a {kitVolts} V. A {volts} V el kit llevaría un banco de {bank}, el más pequeño que cumple las mismas verificaciones.',
     batterySize: 'Tamaño de batería', batterySizeHelp: 'Elige la batería que piensas comprar. Automático toma la que más verificaciones cumple, con menos baterías.', batteryAuto: 'Automático',
     batteryRecommended: 'La mejor opción', batteryGroup: 'Baterías de {v} V', batteryInSeries: '{n} en serie', manyStrings: 'Muchas ramas en paralelo',
     batteryCountOne: '{count} batería', batteryCountMany: '{count} baterías', panelCountOne: '{count} panel', panelCountMany: '{count} paneles',
