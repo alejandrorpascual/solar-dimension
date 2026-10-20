@@ -213,7 +213,7 @@ describe('printed conductors', () => {
     const designA = r.inverter.continuousA * SIZING.NEC_CONTINUOUS
     expect(designA).toBeCloseTo(231.5, 1)
     const link = printedConductors(r).find((x) => x.row === 'interconnects')!
-    expect(link).toMatchObject({ gauge: '1 AWG', sideBySide: 2, ampacity: 130 })
+    expect(link).toMatchObject({ gauge: '1/0 AWG', sideBySide: 2, ampacity: 150 })
     expect(link.sideBySide * link.ampacity).toBeGreaterThanOrEqual(designA)
     expect(kitChecks(en, r, 'en').find((c) => c.id === 'cable')!.status).toBe('pass')
   })
@@ -235,10 +235,10 @@ describe('kits the audit found with bank wiring under its current', () => {
   const cableCheck = (r: SizingResult) => kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
   const row = (r: SizingResult, id: ConductorRow) => printedConductors(r).find((x) => x.row === id)!
 
-  test('24 V, a 2 ton inverter AC, fridge and lights for 3 h: the one series link is two 1 AWG jumpers', () => {
+  test('24 V, a 2 ton inverter AC, fridge and lights for 3 h: the one series link is two 1/0 AWG jumpers', () => {
     const r = kit({ qty: { ac2i: 1, fridge: 1, lights: 1 }, hours: 3, volts: 24 })
-    expect([r.inverter.w, r.battery!.config, r.batteryUnit, r.cable.runs, r.cable.gauge]).toEqual([4000, '2S1P', null, 2, '1 AWG'])
-    expect(row(r, 'interconnects')).toMatchObject({ gauge: '1 AWG', sideBySide: 2, ampacity: 130 })
+    expect([r.inverter.w, r.battery!.config, r.batteryUnit, r.cable.runs, r.cable.gauge]).toEqual([4000, '2S1P', null, 2, '1/0 AWG'])
+    expect(row(r, 'interconnects')).toMatchObject({ gauge: '1/0 AWG', sideBySide: 2, ampacity: 150 })
     expect(printedConductors(r).filter(isShort)).toEqual([])
     expect(cableCheck(r).status).toBe('pass')
   })

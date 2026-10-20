@@ -73,6 +73,16 @@ describe('sizeMainCable', () => {
     expect(pair.dropPct).toBeCloseTo(alone.dropPct)
   })
 
+  test('runs in parallel to one inverter are 1/0 AWG or larger; one run to each inverter keeps the gauge it needs', () => {
+    // 2 kW at 12 V: 231 A of design current is over 4/0, so two runs of 116 A, which 1 AWG would carry.
+    expect(sizeMainCable(185.2, 370.4, 12, room, GAUGES, FUSES, noBank)).toMatchObject({ runs: 2, gauge: { awg: '1/0 AWG' }, ampacity: 150 })
+    expect(sizeMainCable(20, 40, 48, room, GAUGES, FUSES, noBank, { fixedRuns: 2 })).toMatchObject({ runs: 2, gauge: { awg: '1/0 AWG' } })
+    // A list that stops at 4 AWG parallels the largest it has.
+    expect(sizeMainCable(20, 40, 48, room, GAUGES.slice(0, 3), FUSES, noBank, { fixedRuns: 2 }).gauge.awg).toBe('4 AWG')
+    // Two inverters on a run each: 6 AWG, the least that takes the smallest 60 A fuse.
+    expect(sizeMainCable(40, 80, 48, room, GAUGES, FUSES, noBank, { feeds: 2 })).toMatchObject({ runs: 2, gauge: { awg: '6 AWG' } })
+  })
+
   test('a set number of runs and a share for each inverter cannot be asked for together', () => {
     // @ts-expect-error fixedRuns is for one string's lead and feeds for inverters in parallel: a layout names one or neither.
     const both: Parameters<typeof sizeMainCable>[7] = { fixedRuns: 1, feeds: 2 }
@@ -105,6 +115,19 @@ describe('sizeMainCable', () => {
     expect(bank(130).fuse.a).toBe(100)
     expect(bank(130).warnings.map((w) => w.code)).not.toContain('fuseAboveBank')
     expect(bank(120).warnings.map((w) => w.code)).toContain('fuseAboveBank')
+  })
+
+  test('warns when even the largest gauge drops more than 3% at full load, as the drop prints, to a tenth', () => {
+    // 3 kW at 12 V over 10 m: two runs of 4/0 at 139 A each drop 3.7%.
+    const far = sizeMainCable(277.8, 555.6, 12, { ...room, runLengthM: 10 }, GAUGES, FUSES, noBank)
+    expect(far).toMatchObject({ runs: 2, gauge: { awg: '4/0 AWG' } })
+    expect(far.warnings).toContainEqual({ code: 'cableDrop', params: { dropPct: 3.7, maxDropPct: 3 } })
+    expect(sizeMainCable(277.8, 555.6, 12, room, GAUGES, FUSES, noBank).warnings.map((w) => w.code)).not.toContain('cableDrop')
+    // 3.04% prints as 3.0%: not over the limit as the sheet shows it.
+    const edge = sizeMainCable(277.8, 555.6, 12, { ...room, runLengthM: 8.2 }, GAUGES, FUSES, noBank)
+    expect(Math.round(edge.dropPct * 10) / 10).toBe(3)
+    expect(edge.dropPct).toBeGreaterThan(3)
+    expect(edge.warnings.map((w) => w.code)).not.toContain('cableDrop')
   })
 
   test('warns on a start-up drop the inverter would not ride through, and on air too hot for any cable', () => {
@@ -284,10 +307,10 @@ describe('sizeBankWiring', () => {
   })
 
   test('one string: every series link gets one jumper per main run, at the main gauge', () => {
-    // 185 A needs 231 A of cable, more than 4/0 carries, so the main cable is two runs of 1 AWG and so is each link.
+    // 185 A needs 231 A of cable, more than 4/0 carries, so the main cable is two runs in parallel, of 1/0 AWG, and so is each link.
     const { main, links, string, warnings } = wire(2, 1, 185.2)
-    expect(main).toMatchObject({ runs: 2, gauge: { awg: '1 AWG' } })
-    expect(links).toEqual({ positions: 1, perPosition: 2, count: 2, gauge: '1 AWG', mm2: 42.4, designA: 116, ampacity: 130, lengthM: 0.3 })
+    expect(main).toMatchObject({ runs: 2, gauge: { awg: '1/0 AWG' } })
+    expect(links).toEqual({ positions: 1, perPosition: 2, count: 2, gauge: '1/0 AWG', mm2: 53.5, designA: 116, ampacity: 150, lengthM: 0.3 })
     expect(links!.perPosition * links!.ampacity).toBeGreaterThanOrEqual(185.2 * 1.25)
     expect(string).toBeNull()
     expect(warnings).toEqual([])

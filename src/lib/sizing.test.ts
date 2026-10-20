@@ -488,12 +488,17 @@ describe('bank wiring', () => {
     expect(r.warnings.map((w) => w.code)).not.toContain('cableUndersized')
   })
 
-  test('when the main cable splits in two runs, each series link is two jumpers, so 185 A never rides on one 130 A cable', () => {
+  test('2 kW at 12 V parallels two runs of 1/0 AWG, not two of 1 AWG', () => {
+    const r = compute({ ...load(1500), hours: 1, volts: 12, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect([r.inverter.w, r.cable.runs, r.cable.gauge]).toEqual([2000, 2, '1/0 AWG'])
+  })
+
+  test('when the main cable splits in two runs, each series link is two jumpers, so 185 A never rides on one 150 A cable', () => {
     const r = compute({ ...load(3000), hours: 1, volts: 24, chemistry: 'lifepo4', batteryUnit: '12-200' }, CATALOG_SNAPSHOT)
     expect(r.battery?.config).toBe('2S1P')
     expect(r.inverter.continuousA).toBeCloseTo(185.2, 1)
-    expect(r.cable).toMatchObject({ runs: 2, gauge: '1 AWG', ampacity: 130 })
-    expect(r.cable.links).toMatchObject({ positions: 1, perPosition: 2, count: 2, gauge: '1 AWG', designA: 116, ampacity: 130 })
+    expect(r.cable).toMatchObject({ runs: 2, gauge: '1/0 AWG', ampacity: 150 })
+    expect(r.cable.links).toMatchObject({ positions: 1, perPosition: 2, count: 2, gauge: '1/0 AWG', designA: 116, ampacity: 150 })
     expect(r.cable.designPerRunA).toBe(116)
     expect(r.cable.totalLengthM).toBe(6.6)
     expect(r.warnings.map((w) => w.code)).not.toContain('cableUndersized')

@@ -109,7 +109,12 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
     { id: 'batteries', name: t.parts.batteries, spec: b.unitLabel, note: batteriesNote, qty: String(b.count) },
     {
       id: 'mainCable' satisfies ConductorKind, name: t.parts.mainCable, spec: tr(t, 'mainCableSpec', { gauge: c.gauge, mm2: c.mm2, length: c.mainLengthM }),
-      note: tr(t, 'mainCableNote', { amps: fmtInt(c.designPerRunA, locale), perRun, ampacity: fmtInt(c.ampacity, locale), drop: c.startupDropPct }), qty: String(c.mainCount),
+      note: joinNotes([
+        tr(t, 'mainCableNote', { amps: fmtInt(c.designPerRunA, locale), perRun, ampacity: fmtInt(c.ampacity, locale), runDrop: c.dropPct, drop: c.startupDropPct }),
+        // More than one run to an inverter: conductors in parallel, which share the current only when alike.
+        c.runs > r.inverter.count ? t.ui.mainCableParallelNote : '',
+      ]),
+      qty: String(c.mainCount),
     },
     ...bankWiringParts(c, t, locale),
     {

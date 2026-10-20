@@ -1,0 +1,23 @@
+M3 (gi = parallelFloor in place of Math.max(gi, parallelFloor)) against the head, src/lib/sizing/cable.ts:89
+sweep: 12/24/48 V x 100 W steps to the largest inverter set x -10/30/40/45/50/55 C x 75/90 C x open/bundled x 1.5/4/10 m, surge 2x running
+kits: 103680 · main cable (runs, gauge, ampacity, design per run, fuse, warnings) differs under M3: 0
+verdict: equivalent on the stock catalog; the fuse step-up in pickFuse restores the gauge the current needs
+
+--- sweep source (copy to src/lib/ to rerun; QA_SWEEP_OUT=<file>) ---
+// Throwaway QA probe for issue #63: dumps every swept kit's main cable as JSON. Never committed.
+import { writeFileSync } from 'node:fs'
+import { test } from 'vitest'
+import { INVERTERS, VOLTAGES } from './catalog'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
+import { compute } from './sizing'
+
+test('sweep', () => {
+  const maxW = Math.max(...INVERTERS.map((i) => i.w * (i.maxParallel ?? 1)))
+  const rows: Record<string, unknown> = {}
+  for (const volts of VOLTAGES) for (let watts = 100; watts <= maxW; watts += 100)
+    for (const ambientC of [-10, 30, 40, 45, 50, 55]) for (const insulationC of [75, 90] as const) for (const bundled of [false, true]) for (const runLengthM of [1.5, 4, 10]) {
+      const r = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Load', watts, surge: watts * 2, note: '' }], hours: 1, volts, chemistry: 'lifepo4', cable: { ambientC, insulationC, bundled, runLengthM } }, CATALOG_SNAPSHOT)
+      rows[`${volts}|${watts}|${ambientC}|${insulationC}|${bundled}|${runLengthM}`] = [r.cable.runs, r.cable.gauge, r.cable.ampacity, r.cable.designPerRunA, r.cable.fuseA, r.warnings.map((w) => w.code).sort().join(',')]
+    }
+  writeFileSync(process.env.QA_SWEEP_OUT!, JSON.stringify(rows))
+})

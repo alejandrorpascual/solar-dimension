@@ -67,6 +67,8 @@ export const SIZING = {
   TERMINATION_C: 75 as InsulationC,
   AMBIENT_DEFAULT_C: 30,
   MAX_RUNS: 6,
+  /** NEC 310.10(G): conductors in parallel are 1/0 AWG (53.5 mm²) or larger. */
+  MIN_PARALLEL_MM2: 53.5,
   /** Voltage drop at start-up current the inverter still rides through. */
   MAX_STARTUP_DROP_PCT: 10,
   DUTY_MIN: 0.05,

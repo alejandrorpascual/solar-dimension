@@ -18,7 +18,7 @@ export const CHECK_WARNINGS: Record<CheckId, readonly WarningCode[]> = {
   batteryPeak: ['bankPeak'],
   parallel: ['parallelStrings'],
   fuse: ['fuseVoltage', 'fuseAboveBank', 'fuseAboveCable', 'fuseSurge', 'fuseInterrupt'],
-  cable: ['highCurrent', 'startupDrop', 'cableAmbient', 'cableUndersized'],
+  cable: ['highCurrent', 'cableDrop', 'startupDrop', 'cableAmbient', 'cableUndersized'],
 }
 const CHECKED_CODES = new Set<WarningCode>(Object.values(CHECK_WARNINGS).flat())
 
@@ -78,7 +78,7 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
-        designA: a(c.designPerRunA), perRun: shareLabel(r, t), drop: c.startupDropPct,
+        designA: a(c.designPerRunA), perRun: shareLabel(r, t), runDrop: c.dropPct, drop: c.startupDropPct,
       })
   }
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import { CHEMISTRIES, DEFAULT_HARDWARE, INVERTERS, SIZING, VOLTAGES, type ChemistryId, type Inverter, type Voltage } from './catalog'
-import { compute, type SizingResult } from './sizing'
+import { CHEMISTRIES, DEFAULT_HARDWARE, GAUGES, INVERTERS, SIZING, VOLTAGES, type ChemistryId, type Inverter, type Voltage } from './catalog'
+import { AMBIENT_CORRECTION } from './nec'
+import { compute, type SizingInput, type SizingResult } from './sizing'
 import { unitId } from './sizing/battery'
 
 /** NEC 210.19 / 706.30: the fuse on a continuous load is rated for at least 125% of it. */
@@ -23,12 +24,12 @@ const unitsFor = (volts: Voltage): BankUnit[] =>
  * The kit for a load this set carries with its headroom and one unit fewer would not (half a unit past the rest), on
  * this battery, with the inverter list cut to that one model and the cable left at its defaults.
  */
-function kitFor(volts: Voltage, { unit, count }: InverterSet, bank: BankUnit): SizingResult {
+function kitFor(volts: Voltage, { unit, count }: InverterSet, bank: BankUnit, cable?: SizingInput['cable']): SizingResult {
   // The engine's own headroom, read only to aim the load at this set.
   const watts = ((count - 0.5) * unit.w) / SIZING.HEADROOM
   return compute({
     qty: { load: 1 }, custom: [{ id: 'load', name: 'Load', watts, surge: watts, note: '' }],
-    hours: 1, volts, chemistry: bank.chemistry, batteryUnit: bank.id,
+    hours: 1, volts, chemistry: bank.chemistry, batteryUnit: bank.id, cable,
   }, [], { ...DEFAULT_HARDWARE, inverters: [unit] })
 }
 
@@ -58,5 +59,20 @@ describe('every stock kit at the default cable conditions', () => {
   test('gives each main run a fuse of at least 1.25 × its current, within its cable or warned, and a drop of 3% or less', () => {
     expect(kits.length).toBeGreaterThan(0)
     expect(kits.flatMap(({ r, set, bank }) => breaches(r, set, bank))).toEqual([])
+  })
+})
+
+describe('every stock kit in every air, insulation and bundling', () => {
+  /** NEC 310.10(G): conductors in parallel are 1/0 AWG or larger. */
+  const SMALLEST_PARALLEL = GAUGES.findIndex((g) => g.awg === '1/0 AWG')
+  /** Below the table, then the warm end of every row it has. */
+  const AMBIENTS = [-10, ...AMBIENT_CORRECTION.map((row) => row.maxC)]
+  const kits = VOLTAGES.flatMap((volts) => SETS.flatMap((set) => AMBIENTS.flatMap((ambientC) => ([75, 90] as const).flatMap((insulationC) =>
+    [false, true].map((bundled) => ({ label: `${volts} V · ${set.count} × ${set.unit.w} W · ${ambientC} °C · ${insulationC} °C cable${bundled ? ' · bundled' : ''}`, r: kitFor(volts, set, unitsFor(volts)[0]!, { ambientC, insulationC, bundled }) }))))))
+  const paralleled = kits.filter(({ r }) => r.cable.runs > r.inverter.count)
+
+  test('runs more than one to an inverter only on 1/0 AWG or larger', () => {
+    expect(paralleled.length).toBeGreaterThan(0)
+    expect(paralleled.filter(({ r }) => GAUGES.findIndex((g) => g.awg === r.cable.gauge) < SMALLEST_PARALLEL).map(({ label, r }) => `${label}: ${r.cable.runs} × ${r.cable.gauge}`)).toEqual([])
   })
 })
