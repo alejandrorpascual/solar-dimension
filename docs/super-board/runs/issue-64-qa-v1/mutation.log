@@ -1,0 +1,8 @@
+Mutants run on 27a1cf9 + the new hard-day test; each restored with git checkout before the next (git status clean but the test file).
+runtime.ts  acDuty * 0.9 (hard day at 90%)            builder AC1 tests pass · new "runs a 1-ton AC non-stop" test FAILS (2/2)
+runtime.ts  AC branch dropped (staging behaviour)       builder AC1 tests FAIL (2/2) · new test FAILS (2/2)
+loads.ts    ratio <= 3 dropped                          npm test: 1696 passed (survives: no catalog motor of 250 W+ starts above 3x)
+loads.ts    ratio > 2  -> ratio >= 2                    npm test: 1696 passed (survives: no catalog motor of 250 W+ starts at exactly 2x)
+loads.ts    watts >= 250 -> watts > 250                 npm test: 1696 passed (survives: no catalog motor at exactly 250 W)
+loads.ts    ratio > 2 dropped                           npm test: 4 failed (inverter ACs get the note)
+loads.ts    watts >= 250 dropped                        npm test: 3 failed (the parking barrier gets the note)

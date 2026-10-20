@@ -1,0 +1,22 @@
+$ npx vitest run --reporter=verbose src/components/DutyControl.test.ts src/lib/sizing.test.ts src/lib/kit-csv.test.ts src/lib/store.test.ts src/i18n/i18n.test.ts src/components/BackupWindow.test.ts src/lib/fine-print.test.ts src/components/KitSheet.test.ts src/components/KitSummary.test.ts src/lib/schema.test.ts   # AC tests only, below
+ ✓ src/i18n/i18n.test.ts > tr > step 2 says every appliance counts in every hour of the window, in both languages 0ms
+ ✓ src/i18n/i18n.test.ts > tr > the custom form duty error names the 5% floor and 100% in both languages 0ms
+ ✓ src/lib/fine-print.test.ts > finePrint (en) > says every appliance counts in every hour of the window 0ms
+ ✓ src/lib/fine-print.test.ts > finePrint (es) > says every appliance counts in every hour of the window 0ms
+ ✓ src/lib/sizing.test.ts > inverter against the running load > 9,600 W is the last load one inverter carries with its 25% headroom 0ms
+ ✓ src/components/DutyControl.test.ts > a microwave can be set below its typical 8%, to 5% (the engine floor) or 10% 26ms
+ ✓ src/components/DutyControl.test.ts > a fridge keeps its typical 35% among the presets, which now start at 5% 0ms
+ ✓ src/components/DutyControl.test.ts > a catalog duty on a new preset is listed once: the kettle at 5% and the well pump at 10% 3ms
+ ✓ src/components/DutyControl.test.ts > the microwave duty picker > lists 5% of each hour above its typical 8%, in English and Spanish 7ms
+ ✓ src/components/DutyControl.test.ts > the microwave duty picker > shows the typical 8% until 5% is chosen, then shows 5% 1ms
+ ✓ src/lib/sizing.test.ts > engineering checks > a duty override changes the energy and the average, and is clamped to 5%..100% 2ms
+ ✓ src/lib/sizing.test.ts > engineering checks > a microwave set to 5% of each hour counts 1,440 Wh over 24 h, not the 2,304 Wh of its typical 8% 1ms
+ ✓ src/lib/kit-csv.test.ts > csvFor > a microwave set to 5% of each hour lists 1,440 Wh over 24 h, where its typical 8% lists 2,304 1ms
+ ✓ src/lib/store.test.ts > duty overrides and electrical settings > a microwave picked at 5% is stored at 5% and its project counts 1,440 Wh over 24 h 5ms
+ ✓ src/components/BackupWindow.test.ts > step 2 says every appliance counts in every hour of the window, in English and Spanish 22ms
+ ✓ src/lib/schema.test.ts > saved duty overrides still parse, the 5% and 10% presets and the older presets alike 0ms
+ ✓ src/lib/schema.test.ts > a custom appliance whose saved duty is not a share of an hour is dropped by itself 0ms
+ ✓ src/components/KitSheet.test.ts > the spec sheet says what it is > the assumptions start by saying every appliance counts in every hour of the window, in English and Spanish 5ms
+ ✓ src/components/KitSummary.test.ts > the fine print under the kit starts with every appliance counting in every hour of the window, in English and Spanish 31ms
+ Test Files  10 passed (10)
+      Tests  247 passed (247)

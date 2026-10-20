@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { EMPTY_FORM, parseCustom } from './custom'
+import { computeProject } from './project-summary'
 import { compute } from './sizing'
 import {
   addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
@@ -174,6 +175,13 @@ describe('duty overrides and electrical settings', () => {
     expect(currentProject(set).updatedAt).toBeGreaterThan(0)
     expect(currentProject(setDutyIn(set, 'p1', 'fridge', null)).dutyOverrides).toEqual({})
     expect(setDutyIn(s, 'nope', 'fridge', 0.5)).toBe(s)
+  })
+
+  test('a microwave picked at 5% is stored at 5% and its project counts 1,440 Wh over 24 h', () => {
+    const day = setHoursIn(patchCurrent(initialStore(), { qty: { micro: 1 } }), 'p1', 24)
+    const picked = currentProject(setDutyIn(day, 'p1', 'micro', 0.05))
+    expect(picked.dutyOverrides).toEqual({ micro: 0.05 })
+    expect(computeProject(picked, CATALOG_SNAPSHOT).loadWh).toBe(1440)
   })
 
   test('setElectricalIn patches one field, keeps the rest and stamps the project', () => {

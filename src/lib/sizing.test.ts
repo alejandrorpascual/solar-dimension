@@ -66,8 +66,8 @@ describe('compute', () => {
     expect(r.inverter.voltsOk).toBe(false)
     expect(r.cable.runs).toBe(3)
     const codes = r.warnings.map((w) => w.code)
-    // Nine AGM strings can short at 21.6 kA, past a class T fuse's 20 kA.
-    expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad', 'fuseInterrupt'])
+    // Nine AGM strings can short at 21.6 kA, past a class T fuse's 20 kA. The AC and the well pump start on a rule of thumb.
+    expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad', 'lockedRotor', 'fuseInterrupt'])
     expect(r.warnings[2]?.params).toMatchObject({ strings: 9, maxParallel: 4 })
     expect(r.warnings[3]?.params.itemId).toBe('ac1c')
     expect(r.warnings[3]?.params.sharePct).toBeGreaterThan(50)
@@ -488,12 +488,17 @@ describe('bank wiring', () => {
     expect(r.warnings.map((w) => w.code)).not.toContain('cableUndersized')
   })
 
-  test('when the main cable splits in two runs, each series link is two jumpers, so 185 A never rides on one 130 A cable', () => {
+  test('2 kW at 12 V parallels two runs of 1/0 AWG, not two of 1 AWG', () => {
+    const r = compute({ ...load(1500), hours: 1, volts: 12, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect([r.inverter.w, r.cable.runs, r.cable.gauge]).toEqual([2000, 2, '1/0 AWG'])
+  })
+
+  test('when the main cable splits in two runs, each series link is two jumpers, so 185 A never rides on one 150 A cable', () => {
     const r = compute({ ...load(3000), hours: 1, volts: 24, chemistry: 'lifepo4', batteryUnit: '12-200' }, CATALOG_SNAPSHOT)
     expect(r.battery?.config).toBe('2S1P')
     expect(r.inverter.continuousA).toBeCloseTo(185.2, 1)
-    expect(r.cable).toMatchObject({ runs: 2, gauge: '1 AWG', ampacity: 130 })
-    expect(r.cable.links).toMatchObject({ positions: 1, perPosition: 2, count: 2, gauge: '1 AWG', designA: 116, ampacity: 130 })
+    expect(r.cable).toMatchObject({ runs: 2, gauge: '1/0 AWG', ampacity: 150 })
+    expect(r.cable.links).toMatchObject({ positions: 1, perPosition: 2, count: 2, gauge: '1/0 AWG', designA: 116, ampacity: 150 })
     expect(r.cable.designPerRunA).toBe(116)
     expect(r.cable.totalLengthM).toBe(6.6)
     expect(r.warnings.map((w) => w.code)).not.toContain('cableUndersized')
@@ -529,7 +534,7 @@ describe('bank wiring', () => {
     expect(pair.inverter).toMatchObject({ count: 2, unitW: 8000 })
     expect(pair.battery).toMatchObject({ config: '1S3P', parallelFor: { continuous: 2, lead: 3 } })
     expect(pair.cable.string).toMatchObject({ amps: 123, designA: 154, fuse: { count: 3 } })
-    expect(pair.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase'])
+    expect(pair.warnings.map((w) => w.code)).toEqual(['dominantLoad', 'splitPhase', 'lockedRotor'])
   })
 
   test('a battery picked by hand that cannot take the string its leads need is left as it was, and flagged', () => {
@@ -649,6 +654,14 @@ describe('engineering checks', () => {
     expect(at48(ESSENTIALS, { dutyOverrides: { fridge: 0 } }).items.find((i) => i.id === 'fridge')?.effectiveDuty).toBe(0.05)
     expect(at48(ESSENTIALS, { dutyOverrides: { fridge: 2 } }).items.find((i) => i.id === 'fridge')?.effectiveDuty).toBe(1)
     expect(at48(ESSENTIALS, { dutyOverrides: { ghost: 0.5 } }).loadWh).toBe(base.loadWh)
+  })
+
+  test('a microwave set to 5% of each hour counts 1,440 Wh over 24 h, not the 2,304 Wh of its typical 8%', () => {
+    const day = (dutyOverrides: Record<string, number> = {}) =>
+      compute({ qty: { micro: 1 }, hours: 24, volts: 48, chemistry: 'lifepo4', dutyOverrides }, CATALOG_SNAPSHOT)
+    expect(day().loadWh).toBe(2304)
+    expect(day({ micro: 0.05 }).loadWh).toBe(1440)
+    expect(day({ micro: 0.05 }).items[0]).toMatchObject({ wh: 1440, effectiveDuty: 0.05, overridden: true })
   })
 
   test('motors starting together add their surges, largest first; "all" counts every unit of a quantity', () => {
@@ -787,5 +800,29 @@ describe('engineering checks', () => {
     const hardware = { ...DEFAULT_HARDWARE, inverters: [{ w: 20000, surge: 40000, volts: [48] as const, surgeSeconds: 10 }] }
     const r = compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
     expect(r.inverter.w).toBe(20000)
+  })
+})
+
+describe('air conditioning on a hard day', () => {
+  // One 280 Ah unit covers the AC at its catalog duty and at 100%, so both kits run on the same bank.
+  const acKit = (id: string, dutyOverrides: Record<string, number> = {}) =>
+    compute({ qty: { [id]: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-280', dutyOverrides }, CATALOG_SNAPSHOT)
+
+  test.each(['ac1c', 'ac1i'])('a 1-ton AC (%s) for 8 h has the same hard-day runtime as that AC set to 100% duty', (id) => {
+    const catalogDuty = acKit(id)
+    const nonStop = acKit(id, { [id]: 1 })
+    expect(catalogDuty.battery!.bankWh).toBe(nonStop.battery!.bankWh)
+    expect(catalogDuty.battery!.runtime.worst).toBeCloseTo(nonStop.battery!.runtime.worst)
+  })
+
+  test.each(['ac1c', 'ac1i'])('the hard day runs a 1-ton AC (%s) non-stop: the usable bank over its full 1,100 W', (id) => {
+    // 48 V × 280 Ah = 13,440 Wh. 85% depth of discharge and 85% hard-day efficiency leave 9,710 Wh: 8.83 h at 1,100 W.
+    expect(acKit(id).battery!.runtime.worst).toBeCloseTo(8.83, 2)
+  })
+
+  test('the bank is still sized on a typical day: a 1-ton AC for 8 h keeps one 48 V 200 Ah unit', () => {
+    const r = compute({ qty: { ac1c: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+    expect(r.battery).toMatchObject({ unitLabel: '48 V 200 Ah LiFePO₄', count: 1, bankWh: 9600 })
+    expect(r.requiredWh).toBe(5752)
   })
 })

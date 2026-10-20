@@ -75,6 +75,9 @@ export function sizeMainCable(
   const designA = amps * SIZING.NEC_CONTINUOUS
   const last = gauges.length - 1
   const top = gauges[last]!
+  // A list with nothing that large parallels its largest, the nearest it has.
+  const smallestParallel = gauges.findIndex((g) => g.mm2 >= SIZING.MIN_PARALLEL_MM2)
+  const parallelFloor = smallestParallel < 0 ? last : smallestParallel
   const sizeWithRuns = (runs: number) => {
     const conductors = conductorsFor(cond, runs)
     const perRun = amps / runs
@@ -82,6 +85,8 @@ export function sizeMainCable(
     let gi = gauges.findIndex((_g, i) => ampacityAt(i) >= designA / runs)
     // No gauge covers it: the largest goes out as it is, and `undersized` is what says so for the row that prints it.
     if (gi < 0) gi = last
+    // More than one run to an inverter puts conductors in parallel, which start at 1/0 AWG.
+    if (runs > feeds) gi = Math.max(gi, parallelFloor)
     while (gi < last && dropPct(gauges[gi]!, perRun, cond.runLengthM, volts) > SIZING.MAX_DROP_PCT) gi++
     const sized = pickFuse({
       perRunA: perRun, surgePerRunA: surgeAmps / runs, surgeSeconds: protection.surgeSeconds, runs, volts,
@@ -103,6 +108,12 @@ export function sizeMainCable(
   if (sized.fuse.a > ampacityAt(sized.gaugeIndex)) {
     warnings.push({ code: 'fuseAboveCable', params: { fuseA: sized.fuse.a, maxA: Math.round(ampacityAt(sized.gaugeIndex)), count: runs } })
   }
+  const runDropPct = dropPct(g, perRun, cond.runLengthM, volts)
+  // Judged to a tenth, as it prints: a drop the sheet shows as 3.0% is not called over 3%.
+  const shownDropPct = Math.round(runDropPct * TENTHS) / TENTHS
+  if (shownDropPct > SIZING.MAX_DROP_PCT) {
+    warnings.push({ code: 'cableDrop', params: { dropPct: shownDropPct, maxDropPct: SIZING.MAX_DROP_PCT } })
+  }
   const startupDropPct = dropPct(g, surgeAmps / runs, cond.runLengthM, volts)
   if (startupDropPct > SIZING.MAX_STARTUP_DROP_PCT) {
     warnings.push({ code: 'startupDrop', params: { dropPct: Math.round(startupDropPct * 10) / 10 } })
@@ -112,7 +123,7 @@ export function sizeMainCable(
   }
   return {
     amps, perRun, runs, designA, conductors, gauge: g, ampacity: ampacityAt(sized.gaugeIndex),
-    dropPct: dropPct(g, perRun, cond.runLengthM, volts), startupDropPct, fuse: sized.fuse, warnings,
+    dropPct: runDropPct, startupDropPct, fuse: sized.fuse, warnings,
   }
 }
 

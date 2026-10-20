@@ -16,8 +16,8 @@ export const SolarSchema = z.object({
   sunHours: z.number().min(SOLAR.SUN_RANGE[0]).max(SOLAR.SUN_RANGE[1]),
 })
 
-/** Duty presets a user can pick for a cycling appliance, on top of the catalog value. */
-export const DUTY_PRESETS = [0.25, 0.5, 0.75, 1] as const
+/** Duty presets a user can pick for a cycling appliance, on top of the catalog value; the lowest is the engine's floor. */
+export const DUTY_PRESETS = [SIZING.DUTY_MIN, 0.1, 0.25, 0.5, 0.75, 1] as const
 export const RUN_LENGTH = { min: 0.5, max: 10, step: 0.5, default: 1.5 } as const
 export const AMBIENTS = [30, 40, 50] as const
 export const INSULATIONS = [75, 90] as const

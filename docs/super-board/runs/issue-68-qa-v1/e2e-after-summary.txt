@@ -1,0 +1,8 @@
+e2e on the branch: split-phase, kit-builder, download, bank-wiring specs (desktop + phone projects):
+✓  49 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (English) @phone (1.1s)
+✓  50 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes both away (English) (2.1s)
+✓  51 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Español) @phone (2.1s)
+✓  52 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes both away (Español) (1.8s)
+✓  67 [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (English) @phone (1.4s)
+✓  68 [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Español) @phone (2.8s)
+68 passed (38.9s)

@@ -235,8 +235,8 @@ export interface CablePick {
 }
 
 export type WarningCode =
-  | 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase'
-  | 'inverterUndersized' | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'startupDrop' | 'cableAmbient'
+  | 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase' | 'lockedRotor'
+  | 'inverterUndersized' | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'cableDrop' | 'startupDrop' | 'cableAmbient'
   | 'cableUndersized' | 'fuseVoltage'
   | 'missingAppliances'
   | 'roofLimited' | 'stringTooShort'
@@ -260,6 +260,8 @@ export interface WarningParams {
   strings?: number
   itemId?: string
   itemName?: string
+  /** Every appliance a note covers, named in the reader's language when the note is shown. */
+  itemIds?: string[]
   sharePct?: number
   count?: number
   maxParallel?: number
@@ -283,6 +285,8 @@ export interface WarningParams {
   maxVdc?: number
   needVdc?: number
   dropPct?: number
+  /** The most a main run may drop at full load, in percent. */
+  maxDropPct?: number
   ambientC?: number
   conductor?: ConductorKind
   gauge?: string

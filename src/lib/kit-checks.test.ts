@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { getDictionary } from '../i18n'
 import { DEFAULT_HARDWARE } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { CHECK_IDS, CHECK_WARNINGS, kitChecks, uncheckedWarnings, warningKey, warningText } from './kit-checks'
+import { CHECK_IDS, CHECK_WARNINGS, kitChecks, kitNotes, uncheckedWarnings, warningKey, warningText } from './kit-checks'
 import { compute, type SizingInput } from './sizing'
 
 const en = getDictionary('en')
@@ -24,7 +24,8 @@ describe('kitChecks', () => {
     expect(by.batteryPeak!.lines).toEqual(['Bank peak of an assumed 400 A covers the 35 A start-up for 3 s'])
     expect(by.parallel!.lines).toEqual(['One string, nothing to balance · assumed limit of 16 in parallel'])
     expect(by.fuse!.lines[0]).toBe("100 A class T: under the cable's 115 A, 20 kA interrupting, start-up 35 A within what it holds")
-    expect(by.cable!.lines[0]).toBe('2 AWG carries 115 A after derating (30 °C) for a 87 A design current · 0.1% drop at start-up')
+    expect(by.cable!.lines[0]).toBe('2 AWG carries 115 A after derating (30 °C) for a 87 A design current · 0.2% drop, 0.1% at start-up')
+    expect(kitChecks(es, kit(ESSENTIALS), 'es').at(-1)!.lines[0]).toBe('2 AWG soporta 115 A tras la corrección (30 °C) para 87 A de diseño · 0.2% de caída, 0.1% al arrancar')
   })
 
   test('names come from the dictionary in both languages', () => {
@@ -39,6 +40,24 @@ describe('kitChecks', () => {
     expect(by.batteryContinuous!.lines[0]).toContain('BMS would cut out')
     expect(by.surge!.lines.at(-1)).toContain('Refrigerator')
     expect(r.surgeProfile.starters.length).toBeGreaterThanOrEqual(1)
+  })
+
+  test('3 kW at 12 V over a 10 m run drops more than 3% at full load: the cable check warns and says so', () => {
+    const custom = [{ id: 'x', name: 'Load', watts: 2000, surge: 2000, note: '' }]
+    const r = kit({ x: 1 }, { custom, hours: 1, volts: 12, cable: { runLengthM: 10 } })
+    expect([r.inverter.w, r.cable.runs, r.cable.gauge, r.cable.dropPct]).toEqual([3000, 2, '4/0 AWG', 3.7])
+    const cable = (t: typeof en, locale: 'en' | 'es') => kitChecks(t, r, locale).find((c) => c.id === 'cable')!
+    expect(cable(en, 'en')).toMatchObject({ status: 'warn', lines: ['The cable drops 3.7% at full load, more than the 3% it is sized for, even on the largest gauge. Shorten the run or pick a higher bank voltage.'] })
+    expect(cable(es, 'es').lines).toEqual(['El cable cae 3.7% a plena carga, más del 3% previsto, aun con el calibre más grueso. Acorta el tramo o elige un voltaje de banco mayor.'])
+  })
+
+  test('4 kW at 12 V over a 10 m run, the kit the ticket found: three runs of 4/0 drop 3.3%, a little over 3%, and the cable check says so', () => {
+    const custom = [{ id: 'x', name: 'Load', watts: 2900, surge: 2900, note: '' }]
+    const r = kit({ x: 1 }, { custom, hours: 1, volts: 12, cable: { runLengthM: 10 } })
+    expect([r.inverter.w, r.cable.runs, r.cable.gauge, r.cable.dropPct]).toEqual([4000, 3, '4/0 AWG', 3.3])
+    const cable = kitChecks(en, r, 'en').find((c) => c.id === 'cable')!
+    expect(cable.status).toBe('warn')
+    expect(cable.lines).toContain('The cable drops 3.3% at full load, more than the 3% it is sized for, even on the largest gauge. Shorten the run or pick a higher bank voltage.')
   })
 
   test('parallel strings report the assumed limit, and the bundled cable says so', () => {
@@ -294,9 +313,61 @@ describe('uncheckedWarnings and keys', () => {
     expect(warningText(es, split, r.items)).toContain('Calentador de agua eléctrico')
   })
 
+  test('a 2-ton air conditioner alone gives the split-phase note naming it, in English and Spanish', () => {
+    const r = kit({ ac2c: 1 })
+    expect(kitNotes(en, r)).toContain('2 ton AC · conventional usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.')
+    expect(kitNotes(es, r)).toContain('Aire de 2 toneladas · convencional normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.')
+    expect(kitNotes(en, kit({ ac1c: 1 })).some((note) => note.includes('240 V'))).toBe(false)
+  })
+
   test('warningKey tells apart two warnings with the same code', () => {
     expect(warningKey({ code: 'splitPhase', params: { itemId: 'a' } })).not.toBe(warningKey({ code: 'splitPhase', params: { itemId: 'b' } }))
     expect(warningKey({ code: 'highCurrent', params: { amps: 1 } })).toBe(warningKey({ code: 'highCurrent', params: { amps: 2 } }))
     expect(warningKey({ code: 'cableUndersized', params: { conductor: 'stringLeads' } })).not.toBe(warningKey({ code: 'cableUndersized', params: { conductor: 'interconnects' } }))
+  })
+})
+
+describe('the locked-rotor note', () => {
+  const lockedRotor = (r: ReturnType<typeof kit>, t = en) => kitNotes(t, r).filter((n) => n.includes(t === en ? 'locked-rotor' : 'rotor bloqueado'))
+
+  test.each(['ac1c', 'washer', 'well', 'sump', 'gate-slide', 'gate-swing'])('shows for %s, whose start-up is a rule of thumb', (id) => {
+    expect(lockedRotor(kit({ [id]: 1 }))).toHaveLength(1)
+  })
+
+  test.each(['ac1i', 'fridge', 'fan', 'barrier'])('does not show for %s', (id) => {
+    expect(lockedRotor(kit({ [id]: 1 }))).toEqual([])
+  })
+
+  test('is one note that names each motor it covers, in both languages', () => {
+    const r = kit({ fridge: 1, washer: 1, well: 1 })
+    expect(lockedRotor(r)).toEqual(["Washing machine and Well pump, 1/2 HP: the start-up surge is a rule of thumb, and the nameplate's locked-rotor amps can be higher. Check locked-rotor amps × volts against the inverter's surge, or fit a soft starter."])
+    expect(lockedRotor(r, es)).toEqual(['Lavadora y Bomba de pozo, 1/2 HP: el arranque es una estimación y la placa puede indicar más amperios de rotor bloqueado. Compara amperios de rotor bloqueado × voltios con el arranque del inversor, o instala un arrancador suave.'])
+  })
+
+  test('does not show for a start-up stated as an electronic inrush, whatever its size', () => {
+    const charger = { id: 'charger', name: 'Charger', cat: 'Work' as const, watts: 300, surge: 900, duty: 1, note: '', surgeClass: 'inrush' as const }
+    const r = compute({ qty: { charger: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, [...CATALOG_SNAPSHOT, charger])
+    expect(lockedRotor(r)).toEqual([])
+  })
+
+  // No catalog motor sits on these edges, so a motor is added with its start read from the surge ratio alone.
+  const motorKit = (watts: number, surge: number) => {
+    const motor = { id: 'motor', name: 'Motor', cat: 'Work' as const, watts, surge, duty: 0.5, note: '' }
+    return compute({ qty: { motor: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, [...CATALOG_SNAPSHOT, motor])
+  }
+
+  test.each([
+    { motor: 'of 250 W starting at 3×', watts: 250, surge: 750 },
+    { motor: 'starting just past 2×', watts: 500, surge: 1005 },
+  ])('shows for a motor $motor', ({ watts, surge }) => {
+    expect(lockedRotor(motorKit(watts, surge))).toHaveLength(1)
+  })
+
+  test.each([
+    { motor: 'of 249 W starting at 3×', watts: 249, surge: 747 },
+    { motor: 'starting at exactly 2×, a plain motor', watts: 500, surge: 1000 },
+    { motor: 'starting at 4×, past the rule of thumb', watts: 500, surge: 2000 },
+  ])('does not show for a motor $motor', ({ watts, surge }) => {
+    expect(lockedRotor(motorKit(watts, surge))).toEqual([])
   })
 })

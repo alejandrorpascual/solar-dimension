@@ -1,0 +1,3 @@
+Screenshots for this round are the v1 set in ../issue-64-qa-v1/ (static renders of step 1, step 4 and the spec sheet, en and es).
+They were taken on 27a1cf9. The app source has not changed since: git diff --stat 27a1cf9 7d704d1 -- src ':(exclude)*.test.ts' is empty.
+e2e was not run in this copy: the local hook refused linking the test env file. CI ran the full e2e suite on 7d704d1: see ci-verify.log.

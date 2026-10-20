@@ -15,11 +15,13 @@ export interface BankForRuntime { bankWh: number; bankAh: number; bankContinuous
 
 /**
  * Energy over the window with every cycling or momentary duty scaled; continuous loads do not move. No floor here:
- * a barrier's 3% stays 3%, the override floor lives in effectiveDuty.
+ * a barrier's 3% stays 3%, the override floor lives in effectiveDuty. With `acDuty`, every air conditioner runs at
+ * that duty instead, its own or the user's set aside.
  */
-export function scenarioLoadWh(items: readonly SelectedItem[], hours: number, dutyFactor: number): number {
+export function scenarioLoadWh(items: readonly SelectedItem[], hours: number, dutyFactor: number, acDuty?: number): number {
   return items.reduce((sum, i) => {
-    const duty = i.kind === 'continuous' ? i.effectiveDuty : Math.min(1, i.effectiveDuty * dutyFactor)
+    const duty = i.acType && acDuty !== undefined ? acDuty
+      : i.kind === 'continuous' ? i.effectiveDuty : Math.min(1, i.effectiveDuty * dutyFactor)
     return sum + i.watts * duty * hours * i.qty
   }, 0)
 }
@@ -43,8 +45,8 @@ function hoursFor(bank: BankForRuntime, ctx: RuntimeContext, loadWh: number, eff
 
 /**
  * How long the bank lasts on a light day, a typical one and a hard one. Typical is the headline figure; worst case
- * runs every cycling load harder at a lower efficiency, counts lead-acid capacity loss at high current, and is 0
- * when the bank cannot feed the full running load at all.
+ * runs every cycling load harder and every AC non-stop at a lower efficiency, counts lead-acid capacity loss at high
+ * current, and is 0 when the bank cannot feed the full running load at all.
  */
 export function runtimeScenarios(bank: BankForRuntime, ctx: RuntimeContext): RuntimeScenarios {
   if (ctx.loadWh <= 0) return { optimistic: 0, typical: 0, worst: 0, worstLimitedByDischarge: false }
@@ -54,7 +56,7 @@ export function runtimeScenarios(bank: BankForRuntime, ctx: RuntimeContext): Run
   return {
     optimistic: hoursFor(bank, ctx, scenarioLoadWh(ctx.items, ctx.hours, optimistic.duty), optimistic.eff, false),
     typical: hoursFor(bank, ctx, ctx.loadWh, SIZING.INVERTER_EFF, false),
-    worst: worstLimitedByDischarge ? 0 : hoursFor(bank, ctx, scenarioLoadWh(ctx.items, ctx.hours, worst.duty), worst.eff, true),
+    worst: worstLimitedByDischarge ? 0 : hoursFor(bank, ctx, scenarioLoadWh(ctx.items, ctx.hours, worst.duty, worst.acDuty), worst.eff, true),
     worstLimitedByDischarge,
   }
 }

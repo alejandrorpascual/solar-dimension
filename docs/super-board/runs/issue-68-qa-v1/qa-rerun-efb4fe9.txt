@@ -1,0 +1,34 @@
+QA rerun on efb4fe9 (app code unchanged since 1426124), Oct 19 2026:
+verify: npm ci && npm run typecheck && npm run test:coverage && npm run build, exit 0
+Test Files  100 passed (100)
+Tests  1711 passed (1711)
+All files          |   98.32 |    93.93 |   99.36 |   98.89 |                   
+
+e2e on the branch (npx playwright test e2e/split-phase.spec.ts e2e/kit-builder.spec.ts, desktop + phone):
+✓  27 [desktop] › e2e/kit-builder.spec.ts:453:1 › full flow: appliances → window → kit, and the project survives a reload @phone (1.6s)
+✓  36 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes both away (English) (1.2s)
+✓  34 [desktop] › e2e/kit-builder.spec.ts:584:1 › a load past the largest inverter gets inverters in parallel, each with its own cable runs and fuses (2.6s)
+✓  37 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Español) @phone (1.6s)
+✓  35 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (English) @phone (3.1s)
+✓  38 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes both away (Español) (1.7s)
+✓  47 [phone] › e2e/kit-builder.spec.ts:453:1 › full flow: appliances → window → kit, and the project survives a reload @phone (1.4s)
+✓  49 [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (English) @phone (1.3s)
+✓  50 [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Español) @phone (2.7s)
+50 passed (31.1s)
+
+red check: needsSplitPhase back to watts only and mayRunOn240V false (not committed):
+unit (catalog, kit-checks, kit-parts, ApplianceCard tests):
+Tests  8 failed | 88 passed (96)
+e2e/split-phase.spec.ts:
+✘  4 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes both away (English) (7.0s)
+✘  5 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes both away (Español) (9.7s)
+✘  1 [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (English) @phone (26.9s)
+✘  3 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (English) @phone (28.3s)
+✘  2 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Español) @phone (27.8s)
+✘  6 [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Español) @phone (26.8s)
+6 failed
+
+restored (diff against pristine copy: identical):
+unit: 96/96 passed · e2e/split-phase.spec.ts: 6 passed (10.0s)
+
+CI verify on efb4fe9 (full e2e suite): success
