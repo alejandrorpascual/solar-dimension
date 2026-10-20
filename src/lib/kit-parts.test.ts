@@ -119,8 +119,9 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     const es = locale === 'es'
     const [one, two] = [kit(3000), kit(7000)]
     expect(row(one, 'inverter')).toMatchObject({ qty: '1', note: es ? '10.0 kW de arranque · cubre 3,000 W en marcha, 3,000 W pico' : '10.0 kW surge · covers 3,000 W running, 3,000 W peak' })
+    // A 7 kW load needs 240 V, so the spec also names the split-phase output.
     expect(row(two, 'inverter')).toMatchObject({
-      qty: '2', spec: es ? '5,000 W continuos, no VA, onda pura, entrada 48 V CC' : '5,000 W continuous, not VA, pure sine, 48 V DC input',
+      qty: '2', spec: es ? '5,000 W continuos, no VA, onda pura, entrada 48 V CC, salida de fase partida 120/240 V' : '5,000 W continuous, not VA, pure sine, 48 V DC input, 120/240 V split-phase output',
       note: es
         ? '2 en paralelo trabajan como un inversor de 10.0 kW y toman hasta 231 A de las barras colectoras · 20.0 kW de arranque en total · cubre 7,000 W en marcha, 7,000 W pico · Mismo modelo, hechos y enlazados para trabajar en paralelo · Cada uno con sus propios cables con fusible, de igual largo, desde las barras colectoras'
         : '2 in parallel work as one 10.0 kW inverter, drawing up to 231 A from the bus bars · 20.0 kW surge together · covers 7,000 W running, 7,000 W peak · Same model, built and linked to run in parallel · Each on its own fused cables, of equal length, from the bus bars',
@@ -136,7 +137,7 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     const stock = (watts: number, surge = watts) =>
       buildParts(compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Load', watts, surge, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT), t, locale).find(p => p.id === 'inverter')!
     const three = es ? '3 en paralelo trabajan como un inversor de 36.0 kW y toman hasta 833 A de las barras colectoras · 72.0 kW de arranque en total' : '3 in parallel work as one 36.0 kW inverter, drawing up to 833 A from the bus bars · 72.0 kW surge together'
-    expect(stock(28801)).toMatchObject({ qty: '3', spec: es ? '12.0 kW continuos, no VA, onda pura, entrada 48 V CC' : '12.0 kW continuous, not VA, pure sine, 48 V DC input' })
+    expect(stock(28801)).toMatchObject({ qty: '3', spec: es ? '12.0 kW continuos, no VA, onda pura, entrada 48 V CC, salida de fase partida 120/240 V' : '12.0 kW continuous, not VA, pure sine, 48 V DC input, 120/240 V split-phase output' })
     expect(stock(28801).note).toContain(`${three} · ${es ? '28.8 kW en marcha dejan 24% de margen, 28.8 kW pico' : '28.8 kW running leaves 24% headroom, 28.8 kW peak'} · `)
     expect(stock(40000).note).toContain(`${three} · ${es ? 'menor que la carga en marcha de 40,000 W' : 'smaller than the 40,000 W running load'} · `)
     expect(stock(5000, 80000).note).toContain(`${three} · ${es ? 'cubre 5,000 W en marcha, no el pico de 80.0 kW' : 'covers 5,000 W running, not the 80.0 kW peak'} · `)
@@ -150,6 +151,16 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
   test('the inverter spec says its size is continuous watts, not VA', () => {
     const spec = buildParts(result('48-300'), t, locale).find(p => p.id === 'inverter')!.spec
     for (const words of locale === 'es' ? ['continuos', 'no VA'] : ['continuous', 'not VA']) expect(spec).toContain(words)
+  })
+
+  test('with a 240 V need the inverter spec states the split-phase output it must give; without one it does not', () => {
+    const inverterSpec = (qty: Record<string, number>) =>
+      buildParts(compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT), t, locale).find(p => p.id === 'inverter')!.spec
+    const es = locale === 'es'
+    expect(inverterSpec({ ...DEFAULT_QTY, ac2c: 1 })).toBe(es
+      ? '4,000 W continuos, no VA, onda pura, entrada 48 V CC, salida de fase partida 120/240 V'
+      : '4,000 W continuous, not VA, pure sine, 48 V DC input, 120/240 V split-phase output')
+    expect(inverterSpec(DEFAULT_QTY)).toBe(es ? '3,000 W continuos, no VA, onda pura, entrada 48 V CC' : '3,000 W continuous, not VA, pure sine, 48 V DC input')
   })
 
   test('the batteries note states the bank currents as assumed ratings, and the parallel notes only with parallel strings', () => {
