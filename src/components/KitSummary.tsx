@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr, type Dictionary } from '../i18n'
-import { fmtHours, fmtKw, fmtKwh, fmtW } from '../i18n/format'
+import { fmtHours, fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
 import { finePrint } from '../lib/fine-print'
 import { kitChecks, uncheckedWarnings, warningKey, warningText } from '../lib/kit-checks'
 import { kitDeltas } from '../lib/kit-deltas'
 import { buildParts, type Part } from '../lib/kit-parts'
+import type { OversizeNote } from '../lib/oversize'
 import { hasPanels, type SizingResult } from '../lib/sizing'
 import { BatteryPicker } from './BatteryPicker'
 import { ChecksList } from './ChecksList'
@@ -47,6 +48,8 @@ interface Props {
   /** The kit before the current quick edits; tiles show how far each figure moved from it. */
   baseline: SizingResult | null
   projectName: string
+  /** Why the bank is far bigger than the load needs, when another voltage sizes a smaller one. */
+  oversize: OversizeNote | null
   /** The edit bar (KitQuickEdit), placed under the summary line. */
   quickEdit: ReactNode
   onBatteryUnit: (id: string | null) => void
@@ -58,7 +61,7 @@ function Delta({ text }: { text: string }) {
   return text ? <span className="stat__delta num">{text}</span> : null
 }
 
-export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatteryUnit }: Props) {
+export function KitSummary({ result: r, baseline, projectName, oversize, quickEdit, onBatteryUnit }: Props) {
   const { t, locale } = useLocale()
   const parts = buildParts(r, t, locale)
   const checks = kitChecks(t, r, locale)
@@ -103,6 +106,14 @@ export function KitSummary({ result: r, baseline, projectName, quickEdit, onBatt
           </div>
         )}
       </div>
+      {oversize && (
+        <p className="note-box">
+          {tr(t, oversize.isSmallestBank ? 'oversizeNoteSmallest' : 'oversizeNote', {
+            ratio: fmtInt(oversize.ratio, locale), need: `${fmtInt(oversize.needWh, locale)} Wh`, inverter: fmtW(oversize.inverterW, locale),
+            kitVolts: oversize.kitVolts, volts: oversize.volts, bank: fmtKwh(oversize.bankWh, locale),
+          })}
+        </p>
+      )}
       {!r.empty && <BatteryPicker options={r.batteryOptions} selected={r.batteryUnit} onSelect={onBatteryUnit} />}
       <div className="parts">
         {parts.length > 0 ? <PartsTable parts={parts} t={t} /> : <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}

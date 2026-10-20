@@ -1,0 +1,47 @@
+QA v3 for #67 · PR #151 · builder head 57c94b1 (rebuild after review round 2: R5, R6) · 2026-10-19
+
+Local checks (a clone of 57c94b1)
+- npm ci && npm run typecheck && npm run test:coverage && npm run build: exit 0. 104 files, 1748 tests. All files:
+  lines 98.9%, branches 93.97%.
+- npx vitest run src/lib/oversize.test.ts src/components/KitSummary.test.ts src/i18n/i18n.test.ts src/lib/persistence.test.ts:
+  84/84 passed.
+- All [builder] and [qa] review threads on PR #151 are resolved (R1 to R6).
+- AC3 still pinned on this head: mutant `<` to `<=` at oversize.ts:50 fails oversize.test.ts:51, 1 failed, 15 passed.
+
+R5: at 24 V the note gave a false reason
+- oversize.ts:58 sets isSmallestBank when the bank is no larger than one string of the kit's smallest battery.
+  KitSummary.tsx:111 then uses oversizeNoteSmallest.
+- Router 8 h at 24 V: "This bank holds 11× the 209 Wh the load needs: the kit cannot build a smaller bank at 24 V.
+  At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks." Fridge 8 h at 24 V: 4×, same
+  reason. Router 8 h at 48 V keeps the inverter reason: 48 V 50 Ah (2.4 kWh) is the smallest 48 V bank, and the kit
+  needs two strings of it for the 3,000 W inverter's 69 A.
+- Mutant `<=` to `<` at oversize.ts:58: oversize.test.ts:19 and :25 fail, 2 failed, 17 passed.
+- Mutant Math.min to Math.max in smallestBankWh (oversize.ts:36): :13, :58 and :89 fail.
+- Mutant: always oversizeNote at KitSummary.tsx:111: KitSummary.test.ts:55 fails ("it has to carry the full current
+  of a 2,000 W inverter" received).
+
+R6: the ratio skipped its formatter
+- Mutant: raw ratio at KitSummary.tsx:112: KitSummary.test.ts:40 fails ("4800×" received, "4,800×" expected).
+
+Test-gap check: one surviving mutant, now pinned
+- Mutant: raw need at KitSummary.tsx:112 (`${oversize.needWh} Wh`). It passed every test: no rendered note had a need
+  of 1,000 Wh or more, though the kit at exactly 3 times its need shows one (1,600 Wh).
+- New test KitSummary.test.ts:48: the note for that kit reads "3× the 1,600 Wh" in English and "los 1,600 Wh" in
+  Spanish. With the mutant: "expected 'This bank holds 3× the 1600 Wh…' to be 'This bank holds 3× the 1,600 Wh…'",
+  1 failed, 3 passed. Restored: 4/4. Full suite with the test: 1749/1749, typecheck exit 0.
+- Every mutation was undone before the commit (git status showed only the new test).
+
+e2e
+- Not run here. The guard-secrets hook refused the link to .env.test.local, and e2e/test-env.ts will not run without it.
+- CI on PR head 57c94b1: run 39348896610, job 118388117917 ("verify", success). Unit 1748 passed. e2e 251 passed,
+  6 skipped, 0 failed. These passed on desktop: kit-builder.spec.ts:412 (English and Español), :425 and :438.
+
+Screenshots
+- Component renders, not the live page, made the same way as v1 and v2. KitStep (with its real oversizeNote and
+  KitQuickEdit wiring; QuotesCard left out) and BackupWindow were rendered from 57c94b1's code with
+  react-dom/server, with useRootData stubbed to the catalog snapshot and the locale. The page used the app's
+  styles.css and web fonts. Playwright Chromium took the shots at 1920x1080, 1024x768 and 375x667, the note or caveat
+  scrolled to the middle of the frame. No header, rail or footer.
+- The step 4 crop is the note. The step 2 crop runs from the "Battery voltage" label to the caveat.
+- render-log.txt lists, for every shot, how many notes or caveats were found, the horizontal overflow in px, and the
+  text. Every shot has 0 px of horizontal overflow.

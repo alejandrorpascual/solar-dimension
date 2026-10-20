@@ -5,6 +5,7 @@ import {
   releaseAccountCopy, saveOwner, saveRequesterDraft, saveSavedClients, saveStore,
 } from './persistence'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
+import { computeProject } from './project-summary'
 import { compute } from './sizing'
 import { addProject, initialStore, patchProject } from './store'
 
@@ -47,6 +48,18 @@ test('a store already saved with a custom appliance the schema refuses loads aga
   // Its count is still there, which is what makes the kit say one appliance could not be loaded.
   const kit = compute({ qty: recovered.qty, custom: recovered.custom, hours: recovered.hours, volts: recovered.volts, chemistry: recovered.chemistry }, CATALOG_SNAPSHOT)
   expect(kit.warnings.filter((w) => w.code === 'missingAppliances')).toEqual([{ code: 'missingAppliances', params: { count: 1 } }])
+})
+
+test('a store saved with a 36 V project loads, and the project still sizes on a 36 V inverter', () => {
+  // #67: few inverters are sold for 36 V, yet a project saved at 36 V must open, not leave the whole store unreadable.
+  // A fridge for 8 h at 36 V gets a 4 kW inverter and a 7.2 kWh bank (CALC-34).
+  const saved = { id: 'p1', name: 'Garita', qty: { fridge: 1 }, custom: [], hours: 8, volts: 36, chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1 }
+  const loaded = loadStore(memoryStorage({ [STORAGE_KEY]: JSON.stringify({ version: 1, projects: [saved], currentId: 'p1' }) }))
+  expect(loaded?.projects.map((p) => [p.name, p.volts])).toEqual([['Garita', 36]])
+  const kit = computeProject(loaded!.projects[0]!, CATALOG_SNAPSHOT)
+  expect(kit.volts).toBe(36)
+  expect(kit.inverter.w).toBe(4000)
+  expect(kit.battery?.bankWh).toBe(7200)
 })
 
 test('swallows storage errors', () => {

@@ -395,6 +395,57 @@ test('hours, voltage and chemistry change the sizing summary', async ({ page }) 
   await expect(page.getByLabel('Hours without the grid')).toHaveValue('24')
 })
 
+/** A saved project with these loads, opened on first load. */
+const seedProject = (page: Page, patch: { qty: Record<string, number>; hours: number; volts: number }) =>
+  page.addInitScript(({ key, patch }) => {
+    if (localStorage.getItem(key)) return
+    const project = { id: 'p1', name: 'Garita', custom: [], chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1, ...patch }
+    localStorage.setItem(key, JSON.stringify({ version: 1, projects: [project], currentId: 'p1' }))
+  }, { key: STORAGE_KEY, patch })
+
+const FEW_INVERTERS = {
+  English: 'Few inverters are sold for 36 V, so most kits come out oversized: a larger inverter than the load needs, and a bank big enough to carry its current.',
+  Español: 'Se venden pocos inversores para 36 V, así que la mayoría de los kits salen sobredimensionados: un inversor más grande de lo que pide la carga y un banco capaz de darle toda su corriente.',
+} as const
+
+for (const language of ['English', 'Español'] as const) {
+  test(`only 36 V says few inverters are sold for it, in ${language}`, async ({ page }) => {
+    await page.goto('/?step=2')
+    if (language !== 'English') await switchLanguageOnLoad(page, language)
+    const caveat = page.getByText(FEW_INVERTERS[language])
+    await page.getByRole('button', { name: /^36 V/ }).click()
+    await expect(caveat).toBeVisible()
+    for (const volts of [12, 24, 48]) {
+      await page.getByRole('button', { name: new RegExp(`^${volts} V`) }).click()
+      await expect(caveat).toHaveCount(0)
+    }
+  })
+}
+
+test('a router alone at 48 V says why its bank is large and names 12 V; at 12 V it says nothing', async ({ page }) => {
+  await seedProject(page, { qty: { router: 1 }, hours: 8, volts: 48 })
+  await page.goto('/?step=4')
+  await expect(page.getByRole('heading', { name: 'Kit for Garita' })).toBeVisible()
+  const note = page.getByText(/^This bank holds/)
+  await expect(note).toHaveText('This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
+  await page.getByRole('button', { name: 'Step 2: Backup window' }).click()
+  await page.getByRole('button', { name: /^12 V/ }).click()
+  await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+  await expect(page.getByText(/^Backs up 1 appliances for 8 hours on a 12 V/)).toBeVisible()
+  await expect(note).toHaveCount(0)
+})
+
+test('a saved 36 V project loads, sizes and carries the caveat', async ({ page }) => {
+  await seedProject(page, { qty: { fridge: 1 }, hours: 8, volts: 36 })
+  await page.goto('/?step=2')
+  await expect(page.getByText(FEW_INVERTERS.English)).toBeVisible()
+  await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
+  await expect(page.getByText(/^Backs up 1 appliances for 8 hours on a 36 V/)).toBeVisible()
+  await expect(page.getByText('4,000 W continuous, not VA, pure sine, 36 V DC input')).toBeVisible()
+  await expect(page.getByRole('rowheader', { name: 'Batteries' })).toBeVisible()
+  await expect(page.getByText(/^This bank holds 13× the 549 Wh/)).toBeVisible()
+})
+
 const KIT_PAGE = {
   English: {
     estimate: 'An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.',

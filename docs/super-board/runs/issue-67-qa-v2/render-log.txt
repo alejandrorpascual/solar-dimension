@@ -1,0 +1,18 @@
+name | viewport | notes found | horizontal overflow px | note text
+ac1-router-48v-note-en | desktop | note-count=1 | h-overflow-px=0 | This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.
+ac1-router-48v-note-en | tablet | note-count=1 | h-overflow-px=0 | This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.
+ac1-router-48v-note-en | mobile | note-count=1 | h-overflow-px=0 | This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.
+ac1-router-48v-note-es | desktop | note-count=1 | h-overflow-px=0 | Este banco guarda 22 veces los 209 Wh que necesita la carga: tiene que dar toda la corriente de un inversor de 3,000 W. A 12 V el kit llevaría un banco de 1.2 kWh, el más pequeño que cumple las mismas verificaciones.
+ac1-router-48v-note-es | mobile | note-count=1 | h-overflow-px=0 | Este banco guarda 22 veces los 209 Wh que necesita la carga: tiene que dar toda la corriente de un inversor de 3,000 W. A 12 V el kit llevaría un banco de 1.2 kWh, el más pequeño que cumple las mismas verificaciones.
+ac2-router-12v-no-note-en | desktop | note-count=0 | h-overflow-px=0 | 
+ac2-fridge-24h-48v-under-3x-no-note-en | desktop | note-count=0 | h-overflow-px=0 | 
+r4-exact-3x-note-en | desktop | note-count=1 | h-overflow-px=0 | This bank holds 3× the 1,600 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 24 V the kit would size a 2.4 kWh bank, the smallest that passes the same checks.
+ac4-36v-caveat-en | desktop | note-count=1 | h-overflow-px=0 | Few inverters are sold for 36 V, so most kits come out oversized: a larger inverter than the load needs, and a bank big enough to carry its current.
+ac4-36v-caveat-en | tablet | note-count=1 | h-overflow-px=0 | Few inverters are sold for 36 V, so most kits come out oversized: a larger inverter than the load needs, and a bank big enough to carry its current.
+ac4-36v-caveat-en | mobile | note-count=1 | h-overflow-px=0 | Few inverters are sold for 36 V, so most kits come out oversized: a larger inverter than the load needs, and a bank big enough to carry its current.
+ac4-36v-caveat-es | desktop | note-count=1 | h-overflow-px=0 | Se venden pocos inversores para 36 V, así que la mayoría de los kits salen sobredimensionados: un inversor más grande de lo que pide la carga y un banco capaz de darle toda su corriente.
+ac4-36v-caveat-es | mobile | note-count=1 | h-overflow-px=0 | Se venden pocos inversores para 36 V, así que la mayoría de los kits salen sobredimensionados: un inversor más grande de lo que pide la carga y un banco capaz de darle toda su corriente.
+ac4-12v-no-caveat-en | desktop | note-count=0 | h-overflow-px=0 | 
+ac4-24v-no-caveat-en | desktop | note-count=0 | h-overflow-px=0 | 
+ac4-48v-no-caveat-en | desktop | note-count=0 | h-overflow-px=0 | 
+ac5-fridge-36v-sizes-en | desktop | note-count=1 | h-overflow-px=0 | This bank holds 13× the 549 Wh the load needs: it has to carry the full current of a 4,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.
