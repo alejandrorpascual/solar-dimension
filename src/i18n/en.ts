@@ -90,7 +90,7 @@ export const en: Dictionary = {
     downloadPdf: 'Download PDF', downloadPng: 'Download image', downloadCsv: 'Download CSV', share: 'Share', making: 'Preparing the file…', downloadReady: 'File ready. Download started.',
     exportFailed: 'Could not create the file. Try again.',
     sheetAttention: 'Read before quoting', sheetAttentionChecks: 'Checks to resolve: {count}', sheetAttentionNotes: 'Notes: {count}', sheetNotes: 'Notes',
-    sheetTitle: 'Backup kit · spec sheet', loadSchedule: 'Load schedule', appliance: 'Appliance', each: 'Each', overHours: 'Over {hours} h', total: 'Total', note: 'Note',
+    sheetTitle: 'Backup kit · spec sheet', date: 'Date', loadSchedule: 'Load schedule', appliance: 'Appliance', each: 'Each', overHours: 'Over {hours} h', total: 'Total', note: 'Note',
     eachW: 'Each (W)', runningWatts: 'Running (W)', whOver: 'Wh over {hours} h',
     q3: 'Do you have roof space for panels?', q3Help: 'Panels recharge the bank on sunny days; how much depends on the sun and your roof. You can skip this and keep a battery-only kit.',
     solarNo: 'No, batteries only', solarNoHelp: 'The bank refills from the grid or a generator', solarYes: 'Yes, add panels', solarYesHelp: 'Enter your roof space, then adjust the panels',

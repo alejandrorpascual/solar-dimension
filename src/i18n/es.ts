@@ -90,7 +90,7 @@ export const es: Dictionary = {
     downloadPdf: 'Descargar PDF', downloadPng: 'Descargar imagen', downloadCsv: 'Descargar CSV', share: 'Compartir', making: 'Preparando el archivo…', downloadReady: 'Archivo listo. Descarga iniciada.',
     exportFailed: 'No se pudo crear el archivo. Inténtalo de nuevo.',
     sheetAttention: 'Leer antes de cotizar', sheetAttentionChecks: 'Verificaciones por resolver: {count}', sheetAttentionNotes: 'Notas: {count}', sheetNotes: 'Notas',
-    sheetTitle: 'Kit de respaldo · ficha técnica', loadSchedule: 'Cuadro de cargas', appliance: 'Aparato', each: 'C/u', overHours: 'En {hours} h', total: 'Total', note: 'Nota',
+    sheetTitle: 'Kit de respaldo · ficha técnica', date: 'Fecha', loadSchedule: 'Cuadro de cargas', appliance: 'Aparato', each: 'C/u', overHours: 'En {hours} h', total: 'Total', note: 'Nota',
     eachW: 'C/u (W)', runningWatts: 'En marcha (W)', whOver: 'Wh en {hours} h',
     q3: '¿Tienes espacio en el techo para paneles?', q3Help: 'Los paneles recargan el banco en los días de sol; lo que reponen depende del sol y del techo. Puedes saltarte este paso y quedarte con un kit solo de baterías.',
     solarNo: 'No, solo baterías', solarNoHelp: 'El banco se recarga desde la red o un generador', solarYes: 'Sí, agregar paneles', solarYesHelp: 'Indica el espacio del techo y luego ajusta los paneles',
