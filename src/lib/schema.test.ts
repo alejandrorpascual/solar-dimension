@@ -86,6 +86,11 @@ test('duty overrides keep valid shares and are dropped whole when unreadable, wi
   expect(parseOne({ dutyOverrides: 'x' }).dutyOverrides).toEqual({})
 })
 
+test('saved duty overrides still parse, the 5% and 10% presets and the older presets alike', () => {
+  expect(parseOne({ dutyOverrides: { micro: 0.05, kettle: 0.1, fridge: 0.25, ac2c: 0.75 } }).dutyOverrides)
+    .toEqual({ micro: 0.05, kettle: 0.1, fridge: 0.25, ac2c: 0.75 })
+})
+
 test('a partial electrical object keeps the defaults for what it lacks, and a bad field falls back on its own', () => {
   expect(parseOne({ electrical: { ambientC: 40 } }).electrical).toEqual({ ...DEFAULT_ELECTRICAL, ambientC: 40 })
   expect(parseOne({ electrical: { simultaneousStarts: 'all', bundled: true, insulationC: 75, runLengthM: 10 } }).electrical)

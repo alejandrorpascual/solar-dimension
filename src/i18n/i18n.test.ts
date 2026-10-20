@@ -17,6 +17,10 @@ describe('dictionaries', () => {
       expect(es.categories[c]).toBeTruthy()
     }
   })
+  test('the inverter AC help text claims no battery savings, in both languages', () => {
+    expect(en.ui.acInverterHelp).not.toMatch(/battery/i)
+    expect(es.ui.acInverterHelp).not.toMatch(/batería/i)
+  })
   test('warnings render with params in both languages', () => {
     const p = { inverterW: 5000, unitW: 5000, voltsList: '24 / 36 / 48', amps: 463, volts: 12, nextVolts: 24, strings: 7, itemName: 'Window AC', sharePct: 54 }
     for (const d of [en, es]) {
@@ -140,6 +144,11 @@ describe('tr', () => {
     expect(tr(es, 'kitFor', { name: 'Casa' })).toBe('Kit para Casa')
     expect(tr(en, 'kitFor')).toBe('Kit for ')
     expect(tr(en, 'back')).toBe('Back')
+  })
+
+  test('step 2 says every appliance counts in every hour of the window, in both languages', () => {
+    expect(en.ui.q2Help).toBe('The bank is sized for this many hours of your selected load, at the voltage you pick. Every appliance counts in every hour of the window.')
+    expect(es.ui.q2Help).toBe('El banco se dimensiona para estas horas de tu carga, al voltaje que elijas. Cada aparato cuenta en todas las horas del respaldo.')
   })
 
   test('the custom form duty error names the 5% floor and 100% in both languages', () => {

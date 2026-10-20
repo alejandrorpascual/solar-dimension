@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { getDictionary } from '../i18n'
 import { DEFAULT_HARDWARE } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { CHECK_IDS, CHECK_WARNINGS, kitChecks, uncheckedWarnings, warningKey, warningText } from './kit-checks'
+import { CHECK_IDS, CHECK_WARNINGS, kitChecks, kitNotes, uncheckedWarnings, warningKey, warningText } from './kit-checks'
 import { compute, type SizingInput } from './sizing'
 
 const en = getDictionary('en')
@@ -313,9 +313,61 @@ describe('uncheckedWarnings and keys', () => {
     expect(warningText(es, split, r.items)).toContain('Calentador de agua eléctrico')
   })
 
+  test('a 2-ton air conditioner alone gives the split-phase note naming it, in English and Spanish', () => {
+    const r = kit({ ac2c: 1 })
+    expect(kitNotes(en, r)).toContain('2 ton AC · conventional usually runs on 240 V. You need a split-phase (240 V) inverter or two stacked units.')
+    expect(kitNotes(es, r)).toContain('Aire de 2 toneladas · convencional normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.')
+    expect(kitNotes(en, kit({ ac1c: 1 })).some((note) => note.includes('240 V'))).toBe(false)
+  })
+
   test('warningKey tells apart two warnings with the same code', () => {
     expect(warningKey({ code: 'splitPhase', params: { itemId: 'a' } })).not.toBe(warningKey({ code: 'splitPhase', params: { itemId: 'b' } }))
     expect(warningKey({ code: 'highCurrent', params: { amps: 1 } })).toBe(warningKey({ code: 'highCurrent', params: { amps: 2 } }))
     expect(warningKey({ code: 'cableUndersized', params: { conductor: 'stringLeads' } })).not.toBe(warningKey({ code: 'cableUndersized', params: { conductor: 'interconnects' } }))
+  })
+})
+
+describe('the locked-rotor note', () => {
+  const lockedRotor = (r: ReturnType<typeof kit>, t = en) => kitNotes(t, r).filter((n) => n.includes(t === en ? 'locked-rotor' : 'rotor bloqueado'))
+
+  test.each(['ac1c', 'washer', 'well', 'sump', 'gate-slide', 'gate-swing'])('shows for %s, whose start-up is a rule of thumb', (id) => {
+    expect(lockedRotor(kit({ [id]: 1 }))).toHaveLength(1)
+  })
+
+  test.each(['ac1i', 'fridge', 'fan', 'barrier'])('does not show for %s', (id) => {
+    expect(lockedRotor(kit({ [id]: 1 }))).toEqual([])
+  })
+
+  test('is one note that names each motor it covers, in both languages', () => {
+    const r = kit({ fridge: 1, washer: 1, well: 1 })
+    expect(lockedRotor(r)).toEqual(["Washing machine and Well pump, 1/2 HP: the start-up surge is a rule of thumb, and the nameplate's locked-rotor amps can be higher. Check locked-rotor amps × volts against the inverter's surge, or fit a soft starter."])
+    expect(lockedRotor(r, es)).toEqual(['Lavadora y Bomba de pozo, 1/2 HP: el arranque es una estimación y la placa puede indicar más amperios de rotor bloqueado. Compara amperios de rotor bloqueado × voltios con el arranque del inversor, o instala un arrancador suave.'])
+  })
+
+  test('does not show for a start-up stated as an electronic inrush, whatever its size', () => {
+    const charger = { id: 'charger', name: 'Charger', cat: 'Work' as const, watts: 300, surge: 900, duty: 1, note: '', surgeClass: 'inrush' as const }
+    const r = compute({ qty: { charger: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, [...CATALOG_SNAPSHOT, charger])
+    expect(lockedRotor(r)).toEqual([])
+  })
+
+  // No catalog motor sits on these edges, so a motor is added with its start read from the surge ratio alone.
+  const motorKit = (watts: number, surge: number) => {
+    const motor = { id: 'motor', name: 'Motor', cat: 'Work' as const, watts, surge, duty: 0.5, note: '' }
+    return compute({ qty: { motor: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4' }, [...CATALOG_SNAPSHOT, motor])
+  }
+
+  test.each([
+    { motor: 'of 250 W starting at 3×', watts: 250, surge: 750 },
+    { motor: 'starting just past 2×', watts: 500, surge: 1005 },
+  ])('shows for a motor $motor', ({ watts, surge }) => {
+    expect(lockedRotor(motorKit(watts, surge))).toHaveLength(1)
+  })
+
+  test.each([
+    { motor: 'of 249 W starting at 3×', watts: 249, surge: 747 },
+    { motor: 'starting at exactly 2×, a plain motor', watts: 500, surge: 1000 },
+    { motor: 'starting at 4×, past the rule of thumb', watts: 500, surge: 2000 },
+  ])('does not show for a motor $motor', ({ watts, surge }) => {
+    expect(lockedRotor(motorKit(watts, surge))).toEqual([])
   })
 })

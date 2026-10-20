@@ -1,0 +1,17 @@
+e2e/split-phase.spec.ts run on staging 091f8af, before the fix (the 20 passing tests are the screenshot capture runs):
+✘   4 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes both away (English) (6.8s)
+✘   3 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes both away (Español) (8.1s)
+✘   1 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Español) @phone (27.6s)
+✘   5 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (English) @phone (28.8s)
+Error: ac15i
+Error: ac15c
+Error: ac2i
+Error: ac2c
+Error: well
+Error: ac15i
+Error: ac15c
+Error: ac2i
+Error: ac2c
+Error: well
+4 failed
+20 passed (34.6s)

@@ -1,5 +1,6 @@
 import { needsSplitPhase, SIZING, VOLTAGES, type Voltage } from '../catalog'
 import { HEADROOM_PCT, headroomPct } from './inverter'
+import { hasRuleOfThumbStart } from './loads'
 import type { BatteryPick, InverterNote, InverterPick, ParallelNote, SelectedItem, SurgeProfile, Warning, WarningParams } from './types'
 
 export interface WarningContext {
@@ -19,7 +20,7 @@ export interface WarningContext {
   startupA: number
 }
 
-/** The order codes appear in: the original five first, then the engineering checks, then the catalog note. */
+/** The order codes appear in: the original five and the locked-rotor note first, then the engineering checks, then the catalog note. */
 export function buildWarnings(ctx: WarningContext): Warning[] {
   const missing: Warning[] = ctx.missing > 0 ? [{ code: 'missingAppliances', params: { count: ctx.missing } }] : []
   if (ctx.items.length === 0) return missing
@@ -48,6 +49,11 @@ export function buildWarnings(ctx: WarningContext): Warning[] {
   const heavy = ctx.items.find(needsSplitPhase)
   if (heavy) {
     w.push({ code: 'splitPhase', params: { itemId: heavy.id, itemName: heavy.name } })
+  }
+  // One note for every motor whose start-up is only estimated: the inverter has to hold what its nameplate says.
+  const estimated = ctx.items.filter(hasRuleOfThumbStart)
+  if (estimated.length > 0) {
+    w.push({ code: 'lockedRotor', params: { itemIds: estimated.map((i) => i.id) } })
   }
   // Only pickInverter's last resort, the largest set the list can build when none fits, can lack the headroom: say so
   // instead of printing it as if it fitted. A last resort that only misses the start-up is surgeDuration's, below.

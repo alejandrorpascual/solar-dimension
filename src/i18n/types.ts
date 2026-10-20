@@ -39,7 +39,7 @@ export type UiKey =
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
   | 'q1' | 'q1Help' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'
   | 'search' | 'nothingMatches' | 'sectionAdded' | 'add' | 'addOne' | 'qtyOf' | 'removeOne' | 'remove'
-  | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase'
+  | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase' | 'checkNameplate240'
   | 'customTitle' | 'customHelp' | 'watts' | 'voltsAmps' | 'name' | 'runningW' | 'volts' | 'amps' | 'surgeOptional' | 'sameAsRunning' | 'dutyPctLabel' | 'addAppliance'
   | 'errName' | 'errNameLong' | 'errVa' | 'errWatts' | 'errSurge' | 'errThousands' | 'errDuty'
   | 'customUnreadOne' | 'customUnreadMany' | 'customUnreadClearOne' | 'customUnreadClearMany'
@@ -47,7 +47,7 @@ export type UiKey =
   | 'kitFor' | 'kitEmpty' | 'kitSummary' | 'editAppliances' | 'editWindow'
   | 'runningLoad' | 'averageDraw' | 'startupPeak' | 'batteryNeeded' | 'runtime'
   | 'part' | 'specification' | 'quantity' | 'nothingSelected'
-  | 'inverterSpec' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteTightPeak' | 'inverterNoteUnder' | 'inverterNotePeak' | 'inverterSurge' | 'inverterSurgeSet' | 'inverterParallelNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'mainCableParallelNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun' | 'perInverter' | 'perRunOfInverter'
+  | 'inverterSpec' | 'splitPhaseOutput' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteTightPeak' | 'inverterNoteUnder' | 'inverterNotePeak' | 'inverterSurge' | 'inverterSurgeSet' | 'inverterParallelNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'mainCableParallelNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun' | 'perInverter' | 'perRunOfInverter'
   | 'legal' | 'estimateNotice' | 'fine'
   | 'batterySize' | 'batterySizeHelp' | 'batteryAuto' | 'batteryRecommended' | 'batteryGroup' | 'batteryInSeries' | 'manyStrings'
   | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany' | 'inverterSizeOne' | 'inverterSizeMany'
@@ -86,7 +86,7 @@ export type UiKey =
   | 'checkBatteryPeak' | 'checkBatteryPeakOk' | 'checkParallel' | 'checkParallelOk' | 'checkParallelSingle'
   | 'checkFuse' | 'checkFuseOk' | 'checkCable' | 'checkCableOk'
   | 'fuseAicNote' | 'stringFuseSpec' | 'stringFuseNote' | 'batteriesCurrentNote'
-  | 'fineStartsOne' | 'fineStartsTwo' | 'fineStartsAll' | 'fineBundled' | 'fineRatings'
+  | 'fineStartsOne' | 'fineStartsTwo' | 'fineStartsAll' | 'fineBundled' | 'fineRatings' | 'fineAcDuty'
 
 export type QuoteKey = keyof typeof quotesEn
 export type RequesterKey = keyof typeof requesterEn
