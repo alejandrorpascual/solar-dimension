@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { buildCsv, csvCell, exportFileName, type CsvInput } from './export-csv'
+import { buildCsv, csvCell, csvDelimiter, exportFileName, type CsvInput } from './export-csv'
 
 const input = (include: CsvInput['include'], attention: CsvInput['attention'] = []): CsvInput => ({
   headers: { appliances: ['Appliance', 'Kind', 'Qty', 'Each (W)', 'Running (W)', 'Average (W)', 'Wh over 10 h'], parts: ['Part', 'Specification', 'Note', 'Qty'], attention: ['Needs attention', 'Note'] },
@@ -7,6 +7,22 @@ const input = (include: CsvInput['include'], attention: CsvInput['attention'] = 
   appliances: [{ name: 'Refrigerator', kind: 'Cycles on and off', qty: 1, eachW: 150, runningW: 150, averageW: 53, wh: 525 }],
   parts: [{ name: 'Fuse', spec: '80 A class T', note: 'Inline, close to the bank', qty: '1' }],
   include,
+})
+
+describe('csvDelimiter', () => {
+  test('a semicolon where the browser locale writes decimals with a comma, else a comma', () => {
+    expect(csvDelimiter('es-VE')).toBe(';')
+    expect(csvDelimiter('es-ES')).toBe(';')
+    expect(csvDelimiter('de-DE')).toBe(';')
+    expect(csvDelimiter('en-US')).toBe(',')
+    // Latin American Spanish as a whole writes "1.5", so Excel there splits on commas.
+    expect(csvDelimiter('es-419')).toBe(',')
+  })
+
+  test('a locale it cannot read falls back to a comma', () => {
+    expect(csvDelimiter('')).toBe(',')
+    expect(csvDelimiter('not a locale!')).toBe(',')
+  })
 })
 
 describe('csvCell', () => {
@@ -27,6 +43,12 @@ describe('csvCell', () => {
   test('quotes commas, quotes and line breaks, doubling inner quotes', () => {
     expect(csvCell('TV, 55"')).toBe('"TV, 55"""')
     expect(csvCell('a\nb')).toBe('"a\nb"')
+  })
+
+  test('with a semicolon delimiter it quotes a cell holding a semicolon and leaves a comma alone', () => {
+    expect(csvCell('Bomba; pozo', ';')).toBe('"Bomba; pozo"')
+    expect(csvCell('6 AWG, 30 cm', ';')).toBe('6 AWG, 30 cm')
+    expect(csvCell('TV 55"', ';')).toBe('"TV 55"""')
   })
 })
 
@@ -69,6 +91,25 @@ describe('buildCsv', () => {
       'Part,Specification,Note,Qty',
       'Fuse,80 A class T,"Inline, close to the bank",1',
     ])
+  })
+
+  test('with a semicolon delimiter every cell splits on it, and a cell holding one stays one cell', () => {
+    const fuse = { name: 'Fuse', spec: '80 A; class T', note: 'Inline, close to the bank', qty: '1' }
+    const csv = buildCsv({ ...input({ appliances: true, parts: true }), parts: [fuse], delimiter: ';' })
+    expect(csv.slice(1).split('\r\n')).toEqual([
+      'Appliance;Kind;Qty;Each (W);Running (W);Average (W);Wh over 10 h',
+      'Refrigerator;Cycles on and off;1;150;150;53;525',
+      '',
+      'Part;Specification;Note;Qty',
+      'Fuse;"80 A; class T";Inline, close to the bank;1',
+    ])
+  })
+
+  test('the project rows open the file as label and value pairs, then a blank row', () => {
+    const project = [{ label: 'Project name', value: 'Casa, playa' }, { label: 'Date', value: 'Oct 19, 2026' }]
+    const lines = buildCsv({ ...input({ appliances: false, parts: true }), project }).slice(1).split('\r\n')
+    expect(lines.slice(0, 4)).toEqual(['Project name,"Casa, playa"', 'Date,"Oct 19, 2026"', '', 'Part,Specification,Note,Qty'])
+    expect(buildCsv({ ...input({ appliances: false, parts: false }), project, delimiter: ';' }).slice(1)).toBe('Project name;Casa, playa\r\nDate;Oct 19, 2026')
   })
 
   test('drops a block that is switched off', () => {
