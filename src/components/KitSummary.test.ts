@@ -45,6 +45,13 @@ test('the oversize note writes a large ratio with thousands separators, like the
   expect(noteOverPicker('es', note)).toMatch(/^Este banco guarda 4,800 veces los 1 Wh/)
 })
 
+test('the oversize note groups a need of 1,000 Wh or more with thousands separators too', () => {
+  // The kit at exactly 3 times its need (oversize.test.ts): 1,600 Wh on the 48 V kit's 4.8 kWh bank; 24 V sizes 2.4 kWh.
+  const note: OversizeNote = { ratio: 3, needWh: 1600, isSmallestBank: false, kitVolts: 48, inverterW: 3000, volts: 24, bankWh: 2400 }
+  expect(noteOverPicker('en', note)).toBe('This bank holds 3× the 1,600 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 24 V the kit would size a 2.4 kWh bank, the smallest that passes the same checks.')
+  expect(noteOverPicker('es', note)).toMatch(/^Este banco guarda 3 veces los 1,600 Wh que necesita la carga/)
+})
+
 test('a bank that is the smallest its voltage allows gets the note that says so, not the one about the inverter', () => {
   const note: OversizeNote = { ratio: 11, needWh: 209, isSmallestBank: true, kitVolts: 24, inverterW: 2000, volts: 12, bankWh: 1200 }
   expect(noteOverPicker('en', note)).toBe('This bank holds 11× the 209 Wh the load needs: the kit cannot build a smaller bank at 24 V. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
