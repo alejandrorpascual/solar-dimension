@@ -1,0 +1,6 @@
+# Python csv reader (independent of the app): cells per row, by block
+es-VE-device-spanish-page.csv (';'): rows 1-4 [2, 2, 2, 2] · blank 0 · schedule [7] · parts [4] · date cell '19 oct 2026' · TV cell 'TV LED de 55"'
+es-VE-device-english-page.csv (';'): rows 1-4 [2, 2, 2, 2] · blank 0 · schedule [7] · parts [4] · date cell 'Oct 19, 2026' · TV cell 'TV, 55-inch LED'
+en-US-device.csv (','): rows 1-4 [2, 2, 2, 2] · blank 0 · schedule [7] · parts [4] · date cell 'Oct 19, 2026' · TV cell 'TV, 55-inch LED'
+export-csv.test.ts:96: 4 cells ['Fuse', '80 A; class T', 'Inline, close to the bank', '1']
+kit-csv.test.ts:28: 2 cells ['Nombre del proyecto', 'Casa; playa']
