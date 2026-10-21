@@ -156,3 +156,34 @@ describe('the spec sheet says what it is', () => {
     expect(lineAfter(sheetText(SOUND, 'es'), ES)).toMatch(/^Cada aparato cuenta en todas las horas del respaldo\. Supone 90%/)
   })
 })
+
+describe('a kit with panels says what its solar side does not size', () => {
+  const PANELS: SizingInput = { ...SOUND, batteryUnit: '48-200', solar: { roofM2: 40, panels: 10, sunHours: 5 } }
+  const EN = "This kit does not size the solar side's ground-fault and surge protection, grounding, the controller's voltage window or the roof structure; a qualified installer designs them."
+  const ES = 'De la parte solar, este kit no dimensiona la protección contra fallas a tierra y sobretensiones, la puesta a tierra, la ventana de voltaje del controlador ni la estructura del techo; las diseña un instalador calificado.'
+
+  test.each<[string, ExportInclude]>([
+    ['the assumptions off', { ...EVERYTHING, notes: false }],
+    ['nothing ticked', NOTHING],
+    ['everything ticked', EVERYTHING],
+  ])('right under the estimate sentence with %s, in English and Spanish', (_, include) => {
+    const en = sheetText(PANELS, 'en', include).split('\n')
+    expect(en[en.indexOf(EN) - 1]).toBe('An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.')
+    expect(sheetText(PANELS, 'es', include).split('\n')).toContain(ES)
+  })
+
+  test('a kit without panels, or with every panel tapped off, does not say it', () => {
+    expect(sheetText(SOUND, 'en')).not.toContain(EN)
+    expect(sheetText({ ...PANELS, solar: { roofM2: 40, panels: 0, sunHours: 5 } }, 'es')).not.toContain(ES)
+  })
+
+  test('the parts list prints one controller-to-battery row for the one controller, in English and Spanish', () => {
+    const lines = sheetText(PANELS, 'en').split('\n')
+    const row = lines.indexOf('Controller to battery: cable and fuse 125 A class T fuse · 1 AWG (42.4 mm²) copper')
+    expect(lines.filter((l) => l.startsWith('Controller to battery'))).toEqual([lines[row]])
+    // The spec, then the note, then the quantity.
+    expect(lines[row + 2]).toBe('×1')
+    expect(sheetText(PANELS, 'es')).toContain('Controlador a batería: cable y fusible Fusible de 125 A clase T')
+    expect(sheetText(SOUND, 'en')).not.toContain('Controller to battery')
+  })
+})

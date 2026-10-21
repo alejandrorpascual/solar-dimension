@@ -63,9 +63,14 @@ describe('buildCsv', () => {
 
   test('a closing line goes under everything, the failing checks and notes included, as a block of its own', () => {
     const attention = [{ name: 'Cable', text: 'Hard to wire safely' }]
-    const lines = buildCsv({ ...input({ appliances: false, parts: true }, attention), footer: 'An estimate, not a design.' }).slice(1).split('\r\n')
+    const lines = buildCsv({ ...input({ appliances: false, parts: true }, attention), footer: ['An estimate, not a design.'] }).slice(1).split('\r\n')
     expect(lines.slice(-4)).toEqual(['Needs attention,Note', 'Cable,Hard to wire safely', '', '"An estimate, not a design."'])
-    expect(buildCsv({ ...input({ appliances: false, parts: false }), footer: 'Estimate' }).slice(1)).toBe('Estimate')
+    expect(buildCsv({ ...input({ appliances: false, parts: false }), footer: ['Estimate'] }).slice(1)).toBe('Estimate')
+  })
+
+  test('several closing lines go one to a row, in one block', () => {
+    const lines = buildCsv({ ...input({ appliances: false, parts: true }), footer: ['Estimate', 'Solar not sized'] }).slice(1).split('\r\n')
+    expect(lines.slice(-3)).toEqual(['', 'Estimate', 'Solar not sized'])
   })
 
   test.each([
@@ -78,7 +83,7 @@ describe('buildCsv', () => {
     ['a tab first', '\testimate', "'\testimate"],
     ['a carriage return first', '\restimate', `"'\restimate"`],
   ])('a closing line with %s stays one cell of text, never a formula', (_, footer, cell) => {
-    expect(buildCsv({ ...input({ appliances: false, parts: false }), footer }).slice(1)).toBe(cell)
+    expect(buildCsv({ ...input({ appliances: false, parts: false }), footer: [footer] }).slice(1)).toBe(cell)
   })
 
   test('writes the appliance block, a blank line, then the parts block, with a BOM for Excel', () => {
