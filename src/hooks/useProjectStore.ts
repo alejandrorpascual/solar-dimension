@@ -90,14 +90,15 @@ export function useProjectStore() {
   /** Whether the account holds everything this device does, as far as the requests answered so far can tell. */
   const isClean = useCallback(() => loaded.current && !hasUnsent(unsent.current), [])
   /**
-   * False once the page was left. A save answered after that must not write the store or clear the pending marker:
-   * the page that replaced this one has shown and marked its own, and a marker left set only costs that page a push.
+   * The account state the page shows: a new token each time the account changes or becomes unreachable, null once the
+   * page was left. A save answered under an earlier one must not write the store or clear the pending marker: what the
+   * page shows now has its own copy and marker, and a marker left set only costs a push.
    */
-  const alive = useRef(true)
+  const scope = useRef<symbol | null>(null)
   useEffect(() => {
-    alive.current = true
-    return () => { alive.current = false }
-  }, [])
+    scope.current = Symbol('account state')
+    return () => { scope.current = null }
+  }, [account, isAccountUnreachable])
   // Every request to the account runs through this chain, so saves reach the server in the order they were made.
   const queue = useRef<Promise<unknown>>(Promise.resolve())
   const enqueue = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
@@ -153,6 +154,7 @@ export function useProjectStore() {
     if (!account) return
     const { upserts, deletes } = diffProjects(prev.projects, next.projects)
     if (upserts.length === 0 && deletes.length === 0) return
+    const sentIn = scope.current
     inFlight.current += 1
     markPendingSave()
     setSaving(true)
@@ -173,7 +175,7 @@ export function useProjectStore() {
       }
     })
       .then(({ sent, stale }) => {
-        if (!alive.current) return
+        if (scope.current !== sentIn) return
         if (stale.length) {
           // The account holds a newer copy of these: show it, unless the project was edited again meanwhile.
           show({ ...latest.current, projects: adoptStale(latest.current.projects, sent, stale) })
@@ -186,11 +188,11 @@ export function useProjectStore() {
       })
       .finally(() => {
         inFlight.current -= 1
-        if (inFlight.current > 0 || !alive.current) return
+        if (inFlight.current > 0 || scope.current === null) return
         setSaving(false)
         // A save that failed keeps the marker, so the next load sends this device's copy before it reads the account's.
         // What that load sends is projects: one deleted here whose delete never arrived is back after it.
-        if (isClean()) clearPendingSave()
+        if (scope.current === sentIn && isClean()) clearPendingSave()
       })
   }, [account, enqueue, isClean, show])
 
