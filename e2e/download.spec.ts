@@ -95,24 +95,25 @@ test('the kit downloads as a CSV parts list and a PDF spec sheet', PHONE, async 
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
-for (const { lang, download, pdf, estimate, pageOf } of [
-  { lang: 'en', download: 'Download', pdf: 'Download PDF', estimate: 'Estimate', pageOf: (n: number, m: number) => `Page ${n} of ${m}` },
-  { lang: 'es', download: 'Descargar', pdf: 'Descargar PDF', estimate: 'Estimación', pageOf: (n: number, m: number) => `Página ${n} de ${m}` },
+// The first project, never edited, is named in the page's language.
+for (const { lang, project, download, pdf, estimate, pageOf } of [
+  { lang: 'en', project: 'Home', download: 'Download', pdf: 'Download PDF', estimate: 'Estimate', pageOf: (n: number, m: number) => `Page ${n} of ${m}` },
+  { lang: 'es', project: 'Casa', download: 'Descargar', pdf: 'Descargar PDF', estimate: 'Estimación', pageOf: (n: number, m: number) => `Página ${n} de ${m}` },
 ] as const) {
   test(`the PDF is titled after the project, in ${lang}, with the project, date, page and estimate word atop every page`, async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: 'lang', value: lang, url: baseURL! }])
     await page.goto('/?step=4')
     await showDownload(page, download)
-    // The date the sheet prints in its kicker, beside its title.
-    const date = await page.locator('.ksheet').filter({ visible: true }).locator('.ksheet__kicker span').nth(1).textContent()
+    const date = await sheetDate(page)
+    expect(date).not.toBe('')
     const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: pdf }).click()])
     const sheet = await readSheetPdf(await readFile((await file.path())!))
-    expect(sheet.title).toBe('Home')
+    expect(sheet.title).toBe(project)
     expect(sheet.lang).toBe(lang)
     expect(sheet.pages).toHaveLength(2)
     sheet.pages.forEach((text, i) => {
-      expect(text).toContain('Home')
-      expect(text).toContain(date!)
+      expect(text).toContain(project)
+      expect(text).toContain(date)
       expect(text).toContain(pageOf(i + 1, sheet.pages.length))
       expect(text).toContain(estimate)
     })
