@@ -63,6 +63,16 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
       : '4 in series × 2 in parallel (4S2P) · 9.6 kWh bank, 8.2 kWh usable · 200 A continuous, 400 A peak from the bank (assumed ratings) · Same model and age in every string · Equal cable lengths to the bus bars · A fuse on each string')
   })
 
+  test('when the energy ties another limit for the strings in parallel, the batteries note names no other limit', () => {
+    // 6 h of a microwave on 12 V 100 Ah AGM: the energy and the peak each need 2 strings. The continuous current would
+    // need 5, past AGM's 4 in parallel, so the bank keeps the energy's 2.
+    const r = compute({ qty: { micro: 1 }, hours: 6, volts: 12, chemistry: 'agm', batteryUnit: '12-100' }, CATALOG_SNAPSHOT)
+    expect(r.battery).toMatchObject({ config: '1S2P', parallelFor: { energy: 2, continuous: 5, peak: 2, lead: 1 } })
+    expect(batteriesNote(r)).toBe(locale === 'es'
+      ? '1 en serie × 2 en paralelo (1S2P) · banco de 2.4 kWh, 1.2 kWh utilizables · 60 A continuos, 200 A pico del banco (valores supuestos) · Mismo modelo y edad en cada rama · Cables de igual largo a las barras colectoras · Un fusible en cada rama'
+      : '1 in series × 2 in parallel (1S2P) · 2.4 kWh bank, 1.2 kWh usable · 60 A continuous, 200 A peak from the bank (assumed ratings) · Same model and age in every string · Equal cable lengths to the bus bars · A fuse on each string')
+  })
+
   test('an AGM bank its continuous current takes past the energy says so in the batteries note', () => {
     const r = compute({ qty: { fridge: 1, micro: 1 }, hours: 1, volts: 12, chemistry: 'agm' }, CATALOG_SNAPSHOT)
     expect(r.battery).toMatchObject({ config: '1S4P', parallelFor: { energy: 1, continuous: 4, peak: 2, lead: 2 } })
