@@ -1,19 +1,25 @@
 import { Download } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale'
+import { ChecksAttention } from './ChecksAttention'
 import type { Step } from './Stepper'
 
 interface Props {
   step: Step; summary: string
+  /** "2 checks need attention" on the kit step, or null when every check passes. */
+  attention: string | null
   onBack: () => void; onNext: () => void; onStartOver: () => void
   /** Opens the download sheet; the button only shows where the side rail is hidden. */
   onDownload: () => void
 }
 
-export function WizardFooter({ step, summary, onBack, onNext, onStartOver, onDownload }: Props) {
+export function WizardFooter({ step, summary, attention, onBack, onNext, onStartOver, onDownload }: Props) {
   const { t } = useLocale()
   return (
     <footer className="footer">
-      <div className="num muted footer__summary">{summary}</div>
+      <div className="footer__line">
+        {step === 4 && <ChecksAttention text={attention} />}
+        <div className="num muted footer__summary">{summary}</div>
+      </div>
       <div className="footer__actions">
         {(step === 2 || step === 3) && <button type="button" className="btn" onClick={onBack}>{t.ui.back}</button>}
         {step < 4 && (

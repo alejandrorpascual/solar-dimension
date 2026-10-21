@@ -58,6 +58,25 @@ test('a bank that is the smallest its voltage allows gets the note that says so,
   expect(noteOverPicker('en', note)).toBe('This bank holds 11× the 209 Wh the load needs: the kit cannot build a smaller bank at 24 V. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
 })
 
+/** A microwave for 8 h on 12 V 100 Ah AGM units: the bank's continuous current and the fuse need attention. */
+function twoFailingKitHtml(locale: Locale): string {
+  view.locale = locale
+  const result = compute({ qty: { micro: 1 }, hours: 8, volts: 12, chemistry: 'agm', batteryUnit: '12-100' }, CATALOG_SNAPSHOT)
+  return renderToStaticMarkup(createElement(KitSummary, { result, baseline: null, projectName: 'Home', oversize: null, quickEdit: null, onBatteryUnit: () => {} }))
+}
+
+test('a kit with 2 failing checks says so right under its summary, as a button to the checks, in English and Spanish', () => {
+  const en = twoFailingKitHtml('en')
+  expect(en).toMatch(/<p class="muted">Backs up [^<]*<\/p><button type="button" class="attn"[^>]*>.*2 checks need attention<\/span><\/button>/)
+  expect(en).toContain('<section class="checks" aria-label="Checks" id="kit-checks" tabindex="-1">')
+  expect(twoFailingKitHtml('es')).toMatch(/<button type="button" class="attn"[^>]*>.*2 verificaciones necesitan atención<\/span><\/button>/)
+})
+
+test('a kit that passes every check shows no attention line', () => {
+  view.locale = 'en'
+  expect(kitHtml(null)).not.toContain('class="attn"')
+})
+
 test('with panels, the box under the parts list also says what the solar side does not size; without, it does not', () => {
   view.locale = 'en'
   const kit = (panels: number) => renderToStaticMarkup(createElement(KitSummary, {

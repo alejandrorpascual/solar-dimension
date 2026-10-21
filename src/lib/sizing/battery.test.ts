@@ -108,8 +108,8 @@ describe('autoPick', () => {
   })
 
   test('a bank that cannot feed the inverter never beats one that can, whatever its wiring', () => {
-    const feeds = { id: 'feeds', count: 9, bankWh: 9, dischargeOk: true, peakOk: true, overMaxParallel: false, leadOk: false, interruptOk: false }
-    const starves = { id: 'starves', count: 1, bankWh: 1, dischargeOk: false, peakOk: true, overMaxParallel: false, leadOk: true, interruptOk: true }
+    const feeds = { id: 'feeds', count: 9, bankWh: 9, bankContinuousA: 900, dischargeOk: true, peakOk: true, overMaxParallel: false, leadOk: false, interruptOk: false }
+    const starves = { id: 'starves', count: 1, bankWh: 1, bankContinuousA: 100, dischargeOk: false, peakOk: true, overMaxParallel: false, leadOk: true, interruptOk: true }
     const pick = (...list: (typeof feeds)[]) => autoPick(list)?.id
     expect(pick(starves, feeds)).toBe('feeds')
     // Between two that feed it: fewer wiring faults first, then fewer batteries, then the smaller bank.
@@ -118,20 +118,48 @@ describe('autoPick', () => {
     expect(pick(feeds, halfway, clean)).toBe('clean')
     expect(pick(feeds, halfway)).toBe('halfway')
     expect(pick({ ...clean, id: 'more', count: 10 }, clean, { ...clean, id: 'bigger', bankWh: 10 })).toBe('clean')
-    // Among banks that cannot feed it, the wiring settles nothing: the fewest batteries, as when nothing is known of it.
-    const tidy = { ...starves, id: 'tidy', count: 11, overMaxParallel: true }
-    const short = { ...starves, id: 'short', count: 3, leadOk: false, interruptOk: false }
-    expect(pick(tidy, short)).toBe('short')
   })
 
-  test('with no bank that can feed the inverter, the stock list keeps the fewest batteries', () => {
-    // 9.6 kW on a 12 V bank: 1,111 A. Nothing feeds it; three 400 Ah units stay the pick, not eleven 100 Ah ones.
+  test('with no bank that can feed the inverter, the one failing the fewest checks wins, then the most continuous current', () => {
+    const base = { count: 1, bankWh: 1, bankContinuousA: 100, dischargeOk: false, peakOk: true, overMaxParallel: false, leadOk: true, interruptOk: true }
+    const pick = (...list: (typeof base & { id: string })[]) => autoPick(list)?.id
+    // Discharge, peak, parallel, leads and interrupt each count as one failed check, wiring included.
+    const tidy = { ...base, id: 'tidy', count: 11, overMaxParallel: true }
+    const short = { ...base, id: 'short', count: 3, leadOk: false, interruptOk: false }
+    expect(pick(short, tidy)).toBe('tidy')
+    const weak = { ...base, id: 'weak', peakOk: false }
+    expect(pick(weak, { ...base, id: 'nearer' })).toBe('nearer')
+    // On the same count of failed checks, the bank that gives more current is closer to feeding the inverter.
+    const big = { ...base, id: 'big', count: 9, bankWh: 9, bankContinuousA: 300 }
+    expect(pick({ ...base, id: 'few' }, big)).toBe('big')
+    // On the same current too, the fewest batteries, then the smaller bank.
+    expect(pick({ ...big, id: 'more', count: 10 }, big, { ...big, id: 'larger', bankWh: 10 })).toBe('big')
+  })
+
+  test('with no bank that can feed the inverter, each of discharge, peak, parallel, leads and interrupt costs a bank the pick, even at 9 times the current', () => {
+    // Two banks that fail one check each: peak alone, or discharge alone.
+    const lowPeak = { id: 'one', count: 1, bankWh: 1, bankContinuousA: 100, dischargeOk: true, peakOk: false, overMaxParallel: false, leadOk: true, interruptOk: true }
+    const lowDischarge = { ...lowPeak, dischargeOk: false, peakOk: true }
+    const oneMore: [typeof lowPeak, Partial<typeof lowPeak>][] = [
+      [lowPeak, { dischargeOk: false }],
+      [lowDischarge, { peakOk: false }],
+      [lowPeak, { overMaxParallel: true }],
+      [lowPeak, { leadOk: false }],
+      [lowPeak, { interruptOk: false }],
+    ]
+    for (const [one, extra] of oneMore) {
+      // Listed first, the bank with one more failed check would win any tie.
+      expect(autoPick([{ ...one, ...extra, id: 'two', bankContinuousA: 900 }, one])?.id).toBe('one')
+    }
+  })
+
+  test('with no bank that can feed the inverter, the stock list gives the most current among those failing the fewest checks', () => {
+    // 9.6 kW on a 12 V bank: 1,111 A, leads of 180 A, fuses of 20 kA. Nothing feeds it. Three 400 Ah and four 300 Ah
+    // units fail discharge, leads and interrupt; ten 100 Ah units fail discharge, parallel and interrupt, and give 1,000 A.
     const demand = { continuousA: 1111, surgeA: 1111, surgeSeconds: 0, maxStringA: 180, canInterrupt: fusesRated(20000) }
     const candidates = batteryCandidates(lfp, 12, 1000, demand)
     expect(candidates.every((c) => !(c.dischargeOk && c.peakOk && !c.overMaxParallel))).toBe(true)
-    const pick = autoPick(candidates)!
-    expect(pick.count).toBe(Math.min(...candidates.map((c) => c.count)))
-    expect(pick.count).toBeLessThan(candidates.find((c) => c.id === '12-100')!.count)
+    expect(autoPick(candidates)).toMatchObject({ id: '12-100', count: 10, bankContinuousA: 1000, overMaxParallel: true, leadOk: true })
   })
 
   test('falls back to every candidate when none is healthy', () => {

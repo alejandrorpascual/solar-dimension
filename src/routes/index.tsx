@@ -20,6 +20,7 @@ import { useRootData } from '../hooks/useRootData'
 import { useSignOut } from '../hooks/useSignOut'
 import { batteryCount, inverterSize, panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
+import { attentionLine } from '../lib/kit-checks'
 import { computeProject } from '../lib/project-summary'
 import { patchCurrent } from '../lib/store'
 import type { SizingResult } from '../lib/sizing'
@@ -116,6 +117,7 @@ function KitBuilderPage() {
         <WizardFooter
           step={step}
           summary={footerSummary(step, project.name, result, t, locale)}
+          attention={attentionLine(t, result)}
           onBack={() => go((step - 1) as Step)}
           onNext={() => go((step + 1) as Step)}
           onStartOver={() => go(1)}

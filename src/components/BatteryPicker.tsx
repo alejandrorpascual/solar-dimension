@@ -3,6 +3,7 @@ import { Button, Header, Label, ListBox, ListBoxItem, ListBoxSection, Popover, S
 import { useLocale } from '../hooks/useLocale'
 import { batteryCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtHours, fmtKwh } from '../i18n/format'
+import { autoTitle, batteryTags } from '../lib/battery-labels'
 import type { BatteryOption } from '../lib/sizing'
 
 interface Props {
@@ -34,7 +35,6 @@ function groupTitle(t: Dictionary, g: VoltageGroup): string {
 }
 
 function OptionRow({ id, title, sub, option, t }: { id: string; title: string; sub: string; option: BatteryOption; t: Dictionary }) {
-  const isManyStrings = option.overMaxParallel
   return (
     <ListBoxItem id={id} textValue={title} className="bopt">
       <span className="bopt__mark" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>
@@ -42,7 +42,7 @@ function OptionRow({ id, title, sub, option, t }: { id: string; title: string; s
       <Text slot="description" className="bopt__s num">
         {sub}
         <span className="visually-hidden"> · {batteryCount(t, option.count)}</span>
-        {isManyStrings && <span className="bopt__tag">{t.ui.manyStrings}</span>}
+        {batteryTags(t, option).map((tag) => <span key={tag} className="bopt__tag">{tag}</span>)}
       </Text>
       <span className="bopt__n num" aria-hidden="true">×{option.count}</span>
     </ListBoxItem>
@@ -79,7 +79,7 @@ export function BatteryPicker({ options, selected, onSelect }: Props) {
         </div>
         <ListBox className="bsel__list">
           <ListBoxSection className="bsel__section">
-            <OptionRow id={AUTO_KEY} title={`${t.ui.batteryAuto} · ${t.ui.batteryRecommended}`} sub={`${unitName(auto)} · ${detail(auto, locale)}`} option={auto} t={t} />
+            <OptionRow id={AUTO_KEY} title={autoTitle(t, auto)} sub={`${unitName(auto)} · ${detail(auto, locale)}`} option={auto} t={t} />
           </ListBoxSection>
           {groupByVoltage(options).map((g) => (
             <ListBoxSection key={g.unitV} className="bsel__section">
