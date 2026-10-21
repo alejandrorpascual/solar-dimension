@@ -1,0 +1,211 @@
+# verdicts of the staging code (base) and the head code, same lines, KIT = the 2/0 AWG kit of the unit tests
+# a line is 'named' in the quote's words with its size; 'fuse 250A' adds one 250 A class T fuse
+# ADV rows are QA's own probes; sample quotes: every item verdict of the six sample quotes is identical on base and head
+
+=== CABLES ===
+AC1 ticket english: AC feeder 4/0 + battery 6
+    base: ok [4/0 AWG] cites "Cable 4/0 AWG AC feeder"
+    head: short [6 AWG] cites "Cable 6 AWG battery"
+AC1 spanish: Alimentador AC 4/0 + baterias 6
+    base: ok [4/0 AWG] cites "Alimentador AC, cable 4/0 AWG"
+    head: short [6 AWG] cites "Cable 6 AWG baterías"
+AC2 PV alone sized
+    base: short [10 AWG] cites "Cable solar 6 mm² (10 AWG), 20 m"
+    head: unknown [batteryCableUnstated] cites "Cable solar 6 mm² (10 AWG), 20 m"
+AC2 AC feeder alone sized
+    base: ok [4/0 AWG] cites "Alimentador AC, cable 4/0 AWG"
+    head: unknown [batteryCableUnstated] cites "Alimentador AC, cable 4/0 AWG"
+AC3 PV + sized battery 4/0
+    base: ok [4/0 AWG] cites "Cable 4/0 AWG baterías"
+    head: ok [4/0 AWG] cites "Cable 4/0 AWG baterías"
+AC4 PV + unsized battery
+    base: unknown [sizeUnknown] cites "Cableado de baterías"
+    head: unknown [sizeUnknown] cites "Cableado de baterías"
+R1 solar 4/0 + ground 6
+    base: ok [4/0 AWG] cites "Cable solar 4/0 AWG"
+    head: unknown [batteryCableUnstated] cites "Cable solar 4/0 AWG" + "Cable de tierra física 6 AWG"
+R1 AC 4/0 + bare ground 6
+    base: ok [4/0 AWG] cites "Alimentador AC 4/0 AWG"
+    head: unknown [batteryCableUnstated] cites "Alimentador AC 4/0 AWG" + "Cable desnudo tierra 6 AWG"
+R1 solar 4/0 + lug 2/0
+    base: ok [4/0 AWG] cites "Cable solar 4/0 AWG"
+    head: unknown [batteryCableUnstated] cites "Cable solar 4/0 AWG" + "Terminal de ojo 2/0 AWG"
+R2 caida alone
+    base: ok [2/0 AWG] cites "Cable 2/0 AWG batería, caída de tensión 2%"
+    head: ok [2/0 AWG] cites "Cable 2/0 AWG batería, caída de tensión 2%"
+R2 caida + 10 AWG controller
+    base: ok [2/0 AWG] cites "Cable 2/0 AWG batería, caída de tensión 2%"
+    head: ok [2/0 AWG] cites "Cable 2/0 AWG batería, caída de tensión 2%"
+R2 cañeria alone
+    base: ok [2/0 AWG] cites "Cable 2/0 AWG baterías en cañería"
+    head: ok [2/0 AWG] cites "Cable 2/0 AWG baterías en cañería"
+R3 C.A. 4/0 + battery 6
+    base: ok [4/0 AWG] cites "Alimentador C.A. 4/0 AWG"
+    head: short [6 AWG] cites "Cable 6 AWG baterías"
+R3 A.C. 4/0 + battery 6
+    base: ok [4/0 AWG] cites "Alimentador A.C. 4/0 AWG"
+    head: short [6 AWG] cites "Cable 6 AWG baterías"
+R3 PV1-F 4/0 + battery 6
+    base: ok [4/0 AWG] cites "Cable PV1-F 4/0"
+    head: short [6 AWG] cites "Cable 6 AWG baterías"
+ADV H1Z2Z2-K (PV standard cable) 4/0 + battery 6
+    base: ok [4/0 AWG] cites "Cable H1Z2Z2-K 4/0"
+    head: ok [4/0 AWG] cites "Cable H1Z2Z2-K 4/0"
+ADV PVC conduit word, battery 4/0 alone
+    base: ok [4/0 AWG] cites "Cable 4/0 AWG baterías en PVC"
+    head: ok [4/0 AWG] cites "Cable 4/0 AWG baterías en PVC"
+ADV A/C slash 4/0 + battery 6
+    base: ok [4/0 AWG] cites "Alimentador A/C 4/0 AWG"
+    head: ok [4/0 AWG] cites "Alimentador A/C 4/0 AWG"
+ADV "AC" English "AC output" 4/0 + battery 6
+    base: ok [4/0 AWG] cites "AC output cable 4/0 AWG"
+    head: short [6 AWG] cites "Cable 6 AWG baterías"
+ADV "inversor a tablero AC" 4/0 + battery 6
+    base: ok [4/0 AWG] cites "Cable inversor a tablero AC 4/0 AWG"
+    head: short [6 AWG] cites "Cable 6 AWG baterías"
+ADV battery cable to "panel de distribución"
+    base: ok [4/0 AWG] cites "Cable 4/0 AWG baterías a panel de distribución DC"
+    head: short [10 AWG] cites "Cable 10 AWG controlador"
+ADV DC-side "Cable de baterías a inversor (CD)" alone
+    base: ok [4/0 AWG] cites "Cable de baterías a inversor 4/0 AWG (CD)"
+    head: ok [4/0 AWG] cites "Cable de baterías a inversor 4/0 AWG (CD)"
+ADV solar uppercase 4/0 + battery 6 (SOLAR)
+    base: ok [4/0 AWG] cites "CABLE SOLAR 4/0 AWG"
+    head: short [6 AWG] cites "CABLE 6 AWG BATERÍAS"
+ADV "Ca" capital: "Cable Ca 4/0"
+    base: ok [4/0 AWG] cites "Cable Ca 4/0 AWG"
+    head: short [6 AWG] cites "Cable 6 AWG baterías"
+ADV photovoltaic english "photovoltaic" 4/0 + battery 6
+    base: ok [4/0 AWG] cites "Photovoltaic cable 4/0 AWG"
+    head: ok [4/0 AWG] cites "Photovoltaic cable 4/0 AWG"
+ADV "paneles" fuzzy: "Cable 4/0 AWG baterías (no incluye paneles)" alone
+    base: ok [4/0 AWG] cites "Cable 4/0 AWG baterías (no incluye paneles)"
+    head: unknown [batteryCableUnstated] cites "Cable 4/0 AWG baterías (no incluye paneles)"
+ADV three lines: solar + AC + battery 2/0
+    base: ok [4/0 AWG] cites "Alimentador AC 4/0 AWG"
+    head: ok [2/0 AWG] cites "Cable 2/0 AWG baterías"
+ADV three lines: solar + AC + sized ground
+    base: ok [4/0 AWG] cites "Alimentador AC 4/0 AWG"
+    head: unknown [batteryCableUnstated] cites "Cable solar 10 AWG" + "Alimentador AC 4/0 AWG" + "Cable tierra 6 AWG"
+ADV no solar words at all (regression): 4/0 + 6 AWG
+    base: ok [4/0 AWG] cites "Cable 4/0 AWG"
+    head: ok [4/0 AWG] cites "Cable 4/0 AWG"
+ADV ground wire alone, no solar (regression)
+    base: short [6 AWG] cites "Cable de tierra 6 AWG"
+    head: short [6 AWG] cites "Cable de tierra 6 AWG"
+ADV unsized lug + sized battery + PV
+    base: ok [4/0 AWG] cites "Cable 4/0 AWG baterías"
+    head: ok [4/0 AWG] cites "Cable 4/0 AWG baterías"
+ADV unsized generic + PV (no "bateria" word)
+    base: unknown [sizeUnknown] cites "Cableado"
+    head: unknown [sizeUnknown] cites "Cableado"
+
+=== FUSE ===
+AC1 ticket english: AC feeder 4/0 + battery 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+AC1 spanish: Alimentador AC 4/0 + baterias 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+AC2 PV alone sized + fuse 250A
+    base: ok cites "fuse"
+    head: ok cites "fuse"
+AC2 AC feeder alone sized + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: ok cites "fuse"
+AC3 PV + sized battery 4/0 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [4/0 AWG,runsUnstated] cites "fuse"
+AC4 PV + unsized battery + fuse 250A
+    base: ok cites "fuse"
+    head: ok cites "fuse"
+R1 solar 4/0 + ground 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: ok cites "fuse"
+R1 AC 4/0 + bare ground 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: ok cites "fuse"
+R1 solar 4/0 + lug 2/0 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: ok cites "fuse"
+R2 caida alone + fuse 250A
+    base: unknown [2/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [2/0 AWG,runsUnstated] cites "fuse"
+R2 caida + 10 AWG controller + fuse 250A
+    base: unknown [2/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [2/0 AWG,runsUnstated] cites "fuse"
+R2 cañeria alone + fuse 250A
+    base: unknown [2/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [2/0 AWG,runsUnstated] cites "fuse"
+R3 C.A. 4/0 + battery 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+R3 A.C. 4/0 + battery 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+R3 PV1-F 4/0 + battery 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+ADV H1Z2Z2-K (PV standard cable) 4/0 + battery 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [4/0 AWG,runsUnstated] cites "fuse"
+ADV PVC conduit word, battery 4/0 alone + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [4/0 AWG,runsUnstated] cites "fuse"
+ADV A/C slash 4/0 + battery 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [4/0 AWG,runsUnstated] cites "fuse"
+ADV "AC" English "AC output" 4/0 + battery 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+ADV "inversor a tablero AC" 4/0 + battery 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+ADV battery cable to "panel de distribución" + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: ok cites "fuse"
+ADV DC-side "Cable de baterías a inversor (CD)" alone + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [4/0 AWG,runsUnstated] cites "fuse"
+ADV solar uppercase 4/0 + battery 6 (SOLAR) + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+ADV "Ca" capital: "Cable Ca 4/0" + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+ADV photovoltaic english "photovoltaic" 4/0 + battery 6 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [4/0 AWG,runsUnstated] cites "fuse"
+ADV "paneles" fuzzy: "Cable 4/0 AWG baterías (no incluye paneles)" alone + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: ok cites "fuse"
+ADV three lines: solar + AC + battery 2/0 + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [2/0 AWG,runsUnstated] cites "fuse"
+ADV three lines: solar + AC + sized ground + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: ok cites "fuse"
+ADV no solar words at all (regression): 4/0 + 6 AWG + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [4/0 AWG,runsUnstated] cites "fuse"
+ADV ground wire alone, no solar (regression) + fuse 250A
+    base: short [6 AWG,maxA65] cites "fuse"
+    head: short [6 AWG,maxA65] cites "fuse"
+ADV unsized lug + sized battery + PV + fuse 250A
+    base: unknown [4/0 AWG,runsUnstated] cites "fuse"
+    head: unknown [4/0 AWG,runsUnstated] cites "fuse"
+ADV unsized generic + PV (no "bateria" word) + fuse 250A
+    base: ok cites "fuse"
+    head: ok cites "fuse"
+
+=== SAMPLE QUOTES ===
+solartec: identical
+voltia: identical
+grupoluz: identical
+enerhogar: identical
+lumen: identical
+suna: identical
+
+# description vs source.text (the head code reads both; no test separates them, mutants M24-M26)
+word only in source.text: short 6 AWG
+word only in description:  short 6 AWG
