@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Dictionary } from '../i18n'
 import { localCopyPlan } from '../lib/local-copy'
 import {
   clearPendingSave, clearUnsent, hasPendingSave, loadOwner, loadStore, loadUnsent, markPendingSave, releaseAccountCopy, saveOwner, saveStore,
 } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
-import { currentProject, initialStore, rekeySeed, withSetAside } from '../lib/store'
+import { currentProject, initialStore, nameFirstProject, rekeySeed, withSetAside } from '../lib/store'
 import { adoptStale, applyChanges, diffProjects, hasUnsent, NOTHING_UNSENT, outgoing, unsentOf, type Unsent } from '../lib/sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
+import { useLocale } from './useLocale'
 import { useRootData } from './useRootData'
 
 function fromServer(list: Project[], prev: Store): Store {
@@ -28,13 +30,13 @@ function fromServer(list: Project[], prev: Store): Store {
  * the first project of a copy that is not the account's takes an id of its own, so nothing done to it meanwhile
  * reaches the account's.
  */
-function startingCopy(account: string | null): { local: Store; mustPush: boolean } {
+function startingCopy(account: string | null, t: Dictionary): { local: Store; mustPush: boolean } {
   // The owner first: reading it takes over a marker left by an earlier release, which sets the pending marker.
   const owner = loadOwner()
   const plan = localCopyPlan(account, owner, hasPendingSave())
   if (plan === 'release') releaseAccountCopy()
   // After a release nothing is read back: if storage refused the removal, the copy must still not be shown.
-  const stored = plan === 'release' ? initialStore() : loadStore() ?? initialStore()
+  const stored = plan === 'release' ? initialStore(t) : loadStore() ?? initialStore(t)
   if (!account) return { local: stored, mustPush: false }
   const isOwn = plan === 'pull' || plan === 'push'
   const setAside = loadUnsent(account)
@@ -51,7 +53,11 @@ function startingCopy(account: string | null): { local: Store; mustPush: boolean
 export function useProjectStore() {
   const { user } = useRootData()
   const account = user?.id ?? null
-  const [store, setStore] = useState<Store>(initialStore)
+  const { t } = useLocale()
+  /** The language on screen, for requests answered after it changed. */
+  const language = useRef(t)
+  language.current = t
+  const [store, setStore] = useState<Store>(() => initialStore(t))
   const [syncing, setSyncing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [syncError, setSyncError] = useState(false)
@@ -94,7 +100,7 @@ export function useProjectStore() {
   }, [])
 
   useEffect(() => {
-    const { local, mustPush } = startingCopy(account)
+    const { local, mustPush } = startingCopy(account, language.current)
     latest.current = local
     setStore(local)
     loaded.current = false
@@ -109,8 +115,10 @@ export function useProjectStore() {
         loaded.current = true
         clearUnsent(account)
         if (inFlight.current === 0) clearPendingSave()
-        // Edits made while the load was in flight are already queued behind it; keep them visible.
-        show(fromServer(applyChanges(list, diffProjects(local.projects, latest.current.projects)), latest.current))
+        // Edits made while the load was in flight are already queued behind it; keep them visible. A first project
+        // named for a language switched to meanwhile is no edit: compared in the language on screen, it is not one.
+        const edits = diffProjects(nameFirstProject(local, language.current).projects, latest.current.projects)
+        show(fromServer(applyChanges(list, edits), latest.current))
       })
       .catch((error: unknown) => {
         if (cancelled) return
@@ -121,6 +129,16 @@ export function useProjectStore() {
       .finally(() => { if (!cancelled) setSyncing(false) })
     return () => { cancelled = true }
   }, [account, enqueue, show])
+
+  // A first project nobody has edited reads in the language on screen, wherever it came from: made here, read back from
+  // this browser or from the account, or shown before the language was switched. Only the screen changes: nothing is
+  // saved or sent for it, and an edit saves it under the name it shows.
+  useEffect(() => {
+    const named = nameFirstProject(latest.current, t)
+    if (named === latest.current) return
+    latest.current = named
+    setStore(named)
+  }, [store, t])
 
   const commit = useCallback((next: Store) => {
     const prev = latest.current

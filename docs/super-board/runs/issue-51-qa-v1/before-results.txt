@@ -1,0 +1,4 @@
+# Before: same harness on base 4fbbb23 src
+before-ac1-best            Show checks open, 0 lines tables
+before-ac2-line-mismatch   0 tables, no Show checks · "Some line amounts, quantities or the currency we read don't hold together, so a total wouldn't fix it. ..."
+before-ac2-currency        same sentence as line-mismatch

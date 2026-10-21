@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, getDictionary, LOCALES, tr, type Dictionary } from '../i18n'
 import { SIZING } from './catalog'
 import { isCustomLoadId } from './custom'
 import { DEFAULT_ELECTRICAL, HOURS_MAX, HOURS_MIN, PROJECT_NAME_MAX, type CustomLoad, type Electrical, type Project, type Solar, type Store } from './schema'
@@ -11,9 +12,10 @@ const DEFAULT_ROOF_M2 = 40
 const DUTY_FLOOR = 0.01
 const ID_PREFIX = 'p'
 const SEED_ID = `${ID_PREFIX}1`
-const SEED_NAME = 'Home'
-/** Ends a duplicate's name, so its card can be told apart from the original's. */
-const COPY_SUFFIX = ' copy'
+/** The language a project is named in when the caller names none: the app's default. */
+const DEFAULT_NAMES = getDictionary(DEFAULT_LOCALE)
+/** The first project's name in every language, so one nobody has renamed can be told from one a person named. */
+const FIRST_NAMES = LOCALES.map((locale) => getDictionary(locale).ui.firstProject)
 
 function nextId(projects: readonly Project[]): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
@@ -23,17 +25,32 @@ function nextId(projects: readonly Project[]): string {
 
 const now = (): number => Date.now()
 
-function newProject(projects: readonly Project[], name?: string, id: string = nextId(projects), updatedAt: number = now()): Project {
+function newProject(projects: readonly Project[], name: string, id: string = nextId(projects), updatedAt: number = now()): Project {
   return {
-    id, name: name ?? `Project ${projects.length + 1}`, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4',
+    id, name, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4',
     batteryUnit: null, solar: null, requester: null, dutyOverrides: {}, electrical: { ...DEFAULT_ELECTRICAL }, updatedAt,
   }
 }
 
-/** The seed project is stamped 0 so server and client render the same first store, and so any saved copy outranks it. */
-export function initialStore(): Store {
-  const p = newProject([], SEED_NAME, SEED_ID, 0)
+/**
+ * The seed project, named in `t`'s language. It is stamped 0 so server and client render the same first store, and so
+ * any saved copy outranks it.
+ */
+export function initialStore(t: Dictionary = DEFAULT_NAMES): Store {
+  const p = newProject([], t.ui.firstProject, SEED_ID, 0)
   return { version: 1, projects: [p], currentId: p.id }
+}
+
+/**
+ * The store with a first project nobody has edited named in `t`'s language. Such a project is still stamped 0 and
+ * still has the first project's name in some language, so it is still the one a page made up, in whatever language
+ * that page was in. One that was edited, or one saved unstamped under a name a person chose, keeps its name.
+ */
+export function nameFirstProject(store: Store, t: Dictionary): Store {
+  const name = t.ui.firstProject
+  const isOtherLanguageDefault = (p: Project) => p.updatedAt === 0 && p.name !== name && FIRST_NAMES.includes(p.name)
+  if (!store.projects.some(isOtherLanguageDefault)) return store
+  return { ...store, projects: store.projects.map((p) => (isOtherLanguageDefault(p) ? { ...p, name } : p)) }
 }
 
 /**
@@ -81,23 +98,30 @@ export function patchCurrent(store: Store, patch: Partial<Project>): Store {
   return patchProject(store, currentProject(store).id, patch)
 }
 
-export function addProject(store: Store, name?: string): Store {
+/** A new project's default name in `t`'s language: its place in the list once added ("Project 2"). */
+export function numberedName(store: Store, t: Dictionary): string {
+  return tr(t, 'projectNumbered', { n: store.projects.length + 1 })
+}
+
+export function addProject(store: Store, name: string = numberedName(store, DEFAULT_NAMES)): Store {
   const p = newProject(store.projects, name)
   return { ...store, projects: [...store.projects, p], currentId: p.id }
 }
 
 /**
- * A duplicate's name: the original plus COPY_SUFFIX. A long original is shortened, never the suffix, so the name stays
- * within PROJECT_NAME_MAX; a longer one would make the whole saved store fail its schema on the next load.
+ * A duplicate's name: the original plus `suffix` (" copy"), so its card can be told apart from the original's. A long
+ * original is shortened, never the suffix, so the name stays within PROJECT_NAME_MAX; a longer one would make the whole
+ * saved store fail its schema on the next load.
  */
-function copyName(name: string): string {
-  return `${name.slice(0, PROJECT_NAME_MAX - COPY_SUFFIX.length).trimEnd()}${COPY_SUFFIX}`
+function copyName(name: string, suffix: string): string {
+  return `${name.slice(0, PROJECT_NAME_MAX - suffix.length).trimEnd()}${suffix}`
 }
 
-export function duplicateProject(store: Store): Store {
+/** A copy of the open project, its name ending in `t`'s language. */
+export function duplicateProject(store: Store, t: Dictionary = DEFAULT_NAMES): Store {
   const src = currentProject(store)
   const copy: Project = {
-    ...src, id: nextId(store.projects), name: copyName(src.name), qty: { ...src.qty }, custom: [...src.custom],
+    ...src, id: nextId(store.projects), name: copyName(src.name, t.ui.copySuffix), qty: { ...src.qty }, custom: [...src.custom],
     dutyOverrides: { ...src.dutyOverrides }, electrical: { ...src.electrical }, updatedAt: now(),
   }
   return { ...store, projects: [...store.projects, copy], currentId: copy.id }

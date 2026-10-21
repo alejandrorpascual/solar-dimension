@@ -34,6 +34,19 @@ export const CUSTOM_NAME_MAX = 80
 const THOUSANDS = /^\d{1,3}([.,]\d{3})+$/
 const isGrouped = (v: string): boolean => THOUSANDS.test(v.trim())
 
+/**
+ * The tag the form saves in front of a custom load's note. It stays in English, as on every load saved before, and
+ * `customNote` shows it in the language on screen.
+ */
+const NOTE_TAG = 'Custom'
+const NOTE_SEP = ' · '
+
+/** A custom load's saved note with its tag in the language on screen (`tag`, e.g. "Personalizado") and its figures as saved. */
+export function customNote(note: string, tag: string): string {
+  const saved = `${NOTE_TAG}${NOTE_SEP}`
+  return note.startsWith(saved) ? `${tag}${NOTE_SEP}${note.slice(saved.length)}` : note
+}
+
 const PERCENT = 100
 /** The lowest percent the form takes: the floor the duty picker clamps an override to. */
 export const CUSTOM_DUTY_MIN_PCT = SIZING.DUTY_MIN * PERCENT
@@ -82,7 +95,7 @@ export function parseCustom(form: CustomForm, existingIds: readonly string[]): P
       name,
       watts,
       surge: Math.round(surge > 0 ? surge : computed),
-      note: isVa ? `Custom · ${volts} V × ${amps} A` : `Custom · ${watts} W`,
+      note: `${NOTE_TAG}${NOTE_SEP}${isVa ? `${volts} V × ${amps} A` : `${watts} W`}`,
       // Only a load that cycles stores a duty, so one at 100% is saved exactly as before.
       ...(duty < 1 ? { duty } : {}),
     },

@@ -1,0 +1,19 @@
+  ✓  1 [desktop] › e2e/zz-qa88-capture.spec.ts:12:3 › qa88 capture en (3.2s)
+  ✓  2 [desktop] › e2e/zz-qa88-capture.spec.ts:12:3 › qa88 capture es (3.3s)
+  ✘  4 [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in es, with the project, date, page and estimate word atop every  [... omitted end of long line]
+  ✘  3 [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in en, with the project, date, page and estimate word atop every  [... omitted end of long line]
+  ✘  5 [desktop] › e2e/download.spec.ts:123:1 › ten captures leave the page with as many stylesheet rules as the first one did (8.0s)
+    Error: expect(received).toBe(expected) // Object.is equality
+    Expected: "Home"
+    Received: undefined
+    > 111 |     expect(sheet.title).toBe(project)
+    Error: expect(received).toBe(expected) // Object.is equality
+    Expected: "Casa"
+    Received: undefined
+    > 111 |     expect(sheet.title).toBe(project)
+    Error: expect(received).toBe(expected) // Object.is equality
+    Expected: 820
+    Received: 946
+    > 137 |   expect(await ruleCount()).toBe(afterFirst)
+  3 failed
+  2 passed (20.5s)

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { GoogleButton } from '../components/GoogleButton'
 import { HeaderBar } from '../components/HeaderBar'
 import { LegalLinks } from '../components/LegalLinks'
+import { withEmailLink } from '../components/LegalPage'
 import { useLocale } from '../hooks/useLocale'
 import { useRootData } from '../hooks/useRootData'
 import type { Dictionary } from '../i18n'
@@ -64,6 +65,7 @@ function LoginPage() {
         <form className="form" onSubmit={submit}>
           <label className="field"><span className="lab">{t.ui.email}</span><input className="in" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
           <label className="field"><span className="lab">{t.ui.password}</span><input className="in" type="password" autoComplete={mode === 'up' ? 'new-password' : 'current-password'} minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+          <p className="form__note muted">{mode === 'up' ? t.ui.quotesNeedGoogle : withEmailLink(t.ui.recoverAccess)}</p>
           {(error || oauthError) && <div className="error" role="alert">{error || oauthErrorMessage(t, oauthError)}</div>}
           <button type="submit" className="btn btn--primary" disabled={busy}>{mode === 'up' ? t.ui.signUp : t.ui.signIn}</button>
           <button type="button" className="chip" onClick={() => setMode(mode === 'up' ? 'in' : 'up')}>{mode === 'up' ? t.ui.haveAccount : t.ui.noAccount}</button>

@@ -9,6 +9,7 @@ import { bestPill, coverageLines, entrySubtitle, extraPanelsText, gaugeLegend, i
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
 import { QuoteFacts } from './QuoteFacts'
+import { QuoteLines } from './QuoteLines'
 import { QuoteActions } from './QuoteActions'
 import { SizingGauge } from './SizingGauge'
 
@@ -83,6 +84,7 @@ export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelet
       {isOpen && (
         <div id={bodyId}>
           <ItemList items={best.items} kit={kit} currency={best.currency} onOverride={onOverride} />
+          <QuoteLines extraction={best.quote.extraction} optionId={best.optionId} />
           <QuoteFacts extraction={best.quote.extraction} />
         </div>
       )}

@@ -2,6 +2,7 @@ import { tr, type Dictionary, type Locale } from '../i18n'
 import { fmtDecimal, fmtInt, fmtW } from '../i18n/format'
 import { CHEMISTRIES, SIZING } from './catalog'
 import { hasPanels, type SizingResult } from './sizing'
+import { HEADROOM_PCT } from './sizing/inverter'
 import { SOLAR } from './solar'
 
 /**
@@ -19,7 +20,8 @@ function ratingsLine(t: Dictionary, r: SizingResult, locale: Locale): string {
   })
 }
 
-const pct = (duty: number): number => Math.round(duty * 100)
+/** A share as a whole percent: a duty, or the inverter's efficiency. */
+const pct = (share: number): number => Math.round(share * 100)
 
 /** The share of each hour the kit's ACs run on a typical day (a range when they differ) and on a hard day; nothing without an AC. */
 function acDutyLine(t: Dictionary, r: SizingResult): string {
@@ -33,6 +35,7 @@ function acDutyLine(t: Dictionary, r: SizingResult): string {
 export function finePrint(t: Dictionary, r: SizingResult, dodPct: number, locale: Locale): string {
   const starts = r.simultaneousStarts === 'all' ? t.ui.fineStartsAll : r.simultaneousStarts >= 2 ? t.ui.fineStartsTwo : t.ui.fineStartsOne
   const base = tr(t, 'fine', {
+    efficiency: pct(SIZING.INVERTER_EFF), headroom: HEADROOM_PCT, perTon: fmtW(SIZING.WATTS_PER_TON, locale),
     dod: dodPct, starts, insulation: r.cable.insulationC, ambient: r.cable.ambientC, bundled: r.cable.bundled ? t.ui.fineBundled : '',
   }) + acDutyLine(t, r) + ratingsLine(t, r, locale)
   if (!hasPanels(r)) return base

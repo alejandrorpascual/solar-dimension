@@ -13,7 +13,7 @@ export interface Dictionary {
   chemistries: Record<ChemistryId, string>
   voltageHints: Record<Voltage, string>
   warnings: Record<WarningCode, (p: WarningParams) => string>
-  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'stringLeads' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
+  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'stringLeads' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'controllerBattery' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
   /** Load kinds as the schedule groups them. */
   kinds: Record<LoadKind, string>
   /** Installation notes a bank with parallel strings carries. */
@@ -37,6 +37,7 @@ export interface LegalPage { title: string; updated: string; sections: readonly 
 export type UiKey =
   | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
+  | 'firstProject' | 'projectNumbered' | 'copySuffix' | 'customTag'
   | 'q1' | 'q1Help' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'
   | 'search' | 'nothingMatches' | 'sectionAdded' | 'add' | 'addOne' | 'qtyOf' | 'removeOne' | 'remove'
   | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase' | 'checkNameplate240'
@@ -55,6 +56,7 @@ export type UiKey =
   | 'back' | 'next' | 'buildKit' | 'startOver'
   | 'continueGoogle' | 'orDivider' | 'googleExists' | 'googleFailed' | 'connectGoogle' | 'signOutFailed'
   | 'signIn' | 'signUp' | 'signOut' | 'email' | 'password' | 'noAccount' | 'haveAccount' | 'authFailed' | 'signedInAs' | 'syncing' | 'syncFailed' | 'language'
+  | 'recoverAccess' | 'quotesNeedGoogle'
   | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating'
   | 'projects' | 'projectsCount' | 'current' | 'quickEdit' | 'done' | 'projectMeta' | 'heaviestMore' | 'bank' | 'inverter' | 'close'
   | 'appliancesCount' | 'windowLabel' | 'hourLess' | 'hourMore' | 'hoursShort' | 'saved' | 'undo' | 'allAppliances'
@@ -64,14 +66,15 @@ export type UiKey =
   | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'
   | 'downloadPdf' | 'downloadPng' | 'downloadCsv' | 'share' | 'making' | 'downloadReady' | 'exportFailed'
   | 'sheetAttention' | 'sheetAttentionChecks' | 'sheetAttentionNotes' | 'sheetNotes'
-  | 'sheetTitle' | 'date' | 'loadSchedule' | 'appliance' | 'each' | 'overHours' | 'total' | 'note' | 'eachW' | 'runningWatts' | 'whOver'
+  | 'sheetTitle' | 'sheetEstimate' | 'date' | 'loadSchedule' | 'appliance' | 'each' | 'overHours' | 'total' | 'note' | 'eachW' | 'runningWatts' | 'whOver'
   | 'q3' | 'q3Help' | 'solarNo' | 'solarNoHelp' | 'solarYes' | 'solarYesHelp' | 'solarSkipped'
   | 'roofSpace' | 'roofLess' | 'roofMore' | 'roofFitsOne' | 'roofFitsMany' | 'roofHint' | 'plannerLabel' | 'plannerTile' | 'addPanel' | 'removePanel'
   | 'panelsLine' | 'recommendedPill' | 'recommendedPillLimited' | 'backToRecommended' | 'sunHours' | 'sunHint'
   | 'clearDay' | 'flowSun' | 'flowBank' | 'flowHome' | 'coverHead' | 'coverAxis'
   | 'refillSameDay' | 'refillDays' | 'noPanelsYet' | 'cloudyDay' | 'cloudyNote' | 'solarAssumptions'
   | 'solarRecharge' | 'solarRechargeSub' | 'nextSolar' | 'footerSolar' | 'footerSolarNone' | 'footer4Solar'
-  | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'pvCableSpec' | 'pvCableNote'
+  | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'controllerBatterySpec' | 'controllerBatteryNote'
+  | 'pvCableSpec' | 'pvCableNote' | 'solarNotSized'
   | 'pvDisconnectSpec' | 'pvDisconnectNote' | 'mountingSpec' | 'mountingNote' | 'solarTag' | 'fineSolar'
   | 'stringsOne' | 'stringsMany'
   | 'average' | 'averageWatts' | 'kind'

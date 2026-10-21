@@ -1,7 +1,7 @@
 import { DEFAULT_HARDWARE, SIZING, VOLTAGES, type CatalogItem, type HardwareCatalog, type Voltage } from './catalog'
 import { ambientFactor, ampsAt, bundleFactor } from './nec'
 import { autoPick, batteryCandidates, toBatteryPick, type BankCandidate, type BankDemand } from './sizing/battery'
-import { canInterruptFault, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './sizing/cable'
+import { canInterruptFault, maxStringAmps, sizeBankWiring, sizeControllerFeed, sizeMainCable, undersized } from './sizing/cable'
 import { dcAmps, pickInverter, toInverterPick } from './sizing/inverter'
 import { selectItems, surgeProfile, unitsOf } from './sizing/loads'
 import { runtimeScenarios, type RuntimeContext } from './sizing/runtime'
@@ -144,6 +144,9 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
     inverter,
     battery,
     solar,
+    controllerFeed: solar && solar.controllers > 0
+      ? sizeControllerFeed(solar.controllerA, solar.controllers, volts, cond, hardware.gauges, hardware.fuses)
+      : null,
     cable: {
       amps: Math.round(main.amps), perRun: Math.round(main.perRun), runs: main.runs,
       gauge: main.gauge.awg, mm2: main.gauge.mm2, ampacity: Math.round(main.ampacity), tableAmpacity: ampsAt(main.gauge, cond.insulationC),

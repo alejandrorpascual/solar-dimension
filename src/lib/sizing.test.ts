@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { DEFAULT_HARDWARE, type ChemistryId } from './catalog'
-import { catalog, compute } from './sizing'
+import { catalog, compute, type SizingInput } from './sizing'
+import { DEFAULT_QTY } from './store'
 
 const ESSENTIALS = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
 
@@ -258,6 +259,26 @@ describe('battery unit choice', () => {
     expect(r.solar?.panels).toBe(5)
     expect(r.solar?.dailyUseWh).toBe(r.averageW * 24)
     expect(r.warnings.some((w) => w.code === 'roofLimited')).toBe(false)
+  })
+
+  test('gives each charge controller its own cable and fuse to the battery, and a kit without panels none', () => {
+    const kit = (solar: SizingInput['solar']) => compute({ qty: ESSENTIALS, hours: 10, volts: 48, chemistry: 'lifepo4', solar }, CATALOG_SNAPSHOT)
+    const r = kit({ roofM2: 40, panels: null, sunHours: 5 })
+    // 5 × 550 W at 57.6 V is 48 A of charge: a 60 A controller. 1.25 × 60 = 75 A takes an 80 A fuse, which 4 AWG (85 A) carries.
+    expect(r.solar).toMatchObject({ controllers: 1, controllerA: 60 })
+    expect(r.controllerFeed).toEqual({ controllerA: 60, fuse: { a: 80, class: 'T', aicA: 20000, maxVdc: 125, count: 1 }, gauge: '4 AWG', mm2: 21.2, ampacity: 85 })
+    expect(kit(null).controllerFeed).toBeNull()
+    expect(kit({ roofM2: 40, panels: 0, sunHours: 5 }).controllerFeed).toBeNull()
+  })
+
+  test('the 40 and 50 A controller fuses stay off the battery side: panels leave the main and string fuses as they were', () => {
+    const kit = (solar: SizingInput['solar']) => compute({ qty: DEFAULT_QTY, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '12-100', solar }, CATALOG_SNAPSHOT)
+    const batteryOnly = kit(null)
+    // Each of the two strings' leads has a 43 A design current: a 50 A fuse would cover it, and it keeps its 60 A one.
+    expect(batteryOnly.cable.string).toMatchObject({ designA: 43, fuse: { a: 60, count: 2 } })
+    const withPanels = kit({ roofM2: 40, panels: null, sunHours: 5 })
+    expect(withPanels.controllerFeed).not.toBeNull()
+    expect([withPanels.fuse, withPanels.cable]).toEqual([batteryOnly.fuse, batteryOnly.cable])
   })
 
   test('warns when the roof cannot hold the panels that refill the bank', () => {

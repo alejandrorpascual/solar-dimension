@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { renameOutcome, type RenameClose, type Renaming } from '../lib/project-rename'
 import type { Store } from '../lib/schema'
-import { addProject, currentProject, deleteProject, duplicateProject, renameProject } from '../lib/store'
+import { addProject, currentProject, deleteProject, duplicateProject, numberedName, renameProject } from '../lib/store'
 import { useLocale } from './useLocale'
 
 /** What only the open project's card can do: rename in place and the ··· menu. */
@@ -68,7 +68,7 @@ export function useProjectRename({ store, commit, onPicked }: Args) {
   // A new project opens on top already renaming, and the sheet stays open so its name field shows. Enter in that field
   // calls onPicked, which closes the sheet on phones; leaving the field or pressing Escape keeps the sheet open.
   const createProject = () => {
-    const next = addProject(store)
+    const next = addProject(store, numberedName(store, t))
     const created = currentProject(next)
     commit(next)
     setRenaming({ id: created.id, original: created.name, isNew: true })
@@ -94,7 +94,7 @@ export function useProjectRename({ store, commit, onPicked }: Args) {
     onRename: () => setRenaming({ id: open.id, original: open.name, isNew: false }),
     onRenameType: (raw) => rename(open.id, raw),
     onRenameClose: closeRename,
-    onDuplicate: () => openInstead(duplicateProject(store)),
+    onDuplicate: () => openInstead(duplicateProject(store, t)),
     onDelete: () => openInstead(deleteProject(store)),
   }
   return { createProject, currentActions }
