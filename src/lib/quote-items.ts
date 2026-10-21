@@ -257,7 +257,18 @@ const lineText = (l: QuoteLine): string => `${l.description} ${l.source.text}`
 const isFitting = (l: QuoteLine): boolean => FITTINGS.test(lineText(l))
 /** A wiring line with no readable size that could be the main cable: not a lug, a connector, conduit or the ground. */
 const isOpenCable = (l: QuoteLine): boolean => lineSize(l.specs) === null && !isFitting(l)
-const namesBattery = (l: QuoteLine): boolean => BATTERY.test(lineText(l))
+/**
+ * What a wiring line's words name: the battery, the solar array or the AC side ('offBattery'), or neither (null). Its own
+ * description decides; its source text only when the description names neither, because lines split from one quote
+ * line share its words ("alimentador CA 4/0 AWG y cable de baterías 6 AWG"), and one "baterías" there names no feeder.
+ */
+function wiringFor(l: QuoteLine): 'battery' | 'offBattery' | null {
+  for (const text of [l.description, l.source.text]) {
+    if (BATTERY.test(text)) return 'battery'
+    if (OFF_BATTERY.test(text)) return 'offBattery'
+  }
+  return null
+}
 /**
  * The wiring lines that can be the battery cable: those that name the battery, and those that name neither the solar
  * array nor the AC side. When some were set aside and only fittings are left, none: a ground wire or a lug is no main
@@ -266,8 +277,8 @@ const namesBattery = (l: QuoteLine): boolean => BATTERY.test(lineText(l))
  * as the battery cable.
  */
 function batteryWiring(lines: readonly QuoteLine[]): QuoteLine[] {
-  const rest = lines.filter((l) => namesBattery(l) || !OFF_BATTERY.test(lineText(l)))
-  return rest.length < lines.length && rest.every((l) => isFitting(l) && !namesBattery(l)) ? [] : rest
+  const rest = lines.filter((l) => wiringFor(l) !== 'offBattery')
+  return rest.length < lines.length && rest.every((l) => isFitting(l) && wiringFor(l) !== 'battery') ? [] : rest
 }
 
 /**
