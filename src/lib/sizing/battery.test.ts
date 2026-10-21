@@ -136,6 +136,23 @@ describe('autoPick', () => {
     expect(pick({ ...big, id: 'more', count: 10 }, big, { ...big, id: 'larger', bankWh: 10 })).toBe('big')
   })
 
+  test('with no bank that can feed the inverter, each of discharge, peak, parallel, leads and interrupt costs a bank the pick, even at 9 times the current', () => {
+    // Two banks that fail one check each: peak alone, or discharge alone.
+    const lowPeak = { id: 'one', count: 1, bankWh: 1, bankContinuousA: 100, dischargeOk: true, peakOk: false, overMaxParallel: false, leadOk: true, interruptOk: true }
+    const lowDischarge = { ...lowPeak, dischargeOk: false, peakOk: true }
+    const oneMore: [typeof lowPeak, Partial<typeof lowPeak>][] = [
+      [lowPeak, { dischargeOk: false }],
+      [lowDischarge, { peakOk: false }],
+      [lowPeak, { overMaxParallel: true }],
+      [lowPeak, { leadOk: false }],
+      [lowPeak, { interruptOk: false }],
+    ]
+    for (const [one, extra] of oneMore) {
+      // Listed first, the bank with one more failed check would win any tie.
+      expect(autoPick([{ ...one, ...extra, id: 'two', bankContinuousA: 900 }, one])?.id).toBe('one')
+    }
+  })
+
   test('with no bank that can feed the inverter, the stock list gives the most current among those failing the fewest checks', () => {
     // 9.6 kW on a 12 V bank: 1,111 A, leads of 180 A, fuses of 20 kA. Nothing feeds it. Three 400 Ah and four 300 Ah
     // units fail discharge, leads and interrupt; ten 100 Ah units fail discharge, parallel and interrupt, and give 1,000 A.
