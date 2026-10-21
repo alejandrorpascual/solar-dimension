@@ -34,7 +34,7 @@ Statements 98.34%  Branches 93.96%  Functions 99.3%  Lines 98.94%
   verdict ready, 60-char name    139 px (248 px at 320), 287 px (396), none                    120 px, See verdict + Add quotes
   tray dismissed                 none, 120 px (room variable removed), none                    120 px, none
   no sideways scroll in any state (scrollWidth - innerWidth = 0)
-  json: phone-tray-metrics.json, phone-tray-longname-metrics.json, before-* for the base
+  (the per-state numbers above come from a throwaway probe spec; the raw json is not committed, to keep the PR under the size cap)
 
 == mutation checks on the Builder's specs (never committed; src restored, git diff -- src empty after each)
   A1 remove the coarse rule on .stepper-qty__n (components.css)   duty.spec.ts:119 red, 15 vs 16 (phone)
