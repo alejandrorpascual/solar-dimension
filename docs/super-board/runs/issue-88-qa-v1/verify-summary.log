@@ -1,0 +1,8 @@
+ Test Files  104 passed (104)
+      Tests  1819 passed (1819)
+All files          |   98.31 |    93.86 |   99.29 |   98.93 |                   
+✓ built in 847ms
+node_modules/.nitro/vite/services/ssr/_build/server-error-8ozpdepa.js                  1.12 kB │ gzip:  0.62 kB
+✓ built in 365ms
+.output/server/_ssr/server-error-8ozpdepa.mjs                    1.16 kB │ gzip:   0.65 kB
+✓ built in 720ms

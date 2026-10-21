@@ -73,6 +73,7 @@ describe('totalHelp', () => {
     compareQuotes(KIT, DEFAULT_MUSTS, [{ ...view('solartec', 0), status: 'needs_review', ...over }]).unranked[0]!
   const lineOff = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, unitPrice: 1 } : l)) }
   const noLines = extraction([], { total: 5000 })
+  const LINE_OFF_EN = "On some lines, the quantity times the unit price doesn't make the line total. A total wouldn't fix it. Read it again, or upload a clearer copy."
 
   test('a quote with no total asks for it, in both languages', () => {
     const u = unranked({ extraction: { ...SAMPLE_QUOTES.solartec, total: 0 } })
@@ -98,13 +99,23 @@ describe('totalHelp', () => {
       "Some amounts don't add up. Correct the total to compare this quote.",
     )
   })
-  test('read again and still not holding, a reading asks for the total as the quote writes it', () => {
-    expect(totalHelp(en, unranked({ extraction: lineOff, retries: 1 }))).toBe(en.quotes.misreadTotalHelp)
+  test('read again and still not holding, a reading names the check that failed, then asks for the total as the quote writes it', () => {
+    const badCurrency = { ...SAMPLE_QUOTES.solartec, currency: 'RD$' }
+    expect(totalHelp(en, unranked({ extraction: lineOff, retries: 1 }))).toBe(
+      "On some lines, the quantity times the unit price doesn't make the line total. We read it again with the same result. If the quote is written that way (a discount on a line, say), enter its total to compare it.",
+    )
+    expect(totalHelp(en, unranked({ extraction: badCurrency, retries: 1 }))).toBe(
+      "We couldn't tell which currency its prices are in. We read it again with the same result. If the quote is written that way (a discount on a line, say), enter its total to compare it.",
+    )
+    expect(totalHelp(es, unranked({ extraction: lineOff, retries: 1 }))).toBe(
+      'En algunas líneas, la cantidad por el precio unitario no da el total de la línea. La leímos de nuevo con el mismo resultado. Si la cotización está escrita así (con un descuento en una línea, por ejemplo), escribe su total para compararla.',
+    )
+    expect(totalHelp(es, unranked({ extraction: badCurrency, retries: 1 }))).toBe(
+      'No pudimos saber en qué moneda están sus precios. La leímos de nuevo con el mismo resultado. Si la cotización está escrita así (con un descuento en una línea, por ejemplo), escribe su total para compararla.',
+    )
     expect(totalHelp(es, unranked({ extraction: noLines, retries: 1 }))).toBe(es.quotes.noLinesTotalHelp)
   })
   test('before it is read again, a reading with no lines says so rather than blaming its line amounts', () => {
-    expect(misreadText(en, lineOff, null, true)).toBe(en.quotes.misreadHelp)
-    expect(misreadText(en, lineOff, null, false)).toBe(en.quotes.misreadHelpNoRetry)
     expect(misreadText(en, noLines, null, true)).toBe("We couldn't read any lines in this quote, so a total alone wouldn't say what it includes. Read it again, or upload a clearer copy.")
     expect(misreadText(es, noLines, null, false)).toBe(es.quotes.noLinesHelpNoRetry)
   })
@@ -121,7 +132,37 @@ describe('totalHelp', () => {
     expect(misreadText(es, tooBig, null, false)).toBe(es.quotes.implausibleHelpNoRetry)
     // SolarTec cites page 2, which a one-page file does not have; read from two pages, only its line amount is off.
     expect(misreadText(en, SAMPLE_QUOTES.solartec, 1, true)).toBe(en.quotes.implausibleHelp)
-    expect(misreadText(en, lineOff, 2, true)).toBe(en.quotes.misreadHelp)
+    expect(misreadText(en, lineOff, 2, true)).toBe(LINE_OFF_EN)
+  })
+  test('a misread card names the check that failed: a line amount and an unreadable currency read differently', () => {
+    const badCurrency = { ...SAMPLE_QUOTES.solartec, currency: 'RD$' }
+    expect(misreadText(en, lineOff, null, true)).toBe(LINE_OFF_EN)
+    expect(misreadText(en, lineOff, null, false)).toBe(
+      "On some lines, the quantity times the unit price doesn't make the line total. A total wouldn't fix it. Upload a clearer copy.",
+    )
+    expect(misreadText(en, badCurrency, null, true)).toBe(
+      "We couldn't tell which currency its prices are in. A total wouldn't fix it. Read it again, or upload a clearer copy.",
+    )
+    expect(misreadText(es, lineOff, null, true)).toBe(
+      'En algunas líneas, la cantidad por el precio unitario no da el total de la línea. Un total no lo arreglaría. Léela de nuevo o sube una copia más clara.',
+    )
+    expect(misreadText(es, badCurrency, null, false)).toBe(
+      'No pudimos saber en qué moneda están sus precios. Un total no lo arreglaría. Sube una copia más clara.',
+    )
+  })
+  test('a misread card names every check that failed, and a quantity of 0', () => {
+    const both = { ...lineOff, currency: 'RD$' }
+    expect(misreadText(en, both, null, true)).toBe(
+      "We couldn't tell which currency its prices are in. On some lines, the quantity times the unit price doesn't make the line total. A total wouldn't fix it. Read it again, or upload a clearer copy.",
+    )
+    const noQty = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, qty: 0 } : l)) }
+    expect(misreadText(en, noQty, null, false)).toBe("Some lines have a quantity of 0 or less. A total wouldn't fix it. Upload a clearer copy.")
+    expect(misreadText(es, noQty, null, false)).toBe('Algunas líneas tienen una cantidad de 0 o menos. Un total no lo arreglaría. Sube una copia más clara.')
+    // A line in an option the quote never listed fails no check the card has a sentence for.
+    const stray = extraction([line('inverter', 1890, { option: '?' })])
+    expect(misreadText(en, stray, null, true)).toBe(
+      "Some line amounts, quantities or the currency we read don't hold together. A total wouldn't fix it. Read it again, or upload a clearer copy.",
+    )
   })
 })
 

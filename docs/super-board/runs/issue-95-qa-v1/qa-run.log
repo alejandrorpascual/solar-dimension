@@ -1,0 +1,45 @@
+issue #95 QA v1 · branch issue-95-login-recovery-and-quotes-note · head afc6d9d
+
+== npm run typecheck
+exit 0
+
+== npm run test:coverage
+Test Files  105 passed (105)
+Tests  1827 passed (1827)
+All files          |   98.32 |    93.89 |   99.29 |   98.93 |                   
+
+== E2E_PORT=4190 npx playwright test e2e/login-notes.spec.ts
+  ✓ sign-in page in English: recovery line, mailto link, no quotes note
+  ✓ sign-in page in Spanish: recovery line, mailto link, no quotes note
+  ✓ sign-up in English: quotes note, no recovery line, no link
+  ✓ sign-up in Spanish: quotes note, no recovery line, no link
+  4 passed
+
+== neighbours: account google privacy terms stepper shared-browser requester spanish-defaults
+3 skipped
+66 passed (53.2s)
+exit=0
+  (the 3 skipped are @phone tests, which run in the phone project, where they pass)
+
+== mutation check on the Builder's spec (never committed)
+  A: swap the mode condition in src/routes/login.tsx -> 4 failed (all four tests)
+  B: drop {email} from the Spanish recoverAccess -> 1 failed (Spanish sign-in, mailto href), 3 passed
+  both reverted: git diff -- src is empty
+
+== exploratory (throwaway spec, not committed), 18 passed
+  12 states: 2 modes x 2 languages x 3 viewports (1920x1080, 1024x768, 375x667)
+  per shot: no console errors or warnings, no page errors, no horizontal scroll, note text contrast >= 4.5
+  font 13px note contrast 5.43 link contrast 6.11
+  font 13px note contrast 5.43 link contrast None
+  font 13px note contrast 5.98 link contrast 6.73
+  font 13px note contrast 5.98 link contrast None
+  max scrollWidth - innerWidth: 0
+  toggling sign-in <-> sign-up swaps the two notes both ways, one note at a time
+  header language switch EN -> ES swaps the note on the page, mailto href kept
+  /login?error=account_not_linked shows the error and the note
+  wrong password shows the error and keeps the recovery line
+  Tab from the password field reaches the support link, then the submit button
+  with JavaScript off, the Spanish page is server-rendered with the note and the mailto link
+
+== before shots (throwaway spec, base 3ca1535, English)
+  6 passed: sign-in and sign-up at three viewports; .form__note is absent in all

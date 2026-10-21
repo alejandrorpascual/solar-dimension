@@ -9,6 +9,7 @@ import { AskBox } from './AskBox'
 import { ChecksToggle } from './ChecksToggle'
 import { ItemList } from './ItemList'
 import { QuoteFacts } from './QuoteFacts'
+import { QuoteLines } from './QuoteLines'
 import { QuoteActions } from './QuoteActions'
 import { SizingBars } from './SizingBars'
 
@@ -64,6 +65,7 @@ export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, o
       {isOpen && (
         <div className="qrow__body" id={bodyId}>
           <ItemList items={r.items} kit={kit} currency={r.currency} onOverride={onOverride} />
+          <QuoteLines extraction={r.quote.extraction} optionId={r.optionId} />
           <QuoteFacts extraction={r.quote.extraction} />
           <QuoteActions quoteId={r.quote.id} optionCount={r.optionCount} onDelete={onDelete} />
         </div>

@@ -250,6 +250,12 @@
 .qcaveats { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 .qfacts { margin: 12px 0 0; display: grid; gap: 4px; }
 .qfacts__notes { margin: 0; padding-left: 18px; }
+.qlines { width: 100%; margin: 12px 0 0; border-collapse: collapse; font-size: 13px; line-height: 1.35; }
+.qlines__title { padding-bottom: 6px; text-align: left; font-size: 14px; font-weight: 700; }
+.qlines th { padding: 0 0 6px; text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); }
+.qlines td { padding: 8px 0; border-top: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+.qlines .qlines__n { padding-left: 12px; text-align: right; }
+.qlines td.qlines__n { white-space: nowrap; }
 .qask__copy { align-self: flex-start; border: 0; background: transparent; padding: 4px 0; font-size: 13px; font-weight: 700; color: var(--warn-ink); text-decoration: underline; }
 .qask__question { font-weight: 600; user-select: all; }
 .qmusts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

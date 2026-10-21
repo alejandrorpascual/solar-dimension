@@ -1,0 +1,9 @@
+# QA v2 on 685adcd (R1: the total form after a Read again names the failed check)
+clone: typecheck 0 · vitest 97 files 1,618/1,618 · coverage 98.27 % lines · build 0 · focused 3 files 96/96
+CI verify on 685adcd (merge a86db03 into staging 073a7ca, actions run 39327716587): unit 1,680/1,680 · e2e 243 passed, 6 @phone skipped on desktop · quotes.spec.ts:760 (read-again form) + quote-lines.spec.ts desktop and phone green
+harness (real UnrankedRow + styles.css, SolarTec reading, needs_review, retries 1) 18/18 at 1920, 1024, 375: exact help text, empty field, no sideways scroll, 0 console errors
+  after: line en/es = misreadLines + misreadTotalAction · currency en/es = misreadCurrency + misreadTotalAction
+  before 86832c7: line and currency both = misreadTotalHelp (one sentence)
+mutants on R1, each restored: no check named · card action on the form · no-lines return dropped · fallback dropped: 4/4 killed (quote-text.test.ts:104, :104, :116, :163)
+R1 test against the 86832c7 source: red at quote-text.test.ts:104
+e2e not run in this lane: a hook refused linking .env.test.local

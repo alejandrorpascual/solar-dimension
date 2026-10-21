@@ -363,6 +363,8 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .form { display: flex; flex-direction: column; gap: 12px; }
 /* .field's flex basis sizes the custom-load row horizontally; in this vertical form it would become a 120px height. */
 .form .field { flex: 0 0 auto; }
+/* What to know before signing in or up, under the password: 13px like .error and .or, since .fine's 11px is too small to act on. */
+.form__note { font-size: 13px; line-height: 1.45; }
 /* Google button: white with a neutral border and the four-colour mark, per Google's sign-in branding. */
 .btn--google { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; flex: 0 0 auto; border-color: var(--line-strong); background: #FFFFFF; color: var(--ink); }
 .btn--google:hover { background: var(--ground); }

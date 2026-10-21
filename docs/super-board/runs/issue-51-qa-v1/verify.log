@@ -1,0 +1,10 @@
+# Verify commands in a clone of the branch at ce2ecdf (config: npm ci && typecheck && test:coverage && build)
+npm ci --prefer-offline                      added 395 packages
+npm run typecheck                            exit 0 (app, e2e, scripts)
+npm run test:coverage (run 1)                exit 1 · 1616/1618 · 2 timeouts at 5 s in src/lib/solar.test.ts:204, :254
+npm run test:coverage (run 2)                exit 1 · 1617/1618 · 1 timeout at 5 s in src/lib/solar.test.ts:254
+  load average 108-141 (other lanes); solar.test.ts is not in this diff
+npx vitest run src/lib/solar.test.ts         27/27 in 1.47 s
+npx vitest run --coverage --testTimeout=30000  exit 0 · 97 files · 1618/1618 · lines 98.84 % · branches 93.81 %
+npm run build                                exit 0
+CI (merge commit 83eb103)                    unit 1657/1657 · e2e 241 passed, 6 skipped (ci-e2e.log)
