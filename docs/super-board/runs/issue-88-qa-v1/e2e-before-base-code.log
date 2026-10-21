@@ -1,0 +1,94 @@
+
+Running 5 tests using 5 workers
+
+  ✓  1 [desktop] › e2e/zz-qa88-capture.spec.ts:12:3 › qa88 capture en (3.2s)
+  ✓  2 [desktop] › e2e/zz-qa88-capture.spec.ts:12:3 › qa88 capture es (3.3s)
+  ✘  4 [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in es, with the project, date, page and estimate word atop every  [... omitted end of long line]
+  ✘  3 [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in en, with the project, date, page and estimate word atop every  [... omitted end of long line]
+  ✘  5 [desktop] › e2e/download.spec.ts:123:1 › ten captures leave the page with as many stylesheet rules as the first one did (8.0s)
+
+
+  1) [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in en, with the project, date, page and estimate word atop every pa [... omitted end of long line]
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Home"
+    Received: undefined
+
+      109 |     const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: pdf }).click()])
+      110 |     const sheet = await readSheetPdf(await readFile((await file.path())!))
+    > 111 |     expect(sheet.title).toBe(project)
+          |                         ^
+      112 |     expect(sheet.lang).toBe(lang)
+      113 |     expect(sheet.pages).toHaveLength(2)
+      114 |     sheet.pages.forEach((text, i) => {
+        at <scratch-clone> [... omitted end of long line]
+
+    Error Context: test-results/download-the-PDF-is-titled-1a011-timate-word-atop-every-page-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ───────────────────────────────────────────────────────── [... omitted end of long line]
+    test-results/download-the-PDF-is-titled-1a011-timate-word-atop-every-page-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/download-the-PDF-is-titled-1a011-timate-word-atop-every-page-desktop/trace.zip
+
+    ──────────────────────────────────────────────────────────────────────────────────────────────── [... omitted end of long line]
+
+  2) [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in es, with the project, date, page and estimate word atop every pa [... omitted end of long line]
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Casa"
+    Received: undefined
+
+      109 |     const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: pdf }).click()])
+      110 |     const sheet = await readSheetPdf(await readFile((await file.path())!))
+    > 111 |     expect(sheet.title).toBe(project)
+          |                         ^
+      112 |     expect(sheet.lang).toBe(lang)
+      113 |     expect(sheet.pages).toHaveLength(2)
+      114 |     sheet.pages.forEach((text, i) => {
+        at <scratch-clone> [... omitted end of long line]
+
+    Error Context: test-results/download-the-PDF-is-titled-bcffe-timate-word-atop-every-page-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ───────────────────────────────────────────────────────── [... omitted end of long line]
+    test-results/download-the-PDF-is-titled-bcffe-timate-word-atop-every-page-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/download-the-PDF-is-titled-bcffe-timate-word-atop-every-page-desktop/trace.zip
+
+    ──────────────────────────────────────────────────────────────────────────────────────────────── [... omitted end of long line]
+
+  3) [desktop] › e2e/download.spec.ts:123:1 › ten captures leave the page with as many stylesheet rules as the first one did 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 820
+    Received: 946
+
+      135 |   const afterFirst = await ruleCount()
+      136 |   for (let i = 1; i < 10; i++) await capture()
+    > 137 |   expect(await ruleCount()).toBe(afterFirst)
+          |                             ^
+      138 |   await expect(page.getByRole('alert')).toHaveCount(0)
+      139 | })
+      140 |
+        at <scratch-clone> [... omitted end of long line]
+
+    Error Context: test-results/download-ten-captures-leav-10345--rules-as-the-first-one-did-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ───────────────────────────────────────────────────────── [... omitted end of long line]
+    test-results/download-ten-captures-leav-10345--rules-as-the-first-one-did-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/download-ten-captures-leav-10345--rules-as-the-first-one-did-desktop/trace.zip
+
+    ──────────────────────────────────────────────────────────────────────────────────────────────── [... omitted end of long line]
+
+  3 failed
+    [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in en, with the project, date, page and estimate word atop every pag [... omitted end of long line]
+    [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in es, with the project, date, page and estimate word atop every pag [... omitted end of long line]
+    [desktop] › e2e/download.spec.ts:123:1 › ten captures leave the page with as many stylesheet rules as the first one did 
+  2 passed (20.5s)
+E2E_EXIT=1
