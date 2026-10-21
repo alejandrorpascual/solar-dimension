@@ -328,7 +328,7 @@ describe('cables and fuse', () => {
     })
     test('sized solar or AC wiring alone reads unknown, whatever its size', () => {
       for (const only of [pvCable, acFeeder]) {
-        expect(judge(KIT, [only], 'cables')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true }, sources: [only.source] })
+        expect(judge(KIT, [only], 'cables')).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true }, sources: [only.source] })
       }
     })
     test('a solar line beside a sized battery cable is judged on the battery cable', () => {
@@ -362,7 +362,7 @@ describe('cables and fuse', () => {
       for (const text of texts) expect(judge(KIT, [named(text, '4/0'), thinBattery], 'cables').status, text).toBe('short')
     })
     test('one line that names the battery and the array is no battery cable: with nothing else beside it, it is to confirm', () => {
-      expect(judge(KIT, [named('Cable 4/0 AWG baterías y paneles', '4/0')], 'cables')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+      expect(judge(KIT, [named('Cable 4/0 AWG baterías y paneles', '4/0')], 'cables')).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
     })
     test('the words that name the array or the AC side, in English and Spanish, set a line aside', () => {
       const texts = [
@@ -370,6 +370,38 @@ describe('cables and fuse', () => {
         'Alimentador CA 4/0 AWG', 'Cable de corriente alterna 4/0 AWG', 'AC output cable 4/0 AWG',
       ]
       for (const text of texts) expect(judge(KIT, [named(text, '4/0'), thinBattery], 'cables').status, text).toBe('short')
+    })
+    test('letters bound the words, as for a length: "caída", "cañería" and "acá" are no CA or AC (R2)', () => {
+      const bank = named('Cable 2/0 AWG batería, caída de tensión 2%', '2/0')
+      const piped = named('Cable 2/0 AWG baterías en cañería', '2/0')
+      expect(judge(KIT, [bank], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '2/0 AWG' } })
+      expect(judge(KIT, [piped], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '2/0 AWG' } })
+      // Beside a thinner line, the 2/0 battery cable still decides: it is not set aside for the word in it.
+      const cables = judge(KIT, [bank, named('Cable 10 AWG controlador', '10')], 'cables')
+      expect(cables).toMatchObject({ status: 'ok', facts: { gauge: '2/0 AWG' } })
+      expect(cables.sources).toEqual([bank.source])
+      expect(judge(KIT, [named('Cable 4/0 AWG acá y allá', '4/0'), thinBattery], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+    })
+    test('a dot or a digit is no letter: "C.A.", "A.C." and "PV1-F" name the AC side or the array (R3)', () => {
+      const texts = ['Alimentador C.A. 4/0 AWG', 'Alimentador A.C. 4/0 AWG', 'Cable c.a. 4/0 AWG', 'Cable 4/0 AWG (A.C.)', 'Cable PV1-F 4/0 AWG', 'Cable FV2 4/0 AWG']
+      for (const text of texts) expect(judge(KIT, [named(text, '4/0'), thinBattery], 'cables').status, text).toBe('short')
+    })
+    test('a ground wire or a lug left beside solar or AC wiring is no battery cable: the quote names none (R1)', () => {
+      // Fittings are no main cable, so once the array and the AC side are set aside, a fitting alone leaves no cable to judge.
+      const fittings = [named('Cable de tierra física 6 AWG', '6'), named('Cable desnudo tierra 6 AWG', '6'), named('Terminal de ojo 2/0 AWG', '2/0'), named('Zapatas')]
+      for (const array of [named('Cable solar 4/0 AWG', '4/0'), acFeeder]) {
+        for (const fitting of fittings) {
+          const cables = judge(KIT, [array, fitting], 'cables')
+          expect(cables, fitting.description).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
+          expect(cables.sources, fitting.description).toEqual([array.source, fitting.source])
+        }
+      }
+    })
+    test('a fitting alone, with no solar or AC line set aside, reads as before: its size is what is to confirm', () => {
+      expect(judge(KIT, [named('Terminales y conectores')], 'cables')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+    })
+    test('a battery cable beside the ground wire and a solar line is still the one judged', () => {
+      expect(judge(KIT, [pvCable, named('Cable de tierra física 6 AWG', '6'), battery], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
     })
     test('a line that names neither is a battery cable: the inverter, the DC side and an accented word do not set it aside', () => {
       for (const text of ['Cable 4/0 AWG baterías a inversor', 'Cable 4/0 AWG, lado CD', 'Cable 4/0 AWG, instalación mecánica']) {
@@ -394,6 +426,12 @@ describe('cables and fuse', () => {
       expect(judge(KIT, [acFeeder, thinBattery, fuse(250)], 'fuse')).toMatchObject({ status: 'short', facts: { amps: 250, gauge: '6 AWG' } })
       // A thin solar cable alone is no cable for the fuse, so it fails nothing.
       expect(judge(KIT, [pvCable, fuse(250)], 'fuse').status).toBe('ok')
+    })
+    test('a ground wire left beside solar or AC wiring is no cable for the fuse either (R1)', () => {
+      const ground = named('Cable de tierra física 6 AWG', '6')
+      for (const array of [named('Cable solar 4/0 AWG', '4/0'), acFeeder]) {
+        expect(judge(KIT, [array, ground, fuse(250)], 'fuse').status).toBe('ok')
+      }
     })
   })
 })
