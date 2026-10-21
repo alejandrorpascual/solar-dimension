@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { LOCALE_COOKIE } from '../src/i18n'
 import { isProjectRead, quotePdf, signUp, uploadQuotes } from './quotes'
 
 test('a server failure reaches the page as a reference, with nothing of what went wrong', async ({ page }) => {
@@ -46,4 +47,25 @@ test('a failure while the server renders the page is a reference too, in the pag
     expect(html).not.toContain(leak)
     await expect(page.getByText(leak)).toHaveCount(0)
   }
+})
+
+/** The stylesheets an HTML page links from this site (the fonts come from Google's). */
+const ownStylesheets = (html: string): string[] =>
+  [...html.matchAll(/<link\b[^>]*>/g)]
+    .map(([tag]) => tag)
+    .filter((tag) => tag.includes('rel="stylesheet"'))
+    .map((tag) => /href="([^"]+)"/.exec(tag)?.[1] ?? '')
+    .filter((href) => href.startsWith('/'))
+
+test("the root error screen arrives inside the page shell: its HTML links the app's stylesheet", async ({ page, baseURL }) => {
+  const stylesheets = ownStylesheets((await (await page.goto('/'))?.text()) ?? '')
+  expect(stylesheets).not.toEqual([])
+
+  // A language cookie that cannot be decoded fails the root route's own read while the server renders the page, so the
+  // error screen stands in for the whole page, not for one route's part of it.
+  await page.context().addCookies([{ name: LOCALE_COOKIE, value: '%', url: baseURL }])
+  const html = (await (await page.goto('/'))?.text()) ?? ''
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Something interrupted the kit builder.' })).toBeVisible()
+  expect(ownStylesheets(html)).toEqual(expect.arrayContaining(stylesheets))
 })

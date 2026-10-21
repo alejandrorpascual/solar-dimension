@@ -26,11 +26,16 @@ function fromServer(list: Project[], prev: Store): Store {
  * marked as the account's with all of it still to send, so a load that fails does not leave it behind as work done
  * signed out for the next account to take.
  *
+ * While the account cannot be read, the page starts from a new project and this browser's copy is left as it is.
+ *
  * Until the account's list is read, the screen shows this copy, and the account's own first project is not in it:
  * the first project of a copy that is not the account's takes an id of its own, so nothing done to it meanwhile
  * reaches the account's.
  */
-function startingCopy(account: string | null, t: Dictionary): { local: Store; mustPush: boolean } {
+function startingCopy(account: string | null, isAccountUnreachable: boolean, t: Dictionary): { local: Store; mustPush: boolean } {
+  // Someone may be signed in, and nobody can tell who: what this browser holds may be their account's, so it is neither
+  // shown nor touched, and the page starts from a project of its own that nothing saves.
+  if (isAccountUnreachable) return { local: initialStore(t), mustPush: false }
   // The owner first: reading it takes over a marker left by an earlier release, which sets the pending marker.
   const owner = loadOwner()
   const plan = localCopyPlan(account, owner, hasPendingSave())
@@ -51,7 +56,7 @@ function startingCopy(account: string | null, t: Dictionary): { local: Store; mu
 }
 
 export function useProjectStore() {
-  const { user } = useRootData()
+  const { user, isAccountUnreachable } = useRootData()
   const account = user?.id ?? null
   const { t } = useLocale()
   /** The language on screen, for requests answered after it changed. */
@@ -67,14 +72,16 @@ export function useProjectStore() {
    * Shows a store and keeps it in this browser. `latest` moves at once, not at the next render: a request that is
    * answered before React renders again must still read what the user last did. Signed in, the copy is marked as the
    * account's on every write, not only at load: another tab may have signed out and released it meanwhile, and what
-   * this page writes back must not read as work done signed out.
+   * this page writes back must not read as work done signed out. While the account cannot be read nothing is kept: the
+   * copy this browser holds may be the account's.
    */
   const show = useCallback((next: Store) => {
     latest.current = next
     setStore(next)
+    if (isAccountUnreachable) return
     if (account) saveOwner(account)
     saveStore(next)
-  }, [account])
+  }, [account, isAccountUnreachable])
   const inFlight = useRef(0)
   /** True once this mount's first sync with the account worked; until then nothing here knows what the account holds. */
   const loaded = useRef(false)
@@ -100,7 +107,7 @@ export function useProjectStore() {
   }, [])
 
   useEffect(() => {
-    const { local, mustPush } = startingCopy(account, language.current)
+    const { local, mustPush } = startingCopy(account, isAccountUnreachable, language.current)
     latest.current = local
     setStore(local)
     loaded.current = false
@@ -128,7 +135,7 @@ export function useProjectStore() {
       })
       .finally(() => { if (!cancelled) setSyncing(false) })
     return () => { cancelled = true }
-  }, [account, enqueue, show])
+  }, [account, isAccountUnreachable, enqueue, show])
 
   // A first project nobody has edited reads in the language on screen, wherever it came from: made here, read back from
   // this browser or from the account, or shown before the language was switched. Only the screen changes: nothing is

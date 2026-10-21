@@ -7,6 +7,7 @@ import { DEFAULT_LOCALE, getDictionary } from '../i18n'
 import { APP_NAME } from '../lib/brand'
 import { serverErrorRef } from '../lib/server-error'
 import { shouldReloadForStaleChunk } from '../lib/stale-chunk'
+import { withFallback } from '../lib/ttl-cache'
 import { QuoteTray } from '../components/quotes/QuoteTray'
 import { getCatalog } from '../server/catalog'
 import { getLocale } from '../server/locale'
@@ -19,14 +20,27 @@ const SEARCH_CONSOLE_TOKEN = 'G9yqTKOqSP1tOS4jjC6xGCcsVFT7J3iZC5AzXQ2LNFY'
 const FONTS_URL =
   'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap'
 
+type SessionRead = Pick<RootData, 'user' | 'isAccountUnreachable'>
+
+/**
+ * The signed-in user, or nobody. Sizing needs no account, so a session that cannot be read (the database is down) opens
+ * the page without one instead of failing it: the page says the account is unreachable and keeps nothing it does.
+ */
+const readSession = (): Promise<SessionRead> =>
+  withFallback<SessionRead>(
+    async () => ({ user: (await getSession())?.user ?? null, isAccountUnreachable: false }),
+    { user: null, isAccountUnreachable: true },
+    (error) => console.error('[root] the session could not be read; the page opens without the account', error),
+  )
+
 export const Route = createRootRoute({
   // A loader, not beforeLoad: beforeLoad reruns on every navigation, loader data is cached. Moving between
   // steps only changes ?step, so this runs once per page load and again only on router.invalidate().
   loader: async (): Promise<RootData> => {
     const [locale, session, features, catalog, quotePollMs] = await Promise.all([
-      getLocale(), getSession(), getAuthFeatures(), getCatalog(), getQuotePollMs(),
+      getLocale(), readSession(), getAuthFeatures(), getCatalog(), getQuotePollMs(),
     ])
-    return { locale, user: session?.user ?? null, googleEnabled: features.googleEnabled, catalog, quotePollMs }
+    return { locale, ...session, googleEnabled: features.googleEnabled, catalog, quotePollMs }
   },
   staleTime: Infinity,
   head: ({ loaderData }) => {
@@ -48,6 +62,7 @@ export const Route = createRootRoute({
       ],
     }
   },
+  shellComponent: RootDocument,
   component: RootComponent,
   notFoundComponent: NotFound,
   errorComponent: ErrorScreen,
@@ -103,12 +118,17 @@ function errorDetail(error: unknown, serverErrorLabel: string): string {
 
 function RootComponent() {
   return (
-    <RootDocument>
+    <QuoteJobsProvider>
       <Outlet />
-    </RootDocument>
+      <QuoteTray />
+    </QuoteJobsProvider>
   )
 }
 
+/**
+ * The document around every screen, the error and not-found screens included: an error screen keeps the stylesheet
+ * and the scripts, so it arrives styled and still runs (a stale chunk reloads the page).
+ */
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   const { locale } = useRootData()
   return (
@@ -117,10 +137,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <HeadContent />
       </head>
       <body>
-        <QuoteJobsProvider>
-          {children}
-          <QuoteTray />
-        </QuoteJobsProvider>
+        {children}
         <Scripts />
       </body>
     </html>

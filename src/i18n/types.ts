@@ -56,7 +56,7 @@ export type UiKey =
   | 'back' | 'next' | 'buildKit' | 'startOver'
   | 'continueGoogle' | 'orDivider' | 'googleExists' | 'googleFailed' | 'connectGoogle' | 'signOutFailed'
   | 'signIn' | 'signUp' | 'signOut' | 'email' | 'password' | 'noAccount' | 'haveAccount' | 'authFailed' | 'signedInAs' | 'syncing' | 'syncFailed' | 'language'
-  | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating'
+  | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating' | 'accountUnreachable'
   | 'projects' | 'projectsCount' | 'current' | 'quickEdit' | 'done' | 'projectMeta' | 'heaviestMore' | 'bank' | 'inverter' | 'close'
   | 'appliancesCount' | 'windowLabel' | 'hourLess' | 'hourMore' | 'hoursShort' | 'saved' | 'undo' | 'allAppliances'
   | 'addApplianceSearch' | 'noSearchMatch'

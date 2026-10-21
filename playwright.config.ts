@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 import { PHONE } from './e2e/phone'
-import { BUDGET_DAILY_READS, BUDGET_PORT, E2E_ADMIN, E2E_DAILY_READS, E2E_PORT as PORT } from './e2e/servers'
+import { BUDGET_DAILY_READS, BUDGET_PORT, DOWN_DATABASE_URL, DOWN_PORT, E2E_ADMIN, E2E_DAILY_READS, E2E_PORT as PORT } from './e2e/servers'
 import { loadTestEnv } from './e2e/test-env'
 
 loadTestEnv()
@@ -58,6 +58,13 @@ export default defineConfig({
       // The same build, started once the first server is up (Playwright starts them in order), with a spent budget.
       command: `${serverEnv(BUDGET_PORT, BUDGET_DAILY_READS)} npm run start`,
       url: `http://localhost:${BUDGET_PORT}`,
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
+      // The same build again, on a database it cannot reach (DOWN_PORT in e2e/servers.ts).
+      command: `${serverEnv(DOWN_PORT, E2E_DAILY_READS)} DATABASE_URL=${DOWN_DATABASE_URL} npm run start`,
+      url: `http://localhost:${DOWN_PORT}`,
       reuseExistingServer: false,
       timeout: 60_000,
     },
