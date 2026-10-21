@@ -98,6 +98,22 @@ describe('applianceWarnings', () => {
     expect(applianceWarnings({ ...stove, watts: 7000, surge: 7000 })).toHaveLength(1)
     expect(applianceWarnings({ ...stove, duty: 1 })).toHaveLength(1)
   })
+  test('flags a surge over 10 times the running watts, and not one at 10 times', () => {
+    const pump = { ...stove, id: 'pump', category: 'Utility' as const, watts: 100, duty: 0.1 }
+
+    expect(applianceWarnings({ ...pump, surge: 3000 })).toEqual(['Surge is 30× the running watts: motors start at 2–3× and compressors under 10×. Check the surge is in watts.'])
+    expect(applianceWarnings({ ...pump, surge: 1000 })).toEqual([])
+    expect(applianceWarnings({ ...pump, surge: 1040 })).toEqual([expect.stringMatching(/^Surge is 10\.4× the running watts/)])
+  })
+  test('flags an air conditioner whose watts sit outside half to twice 1,100 W a ton', () => {
+    const ac: ApplianceInput = { ...stove, id: 'ac1', category: 'Air conditioning', watts: 1100, surge: 1430, duty: 0.6, tons: 1, acType: 'inverter' }
+
+    expect(applianceWarnings({ ...ac, watts: 110, surge: 143 })).toEqual(['110 W is outside 550–2200 W for 1 ton: check the tons and the running watts.'])
+    expect(applianceWarnings({ ...ac, watts: 2201, surge: 2201 })).toHaveLength(1)
+    expect(applianceWarnings({ ...ac, watts: 550 })).toEqual([])
+    expect(applianceWarnings({ ...ac, watts: 2200 })).toEqual([])
+    expect(applianceWarnings({ ...ac, tons: 1.5, watts: 800 })).toEqual(['800 W is outside 825–3300 W for 1.5 tons: check the tons and the running watts.'])
+  })
   test('flags a momentary duty far from what its bursts imply', () => {
     expect(applianceWarnings(gate)).toEqual([])
     expect(applianceWarnings({ ...gate, duty: 0.5 })).toHaveLength(1)
@@ -135,6 +151,16 @@ describe('snapshot', () => {
     expect(fridge?.labels?.es.name).toBe('Refrigerador')
     const ids = CATALOG_SNAPSHOT.map((a) => a.id)
     expect(ids.indexOf('ac1i')).toBe(ids.indexOf('heater') + 1)
+  })
+  test('warns on no seeded row but the two 5-ton air conditioners, and only that they are over 5 kW', () => {
+    const warned = [...APPLIANCE_SEED, ...APPLIANCE_SEED_MOMENTARY]
+      .map((r) => ({ id: r.id, warnings: applianceWarnings(ApplianceSchema.parse(Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'retired')))) }))
+      .filter((r) => r.warnings.length > 0)
+
+    expect(warned).toEqual([
+      { id: 'ac5i', warnings: ['Over 5 kW: check this is one appliance, not a whole circuit.'] },
+      { id: 'ac5c', warnings: ['Over 5 kW: check this is one appliance, not a whole circuit.'] },
+    ])
   })
   test('adds three momentary Security loads after the recorders, valid and in order', () => {
     expect(APPLIANCE_SEED_MOMENTARY.map((r) => r.id)).toEqual(['gate-slide', 'gate-swing', 'barrier'])
