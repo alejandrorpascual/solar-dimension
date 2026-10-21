@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { CATEGORIES } from '../lib/catalog'
 import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
-import { CUSTOM_DUTY_MIN_PCT } from '../lib/custom'
+import { CUSTOM_DUTY_MIN_PCT, EMPTY_FORM, parseCustom } from '../lib/custom'
 import { en } from './en'
 import { es } from './es'
 import { applianceName, applianceNote, batteryCount, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
@@ -121,6 +121,20 @@ describe('dictionaries', () => {
     expect(en.ui.step4).toBe('Your kit')
     expect(es.ui.step4).toBe('Tu kit')
   })
+  test('the oversize note says how far the bank is over the need, why, and which voltage sizes the smallest bank that passes the same checks, in both languages', () => {
+    const p = { ratio: 22, need: '209 Wh', inverter: '3,000 W', volts: 12, bank: '1.2 kWh' }
+    expect(tr(en, 'oversizeNote', p)).toBe('This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
+    expect(tr(es, 'oversizeNote', p)).toBe('Este banco guarda 22 veces los 209 Wh que necesita la carga: tiene que dar toda la corriente de un inversor de 3,000 W. A 12 V el kit llevaría un banco de 1.2 kWh, el más pequeño que cumple las mismas verificaciones.')
+  })
+  test('when the bank is the smallest its voltage allows, the oversize note says so instead of blaming the inverter, in both languages', () => {
+    const p = { ratio: 11, need: '209 Wh', kitVolts: 24, volts: 12, bank: '1.2 kWh' }
+    expect(tr(en, 'oversizeNoteSmallest', p)).toBe('This bank holds 11× the 209 Wh the load needs: the kit cannot build a smaller bank at 24 V. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
+    expect(tr(es, 'oversizeNoteSmallest', p)).toBe('Este banco guarda 11 veces los 209 Wh que necesita la carga: el kit no puede armar un banco más pequeño a 24 V. A 12 V el kit llevaría un banco de 1.2 kWh, el más pequeño que cumple las mismas verificaciones.')
+  })
+  test('the uncommon-voltage caveat says few inverters are sold for it and most kits come out oversized, in both languages', () => {
+    expect(tr(en, 'fewInvertersNote', { volts: 36 })).toBe('Few inverters are sold for 36 V, so most kits come out oversized: a larger inverter than the load needs, and a bank big enough to carry its current.')
+    expect(tr(es, 'fewInvertersNote', { volts: 36 })).toBe('Se venden pocos inversores para 36 V, así que la mayoría de los kits salen sobredimensionados: un inversor más grande de lo que pide la carga y un banco capaz de darle toda su corriente.')
+  })
 })
 
 describe('batteryCount', () => {
@@ -191,8 +205,33 @@ test('applianceName reads the item labels in the active language and keeps custo
 test('applianceNote reads the item labels and keeps custom notes', () => {
   const fridge = CATALOG_SNAPSHOT.find((a) => a.id === 'fridge')!
   expect(applianceNote(getDictionary('es'), fridge)).toBe('El compresor trabaja ~35% de cada hora')
-  expect(applianceNote(getDictionary('es'), { id: 'custom1', note: 'Custom · 230 V × 4.5 A', isCustom: true })).toBe('Custom · 230 V × 4.5 A')
+  expect(applianceNote(getDictionary('en'), { id: 'custom1', note: 'Custom · 230 V × 4.5 A', isCustom: true })).toBe('Custom · 230 V × 4.5 A')
   expect(applianceNote(getDictionary('es'), { id: 'unknown', note: 'Fallback' })).toBe('Fallback')
+})
+
+test("a custom load's tag is in the language shown, on a load saved before the tag followed the language too", () => {
+  const saved = { id: 'custom1', note: 'Custom · 230 V × 4.5 A', isCustom: true }
+  const added = parseCustom({ ...EMPTY_FORM, name: 'Bomba', watts: '1500' }, [])
+  if (!added.ok) throw new Error('the form refused a valid load')
+  expect(applianceNote(getDictionary('es'), saved)).toBe('Personalizado · 230 V × 4.5 A')
+  expect(applianceNote(getDictionary('es'), { ...added.item, isCustom: true })).toBe('Personalizado · 1500 W')
+  expect(applianceNote(getDictionary('en'), { ...added.item, isCustom: true })).toBe('Custom · 1500 W')
+})
+
+/** Every text a dictionary holds: its strings, and the source of each message it builds from parameters. */
+function texts(value: unknown): string[] {
+  if (typeof value === 'string') return [value]
+  if (typeof value === 'function') return [String(value)]
+  if (value && typeof value === 'object') return Object.values(value).flatMap(texts)
+  return []
+}
+
+/** A digit, a comma, then one or two digits and no third: a decimal comma, never a thousands separator ("1,100"). */
+const COMMA_DECIMAL = /\d,\d{1,2}(?!\d)/
+
+test('the Spanish dictionaries write decimals with a period, as es-419 does, never a comma', () => {
+  expect(es.ui.sunHint).toContain('4.8 h')
+  expect(texts(es).filter((text) => COMMA_DECIMAL.test(text))).toEqual([])
 })
 
 test('the missing-appliances warning agrees in number in both languages', () => {

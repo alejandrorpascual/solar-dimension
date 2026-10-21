@@ -1,0 +1,27 @@
+﻿Nombre del proyecto,Home
+Fecha,21 oct 2026
+Horas sin red eléctrica,10 h
+Voltaje del banco,48 V
+
+Aparato,Tipo,Cantidad,C/u (W),En marcha (W),Promedio (W),Wh en 10 h
+Iluminación LED (10 focos),Siempre encendidos,1,90,90,90,900
+"TV LED de 55""",Siempre encendidos,1,120,120,120,1200
+Router Wi-Fi + módem,Siempre encendidos,1,20,20,20,200
+Laptop,Siempre encendidos,1,65,65,65,650
+Cargador de celular,Siempre encendidos,2,10,20,20,200
+Refrigerador,Encienden y apagan,1,150,150,53,525
+
+Parte,Especificación,Nota,Cantidad
+Inversor,"3,000 W continuos, no VA, onda pura, entrada 48 V CC","6,000 W de arranque · cubre 465 W en marcha, 1,515 W pico",1
+Baterías,48 V 200 Ah LiFePO₄,"1 en serie × 1 en paralelo (1S1P) · banco de 9.6 kWh, 8.2 kWh utilizables · 200 A continuos, 400 A pico del banco (valores supuestos)",1
+Cable principal,"2 AWG (33.6 mm²) de cobre, 1.5 m cada uno","De batería a inversor · 87 A de corriente de diseño · 115 A tras la corrección · 0.2% de caída, 0.1% al arrancar",2
+Fusible,100 A clase T,"En línea en el cable positivo, lo más cerca posible del banco · 20 kA de capacidad de interrupción",1
+Paneles solares,"550 W monocristalino, 2.28 × 1.13 m",1 cadena de 5 en serie · arreglo de 2.8 kW · unos 15 m² con pasillos,5
+Controlador de carga,MPPT 60 A · 450 V máx. FV · banco de 48 V,48 A hacia el banco a pleno sol · 248 V en circuito abierto por cadena,1
+Controlador a batería: cable y fusible,Fusible de 80 A clase T · 4 AWG (21.2 mm²) de cobre,"Fusible de al menos 1.25 × el controlador de 60 A · el cable soporta 85 A tras la corrección, al aire libre · verifica que entre en los bornes del controlador · conéctalo del lado de la batería con su propio fusible",1
+Cable fotovoltaico,"Cable solar de 6 mm² (10 AWG), 20 m cada uno",Del techo al controlador · un par por cadena · terminales MC4,1
+Seccionador FV,"Breaker de CC de 20 A, 500 V","Entre los paneles y el controlador, accesible desde el suelo",1
+Estructura,Rieles de aluminio y grapas para 5 paneles,Inclinación de 10° hacia el sur en techo plano; a ras en techo inclinado,1
+
+"Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada."
+"De la parte solar, este kit no dimensiona la protección contra fallas a tierra y sobretensiones, la puesta a tierra, la ventana de voltaje del controlador ni la estructura del techo; las diseña un instalador calificado."

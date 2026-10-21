@@ -11,7 +11,18 @@ const KA = 1000
 const CM_PER_M = 100
 const joinNotes = (notes: readonly string[]) => notes.filter(Boolean).join(' · ')
 
-/** Panels, controller, PV cable, disconnect and mounting, tagged so the table can mark them; nothing for a battery-only kit. */
+/** Each controller's cable and fuse to the battery: what fuse, on what gauge, and how it joins the bank. */
+function controllerBatteryPart(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
+  const f = r.controllerFeed
+  if (!f) return []
+  return [{
+    id: 'controllerBattery', group: 'solar', name: t.parts.controllerBattery,
+    spec: tr(t, 'controllerBatterySpec', { fuse: f.fuse.a, class: f.fuse.class, gauge: f.gauge, mm2: f.mm2 }),
+    note: tr(t, 'controllerBatteryNote', { amps: f.controllerA, ampacity: fmtInt(f.ampacity, locale) }), qty: String(f.fuse.count),
+  }]
+}
+
+/** Panels, controller and its feed to the battery, PV cable, disconnect and mounting, tagged so the table can mark them; nothing for a battery-only kit. */
 function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
   if (!hasPanels(r)) return []
   const s = r.solar
@@ -20,6 +31,7 @@ function solarParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
   return [
     { id: 'solarPanels', group: 'solar', name: t.parts.solarPanels, spec: tr(t, 'solarPanelsSpec', { w: panelW, size: SOLAR.PANEL_SIZE }), note: tr(t, 'solarPanelsNote', { strings, kw: fmtKw(s.arrayW, locale), m2: s.roofUsedM2 }), qty: String(s.panels) },
     { id: 'chargeController', group: 'solar', name: t.parts.chargeController, spec: tr(t, 'chargeControllerSpec', { amps: s.controllerA, voc: SOLAR.CONTROLLER_MAX_VOC, volts: r.volts }), note: tr(t, 'chargeControllerNote', { chargeA: fmtInt(s.chargeA, locale), stringVoc: s.stringVoc }), qty: String(s.controllers) },
+    ...controllerBatteryPart(r, t, locale),
     { id: 'pvCable', group: 'solar', name: t.parts.pvCable, spec: tr(t, 'pvCableSpec', { mm2: SOLAR.PV_CABLE.mm2, awg: SOLAR.PV_CABLE.awg, length: s.pvRunM }), note: t.ui.pvCableNote, qty: String(s.pvCablePairs) },
     { id: 'pvDisconnect', group: 'solar', name: t.parts.pvDisconnect, spec: tr(t, 'pvDisconnectSpec', { amps: s.breakerA }), note: t.ui.pvDisconnectNote, qty: String(s.controllers) },
     { id: 'mounting', group: 'solar', name: t.parts.mounting, spec: tr(t, 'mountingSpec', { panels: panelCount(t, s.panels) }), note: t.ui.mountingNote, qty: '1' },

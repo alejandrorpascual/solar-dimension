@@ -24,18 +24,18 @@ test.describe('on a device set to Spanish (Venezuela), where decimals take a com
 
   test('the CSV splits cells on ";" and opens with the project rows, in the page language whichever it is', async ({ page }) => {
     await page.goto('/?step=4')
-    await expect(page.getByRole('heading', { name: 'Kit para Home' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Kit para Casa' })).toBeVisible()
     await showDownload(page, 'Descargar')
     const fecha = await sheetDate(page)
     const spanish = await csvLines(await downloadAs(page, /^Lista de partes \(CSV\)/, 'Descargar CSV'))
     expect(spanish.slice(0, 6)).toEqual([
-      'Nombre del proyecto;Home', `Fecha;${fecha}`, 'Horas sin red eléctrica;10 h', 'Voltaje del banco;48 V', '',
+      'Nombre del proyecto;Casa', `Fecha;${fecha}`, 'Horas sin red eléctrica;10 h', 'Voltaje del banco;48 V', '',
       'Aparato;Tipo;Cantidad;C/u (W);En marcha (W);Promedio (W);Wh en 10 h',
     ])
     expect(spanish).toContain('Refrigerador;Encienden y apagan;1;150;150;53;525')
 
     // The separator follows the device, not the page: in English the file still splits on ";", so the comma in the TV's
-    // name and in the date stays inside its cell, unquoted.
+    // name and in the date stays inside its cell, unquoted. The first project, never edited, is named in English now.
     await switchLanguage(page, 'English')
     await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
     const date = await sheetDate(page)
@@ -153,6 +153,10 @@ test('the CSV parts list carries the solar parts when panels are chosen', async 
   expect(text.indexOf('Solar panels')).toBeLessThan(text.indexOf('Mounting'))
   const panelsLine = text.split('\n').find(line => line.startsWith('Solar panels'))
   expect(panelsLine?.trim()).toMatch(/,5$/)
+  const feedLine = text.split('\n').find(line => line.startsWith('Controller to battery: cable and fuse'))
+  expect(feedLine?.trim()).toMatch(/^Controller to battery: cable and fuse,80 A class T fuse · 4 AWG \(21\.2 mm²\) copper,.*,1$/)
+  // The file closes on what the solar side does not size.
+  expect(text.trimEnd().split('\n').at(-1)).toMatch(/^"This kit does not size the solar side's ground-fault and surge protection.*a qualified installer designs them\."$/)
 })
 
 test('export progress is visible while the file is being prepared', async ({ page }) => {

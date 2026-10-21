@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { getDictionary } from '../i18n'
 import { fmtW } from '../i18n/format'
 import { CHEMISTRIES, INVERTERS } from './catalog'
@@ -40,6 +40,25 @@ describe.each(['en', 'es'] as const)('finePrint (%s)', (locale) => {
     expect(finePrint(t, r, DOD_PCT, locale)).toContain(es
       ? 'Los tamaños de inversor son vatios continuos, no VA, a temperatura ambiente; el margen de 25% cubre el factor de potencia y el calor.'
       : 'Inverter sizes are continuous watts, not VA, at room temperature; the 25% headroom covers power factor and heat.')
+  })
+
+  test('the inverter efficiency, the headroom and the watts per ton of cooling are the sizing constants', async () => {
+    vi.resetModules()
+    vi.doMock('./catalog', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('./catalog')>()
+      return { ...actual, SIZING: { ...actual.SIZING, INVERTER_EFF: 0.85, HEADROOM: 1.3, WATTS_PER_TON: 1200 } }
+    })
+    try {
+      const { finePrint: withOtherConstants } = await import('./fine-print')
+      const r = compute({ qty: { fridge: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+      const text = withOtherConstants(t, r, DOD_PCT, locale)
+      expect(text).toContain(es ? 'Supone 85% de eficiencia del inversor, 30% de margen,' : 'Assumes 85% inverter efficiency, 30% inverter headroom,')
+      expect(text).toContain(es ? '1,200 W por tonelada de refrigeración' : '1,200 W per ton of cooling')
+      expect(text).toContain(es ? 'el margen de 30% cubre' : 'the 30% headroom covers')
+    } finally {
+      vi.doUnmock('./catalog')
+      vi.resetModules()
+    }
   })
 
   test('inverters in parallel give one unit\'s surge, the rating each of them is sized with', () => {

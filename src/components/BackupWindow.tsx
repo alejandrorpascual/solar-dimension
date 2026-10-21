@@ -1,7 +1,7 @@
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
-import { CHEMISTRIES, VOLTAGES, type ChemistryId, type Voltage } from '../lib/catalog'
+import { CHEMISTRIES, FEW_INVERTERS_VOLTAGE, VOLTAGES, type ChemistryId, type Voltage } from '../lib/catalog'
 import type { Store } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
 import { currentProject, patchCurrent, setElectricalIn } from '../lib/store'
@@ -51,6 +51,7 @@ export function BackupWindow({ store, commit, result }: Props) {
               </button>
             ))}
           </div>
+          {p.volts === FEW_INVERTERS_VOLTAGE && <div className="note-box">{tr(t, 'fewInvertersNote', { volts: FEW_INVERTERS_VOLTAGE })}</div>}
           <div className="window__label">{t.ui.batteryChemistry}</div>
           <div className="opt-grid">
             {(Object.keys(CHEMISTRIES) as ChemistryId[]).map((k) => (

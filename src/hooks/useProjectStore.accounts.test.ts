@@ -9,7 +9,7 @@ import { byName, edit, fakeStorage, home, mount, names, openBrowser, storedStore
 vi.mock('../server/projects', () => import('./fake-account-server'))
 vi.mock('./useRootData', async () => {
   const server = await import('./fake-account-server')
-  return { useRootData: () => ({ user: server.pageUser() }) }
+  return { useRootData: () => ({ user: server.pageUser(), locale: 'en' }) }
 })
 
 const ANA = { id: 'user-ana' }

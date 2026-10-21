@@ -1,0 +1,20 @@
+# Unit mutants: one source line changed, the guarding test files run, the file restored (git status clean after)
+M1 sun hint back to "4,8 h"                              -> exit 1 · Tests  1 failed | 39 passed (40)
+M2 comma decimal in a nested quotes string               -> exit 1 · Tests  1 failed | 39 passed (40)
+M3 comma decimal inside a message function               -> exit 1 · Tests  1 failed | 39 passed (40)
+M4 efficiency hard-coded 90                              -> exit 1 · Tests  2 failed | 20 passed (22)
+M5 headroom hard-coded 25                                -> exit 1 · Tests  2 failed | 20 passed (22)
+M6 watts per ton hard-coded 1100                         -> exit 1 · Tests  2 failed | 20 passed (22)
+M7 rename an edited first project too                    -> exit 1 · Tests  1 failed | 67 passed (68)
+M8 rename any first project, not only a default name     -> exit 1 · Tests  1 failed | 67 passed (68)
+M9 custom tag left as saved                              -> exit 1 · Tests  1 failed | 39 passed (40)
+M10 hook skips naming the first project                  -> exit 1 · Tests  3 failed | 12 passed (15)
+git status after restore:
+?? e2e/spanish-defaults.spec.ts
+
+M11 in-flight diff compared in the old language     -> exit 1 · Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+# e2e mutants on e2e/spanish-defaults.spec.ts (desktop), sources restored after each
+E1 new project and copy named in English (useProjectRename: addProject(store), duplicateProject(store)) + custom tag left as saved (applianceNote returns item.note) -> 2 failed: Expected "Proyecto 2", Received "Project 2"; "Personalizado · 180 W" not found
+E2 copy named in English only (duplicateProject(store)) -> 1 failed: Expected "Proyecto 2 (copia)", Received "Proyecto 2 copy"
+Restored sources -> 2 passed

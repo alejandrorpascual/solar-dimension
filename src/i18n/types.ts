@@ -13,7 +13,7 @@ export interface Dictionary {
   chemistries: Record<ChemistryId, string>
   voltageHints: Record<Voltage, string>
   warnings: Record<WarningCode, (p: WarningParams) => string>
-  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'stringLeads' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
+  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'stringLeads' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'controllerBattery' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
   /** Load kinds as the schedule groups them. */
   kinds: Record<LoadKind, string>
   /** Installation notes a bank with parallel strings carries. */
@@ -37,19 +37,20 @@ export interface LegalPage { title: string; updated: string; sections: readonly 
 export type UiKey =
   | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
+  | 'firstProject' | 'projectNumbered' | 'copySuffix' | 'customTag'
   | 'q1' | 'q1Help' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'
   | 'search' | 'nothingMatches' | 'sectionAdded' | 'add' | 'addOne' | 'qtyOf' | 'removeOne' | 'remove'
   | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase' | 'checkNameplate240'
   | 'customTitle' | 'customHelp' | 'watts' | 'voltsAmps' | 'name' | 'runningW' | 'volts' | 'amps' | 'surgeOptional' | 'sameAsRunning' | 'dutyPctLabel' | 'addAppliance'
   | 'errName' | 'errNameLong' | 'errVa' | 'errWatts' | 'errSurge' | 'errThousands' | 'errDuty'
   | 'customUnreadOne' | 'customUnreadMany' | 'customUnreadClearOne' | 'customUnreadClearMany'
-  | 'q2' | 'q2Help' | 'hoursLabel' | 'step2Empty' | 'step2Summary' | 'batteryVoltage' | 'batteryChemistry' | 'usableCapacity'
+  | 'q2' | 'q2Help' | 'hoursLabel' | 'step2Empty' | 'step2Summary' | 'batteryVoltage' | 'batteryChemistry' | 'usableCapacity' | 'fewInvertersNote'
   | 'kitFor' | 'kitEmpty' | 'kitSummary' | 'editAppliances' | 'editWindow'
   | 'runningLoad' | 'averageDraw' | 'startupPeak' | 'batteryNeeded' | 'runtime'
   | 'part' | 'specification' | 'quantity' | 'nothingSelected'
   | 'inverterSpec' | 'splitPhaseOutput' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteTightPeak' | 'inverterNoteUnder' | 'inverterNotePeak' | 'inverterSurge' | 'inverterSurgeSet' | 'inverterParallelNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'mainCableParallelNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun' | 'perInverter' | 'perRunOfInverter'
   | 'legal' | 'estimateNotice' | 'fine'
-  | 'batterySize' | 'batterySizeHelp' | 'batteryAuto' | 'batteryRecommended' | 'batteryGroup' | 'batteryInSeries' | 'manyStrings'
+  | 'oversizeNote' | 'oversizeNoteSmallest' | 'batterySize' | 'batterySizeHelp' | 'batteryAuto' | 'batteryRecommended' | 'batteryGroup' | 'batteryInSeries' | 'manyStrings'
   | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany' | 'inverterSizeOne' | 'inverterSizeMany'
   | 'footer1' | 'footer2' | 'footer3' | 'footerEmpty'
   | 'back' | 'next' | 'buildKit' | 'startOver'
@@ -71,7 +72,8 @@ export type UiKey =
   | 'clearDay' | 'flowSun' | 'flowBank' | 'flowHome' | 'coverHead' | 'coverAxis'
   | 'refillSameDay' | 'refillDays' | 'noPanelsYet' | 'cloudyDay' | 'cloudyNote' | 'solarAssumptions'
   | 'solarRecharge' | 'solarRechargeSub' | 'nextSolar' | 'footerSolar' | 'footerSolarNone' | 'footer4Solar'
-  | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'pvCableSpec' | 'pvCableNote'
+  | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'controllerBatterySpec' | 'controllerBatteryNote'
+  | 'pvCableSpec' | 'pvCableNote' | 'solarNotSized'
   | 'pvDisconnectSpec' | 'pvDisconnectNote' | 'mountingSpec' | 'mountingNote' | 'solarTag' | 'fineSolar'
   | 'stringsOne' | 'stringsMany'
   | 'average' | 'averageWatts' | 'kind'

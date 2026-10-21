@@ -199,11 +199,11 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(parts.some((p) => p.group === 'solar')).toBe(false)
   })
 
-  test('panels add five tagged rows after the fuse, in order', () => {
+  test('panels add six tagged rows after the fuse, in order', () => {
     const r = compute({ qty: DEFAULT_QTY, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-200', solar: { roofM2: 40, panels: 10, sunHours: 5 } }, CATALOG_SNAPSHOT)
     const parts = buildParts(r, t, locale)
-    expect(parts.map((p) => p.id)).toEqual(['inverter', 'batteries', 'mainCable', 'fuse', 'solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'])
-    expect(parts.filter((p) => p.group === 'solar')).toHaveLength(5)
+    expect(parts.map((p) => p.id)).toEqual(['inverter', 'batteries', 'mainCable', 'fuse', 'solarPanels', 'chargeController', 'controllerBattery', 'pvCable', 'pvDisconnect', 'mounting'])
+    expect(parts.filter((p) => p.group === 'solar')).toHaveLength(6)
     const panels = parts.find((p) => p.id === 'solarPanels')!
     expect(panels.qty).toBe('10')
     expect(panels.spec).toBe(locale === 'es' ? '550 W monocristalino, 2.28 × 1.13 m' : '550 W monocrystalline, 2.28 × 1.13 m')
@@ -212,6 +212,21 @@ describe.each(['en', 'es'] as const)('kit parts (%s)', (locale) => {
     expect(parts.find((p) => p.id === 'chargeController')!.spec).toContain('MPPT 100 A')
     expect(parts.find((p) => p.id === 'pvCable')!.qty).toBe('2')
     expect(parts.find((p) => p.id === 'pvDisconnect')!.spec).toContain('40 A')
+  })
+
+  test('the controller gets one cable-and-fuse row to the battery: 1.25 × its 100 A is a 125 A fuse, which 1 AWG carries', () => {
+    const r = compute({ qty: DEFAULT_QTY, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-200', solar: { roofM2: 40, panels: 10, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    expect(buildParts(r, t, locale).find((p) => p.id === 'controllerBattery')).toEqual(locale === 'es'
+      ? {
+        id: 'controllerBattery', group: 'solar', name: 'Controlador a batería: cable y fusible', qty: '1',
+        spec: 'Fusible de 125 A clase T · 1 AWG (42.4 mm²) de cobre',
+        note: 'Fusible de al menos 1.25 × el controlador de 100 A · el cable soporta 130 A tras la corrección, al aire libre · verifica que entre en los bornes del controlador · conéctalo del lado de la batería con su propio fusible',
+      }
+      : {
+        id: 'controllerBattery', group: 'solar', name: 'Controller to battery: cable and fuse', qty: '1',
+        spec: '125 A class T fuse · 1 AWG (42.4 mm²) copper',
+        note: "Fuse at least 1.25 × the 100 A controller · cable carries 130 A after derating, in open air · check it fits the controller's terminals · join on the battery side with its own fuse",
+      })
   })
 
   test('zero panels adds no solar rows even with the step turned on', () => {
@@ -242,6 +257,7 @@ describe('solar rows on every bank voltage and roof', () => {
   const SHORTEST = { 12: 1, 24: 1, 36: 2, 48: 2 } as const
 
   test('a kit lists the solar rows with equal strings, or none, no yield and a warning that the string is too short', () => {
+    const controllerCounts = new Set<number>()
     for (const volts of [12, 24, 36, 48] as const) {
       for (let roofM2 = 5; roofM2 <= 500; roofM2 += 5) {
         for (const panels of [null, 1, 7]) {
@@ -251,7 +267,10 @@ describe('solar rows on every bank voltage and roof', () => {
           const tooShort = r.warnings.filter((w) => w.code === 'stringTooShort')
           const at = `${volts} V · ${panels ?? 'recommended'} on ${roofM2} m²`
           if (s.panels > 0) {
-            expect(rows.map((p) => p.id), at).toEqual(['solarPanels', 'chargeController', 'pvCable', 'pvDisconnect', 'mounting'])
+            expect(rows.map((p) => p.id), at).toEqual(['solarPanels', 'chargeController', 'controllerBattery', 'pvCable', 'pvDisconnect', 'mounting'])
+            // One cable and fuse to the battery for every controller.
+            expect(rows[2]!.qty, at).toBe(String(s.controllers))
+            controllerCounts.add(s.controllers)
             expect(rows[0]!.qty, at).toBe(String(s.strings * s.perString))
             expect(rows[0]!.note, at).toContain(s.strings === 1 ? `1 string of ${s.perString} in series` : `${s.strings} strings of ${s.perString} in series`)
             expect([tooShort, r.warnings.find((w) => w.code === 'roofLimited')?.params.fit], at).toEqual([[], s.isRoofLimited ? s.wiredFit : undefined])
@@ -262,5 +281,6 @@ describe('solar rows on every bank voltage and roof', () => {
         }
       }
     }
+    expect(Math.max(...controllerCounts)).toBeGreaterThan(1)
   })
 })

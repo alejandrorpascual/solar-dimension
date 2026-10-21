@@ -97,6 +97,8 @@ export const VOLTAGE_HINTS: Record<Voltage, string> = {
   36: 'Uncommon; golf-cart banks',
   48: 'Whole-home, 3 kW and up',
 }
+/** The bank voltage only two stock inverters are sold for (4 and 5 kW), so most kits at it come out oversized. */
+export const FEW_INVERTERS_VOLTAGE: Voltage = 36
 
 /** One battery as sold, with the discharge its BMS (or, for lead-acid, its maker) allows. */
 export interface BatteryUnit {
@@ -209,8 +211,10 @@ export const GAUGES: readonly Gauge[] = [
 export interface Fuse { a: number; class: FuseClass; aicA: number; maxVdc: number }
 const CLASS_T_AIC_A = 20000
 const CLASS_T_MAX_VDC = 125
-export const FUSES: readonly Fuse[] = [60, 80, 100, 125, 150, 175, 200, 225, 250, 300, 350, 400]
-  .map((a) => ({ a, class: 'T' as const, aicA: CLASS_T_AIC_A, maxVdc: CLASS_T_MAX_VDC }))
+const classT = (a: number): Fuse => ({ a, class: 'T', aicA: CLASS_T_AIC_A, maxVdc: CLASS_T_MAX_VDC })
+export const FUSES: readonly Fuse[] = [60, 80, 100, 125, 150, 175, 200, 225, 250, 300, 350, 400].map(classT)
+/** Sizes only a charge controller's battery fuse takes (1.25 × a 30 or 40 A controller), kept apart so battery fuses do not change. */
+export const CONTROLLER_ONLY_FUSES: readonly Fuse[] = [40, 50].map(classT)
 
 /** Everything the engine sizes with that is not an appliance. Passed to compute() so a managed catalog can replace it later. */
 export interface HardwareCatalog {

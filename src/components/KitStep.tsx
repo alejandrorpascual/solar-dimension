@@ -2,6 +2,7 @@ import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useUndoSnapshot } from '../hooks/useUndoSnapshot'
 import { tr } from '../i18n'
+import { oversizeNote } from '../lib/oversize'
 import { computeProject } from '../lib/project-summary'
 import type { Project, Store } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
@@ -41,6 +42,7 @@ export function KitStep({ store, commit, project, result, isSaving, onAllApplian
         result={result}
         baseline={isDirty && undo.snapshot ? computeProject(undo.snapshot, appliances) : null}
         projectName={project.name}
+        oversize={oversizeNote(project, appliances)}
         quickEdit={
           <KitQuickEdit
             project={project}

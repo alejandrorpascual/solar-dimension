@@ -38,6 +38,8 @@
 # Exits:  0 ok · 64 bad args · 66 unreadable/weak body · 70 GH API failure
 #         71 issue filed but board promote failed (number still on stdout)
 set -uo pipefail
+# Fixed read commands: a malformed payload is GitHub's, so it halts (#32).
+export SB_GITHUB_READ_STRICT=1
 
 TITLE=""; BODY_FILE=""; KIND="bug"; PRIORITY="medium"; CATEGORY=""
 AREA=""; ROUTE=""; SPEC=""; ITER=""; FINGERPRINT=""; SUGGESTED_SKILL=""; CHECK_ONLY=0
