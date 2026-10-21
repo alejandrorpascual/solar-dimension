@@ -40,3 +40,6 @@ exit=0
   wrong password shows the error and keeps the recovery line
   Tab from the password field reaches the support link, then the submit button
   with JavaScript off, the Spanish page is server-rendered with the note and the mailto link
+
+== before shots (throwaway spec, base 3ca1535, English)
+  6 passed: sign-in and sign-up at three viewports; .form__note is absent in all
