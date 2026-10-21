@@ -5,6 +5,7 @@ import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { STORAGE_KEY } from '../lib/persistence'
 import type { Store } from '../lib/schema'
+import { prepareReactInNode, stubContainer } from './react-in-node'
 import { useProjectStore } from './useProjectStore'
 
 type Hook = ReturnType<typeof useProjectStore>
@@ -24,21 +25,7 @@ export type FakeStorage = ReturnType<typeof fakeStorage>
 export function openBrowser(storage: FakeStorage): void {
   const g = globalThis as Record<string, unknown>
   Object.defineProperty(g, 'localStorage', { value: storage, configurable: true, writable: true })
-  g.window = g
-  g.IS_REACT_ACT_ENVIRONMENT = true
-}
-
-const noop = () => {}
-/** As much of a DOM node as React needs to render a component that returns null. */
-function stubContainer(): Element {
-  const doc: Record<string, unknown> = { nodeType: 9, addEventListener: noop, removeEventListener: noop }
-  const el: Record<string, unknown> = {
-    nodeType: 1, nodeName: 'DIV', tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc,
-    addEventListener: noop, removeEventListener: noop, appendChild: noop, removeChild: noop, insertBefore: noop,
-    firstChild: null, lastChild: null, childNodes: [], textContent: '', contains: () => false,
-  }
-  Object.assign(doc, { documentElement: el, body: el, activeElement: el, defaultView: { document: doc, HTMLIFrameElement: class {} } })
-  return el as unknown as Element
+  prepareReactInNode()
 }
 
 let root: Root | null = null
