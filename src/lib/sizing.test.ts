@@ -66,9 +66,12 @@ describe('compute', () => {
     expect(r.inverter.voltsOk).toBe(false)
     expect(r.cable.runs).toBe(3)
     const codes = r.warnings.map((w) => w.code)
-    // Nine AGM strings can short at 21.6 kA, past a class T fuse's 20 kA. The AC and the well pump start on a rule of thumb.
+    // No bank feeds 463 A within four strings; each fails parallel and interrupt, so the most current wins: eight strings of
+    // two 6 V 225 Ah units give 544 A and short at 21.6 kA, past a class T fuse's 20 kA. The AC and the well pump start on
+    // a rule of thumb.
+    expect(r.battery).toMatchObject({ unitLabel: '6 V 225 Ah AGM', config: '2S8P', bankContinuousA: 544 })
     expect(codes).toEqual(['inverterVoltage', 'highCurrent', 'parallelStrings', 'dominantLoad', 'lockedRotor', 'fuseInterrupt'])
-    expect(r.warnings[2]?.params).toMatchObject({ strings: 9, maxParallel: 4 })
+    expect(r.warnings[2]?.params).toMatchObject({ strings: 8, maxParallel: 4 })
     expect(r.warnings[3]?.params.itemId).toBe('ac1c')
     expect(r.warnings[3]?.params.sharePct).toBeGreaterThan(50)
   })
@@ -756,11 +759,14 @@ describe('engineering checks', () => {
     expect(r.battery).toMatchObject({ unitLabel: '12 V 200 Ah AGM', dischargeOk: true, peakOk: true })
   })
 
-  test('when no bank passes every check the automatic pick still returns the fewest batteries', () => {
+  test('when no bank can feed the inverter, the automatic pick is the one closest to it, not the fewest batteries', () => {
+    // A 12 V AGM heavy kit draws 370 A. Every bank fails discharge and peak, and nothing else: one 100 Ah unit gives
+    // 30 A, one 200 Ah unit 60 A, two 6 V 225 Ah units in series 68 A. The most current wins.
     const r = compute({ qty: { fridge: 1, micro: 1, kettle: 1 }, hours: 2, volts: 12, chemistry: 'agm' }, CATALOG_SNAPSHOT)
     expect(r.inverter.w).toBe(4000)
-    expect(r.batteryOptions.every((o) => !o.dischargeOk)).toBe(true)
-    expect(r.battery).not.toBeNull()
+    expect(r.batteryOptions.every((o) => !o.dischargeOk && !o.peakOk)).toBe(true)
+    expect(r.battery).toMatchObject({ unitLabel: '6 V 225 Ah AGM', config: '2S1P', bankContinuousA: 68 })
+    expect(r.batteryOptions.find((o) => o.isAuto)?.id).toBe('6-225')
     expect(r.warnings.map((w) => w.code)).toContain('bankDischarge')
   })
 

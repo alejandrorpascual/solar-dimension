@@ -4,12 +4,13 @@ import { tr, type Dictionary } from '../i18n'
 import { fmtHours, fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
 import { finePrint } from '../lib/fine-print'
-import { kitChecks, uncheckedWarnings, warningKey, warningText } from '../lib/kit-checks'
+import { attentionLine, kitChecks, uncheckedWarnings, warningKey, warningText } from '../lib/kit-checks'
 import { kitDeltas } from '../lib/kit-deltas'
 import { buildParts, type Part } from '../lib/kit-parts'
 import type { OversizeNote } from '../lib/oversize'
 import { hasPanels, type SizingResult } from '../lib/sizing'
 import { BatteryPicker } from './BatteryPicker'
+import { ChecksAttention } from './ChecksAttention'
 import { ChecksList } from './ChecksList'
 import { RuntimeRange } from './RuntimeRange'
 
@@ -74,6 +75,7 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
     <div className="kit">
       <div className="kit__head">
         <p className="muted">{summary}</p>
+        <ChecksAttention text={attentionLine(t, r)} />
         {quickEdit}
       </div>
       <div className={`stats${hasPanels(r) ? ' stats--five' : ''}`}>

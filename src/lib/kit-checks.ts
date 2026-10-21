@@ -94,14 +94,30 @@ function contributorsLine(t: Dictionary, r: SizingResult, locale: Locale): strin
   return tr(t, 'checkSurgeContributors', { running: fmtW(r.runningW, locale), list: fmtList(named, locale) })
 }
 
+/** The warnings that fail one check. */
+const failingWarnings = (r: SizingResult, id: CheckId): Warning[] => r.warnings.filter((w) => CHECK_WARNINGS[id].includes(w.code))
+
 /** The six checks for a sized kit, in order; empty when there is nothing to check. */
 export function kitChecks(t: Dictionary, r: SizingResult, locale: Locale): KitCheck[] {
   if (r.empty || !r.battery) return []
   return CHECK_IDS.map((id) => {
-    const failing = r.warnings.filter((w) => CHECK_WARNINGS[id].includes(w.code))
+    const failing = failingWarnings(r, id)
     const status: CheckStatus = failing.length > 0 ? 'warn' : 'pass'
     const main = status === 'pass' ? [passLine(t, r, id, locale)] : failing.map((w) => warningText(t, w, r.items))
     const extra = id === 'surge' ? contributorsLine(t, r, locale) : null
     return { id, name: t.ui[NAME_KEY[id]], status, lines: extra ? [...main, extra] : main }
   })
+}
+
+/** The checks a kit fails, in order; none when there is nothing to check. */
+export function failingChecks(r: SizingResult): CheckId[] {
+  if (r.empty || !r.battery) return []
+  return CHECK_IDS.filter((id) => failingWarnings(r, id).length > 0)
+}
+
+/** "2 checks need attention" in the reader's language, shown before export; null when every check passes. */
+export function attentionLine(t: Dictionary, r: SizingResult): string | null {
+  const count = failingChecks(r).length
+  if (count === 0) return null
+  return tr(t, count === 1 ? 'checksAttentionOne' : 'checksAttentionMany', { count })
 }

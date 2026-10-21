@@ -76,7 +76,8 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
   .stage { flex: 1 1 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 36px 40px; gap: 22px; box-shadow: var(--shadow-card); }
 }
 .footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px 28px; background: var(--ground); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
-.footer__summary { font-size: 13px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.footer__line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.footer__summary { min-width: 0; font-size: 13px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .footer__actions { display: flex; gap: 8px; min-height: 50px; }
 @media (min-width: 1024px) {
   .footer { position: static; padding: 0; border: 0; flex-direction: row; justify-content: space-between; align-items: center; gap: 24px; }
@@ -318,8 +319,18 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 }
 .warn { padding: 12px 14px; border-radius: 12px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-ink); font-size: 13px; line-height: 1.45; display: flex; flex-direction: column; gap: 6px; }
 /* The six engineering checks: a mark, the check's name, and the line that says what passed or what to fix. */
-.checks { padding: 12px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.checks { padding: 12px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; scroll-margin-top: 16px; }
 .checks__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.checks:focus { outline: none; }
+.checks:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The attention line: under the kit summary and in the footer, a warn pill that leads to the checks. In the phone
+   footer it keeps its width and the summary beside it gives way; on the narrowest screens its own text does. */
+.attn { flex-shrink: 0; align-self: flex-start; max-width: 100%; display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--warn-border); background: var(--warn-bg); color: var(--warn-ink); font: inherit; font-size: 13px; font-weight: 600; line-height: 18px; cursor: pointer; }
+.attn svg { flex-shrink: 0; }
+.attn__t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attn:hover { border-color: var(--warn-ink); }
+.attn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.footer__line .attn { align-self: center; }
 .check { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.4; }
 .check:first-child { border-top: 0; }
 .check__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

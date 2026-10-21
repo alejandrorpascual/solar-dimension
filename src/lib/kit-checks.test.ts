@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { getDictionary } from '../i18n'
 import { DEFAULT_HARDWARE } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { CHECK_IDS, CHECK_WARNINGS, kitChecks, kitNotes, uncheckedWarnings, warningKey, warningText } from './kit-checks'
+import { attentionLine, CHECK_IDS, CHECK_WARNINGS, failingChecks, kitChecks, kitNotes, uncheckedWarnings, warningKey, warningText } from './kit-checks'
 import { compute, type SizingInput } from './sizing'
 
 const en = getDictionary('en')
@@ -300,6 +300,33 @@ describe('kitChecks', () => {
     const owned = Object.values(CHECK_WARNINGS).flat()
     expect(new Set(owned).size).toBe(owned.length)
     for (const code of owned) expect(typeof en.warnings[code]).toBe('function')
+  })
+})
+
+describe('the attention line', () => {
+  // A microwave for 8 h on 12 V 100 Ah AGM units: two strings cannot give its current, and the fuse is above the bank.
+  const twoFailing = () => compute({ qty: { micro: 1 }, hours: 8, volts: 12, chemistry: 'agm', batteryUnit: '12-100' }, CATALOG_SNAPSHOT)
+
+  test('a kit with 2 failing checks says 2 checks need attention, in English and Spanish', () => {
+    const r = twoFailing()
+    expect(failingChecks(r)).toEqual(['batteryContinuous', 'fuse'])
+    expect(attentionLine(en, r)).toBe('2 checks need attention')
+    expect(attentionLine(es, r)).toBe('2 verificaciones necesitan atención')
+  })
+
+  test('one failing check is counted in the singular, and a kit that passes every check has no line', () => {
+    const r = twoFailing()
+    const one = { ...r, warnings: r.warnings.filter((w) => w.code !== 'bankDischarge') }
+    expect(attentionLine(en, one)).toBe('1 check needs attention')
+    expect(attentionLine(es, one)).toBe('1 verificación necesita atención')
+    expect(attentionLine(en, kit(ESSENTIALS))).toBeNull()
+  })
+
+  test('a note no check owns asks for no attention, and an empty kit has nothing to check', () => {
+    const r = kit({ ac2c: 1 })
+    expect(uncheckedWarnings(r).length).toBeGreaterThan(0)
+    expect(failingChecks({ ...r, warnings: uncheckedWarnings(r) })).toEqual([])
+    expect(attentionLine(en, kit({}))).toBeNull()
   })
 })
 
