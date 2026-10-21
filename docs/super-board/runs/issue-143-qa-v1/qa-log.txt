@@ -1,0 +1,50 @@
+QA v1 for #143 (PR #179)
+Builder head: 0f2fd84 · QA adds evidence only, no test or code change · base: origin/staging 98ad929
+
+Local checks (fresh clone, npm ci, on 0f2fd84)
+- npm run typecheck: exit 0 (app, e2e, scripts)
+- npm run test:coverage: 107 files, 1,846 tests passed; lines 98.94 %, branches 93.96 %
+- npm run build: exit 0 (Playwright runs it before each server start)
+- Playwright, E2E_PORT=4286, a throwaway BETTER_AUTH_SECRET made with openssl as CI does, test database only:
+  44 passed, 0 failed (1.2 min), desktop + phone projects
+- Local tests (the Reviewer reruns this):
+  E2E_PORT=4286 npx playwright test e2e/verdict-layout.spec.ts e2e/quotes.spec.ts e2e/quote-evidence.spec.ts e2e/quote-lines.spec.ts e2e/quote-plausibility.spec.ts e2e/quote-budget.spec.ts
+
+AC ledger (unit / component / e2e)
+- AC1 card edge within 24 px of the header edge at 1440 x 900: n/a: layout, jsdom has no boxes / n/a / e2e/verdict-layout.spec.ts:44-45
+- AC2 vendor name in full at 1440: n/a / n/a / e2e/verdict-layout.spec.ts:47-48 (scrollWidth - clientWidth <= 0)
+- AC3 other quotes beside or under the best card at 1440: n/a / n/a / e2e/verdict-layout.spec.ts:70 (beside); under, below 1024 px: measured by hand, see metrics
+- AC4 375 px as before, no sideways scroll: n/a / n/a / e2e/verdict-layout.spec.ts:53-55; before and after phone shots are identical byte for byte
+
+Mutations on src/styles/quotes.css and VerdictView.tsx (restored after each; none committed)
+Run: npx playwright test e2e/verdict-layout.spec.ts --project=desktop
+- change reverted (base code): test 1 red, card ends 752 px short of the header edge, vendor name cut by 72 px; test 2 green
+- split rule removed (.qv__grid--split): test 2 red, the other quote starts at x 144, the best card ends at 1296; test 1 green
+- min-width: 500px on .qv__grid: test 1 red at the phone check, card 500 px wide against 343; test 2 green
+Each guarded line was seen red, then restored and green as built.
+
+Measured on the clone, before (base code) and after (head), 1440 x 900 unless named. Full rows: metrics-before.json, metrics-after.json.
+- one quote, 1920: best card 400 px wide, 752 px short of the header edge, name cut 72 px / now 1152 px wide, 0 px short, name cut 0
+- one quote, 1440: 400 px wide, 752 short, cut 72 / 1152 wide, 0 short, cut 0
+- one quote, 1025 and 1024: 400 px wide, 497 and 496 short, cut 72 / 897 and 896 wide, 0 short, cut 0
+- one quote, 1023: one column 991 px wide before and after
+- two quotes, 1920, 1440, 1025, 1024: best card 400 px, other quote starts right of it, identical before and after
+- two quotes, 1023: one column, other quote under the best card, identical before and after
+- 375 x 667 at 2x, one and two quotes: best card 343 px wide at x 16, no sideways scroll, identical before and after
+- Two quotes at 1920, 1440 and 1024, and both phone shots: PNG files identical byte for byte before and after (cmp)
+- Show checks open at 1920 and 1024: the checks list and the "Lines we read" table use the whole card width
+
+Seen, not in the ACs, not changed by this PR
+- On a 375 px phone the best card shows "Sol del Valle Insta…": the name is cut there before and after. AC2 asks for the full name at 1440 only.
+
+Screenshots
+A throwaway Playwright spec (not committed) on the desktop project, signed-up accounts on the test database, sample quotes solartec and voltia
+read by the stubbed model; vendor renamed with renameQuoteVendor for the one-quote set. Desktop 1920x1080, 1440x900, tablet 1024x768,
+mobile 375x667 at 2x with touch (a context of its own). Before = src/components/quotes/VerdictView.tsx and src/styles/quotes.css from origin/staging.
+Crops are the .qv__grid row at desktop and tablet.
+
+Test gaps (not written)
+- Medium: no test pins the 1024 px switch. 1023 (one column) and 1025 (split) were measured by hand only.
+- Medium: verdict-layout.spec.ts is not tagged @phone, so the phone check is a resize inside the desktop project, not the iPhone 13 project.
+- Low: best card with an unranked quote and no ranked others (best full width, unranked row below) has no test.
+- Low: nothing asserts the checks list fills the wider card; no AC asks for it.
