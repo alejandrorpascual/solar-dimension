@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage, switchLanguageOnLoad } from './header'
 import { PHONE } from './phone'
+import { acceptNewProjectName, startNewProject } from './projects'
 
 type Language = 'English' | 'Español'
 
@@ -127,6 +128,18 @@ test('on a touch screen the quantity fields are at least 16 px, so iOS Safari do
   await page.goto('/?step=4')
   const panel = await openQuickEdit(page)
   expect(await fontSize(panel.getByLabel('Quantity of Refrigerator'))).toBeGreaterThanOrEqual(IOS_NO_ZOOM_PX)
+})
+
+/** The small stepper is a variant of its own (14 px by default): it lists another project's appliances on that project's card. */
+test("on a touch screen the quantity field in another project's quick edit is at least 16 px too", PHONE, async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'iOS zooms on focus only on touch devices')
+
+  await page.goto('/')
+  await startNewProject(page)
+  await acceptNewProjectName(page)
+  const home = page.getByRole('article', { name: 'Home' })
+  await home.getByRole('button', { name: 'Quick edit' }).click()
+  expect(await fontSize(home.getByLabel('Quantity of Refrigerator'))).toBeGreaterThanOrEqual(IOS_NO_ZOOM_PX)
 })
 
 interface CardControls { name: string; top: number; controlsBottom: number; hasMeter: boolean; isAdded: boolean }
