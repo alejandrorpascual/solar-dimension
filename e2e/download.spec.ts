@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Download, type Page } from '@playwright/test'
+import { readSheetPdf } from '../src/lib/pdf-fixtures'
 import { switchLanguage } from './header'
 import { PHONE } from './phone'
 import { showDownload } from './projects'
@@ -91,6 +92,49 @@ test('the kit downloads as a CSV parts list and a PDF spec sheet', PHONE, async 
   expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-')
   // The last check prints on page two: the fine print's assumed ratings take the room page one had left.
   expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+})
+
+// The first project, never edited, is named in the page's language.
+for (const { lang, project, download, pdf, estimate, pageOf } of [
+  { lang: 'en', project: 'Home', download: 'Download', pdf: 'Download PDF', estimate: 'Estimate', pageOf: (n: number, m: number) => `Page ${n} of ${m}` },
+  { lang: 'es', project: 'Casa', download: 'Descargar', pdf: 'Descargar PDF', estimate: 'Estimación', pageOf: (n: number, m: number) => `Página ${n} de ${m}` },
+] as const) {
+  test(`the PDF is titled after the project, in ${lang}, with the project, date, page and estimate word atop every page`, async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: 'lang', value: lang, url: baseURL! }])
+    await page.goto('/?step=4')
+    await showDownload(page, download)
+    const date = await sheetDate(page)
+    expect(date).not.toBe('')
+    const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: pdf }).click()])
+    const sheet = await readSheetPdf(await readFile((await file.path())!))
+    expect(sheet.title).toBe(project)
+    expect(sheet.lang).toBe(lang)
+    expect(sheet.pages).toHaveLength(2)
+    sheet.pages.forEach((text, i) => {
+      expect(text).toContain(project)
+      expect(text).toContain(date)
+      expect(text).toContain(pageOf(i + 1, sheet.pages.length))
+      expect(text).toContain(estimate)
+    })
+  })
+}
+
+test('ten captures leave the page with as many stylesheet rules as the first one did', async ({ page }) => {
+  // Ten real captures, each embedding the web fonts.
+  test.slow()
+  await page.goto('/?step=4')
+  await showDownload(page)
+  await page.getByRole('radio', { name: /^Summary image \(PNG\)/ }).check()
+  const ruleCount = () => page.evaluate(() => Array.from(document.styleSheets).reduce((n, sheet) => {
+    // The cross-origin font sheet cannot be read; its rules only count if a capture copied them into the page.
+    try { return n + sheet.cssRules.length } catch { return n }
+  }, 0))
+  const capture = () => Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download image' }).click()])
+  await capture()
+  const afterFirst = await ruleCount()
+  for (let i = 1; i < 10; i++) await capture()
+  expect(await ruleCount()).toBe(afterFirst)
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 

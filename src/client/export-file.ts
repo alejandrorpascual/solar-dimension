@@ -2,6 +2,8 @@
  * Turning the export sheet into files, in the browser only. The two libraries are imported on demand, so they are
  * fetched the first time someone downloads, not with the page.
  */
+import type { jsPDF } from 'jspdf'
+import { tr, type Dictionary, type Locale } from '../i18n'
 import { pageSlices, type PageSlice, type SheetBlock } from '../lib/pdf-pages'
 
 const PIXEL_RATIO = 2
@@ -22,14 +24,28 @@ const imageOptions = (node: HTMLElement) => ({
   width: node.offsetWidth, height: node.offsetHeight, style: { transform: 'none', margin: '0' },
 })
 
+/** The web fonts as embeddable CSS, kept once read. */
+let fontCss = ''
+
+/**
+ * html-to-image reads the page's stylesheets for the web fonts on every capture, and for the cross-origin font sheet it
+ * fetches the CSS and inserts its rules into the page again each time. So the fonts are read once and every later
+ * capture is handed that CSS. A read that found nothing (the font sheet failed to load) is tried again next time.
+ */
+async function captureOptions(node: HTMLElement) {
+  const { getFontEmbedCSS } = await import('html-to-image')
+  fontCss ||= await getFontEmbedCSS(node, imageOptions(node))
+  return { ...imageOptions(node), fontEmbedCSS: fontCss }
+}
+
 async function toPngDataUrl(node: HTMLElement): Promise<string> {
   const { toPng } = await import('html-to-image')
-  return toPng(node, imageOptions(node))
+  return toPng(node, await captureOptions(node))
 }
 
 export async function renderPng(node: HTMLElement): Promise<Blob> {
   const { toBlob } = await import('html-to-image')
-  const blob = await toBlob(node, imageOptions(node))
+  const blob = await toBlob(node, await captureOptions(node))
   if (!blob) throw new Error('The kit image came out empty')
   return blob
 }
@@ -62,26 +78,74 @@ export function printPages(node: HTMLElement): { pages: PrintPage[]; pageHeight:
   return { pages: slices.map((slice, i) => ({ ...slice, top: i === 0 ? 0 : CONTINUATION_TOP_PX })), pageHeight }
 }
 
+/** The words a PDF carries beside the sheet's picture: the same project name, date and language the sheet shows. */
+export interface SheetMeta { projectName: string; date: string; t: Dictionary; locale: Locale }
+
+/** The captured sheet: a PNG data URL and the sheet's size in CSS pixels. */
+export interface SheetImage { dataUrl: string; width: number; height: number }
+
+/** The sheet as A4 pages. The image is captured while jsPDF loads. */
+export async function renderPdf(node: HTMLElement, meta: SheetMeta): Promise<Blob> {
+  const [dataUrl] = await Promise.all([toPngDataUrl(node), import('jspdf')])
+  return sheetPdf({ dataUrl, width: node.offsetWidth, height: node.offsetHeight }, printPages(node).pages, meta)
+}
+
 /**
- * The sheet as A4 pages. The image is scaled to the page width; each page shows one slice of it, ending before any
- * row that would be cut, and white bands hide whatever of the neighbouring slices would peek in above or below it. One
- * alias stores the image once however many pages there are.
+ * The PDF of a captured sheet. The image is scaled to the page width; each page shows one slice of it, ending before
+ * any row that would be cut, and white bands hide whatever of the neighbouring slices would peek in above or below it.
+ * One alias stores the image once however many pages there are. The document is titled after the project and tagged
+ * with the UI language.
  */
-export async function renderPdf(node: HTMLElement): Promise<Blob> {
-  const [dataUrl, { jsPDF }] = await Promise.all([toPngDataUrl(node), import('jspdf')])
+export async function sheetPdf(image: SheetImage, pages: readonly PrintPage[], meta: SheetMeta): Promise<Blob> {
+  const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' })
-  const ptPerPx = A4_PT.w / node.offsetWidth
-  const { pages } = printPages(node)
+  doc.setProperties({ title: meta.projectName, subject: meta.t.ui.sheetTitle })
+  doc.setLanguage(meta.locale)
+  const ptPerPx = A4_PT.w / image.width
   pages.forEach((page, i) => {
     if (i > 0) doc.addPage()
     const top = page.top * ptPerPx
-    doc.addImage(dataUrl, 'PNG', 0, top - page.start * ptPerPx, A4_PT.w, node.offsetHeight * ptPerPx, PAGE_IMAGE_ALIAS, 'FAST')
+    doc.addImage(image.dataUrl, 'PNG', 0, top - page.start * ptPerPx, A4_PT.w, image.height * ptPerPx, PAGE_IMAGE_ALIAS, 'FAST')
     doc.setFillColor(SHEET_BACKGROUND)
     if (top > 0) doc.rect(0, 0, A4_PT.w, top, 'F')
     const shownEnd = top + (page.end - page.start) * ptPerPx
     if (shownEnd < A4_PT.h) doc.rect(0, shownEnd, A4_PT.w, A4_PT.h - shownEnd, 'F')
+    drawRunningLine(doc, meta, { page: i + 1, pages: pages.length }, ptPerPx)
   })
   return doc.output('blob')
+}
+
+/** The sheet's side padding (.ksheet): the running line starts and ends where the content does. */
+const SHEET_SIDE_PX = 60
+/**
+ * The line at the top of every page. It sits in the margin each page already leaves blank (the sheet's own top padding
+ * on page one, CONTINUATION_TOP_PX after it), so no page break moves. Sized and coloured like the sheet's kicker.
+ */
+const RUNNING_LINE = { fontPt: 7.5, baselinePx: 30, gapPx: 16, color: '#5C6470' }
+
+/** Everything jsPDF's standard font cannot print: WinAnsi is Latin-1 plus a few typographic marks. */
+const NOT_WIN_ANSI = /[^\x20-\x7E\xA0-\xFF€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]/gu
+
+/**
+ * The text with those characters taken out. One of them anywhere makes jsPDF write the whole string as UTF-16, which
+ * the font prints as noise. ponytail: a name in another script keeps only its Latin part on this line (the sheet image
+ * and the document title keep all of it); embedding a Unicode font is the fix if that ever matters.
+ */
+const printable = (text: string) => text.normalize('NFC').replace(NOT_WIN_ANSI, ' ').replace(/\s+/g, ' ').trim()
+
+/** "Garita · 19 Oct 2026" on the left, "Estimate · Page 1 of 2" on the right, in the UI language. */
+function drawRunningLine(doc: jsPDF, meta: SheetMeta, at: { page: number; pages: number }, ptPerPx: number): void {
+  const left = printable(`${meta.projectName} · ${meta.date}`)
+  const right = printable(`${meta.t.ui.sheetEstimate} · ${tr(meta.t, 'previewPage', at)}`)
+  const start = SHEET_SIDE_PX * ptPerPx
+  const end = A4_PT.w - start
+  const baseline = RUNNING_LINE.baselinePx * ptPerPx
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(RUNNING_LINE.fontPt)
+  doc.setTextColor(RUNNING_LINE.color)
+  // ponytail: a long name wraps to a second line inside the margin rather than run under the page number.
+  doc.text(left, start, baseline, { maxWidth: end - start - doc.getTextWidth(right) - RUNNING_LINE.gapPx * ptPerPx })
+  doc.text(right, end, baseline, { align: 'right' })
 }
 
 /**
