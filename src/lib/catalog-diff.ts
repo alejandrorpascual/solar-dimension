@@ -1,4 +1,4 @@
-import type { ApplianceInput, ApplianceRecord } from './catalog-schema'
+import { applianceWarnings, type ApplianceInput, type ApplianceRecord } from './catalog-schema'
 import { stable } from './stable-json'
 
 const COMPARED = ['category', 'watts', 'surge', 'duty', 'tons', 'acType', 'labels', 'kind', 'surgeClass', 'burstSeconds', 'cyclesPerHour'] as const
@@ -21,6 +21,16 @@ export function diffAppliances(existing: readonly ApplianceRecord[], incoming: r
     const fields = isReordered ? [...content, { field: 'sortOrder' as const, from: current.sortOrder, to: item.sortOrder }] : content
     return fields.length > 0 ? { id: item.id, kind: 'changed', fields } : { id: item.id, kind: 'unchanged' }
   })
+}
+
+export interface ApplianceWarnings { id: string; messages: string[] }
+
+/** The soft checks for each incoming item, against its stored row when it has one. Only items with something to say are listed. */
+export function warnAppliances(existing: readonly ApplianceRecord[], incoming: readonly ApplianceInput[]): ApplianceWarnings[] {
+  const byId = new Map(existing.map((r) => [r.id, r]))
+  return incoming
+    .map((item) => ({ id: item.id, messages: applianceWarnings(item, byId.get(item.id)) }))
+    .filter((w) => w.messages.length > 0)
 }
 
 /** Existing items keep their place; new ones go after the last item, in the order given. */

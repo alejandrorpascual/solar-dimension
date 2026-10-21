@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { LOAD_KINDS, MAX_APPLIANCE_SURGE, MAX_APPLIANCE_WATTS, SURGE_CLASSES, type ApplianceLabels, type CatalogItem, type CompressorType, type LoadKind, type SurgeClass } from './catalog'
+import { LOAD_KINDS, MAX_APPLIANCE_SURGE, MAX_APPLIANCE_WATTS, SIZING, SURGE_CLASSES, type ApplianceLabels, type CatalogItem, type CompressorType, type LoadKind, type SurgeClass } from './catalog'
 import { isCustomLoadId } from './custom'
 
 export const APPLIANCE_CATEGORIES = ['Kitchen', 'Living', 'Climate', 'Air conditioning', 'Work', 'Utility', 'Security', 'Personal'] as const
@@ -13,6 +13,19 @@ const MAX_BURST_SECONDS = 600
 const MAX_CYCLES_PER_HOUR = 120
 /** How far a momentary item's stored duty may sit from the duty its bursts imply before the admin is told. */
 const MOMENTARY_DUTY_TOLERANCE = 0.25
+/** Motors start at 2–3× their running watts and compressors under 10×; more is likely a unit or digit slip. */
+const MAX_SURGE_RATIO = 10
+/** An air conditioner's running watts are expected within half to twice the engine's watts per ton. */
+const AC_WATTS_LOW = 0.5
+const AC_WATTS_HIGH = 2
+/** An update that moves a figure more than this share of its stored value is flagged. */
+const MAX_CHANGE_SHARE = 0.5
+type ChangeCheckedField = 'watts' | 'surge' | 'duty'
+const CHANGE_CHECKED: ReadonlyArray<{ field: ChangeCheckedField; label: string }> = [
+  { field: 'watts', label: 'Running watts' },
+  { field: 'surge', label: 'Surge' },
+  { field: 'duty', label: 'Duty' },
+]
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,47}$/
 
 const Label = z.object({ name: z.string().trim().min(1).max(80), note: z.string().trim().max(160) }).strict()
@@ -88,16 +101,39 @@ export function momentaryDuty(a: Pick<ApplianceInput, 'kind' | 'burstSeconds' | 
   return (a.burstSeconds * a.cyclesPerHour) / SECONDS_PER_HOUR
 }
 
-/** Soft checks: worth a second look, never a reason to refuse. */
-export function applianceWarnings(a: ApplianceInput): string[] {
+/** A warning when an air conditioner draws outside half to twice the watts its tons imply; null otherwise. */
+function acWattsWarning(a: ApplianceInput): string | null {
+  if (a.tons === null) return null
+  const perTon = a.tons * SIZING.WATTS_PER_TON
+  const [low, high] = [perTon * AC_WATTS_LOW, perTon * AC_WATTS_HIGH]
+  if (a.watts >= low && a.watts <= high) return null
+  return `${a.watts} W is outside ${Math.round(low)}–${Math.round(high)} W for ${a.tons} ${a.tons === 1 ? 'ton' : 'tons'}: check the tons and the running watts.`
+}
+
+/** A stored figure moved far enough that a slipped digit or unit is more likely than a correction. */
+function changeWarnings(a: ApplianceInput, stored: Pick<ApplianceRecord, ChangeCheckedField>): string[] {
+  return CHANGE_CHECKED.flatMap(({ field, label }) => {
+    const [from, to] = [stored[field], a[field]]
+    const share = Math.abs(to - from) / from
+    return share > MAX_CHANGE_SHARE ? [`${label} from the stored ${from} to ${to} is a change of ${Math.round(share * 100)}%: check the digits and the unit.`] : []
+  })
+}
+
+/** Soft checks: worth a second look, never a reason to refuse. With the stored row, also a big move away from it. */
+export function applianceWarnings(a: ApplianceInput, stored?: Pick<ApplianceRecord, ChangeCheckedField>): string[] {
   const out: string[] = []
   if (a.watts > LARGE_LOAD_W) out.push(`Over ${LARGE_LOAD_W / 1000} kW: check this is one appliance, not a whole circuit.`)
   if (a.duty === 1 && a.watts >= NONSTOP_HEAVY_W) out.push('Runs nonstop at 1 kW or more: most heating and motor loads cycle.')
+  if (a.surge > a.watts * MAX_SURGE_RATIO) {
+    out.push(`Surge is ${Number((a.surge / a.watts).toFixed(1))}× the running watts: motors start at 2–3× and compressors under ${MAX_SURGE_RATIO}×. Check the surge is in watts.`)
+  }
+  const acWatts = acWattsWarning(a)
+  if (acWatts !== null) out.push(acWatts)
   const implied = momentaryDuty(a)
   if (implied !== null && Math.abs(a.duty - implied) / implied > MOMENTARY_DUTY_TOLERANCE) {
     out.push(`The bursts imply a duty of ${implied.toFixed(3)}; the stored duty ${a.duty} is only shown, the engine uses the bursts.`)
   }
-  return out
+  return stored ? [...out, ...changeWarnings(a, stored)] : out
 }
 
 export type ParsedItems =

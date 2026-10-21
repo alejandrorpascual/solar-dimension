@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { assignSortOrders, diffAppliances } from './catalog-diff'
+import { assignSortOrders, diffAppliances, warnAppliances } from './catalog-diff'
 import { ApplianceSchema } from './catalog-schema'
 import { APPLIANCE_SEED } from './catalog-snapshot'
 
@@ -49,4 +49,30 @@ test('a surge class or load kind change counts as a change, and a record that ne
   expect(diffAppliances([current], [same])).toEqual([{ id: current.id, kind: 'unchanged' }])
   const classed = { ...same, surgeClass: 'compressor' as const }
   expect(diffAppliances([current], [classed])).toEqual([{ id: current.id, kind: 'changed', fields: [{ field: 'surgeClass', from: undefined, to: 'compressor' }] }])
+})
+
+test('warns when watts, surge or duty move more than half away from the stored row, and lists only items that warn', () => {
+  const warnings = warnAppliances(APPLIANCE_SEED, [{ ...fridgeInput, watts: 240 }, { ...fridgeInput, id: 'fridge-2' }])
+
+  expect(warnings).toEqual([{ id: 'fridge', messages: ['Running watts from the stored 150 to 240 is a change of 60%: check the digits and the unit.'] }])
+  expect(warnAppliances(APPLIANCE_SEED, [{ ...fridgeInput, watts: 210, duty: 0.5 }])).toEqual([])
+})
+
+test('a slipped digit warns once for each field it moved', () => {
+  const warnings = warnAppliances(APPLIANCE_SEED, [{ ...fridgeInput, watts: 15, surge: 15, duty: 0.7 }])
+
+  expect(warnings).toEqual([{
+    id: 'fridge',
+    messages: [
+      'Running watts from the stored 150 to 15 is a change of 90%: check the digits and the unit.',
+      'Surge from the stored 1200 to 15 is a change of 99%: check the digits and the unit.',
+      'Duty from the stored 0.35 to 0.7 is a change of 100%: check the digits and the unit.',
+    ],
+  }])
+})
+
+test('a new item is checked on its own, with no stored row to compare against', () => {
+  const pump = { ...fridgeInput, id: 'pump', category: 'Utility' as const, watts: 100, surge: 3000 }
+
+  expect(warnAppliances(APPLIANCE_SEED, [pump])).toEqual([{ id: 'pump', messages: [expect.stringMatching(/^Surge is 30× the running watts/)] }])
 })
