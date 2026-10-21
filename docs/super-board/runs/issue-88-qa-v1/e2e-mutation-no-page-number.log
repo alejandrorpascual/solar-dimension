@@ -1,65 +1,11 @@
-
-Running 2 tests using 2 workers
-
   ✘  2 [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in en, with the project, date, page and estimate word atop every  [... omitted end of long line]
   ✘  1 [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in es, with the project, date, page and estimate word atop every  [... omitted end of long line]
-
-
-  1) [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in en, with the project, date, page and estimate word atop every pa [... omitted end of long line]
-
     Error: expect(received).toContain(expected) // indexOf
-
     Expected substring: "Page 1 of 2"
     Received string:    "Home · Oct 21, 2026 Estimate ·"
-
-      115 |       expect(text).toContain(project)
-      116 |       expect(text).toContain(date)
     > 117 |       expect(text).toContain(pageOf(i + 1, sheet.pages.length))
-          |                    ^
-      118 |       expect(text).toContain(estimate)
-      119 |     })
-      120 |   })
-        at forEach (<scratch-clone> [... omitted end of long line]
-        at <scratch-clone> [... omitted end of long line]
-
-    Error Context: test-results/download-the-PDF-is-titled-1a011-timate-word-atop-every-page-desktop/error-context.md
-
-    attachment #2: trace (application/zip) ───────────────────────────────────────────────────────── [... omitted end of long line]
-    test-results/download-the-PDF-is-titled-1a011-timate-word-atop-every-page-desktop/trace.zip
-    Usage:
-
-        npx playwright show-trace test-results/download-the-PDF-is-titled-1a011-timate-word-atop-every-page-desktop/trace.zip
-
-    ──────────────────────────────────────────────────────────────────────────────────────────────── [... omitted end of long line]
-
-  2) [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in es, with the project, date, page and estimate word atop every pa [... omitted end of long line]
-
     Error: expect(received).toContain(expected) // indexOf
-
     Expected substring: "Página 1 de 2"
     Received string:    "Casa · 21 oct 2026 Estimación ·"
-
-      115 |       expect(text).toContain(project)
-      116 |       expect(text).toContain(date)
     > 117 |       expect(text).toContain(pageOf(i + 1, sheet.pages.length))
-          |                    ^
-      118 |       expect(text).toContain(estimate)
-      119 |     })
-      120 |   })
-        at forEach (<scratch-clone> [... omitted end of long line]
-        at <scratch-clone> [... omitted end of long line]
-
-    Error Context: test-results/download-the-PDF-is-titled-bcffe-timate-word-atop-every-page-desktop/error-context.md
-
-    attachment #2: trace (application/zip) ───────────────────────────────────────────────────────── [... omitted end of long line]
-    test-results/download-the-PDF-is-titled-bcffe-timate-word-atop-every-page-desktop/trace.zip
-    Usage:
-
-        npx playwright show-trace test-results/download-the-PDF-is-titled-bcffe-timate-word-atop-every-page-desktop/trace.zip
-
-    ──────────────────────────────────────────────────────────────────────────────────────────────── [... omitted end of long line]
-
   2 failed
-    [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in en, with the project, date, page and estimate word atop every pag [... omitted end of long line]
-    [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in es, with the project, date, page and estimate word atop every pag [... omitted end of long line]
-E2E_EXIT=1

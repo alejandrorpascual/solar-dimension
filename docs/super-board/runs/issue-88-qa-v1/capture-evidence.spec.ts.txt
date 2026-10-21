@@ -1,0 +1,20 @@
+// QA evidence capture for #88, never committed as a spec: saves the downloaded spec sheet PDF in each UI language.
+import { mkdir } from 'node:fs/promises'
+import { test } from '@playwright/test'
+import { showDownload } from './projects'
+
+const OUT = process.env.QA88_OUT ?? 'test-results/qa88'
+
+for (const { lang, download, pdf } of [
+  { lang: 'en', download: 'Download', pdf: 'Download PDF' },
+  { lang: 'es', download: 'Descargar', pdf: 'Descargar PDF' },
+] as const) {
+  test(`qa88 capture ${lang}`, async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: 'lang', value: lang, url: baseURL! }])
+    await page.goto('/?step=4')
+    await showDownload(page, download)
+    const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: pdf }).click()])
+    await mkdir(OUT, { recursive: true })
+    await file.saveAs(`${OUT}/sheet-${lang}.pdf`)
+  })
+}

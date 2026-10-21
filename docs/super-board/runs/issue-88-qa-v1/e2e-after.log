@@ -1,6 +1,4 @@
-
 Running 49 tests using 5 workers
-
   ✓   5 [desktop] › e2e/download.spec.ts:55:3 › on a device set to English (US) › the CSV splits cells on ",", quotes a cell holding a comma, and open [... omitted end of long line]
   ✓   1 [desktop] › e2e/download.spec.ts:25:3 › on a device set to Spanish (Venezuela), where decimals take a comma › the CSV splits cells on ";" and  [... omitted end of long line]
   ✓   3 [desktop] › e2e/download.spec.ts:103:3 › the PDF is titled after the project, in en, with the project, date, page and estimate word atop every [... omitted end of long line]
@@ -11,12 +9,12 @@ Running 49 tests using 5 workers
   ✓  10 [desktop] › e2e/download.spec.ts:203:3 › a PNG capture still running after 30 s ends in the failed message and saves no file (3.0s)
   ✓   8 [desktop] › e2e/download.spec.ts:163:1 › export progress is visible while the file is being prepared (3.3s)
   ✓   6 [desktop] › e2e/download.spec.ts:123:1 › ten captures leave the page with as many stylesheet rules as the first one did (4.9s)
-  ✓  12 [desktop] › e2e/download.spec.ts:241:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (2.6s) [... omitted end of long line]
+  ✓  12 [desktop] › e2e/download.spec.ts:241:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (2.6s) [...  [... omitted end of long line]
   ✓  11 [desktop] › e2e/download.spec.ts:226:1 › the parts list comes first, and the load schedule gets a PDF page of its own (3.8s)
   ✓  13 [desktop] › e2e/download.spec.ts:267:1 › a CSV has no printed pages, so there is no larger view to open (1.6s)
   ✓  17 [desktop] › e2e/download.spec.ts:349:1 › the checks print last on the sheet and can be left out (1.2s)
   ✓  15 [desktop] › e2e/download.spec.ts:336:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @p [... omitted end of long line]
-  ✓  14 [desktop] › e2e/download.spec.ts:276:1 › notes and failing checks stay on the sheet and in the files with their Include boxes unticked (4.4s) [... omitted end of long line]
+  ✓  14 [desktop] › e2e/download.spec.ts:276:1 › notes and failing checks stay on the sheet and in the files with their Include boxes unticked (4.4s)  [... omitted end of long line]
   ✓  18 [desktop] › e2e/requester.spec.ts:36:1 › the spec sheet prints the requester band, and Include takes it off (3.1s)
   ✓  16 [desktop] › e2e/download.spec.ts:336:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @p [... omitted end of long line]
   ✓  19 [desktop] › e2e/requester.spec.ts:77:1 › a client added in the Download panel prints on the sheet and stays after a reload (2.6s)
@@ -30,7 +28,7 @@ Running 49 tests using 5 workers
   ✓  28 [desktop] › e2e/requester.spec.ts:273:1 › a cédula added later to a client saved without one prints on the sheet (1.6s)
   ✓  30 [desktop] › e2e/requester.spec.ts:305:1 › a client with every field at its longest still leaves the parts list whole on page one @phone (3.0s) [... omitted end of long line]
   ✓  31 [desktop] › e2e/requester.spec.ts:351:3 › the longest client in Spanish: the estimate block prints whole, and the load schedule never takes a  [... omitted end of long line]
-  -  34 [desktop] › e2e/requester.spec.ts:399:1 › with the phone keyboard open, the form sheet ends above it and its last field can be reached @phone [... omitted end of long line]
+  -  34 [desktop] › e2e/requester.spec.ts:399:1 › with the phone keyboard open, the form sheet ends above it and its last field can be reached @phone  [... omitted end of long line]
   -  35 [desktop] › e2e/requester.spec.ts:414:1 › on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tap [... omitted end of long line]
   ✓  32 [desktop] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one: the estimate block prints whole, and the [... omitted end of long line]
   ✓  29 [desktop] › e2e/requester.spec.ts:286:1 › clients saved while signed out are not offered to an account that signs in on the same browser (5.5s [... omitted end of long line]
@@ -44,13 +42,12 @@ Running 49 tests using 5 workers
   ✓  42 [phone] › e2e/download.spec.ts:336:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @pho [... omitted end of long line]
   ✓  40 [phone] › e2e/download.spec.ts:336:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @pho [... omitted end of long line]
   ✓  43 [phone] › e2e/requester.spec.ts:216:1 › with a long list of saved clients, "Use on the sheet" stays on screen @phone (2.6s)
-  ✓  45 [phone] › e2e/requester.spec.ts:305:1 › a client with every field at its longest still leaves the parts list whole on page one @phone (3.8s) [... omitted end of long line]
+  ✓  45 [phone] › e2e/requester.spec.ts:305:1 › a client with every field at its longest still leaves the parts list whole on page one @phone (3.8s) [ [... omitted end of long line]
   ✓  44 [phone] › e2e/requester.spec.ts:351:3 › the longest client in Spanish: the estimate block prints whole, and the load schedule never takes a th [... omitted end of long line]
   ✓  48 [phone] › e2e/requester.spec.ts:399:1 › with the phone keyboard open, the form sheet ends above it and its last field can be reached @phone (2 [... omitted end of long line]
   ✓  46 [phone] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one: the estimate block prints whole, and the l [... omitted end of long line]
   ✓  49 [phone] › e2e/requester.spec.ts:414:1 › on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tappe [... omitted end of long line]
   ✓  47 [phone] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one, in Spanish: the estimate block prints whol [... omitted end of long line]
-
   2 skipped
   47 passed (41.6s)
 E2E_EXIT=0
