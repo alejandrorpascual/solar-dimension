@@ -137,8 +137,13 @@
 .qtray__link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; font-size: 14px; font-weight: 700; color: #FFFFFF; text-decoration: underline; flex-shrink: 0; }
 @media (min-width: 1280px) { body:has(.rail) .qtray { right: calc(380px + 24px); } }
 @media (max-width: 1023px) {
+  :root { --qtray-above-footer: calc(132px + env(safe-area-inset-bottom)); }
   .qtray { left: 12px; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom)); width: auto; }
-  body:has(.footer) .qtray { bottom: calc(132px + env(safe-area-inset-bottom)); }
+  body:has(.footer) .qtray { bottom: var(--qtray-above-footer); }
+  /* The tray floats over the end of the page, so the page leaves room for it: --qtray-room is its height, which
+     QuoteTray keeps current (a verdict line or a long project name wraps it taller). Without it the quotes card's
+     buttons end up under the tray at full scroll. */
+  body:has(.footer):has(.qtray) .page { padding-bottom: calc(var(--qtray-above-footer) + var(--qtray-room, 0px) + 16px); }
 }
 
 /* Project card line */
