@@ -116,6 +116,8 @@ const LEADS_PER_RUN = 2
 const LENGTH = /\d\s*(?:m(?![./]\p{L})|mts?|mtrs?|ml|metros?|meters?|metres?|ft|feet|pies?)(?!\p{L})|(?<!\p{L})(?:metros?|meters?|metres?|mtrs?)(?!\p{L})/iu
 /** Wiring lines that are no cable, or not the main one: lugs, connectors, conduit, the ground. */
 const FITTINGS = /terminal|conector|connector|zapata|\blugs?\b|mc4|conduit|tubo|canaleta|ducto|tierra|ground/i
+/** Wiring lines that name the solar array or the AC side ("cable solar", "PV", "paneles", "AC", "CA"): no battery cable. */
+const OFF_BATTERY = /\b(?:PV|FV|AC|CA)\b|solar|fotovolt|panel|corriente alterna/i
 /** NEC 310.10(G): only conductors of 1/0 and larger may run in parallel, so only they can share one fuse. */
 const PARALLEL_MIN_AWG = '1/0 AWG'
 const PARALLEL_MIN_MM2 = GAUGES.find((g) => g.awg === PARALLEL_MIN_AWG)!.mm2
@@ -247,6 +249,8 @@ function thickest(lines: readonly QuoteLine[]): { line: QuoteLine; size: CableSi
 const lineText = (l: QuoteLine): string => `${l.description} ${l.source.text}`
 /** A wiring line with no readable size that could be the main cable: not a lug, a connector, conduit or the ground. */
 const isOpenCable = (l: QuoteLine): boolean => lineSize(l.specs) === null && !FITTINGS.test(lineText(l))
+/** The wiring lines that can be the battery cable: those that name neither the solar array nor the AC side. */
+const batteryWiring = (lines: readonly QuoteLine[]): QuoteLine[] => lines.filter((l) => !OFF_BATTERY.test(lineText(l)))
 
 /**
  * The cable a quote's verdict reads: its thickest wiring line whose size can be read. A cable without a readable size
@@ -280,14 +284,19 @@ function runsOf(lines: readonly QuoteLine[], mm2: number): number {
 }
 
 /**
- * Thinner than the kit's is short, and no readable size leaves it to confirm. A size that the kit's current needs more
- * than one run of passes only when the quote counts their leads, or the leads of the kit's own main cable in its own
- * runs beside string leads thicker than it. A wiring line's quantity may be pieces, metres or one lot, so a count never
- * fails a quote, it leaves it to confirm, and a quantity that may be a length counts no leads.
+ * Judged on the battery cable: a wiring line that names the solar array or the AC side is set aside, and a quote with
+ * no other wiring line leaves it to confirm. Thinner than the kit's is short, and no readable size leaves it to
+ * confirm. A size that the kit's current needs more than one run of passes only when the quote counts their leads, or
+ * the leads of the kit's own main cable in its own runs beside string leads thicker than it. A wiring line's quantity
+ * may be pieces, metres or one lot, so a count never fails a quote, it leaves it to confirm, and a quantity that may
+ * be a length counts no leads.
  */
 function checkCables(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
-  const lines = ofKind(x, 'wiring', false)
-  if (lines.length === 0) return absent('cables', x, 'wiring')
+  const wiring = ofKind(x, 'wiring', false)
+  if (wiring.length === 0) return absent('cables', x, 'wiring')
+  const lines = batteryWiring(wiring)
+  // Only solar or AC wiring: the quote names no battery cable, whatever sizes it states.
+  if (lines.length === 0) return check('cables', 'unknown', { sizeUnknown: true }, [wiring[0]!.source])
   const top = mainCable(lines, kit)
   if (top === null) return check('cables', 'unknown', { sizeUnknown: true }, [(lines.find(isOpenCable) ?? lines[0]!).source])
   const gauge = top.size.label
@@ -320,10 +329,10 @@ function fuseClassOf(l: QuoteLine): string | null {
 }
 
 /**
- * Below the kit's rating is short. So is a fuse above what its cable carries (the engine's own rule) when that cable
- * is too thin to run in parallel; on a cable that may, the cable must be enough runs. A class other than the kit's, no
- * class stated, or fewer fuses than the kit's carry together, leaves it to confirm. Fuses rated under the kit's protect
- * something else, a charge controller or a string, so they are not counted.
+ * Below the kit's rating is short. So is a fuse above what its cable (the battery cable) carries (the engine's own
+ * rule) when that cable is too thin to run in parallel; on a cable that may, the cable must be enough runs. A class
+ * other than the kit's, no class stated, or fewer fuses than the kit's carry together, leaves it to confirm. Fuses
+ * rated under the kit's protect something else, a charge controller or a string, so they are not counted.
  */
 function checkFuse(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const lines = ofKind(x, 'fuse', false)
@@ -333,7 +342,7 @@ function checkFuse(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const top = rated.reduce((a, b) => ((b.specs.fuseAmps ?? 0) > (a.specs.fuseAmps ?? 0) ? b : a))
   const amps = top.specs.fuseAmps ?? 0
   if (amps < kit.fuseA) return check('fuse', 'short', { amps }, [top.source])
-  const wiring = ofKind(x, 'wiring', false)
+  const wiring = batteryWiring(ofKind(x, 'wiring', false))
   const cable = mainCable(wiring, kit)
   const ampacity = cable === null ? null : runAmpacity(cable.size.mm2, kit)
   // A fuse no larger than the kit's own never fails for its size, even where the kit's own cable falls short of it.

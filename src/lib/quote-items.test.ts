@@ -307,6 +307,65 @@ describe('cables and fuse', () => {
   test("a fuse rated under the kit's protects something else and is not counted", () => {
     expect(judge(c2, [wiring('1', 4), fuse(125, 2), fuse(30, 1, 'ANL')], 'fuse')).toMatchObject({ status: 'ok', facts: { amps: 125 } })
   })
+
+  describe('the battery cable, not the solar or AC wiring (AI-19)', () => {
+    /** A wiring line in the quote's own words, with its size when it states one. */
+    const named = (text: string, awg: string | null = null, qty = 1) =>
+      line('wiring', 1, { qty, description: text, source: { page: 1, text }, specs: { awg } })
+    const battery = named('Cable 4/0 AWG baterías', '4/0')
+    const thinBattery = named('Cable 6 AWG baterías', '6')
+    const unsizedBattery = named('Cableado de baterías')
+    const acFeeder = named('Alimentador AC, cable 4/0 AWG', '4/0')
+    const pvCable = named('Cable solar 6 mm² (10 AWG), 20 m', '10')
+
+    test('an AC feeder beside a thin battery cable reads short, on the battery cable', () => {
+      const cables = judge(KIT, [acFeeder, thinBattery], 'cables')
+      expect(cables).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+      expect(cables.sources).toEqual([thinBattery.source])
+    })
+    test('a thick solar line beside a thin battery cable reads short too', () => {
+      expect(judge(KIT, [named('Cable solar 4/0 AWG', '4/0'), thinBattery], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+    })
+    test('sized solar or AC wiring alone reads unknown, whatever its size', () => {
+      for (const only of [pvCable, acFeeder]) {
+        expect(judge(KIT, [only], 'cables')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true }, sources: [only.source] })
+      }
+    })
+    test('a solar line beside a sized battery cable is judged on the battery cable', () => {
+      const cables = judge(KIT, [pvCable, battery], 'cables')
+      expect(cables).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+      expect(cables.sources).toEqual([battery.source])
+    })
+    test('a solar or AC cable beside a battery cable with no size stays unknown, and cites the battery cable', () => {
+      for (const other of [pvCable, acFeeder]) {
+        expect(judge(KIT, [other, unsizedBattery], 'cables')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true }, sources: [unsizedBattery.source] })
+      }
+    })
+    test('the words that name the array or the AC side, in English and Spanish, set a line aside', () => {
+      const texts = [
+        'Cable PV 4/0 AWG', 'Cable FV 4/0 AWG', 'Cable fotovoltaico 4/0 AWG', 'Cable de paneles 4/0 AWG', 'Solar PV wire 4/0',
+        'Alimentador CA 4/0 AWG', 'Cable de corriente alterna 4/0 AWG', 'AC output cable 4/0 AWG',
+      ]
+      for (const text of texts) expect(judge(KIT, [named(text, '4/0'), thinBattery], 'cables').status, text).toBe('short')
+    })
+    test('a line that names neither is a battery cable: the inverter, the DC side and an accented word do not set it aside', () => {
+      for (const text of ['Cable 4/0 AWG baterías a inversor', 'Cable 4/0 AWG, lado CD', 'Cable 4/0 AWG, instalación mecánica']) {
+        expect(judge(KIT, [named(text, '4/0')], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+      }
+    })
+    test('the runs a quote counts are those of the battery cable, not of the solar leads beside it', () => {
+      // c2 needs two runs of 1/0, so four leads: four solar leads of 1/0 count for nothing.
+      const solarLeads = named('Cable solar 1/0 AWG', '1/0', 4)
+      expect(judge(c2, [solarLeads, named('Cable 1/0 AWG baterías', '1/0')], 'cables')).toMatchObject({ status: 'unknown', facts: { runs: 2, runsUnstated: true } })
+      expect(judge(c2, [solarLeads, named('Cable 1/0 AWG baterías', '1/0', 4)], 'cables').status).toBe('ok')
+    })
+    test('the fuse is judged against the battery cable too: an AC feeder does not carry it, a solar cable does not fail it', () => {
+      // 250 A is far above what 6 AWG carries, and an AC feeder of 4/0 beside it is no cable for the battery's fuse.
+      expect(judge(KIT, [acFeeder, thinBattery, fuse(250)], 'fuse')).toMatchObject({ status: 'short', facts: { amps: 250, gauge: '6 AWG' } })
+      // A thin solar cable alone is no cable for the fuse, so it fails nothing.
+      expect(judge(KIT, [pvCable, fuse(250)], 'fuse').status).toBe('ok')
+    })
+  })
 })
 
 describe('an optional extra bundled into a line', () => {
