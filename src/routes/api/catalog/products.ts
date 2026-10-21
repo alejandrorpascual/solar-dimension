@@ -33,7 +33,7 @@ export const Route = createFileRoute('/api/catalog/products')({
         const keys = parsed.items.map(productKey)
         if (dryRun) {
           try {
-            return json({ changes: await previewProducts(parsed.items, replace) })
+            return json(await previewProducts(parsed.items, replace))
           } catch (error) {
             if (error instanceof UnreadableProductsError) return unreadable(error)
             console.error('[catalog-api] product dry run failed', { keys, error })

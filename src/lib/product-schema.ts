@@ -157,8 +157,9 @@ export function brandKey(brand: string): string {
 }
 
 /** The model without the maker's name repeated at its start ("Pytes V5" is "V5"); the name is kept if nothing would be left. */
-function modelKey(brand: string, model: string): string {
-  const repeated = [normalize(brand), brandKey(brand)].find((name) => model.startsWith(name) && model.length > name.length)
+export function modelKey(p: Pick<ProductInput, 'brand' | 'model'>): string {
+  const model = normalize(p.model)
+  const repeated = [normalize(p.brand), brandKey(p.brand)].find((name) => model.startsWith(name) && model.length > name.length)
   return repeated ? model.slice(repeated.length) : model
 }
 
@@ -168,7 +169,7 @@ function modelKey(brand: string, model: string): string {
  * product's spelling; this catches the rest.
  */
 export function productKey(p: Pick<ProductInput, 'kind' | 'brand' | 'model'>): string {
-  return `${p.kind}:${brandKey(p.brand)}:${modelKey(p.brand, normalize(p.model))}`
+  return `${p.kind}:${brandKey(p.brand)}:${modelKey(p)}`
 }
 
 const MAX_BATCH = 50
