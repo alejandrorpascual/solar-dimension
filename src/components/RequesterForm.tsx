@@ -2,7 +2,8 @@ import { Check, History } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useFocusedFieldInView } from '../hooks/useFocusedFieldInView'
 import { useLocale } from '../hooks/useLocale'
-import { clearRequesterDraft, saveRequesterDraft } from '../lib/persistence'
+import { useRootData } from '../hooks/useRootData'
+import { clearRequesterDraft, requesterStorage, saveRequesterDraft } from '../lib/persistence'
 import {
   REQUESTER_COUNTRIES, REQUESTER_KINDS, REQUESTER_MAX, docRule, normalizeRequester, toDraft, validateRequester, withCountry,
   withDocInput, withKind, type Requester,
@@ -42,6 +43,9 @@ function Field({ id, label, isOptional = false, error, children }: { id: string;
 /** The requester's fields. Every change is kept in this browser until Save, so closing the dialog by accident loses nothing. */
 export function RequesterForm({ owner, projectId, target, base, resumed, canRemember, onSave, onRemove, onDelete }: RequesterFormProps) {
   const { t } = useLocale()
+  // While the account cannot be read the draft stays in this page, so the form does not say it is on this device.
+  const { isAccountUnreachable } = useRootData()
+  const storage = requesterStorage(isAccountUnreachable)
   const id = useId()
   const formRef = useRef<HTMLFormElement>(null)
   useFocusedFieldInView(formRef, '.qdialog')
@@ -58,12 +62,12 @@ export function RequesterForm({ owner, projectId, target, base, resumed, canReme
   useEffect(() => {
     if (isChanged) {
       ownsSlot.current = true
-      setKept(saveRequesterDraft({ owner, projectId, target, draft, shouldRemember }))
+      setKept(saveRequesterDraft({ owner, projectId, target, draft, shouldRemember }, storage))
     } else {
       setKept(false)
-      if (ownsSlot.current) clearRequesterDraft({ owner, projectId, target })
+      if (ownsSlot.current) clearRequesterDraft({ owner, projectId, target }, storage)
     }
-  }, [draft, shouldRemember, isChanged, owner, projectId, target])
+  }, [draft, shouldRemember, isChanged, owner, projectId, target, storage])
 
   // Errors appear after the first Save attempt, then follow the typing.
   const errors = hasTriedSave ? validateRequester(draft) : {}
@@ -76,7 +80,7 @@ export function RequesterForm({ owner, projectId, target, base, resumed, canReme
   /** Leaves the form on purpose: the draft goes with it. */
   const leave = (then: () => void) => () => {
     ownsSlot.current = false
-    clearRequesterDraft({ owner, projectId, target })
+    clearRequesterDraft({ owner, projectId, target }, storage)
     then()
   }
 
@@ -101,7 +105,7 @@ export function RequesterForm({ owner, projectId, target, base, resumed, canReme
 
   return (
     <form ref={formRef} className="rq-form" noValidate onSubmit={(e) => { e.preventDefault(); save() }}>
-      {isChanged && isKept && (
+      {isChanged && isKept && !isAccountUnreachable && (
         <p className="rq-saved"><Check size={14} aria-hidden="true" />{t.requester.draftSaved}</p>
       )}
       {isResumed && (
