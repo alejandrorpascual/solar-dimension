@@ -1,0 +1,12 @@
+   │
+ 2 │ "use client";
+   │ ──────┬──────  
+   │       ╰──────── module level directive may not be preserved
+   │ 
+   │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+───╯
+
+✓ built in 922ms
+ℹ Generated .output/nitro.json
+
+[nitro] ✔ You can preview this build using npx vite preview
