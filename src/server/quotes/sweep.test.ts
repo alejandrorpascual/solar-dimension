@@ -106,4 +106,21 @@ describe('the cron secret', () => {
     expect(response.status).toBe(401)
     expect(errors).not.toHaveBeenCalled()
   })
+
+  // Anyone on the internet can call the route, so a refusal must come before any work: the trash pass deletes files.
+  test.each<[string, string | undefined, HeadersInit]>([
+    ['a wrong token', SECRET, { authorization: `Bearer ${'w'.repeat(32)}` }],
+    ['no Authorization header', SECRET, {}],
+    ['no secret set', undefined, { authorization: `Bearer ${SECRET}` }],
+    ['a 16-character secret, with its own token', 'c'.repeat(16), { authorization: `Bearer ${'c'.repeat(16)}` }],
+  ])('a refused call (%s) empties no trash, scans no quotes and starts no read', async (_case, secret, headers) => {
+    vi.stubEnv('CRON_SECRET', secret)
+
+    const response = await sweepHandler({ request: new Request('http://localhost/api/quotes/sweep', { headers }) })
+
+    expect(response.status).toBe(401)
+    expect(emptyQuoteTrash).not.toHaveBeenCalled()
+    expect(recoverStaleQuotes).not.toHaveBeenCalled()
+    expect(processQuote).not.toHaveBeenCalled()
+  })
 })
