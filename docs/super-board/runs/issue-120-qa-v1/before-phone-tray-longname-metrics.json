@@ -1,0 +1,83 @@
+[
+  {
+    "state": "long-name-ready @390",
+    "mode": "Verdict ready for Condominio Villa Martinique, ofi",
+    "width": 390,
+    "height": 844,
+    "scrollY": 1553,
+    "pagePaddingBottom": "120px",
+    "room": "(unset)",
+    "tray": {
+      "top": 573,
+      "bottom": 712,
+      "height": 139
+    },
+    "footerTop": 727,
+    "coveredButtons": [
+      "See verdict",
+      "Add quotes"
+    ],
+    "coveredInteractive": [
+      "See verdict",
+      "Add quotes",
+      "INPUT",
+      "Privacy",
+      "Terms of use"
+    ],
+    "sidewaysPx": 0
+  },
+  {
+    "state": "long-name-ready @mobile",
+    "mode": "Verdict ready for Condominio Villa Martinique, ofi",
+    "width": 375,
+    "height": 667,
+    "scrollY": 1781,
+    "pagePaddingBottom": "120px",
+    "room": "(unset)",
+    "tray": {
+      "top": 396,
+      "bottom": 535,
+      "height": 139
+    },
+    "footerTop": 550,
+    "coveredButtons": [
+      "See verdict",
+      "Add quotes"
+    ],
+    "coveredInteractive": [
+      "See verdict",
+      "Add quotes",
+      "INPUT",
+      "Privacy",
+      "Terms of use"
+    ],
+    "sidewaysPx": 0
+  },
+  {
+    "state": "long-name-ready @320",
+    "mode": "Verdict ready for Condominio Villa Martinique, ofi",
+    "width": 320,
+    "height": 568,
+    "scrollY": 2120,
+    "pagePaddingBottom": "120px",
+    "room": "(unset)",
+    "tray": {
+      "top": 189,
+      "bottom": 436,
+      "height": 248
+    },
+    "footerTop": 451,
+    "coveredButtons": [
+      "See verdict",
+      "Add quotes"
+    ],
+    "coveredInteractive": [
+      "See verdict",
+      "Add quotes",
+      "INPUT",
+      "Privacy",
+      "Terms of use"
+    ],
+    "sidewaysPx": 0
+  }
+]
