@@ -361,8 +361,32 @@ describe('cables and fuse', () => {
       ]
       for (const text of texts) expect(judge(KIT, [named(text, '4/0'), thinBattery], 'cables').status, text).toBe('short')
     })
-    test('one line that names the battery and the array is no battery cable: with nothing else beside it, it is to confirm', () => {
-      expect(judge(KIT, [named('Cable 4/0 AWG baterías y paneles', '4/0')], 'cables')).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
+    test('one line that names the battery and the array is the battery cable: its size decides (R5)', () => {
+      expect(judge(KIT, [named('Cable 4/0 AWG baterías y paneles', '4/0')], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+    })
+    test('a line that names the battery is the battery cable, whatever solar, AC or lug word it also says (R5)', () => {
+      // The kit needs 2/0. Each 4/0 battery line decides beside a thinner line that names the battery too, and beside a solar cable.
+      const texts = [
+        'Cable 4/0 AWG baterías a inversor solar', 'Cable 4/0 AWG baterías, kit solar', 'Cable 4/0 AWG baterías a panel de distribución DC',
+        'Cable 4/0 AWG baterías con terminales', 'Cable 4/0 AWG baterías con zapatas', 'BATTERY CABLE 4/0 AWG TO AC INVERTER',
+      ]
+      for (const text of texts) {
+        const bank = named(text, '4/0')
+        for (const other of [named('Cable 6 AWG controlador a baterías', '6'), pvCable]) {
+          const cables = judge(KIT, [other, bank], 'cables')
+          expect(cables, `${text} · ${other.description}`).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+          expect(cables.sources, text).toEqual([bank.source])
+        }
+      }
+    })
+    test("a line split from a bundle that names the solar controller is the battery cable when its own words name the battery (R5)", () => {
+      const text = 'Controlador solar MPPT 100 A con cableado 4/0 AWG a baterías'
+      const split = line('wiring', 0, { description: 'Cableado 4/0 AWG a baterías', source: { page: 1, text }, specs: { awg: '4/0' } })
+      expect(judge(KIT, [split], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+    })
+    test('the fuse reads a battery cable with lugs beside a solar cable: 250 A is too much for 6 AWG (R5)', () => {
+      const bank = named('Cable 6 AWG baterías con terminales', '6')
+      expect(judge(KIT, [named('Cable solar 10 AWG', '10'), bank, fuse(250)], 'fuse')).toMatchObject({ status: 'short', facts: { amps: 250, gauge: '6 AWG' } })
     })
     test('the words that name the array or the AC side, in English and Spanish, set a line aside', () => {
       const texts = [

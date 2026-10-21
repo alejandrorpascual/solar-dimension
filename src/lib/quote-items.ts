@@ -123,6 +123,8 @@ const FITTINGS = /terminal|conector|connector|zapata|\blugs?\b|mc4|conduit|tubo|
  * The short words are bounded by letters, as `LENGTH` is: "caída" and "cañería" are no "CA".
  */
 const OFF_BATTERY = /(?<!\p{L})(?:PV|FV|A\.?C\.?|C\.?A\.?)(?!\p{L})|solar|fotovolt|panel|corriente alterna/iu
+/** Wiring lines that name the battery ("baterías", "battery"): the battery cable, whatever solar, AC or lug word they also say. */
+const BATTERY = /bater[ií]a|batter(?:y|ies)/iu
 /** NEC 310.10(G): only conductors of 1/0 and larger may run in parallel, so only they can share one fuse. */
 const PARALLEL_MIN_AWG = '1/0 AWG'
 const PARALLEL_MIN_MM2 = GAUGES.find((g) => g.awg === PARALLEL_MIN_AWG)!.mm2
@@ -255,14 +257,17 @@ const lineText = (l: QuoteLine): string => `${l.description} ${l.source.text}`
 const isFitting = (l: QuoteLine): boolean => FITTINGS.test(lineText(l))
 /** A wiring line with no readable size that could be the main cable: not a lug, a connector, conduit or the ground. */
 const isOpenCable = (l: QuoteLine): boolean => lineSize(l.specs) === null && !isFitting(l)
+const namesBattery = (l: QuoteLine): boolean => BATTERY.test(lineText(l))
 /**
- * The wiring lines that can be the battery cable: those that name neither the solar array nor the AC side. When some were
- * set aside and only fittings are left, none: a ground wire or a lug is no main cable, so the quote names no battery cable.
- * ponytail: the ceiling is the `FITTINGS` word list: a battery cable written "con terminales" beside a solar line reads to confirm.
+ * The wiring lines that can be the battery cable: those that name the battery, and those that name neither the solar
+ * array nor the AC side. When some were set aside and only fittings are left, none: a ground wire or a lug is no main
+ * cable, so the quote names no battery cable.
+ * ponytail: the ceiling is the `BATTERY` word: a solar cable "al controlador de baterías", or lugs "para baterías", is read
+ * as the battery cable.
  */
 function batteryWiring(lines: readonly QuoteLine[]): QuoteLine[] {
-  const rest = lines.filter((l) => !OFF_BATTERY.test(lineText(l)))
-  return rest.length < lines.length && rest.every(isFitting) ? [] : rest
+  const rest = lines.filter((l) => namesBattery(l) || !OFF_BATTERY.test(lineText(l)))
+  return rest.length < lines.length && rest.every((l) => isFitting(l) && !namesBattery(l)) ? [] : rest
 }
 
 /**
@@ -297,12 +302,12 @@ function runsOf(lines: readonly QuoteLine[], mm2: number): number {
 }
 
 /**
- * Judged on the battery cable: a wiring line that names the solar array or the AC side is set aside, and a quote with no
- * other cable left (nothing, or only a ground wire or a lug) leaves it to confirm. Thinner than the kit's is short, and
- * no readable size leaves it to confirm. A size that the kit's current needs more than one run of passes only when the
- * quote counts their leads, or the leads of the kit's own main cable in its own runs beside string leads thicker than it.
- * A wiring line's quantity may be pieces, metres or one lot, so a count never fails a quote, it leaves it to confirm, and
- * a quantity that may be a length counts no leads.
+ * Judged on the battery cable: a wiring line that names the solar array or the AC side, and not the battery, is set
+ * aside, and a quote with no other cable left (nothing, or only a ground wire or a lug) leaves it to confirm. Thinner
+ * than the kit's is short, and no readable size leaves it to confirm. A size that the kit's current needs more than one
+ * run of passes only when the quote counts their leads, or the leads of the kit's own main cable in its own runs beside
+ * string leads thicker than it. A wiring line's quantity may be pieces, metres or one lot, so a count never fails a
+ * quote, it leaves it to confirm, and a quantity that may be a length counts no leads.
  */
 function checkCables(x: QuoteExtraction, kit: KitNeeds): ItemCheck {
   const wiring = ofKind(x, 'wiring', false)
