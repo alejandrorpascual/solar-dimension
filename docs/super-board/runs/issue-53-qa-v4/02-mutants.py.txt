@@ -1,0 +1,51 @@
+"""QA round 4 for #53: break quote-items.ts in small named ways, rerun the quote tests, restore. Prints one row per break."""
+import pathlib, re, subprocess, sys
+
+ROOT = pathlib.Path(sys.argv[1])
+SRC = ROOT / 'src/lib/quote-items.ts'
+TESTS = ['src/lib/quote-items.test.ts', 'src/lib/quote-text.test.ts']
+MUTANTS = [
+    ('wiringFor reads the description only (no source fallback)',
+     'for (const text of [l.description, l.source.text])', 'for (const text of [l.description])'),
+    ('wiringFor reads the source text first',
+     'for (const text of [l.description, l.source.text])', 'for (const text of [l.source.text, l.description])'),
+    ('wiringFor reads description + source as one text (round 3)',
+     'for (const text of [l.description, l.source.text])', 'for (const text of [lineText(l)])'),
+    ('wiringFor tests the solar/AC words before the battery word',
+     "    if (BATTERY.test(text)) return 'battery'\n    if (OFF_BATTERY.test(text)) return 'offBattery'",
+     "    if (OFF_BATTERY.test(text)) return 'offBattery'\n    if (BATTERY.test(text)) return 'battery'"),
+    ('batteryWiring every() ignores the battery word',
+     "rest.every((l) => isFitting(l) && wiringFor(l) !== 'battery')", 'rest.every((l) => isFitting(l))'),
+    ('batteryWiring never empties to fittings-only',
+     "return rest.length < lines.length && rest.every", 'return false && rest.every'),
+    ('fuse skips batteryWiring', "const wiring = batteryWiring(ofKind(x, 'wiring', false))", "const wiring = ofKind(x, 'wiring', false)"),
+    ('checkCables skips the unstated branch', "if (lines.length === 0) return check('cables', 'unknown', { batteryCableUnstated: true }, sourcesOf(wiring))",
+     "if (lines.length === 0) return absent('cables', x, 'wiring')"),
+    ('BATTERY loses the unaccented i', 'bater[ií]a', 'batería'),
+    ('BATTERY loses English', 'bater[ií]a|batter(?:y|ies)', 'bater[ií]a'),
+    ('OFF_BATTERY loses dotted A.C./C.A.', r'A\.?C\.?|C\.?A\.?', 'AC|CA'),
+    ('OFF_BATTERY loses PV/FV', '(?:PV|FV|A', '(?:A'),
+    ('OFF_BATTERY loses panel', '|panel|', '|'),
+    ('OFF_BATTERY loses the letter bounds', '(?<!\\p{L})(?:PV', '(?:PV'),
+    ('isFitting reads the description only', 'const isFitting = (l: QuoteLine): boolean => FITTINGS.test(lineText(l))',
+     'const isFitting = (l: QuoteLine): boolean => FITTINGS.test(l.description)'),
+]
+
+original = SRC.read_text()
+try:
+    for name, old, new in MUTANTS:
+        if old not in original:
+            print(f'NOT APPLIED  | {name}')
+            continue
+        SRC.write_text(original.replace(old, new, 1))
+        r = subprocess.run(['npx', 'vitest', 'run', *TESTS], cwd=ROOT, capture_output=True, text=True)
+        out = r.stdout + r.stderr
+        m = re.search(r'Tests\s+(?:(\d+) failed \| )?(\d+) passed', out)
+        failed = m.group(1) if m and m.group(1) else '0'
+        verdict = 'CAUGHT' if r.returncode != 0 else 'SURVIVES'
+        reds = sorted(set(re.findall(r'FAIL\s+\S+\s+>\s+(.+?)(?:\s+\d+ms)?$', out, re.M)))[:4]
+        print(f'{verdict:<9}| {failed:>2} red | {name}')
+        for t in reds:
+            print(f'           - {t.strip()[:150]}')
+finally:
+    SRC.write_text(original)
