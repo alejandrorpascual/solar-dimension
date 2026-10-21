@@ -55,7 +55,7 @@ function LoginPage() {
     <main className="page">
       <HeaderBar stepper={{ step: 1 }} />
       <section className="stage stage--narrow">
-        <h2>{mode === 'up' ? t.ui.signUp : t.ui.signIn}</h2>
+        <h1 className="stage__title">{mode === 'up' ? t.ui.signUp : t.ui.signIn}</h1>
         {googleEnabled && (
           <>
             <GoogleButton label={t.ui.continueGoogle} />

@@ -22,7 +22,7 @@ function cableRemedy(p: WarningParams): string {
 export const en: Dictionary = {
   locale: 'en',
   ui: {
-    step1: 'Appliances', step2: 'Backup window', step3: 'Solar panels', step4: 'Your kit', stepOf: 'Step {n} of 4',
+    steps: 'Steps', step1: 'Appliances', step2: 'Backup window', step3: 'Solar panels', step4: 'Your kit', stepOf: 'Step {n} of 4',
     project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
     firstProject: 'Home', projectNumbered: 'Project {n}', copySuffix: ' copy', customTag: 'Custom',
     acInverter: 'Inverter air conditioning', acInverterHelp: 'Soft start. Easy on the inverter.', acConventional: 'Conventional air conditioning', acConventionalHelp: 'Starts at ~3× its running power. Needs a bigger inverter.', acSizeOne: '{tons} ton · {btu}k BTU', acSizeMany: '{tons} ton · {btu}k BTU',

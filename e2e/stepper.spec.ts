@@ -11,6 +11,8 @@ const STEP_NAMES: Record<Language, readonly string[]> = {
   English: ['Step 1: Appliances', 'Step 2: Backup window', 'Step 3: Solar panels', 'Step 4: Your kit'],
   Español: ['Paso 1: Electrodomésticos', 'Paso 2: Horas de respaldo', 'Paso 3: Paneles solares', 'Paso 4: Tu kit'],
 }
+/** The stepper's navigation landmark, named in the page language. */
+const STEPPER_NAME: Record<Language, string> = { English: 'Steps', Español: 'Pasos' }
 const LOCK_TEXT: Record<Language, string> = { English: 'Add at least one appliance first', Español: 'Agrega al menos un aparato primero' }
 const LANGUAGES: readonly Language[] = ['English', 'Español']
 /** The header is the same on every step; step 2 has nothing wide of its own, so sideways scroll there is the header's. */
@@ -119,7 +121,7 @@ async function neighbourBoxes(page: Page): Promise<Record<string, Box>> {
  * not scroll sideways.
  */
 async function expectHeaderFits(page: Page, language: Language, where: string): Promise<void> {
-  const stepper = await boxOf(page.getByRole('navigation', { name: 'Steps' }))
+  const stepper = await boxOf(page.getByRole('navigation', { name: STEPPER_NAME[language] }))
   const steps = await Promise.all(stepButtons(page, language).map(boxOf))
   for (const [name, box] of Object.entries(await neighbourBoxes(page))) {
     expect([stepper, ...steps].some((part) => intersects(part, box)), `${where}: the stepper overlaps the ${name}`).toBe(false)
@@ -207,7 +209,7 @@ for (const language of LANGUAGES) {
 
   test(`${language}: the stepper has its own row beside the rail and shares the brand's row on a wide screen`, async ({ page }) => {
     await openHeaderIn(page, language)
-    const stepper = page.getByRole('navigation', { name: 'Steps' })
+    const stepper = page.getByRole('navigation', { name: STEPPER_NAME[language] })
     const brand = page.locator('header').getByText('Solar Dimension', { exact: true })
     await page.setViewportSize({ width: RAIL_MIN_WIDTH, height: SWEEP_HEIGHT })
     expect(sharesRow(await boxOf(stepper), await boxOf(brand))).toBe(false)
