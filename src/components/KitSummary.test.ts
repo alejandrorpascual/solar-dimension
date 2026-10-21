@@ -56,3 +56,15 @@ test('a bank that is the smallest its voltage allows gets the note that says so,
   const note: OversizeNote = { ratio: 11, needWh: 209, isSmallestBank: true, kitVolts: 24, inverterW: 2000, volts: 12, bankWh: 1200 }
   expect(noteOverPicker('en', note)).toBe('This bank holds 11× the 209 Wh the load needs: the kit cannot build a smaller bank at 24 V. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
 })
+
+test('with panels, the box under the parts list also says what the solar side does not size; without, it does not', () => {
+  view.locale = 'en'
+  const kit = (panels: number) => renderToStaticMarkup(createElement(KitSummary, {
+    result: compute({ qty: { fridge: 1, lights: 1 }, hours: 10, volts: 48, chemistry: 'lifepo4', solar: { roofM2: 40, panels, sunHours: 5 } }, CATALOG_SNAPSHOT),
+    baseline: null, projectName: 'Home', oversize: null, quickEdit: null, onBatteryUnit: () => {},
+  }))
+  const box = (html: string) => /<p class="estimate" role="note">([^<]*)<\/p>/.exec(html)?.[1].replace(/&#x27;/g, "'") ?? ''
+  expect(box(kit(4))).toMatch(/before you buy or install anything\. This kit does not size the solar side's ground-fault and surge protection, .* a qualified installer designs them\.$/)
+  expect(kit(4)).toContain('Controller to battery: cable and fuse')
+  expect(box(kit(0))).toMatch(/before you buy or install anything\.$/)
+})

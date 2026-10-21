@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
-import { FUSES, GAUGES } from '../catalog'
-import { canInterruptFault, conductorsFor, correctedAmpacity, maxStringAmps, sizeBankWiring, sizeMainCable, undersized } from './cable'
+import { FUSES, GAUGES, VOLTAGES } from '../catalog'
+import { AMBIENTS, INSULATIONS } from '../schema'
+import { SOLAR } from '../solar'
+import { canInterruptFault, conductorsFor, correctedAmpacity, maxStringAmps, sizeBankWiring, sizeControllerFeed, sizeMainCable, undersized } from './cable'
 import type { CableConditions } from './types'
 
 const room: CableConditions = { runLengthM: 1.5, ambientC: 30, bundled: false, insulationC: 90 }
@@ -384,5 +386,41 @@ describe('sizeBankWiring', () => {
       { conductor: 'stringLeads', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7, ...ways },
       { conductor: 'interconnects', gauge: '4/0 AWG', maxA: 172.5, needA: 173.7, ...ways },
     ])
+  })
+})
+
+describe('sizeControllerFeed', () => {
+  /** Each controller rating, the fuse 1.25 × it rounds up to, and the smallest gauge that carries that fuse in open air. */
+  const COOL_90: readonly (readonly [number, number, string])[] = [[30, 40, '8 AWG'], [40, 50, '8 AWG'], [60, 80, '4 AWG'], [80, 100, '2 AWG'], [100, 125, '1 AWG']]
+  /** At 50 °C on 75 °C cable every gauge carries 0.75 of its table figure. */
+  const HOT_75: readonly (readonly [number, number, string])[] = [[30, 40, '6 AWG'], [40, 50, '4 AWG'], [60, 80, '2 AWG'], [80, 100, '1/0 AWG'], [100, 125, '2/0 AWG']]
+
+  test.each(COOL_90)('a %i A controller gets a %i A class T fuse and %s at 30 °C, at every bank voltage', (controllerA, fuseA, gauge) => {
+    for (const volts of VOLTAGES) {
+      expect(sizeControllerFeed(controllerA, 2, volts, room, GAUGES, FUSES)).toMatchObject({ controllerA, gauge, fuse: { a: fuseA, class: 'T', count: 2 } })
+    }
+  })
+
+  test.each(HOT_75)('a %i A controller keeps its %i A fuse and goes up to %s in 50 °C air on 75 °C cable', (controllerA, fuseA, gauge) => {
+    const hot = { ...room, ambientC: 50, insulationC: 75 as const }
+    expect(sizeControllerFeed(controllerA, 1, 48, hot, GAUGES, FUSES)).toMatchObject({ gauge, fuse: { a: fuseA, count: 1 } })
+  })
+
+  test('runs in open air: a bundled main run does not derate it', () => {
+    expect(sizeControllerFeed(100, 1, 48, { ...room, bundled: true }, GAUGES, FUSES)).toEqual(sizeControllerFeed(100, 1, 48, room, GAUGES, FUSES))
+  })
+
+  test('every rating, at every voltage and in every air and insulation step 2 offers, gets a cable that carries its fuse', () => {
+    const short = VOLTAGES.flatMap((volts) => SOLAR.CONTROLLER_AMPS.flatMap((controllerA) => AMBIENTS.flatMap((ambientC) => INSULATIONS.map((insulationC) => {
+      const feed = sizeControllerFeed(controllerA, 1, volts, { ...room, ambientC, insulationC }, GAUGES, FUSES)
+      return feed.ampacity >= feed.fuse.a && feed.fuse.a >= controllerA * 1.25 ? '' : `${volts} V · ${controllerA} A · ${ambientC} °C · ${insulationC} °C: ${feed.fuse.a} A on ${feed.gauge} (${feed.ampacity} A)`
+    })))).filter(Boolean)
+    expect(short).toEqual([])
+  })
+
+  test('prints what the cable carries rounded down, so it never reads as more than it is', () => {
+    expect(sizeControllerFeed(100, 1, 48, { ...room, ambientC: 40 }, GAUGES, FUSES)).toMatchObject({ gauge: '1 AWG', ampacity: 130 })
+    // 1 AWG at 45 °C: 145 × 0.87 = 126.15 A.
+    expect(sizeControllerFeed(100, 1, 48, { ...room, ambientC: 45 }, GAUGES, FUSES)).toMatchObject({ gauge: '1 AWG', ampacity: 126 })
   })
 })

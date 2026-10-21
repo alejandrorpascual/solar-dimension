@@ -14,6 +14,10 @@ const es = getDictionary('es')
 const ESTIMATE_EN = '"An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything."'
 const ESTIMATE_ES = '"Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada."'
 
+/** What the solar side does not size, as the file writes it: one cell, quoted for its commas. */
+const NOT_SIZED_EN = `"This kit does not size the solar side's ground-fault and surge protection, grounding, the controller's voltage window or the roof structure; a qualified installer designs them."`
+const NOT_SIZED_ES = '"De la parte solar, este kit no dimensiona la protección contra fallas a tierra y sobretensiones, la puesta a tierra, la ventana de voltaje del controlador ni la estructura del techo; las diseña un instalador calificado."'
+
 const FILE: KitCsvFile = { projectName: 'Home', date: 'Oct 19, 2026', delimiter: ',' }
 /** The file's lines without the BOM. */
 const rows = (csv: string) => csv.slice(1).split('\r\n')
@@ -116,6 +120,22 @@ describe('csvFor', () => {
         expect(lines.slice(-2)).toEqual(['', estimate])
       }
     }
+  })
+
+  test('a kit with panels lists one controller-to-battery row per controller and, whatever is ticked, closes with what the solar side does not size', () => {
+    const solar = compute({ qty: DEFAULT_QTY, hours: 10, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-200', solar: { roofM2: 40, panels: 10, sunHours: 5 } }, CATALOG_SNAPSHOT)
+    const english = rows(csvFor(solar, buildParts(solar, en, 'en'), { appliances: false, parts: true }, en, FILE))
+    expect(english.filter((l) => l.startsWith('Controller to battery: cable and fuse,125 A class T fuse · 1 AWG (42.4 mm²) copper,') && l.endsWith(',1'))).toHaveLength(1)
+    expect(english.slice(-3)).toEqual(['', ESTIMATE_EN, NOT_SIZED_EN])
+    const spanish = csvFor(solar, buildParts(solar, es, 'es'), { appliances: false, parts: true }, es, FILE)
+    expect(rows(spanish).some((l) => l.startsWith('Controlador a batería: cable y fusible,Fusible de 125 A clase T · 1 AWG (42.4 mm²) de cobre,'))).toBe(true)
+    expect(body(csvFor(solar, [], { appliances: false, parts: false }, es, FILE))).toEqual([ESTIMATE_ES, NOT_SIZED_ES])
+  })
+
+  test('a kit without panels has neither the controller row nor the solar sentence', () => {
+    const csv = csvFor(result, buildParts(result, en, 'en'), { appliances: true, parts: true }, en, FILE)
+    expect(csv).not.toContain('Controller to battery')
+    expect(csv).not.toContain(NOT_SIZED_EN)
   })
 
   test('a sound kit has no attention block', () => {

@@ -13,7 +13,7 @@ export interface Dictionary {
   chemistries: Record<ChemistryId, string>
   voltageHints: Record<Voltage, string>
   warnings: Record<WarningCode, (p: WarningParams) => string>
-  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'stringLeads' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
+  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'stringLeads' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'controllerBattery' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
   /** Load kinds as the schedule groups them. */
   kinds: Record<LoadKind, string>
   /** Installation notes a bank with parallel strings carries. */
@@ -71,7 +71,8 @@ export type UiKey =
   | 'clearDay' | 'flowSun' | 'flowBank' | 'flowHome' | 'coverHead' | 'coverAxis'
   | 'refillSameDay' | 'refillDays' | 'noPanelsYet' | 'cloudyDay' | 'cloudyNote' | 'solarAssumptions'
   | 'solarRecharge' | 'solarRechargeSub' | 'nextSolar' | 'footerSolar' | 'footerSolarNone' | 'footer4Solar'
-  | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'pvCableSpec' | 'pvCableNote'
+  | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'controllerBatterySpec' | 'controllerBatteryNote'
+  | 'pvCableSpec' | 'pvCableNote' | 'solarNotSized'
   | 'pvDisconnectSpec' | 'pvDisconnectNote' | 'mountingSpec' | 'mountingNote' | 'solarTag' | 'fineSolar'
   | 'stringsOne' | 'stringsMany'
   | 'average' | 'averageWatts' | 'kind'

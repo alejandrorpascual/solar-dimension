@@ -35,11 +35,12 @@ interface Props {
  * `data-pdf-break` asks for a new page there (see `pageSlices` for when one is not started).
  *
  * Three things are on the sheet whatever is ticked, because the person pricing the kit may see nothing else: the
- * sentence that says this is an estimate, the notes no check owns, and every check that fails. The sentence opens the
- * footer block, which follows the parts list when one prints and holds the assumptions when those are ticked. The
- * notes and the failing checks print last, so they take no room on page one, and when either exists the header says
- * so beside the subtitle, in a pill no taller than the subtitle's line. The pill adds height only if the two cannot
- * share the row and it wraps under the subtitle (see `.ksheet__subrow`).
+ * sentence that says this is an estimate (with panels, also the one that says what the solar side does not size), the
+ * notes no check owns, and every check that fails. Those sentences open the footer block, which follows the parts list
+ * when one prints and holds the assumptions when those are ticked. The notes and the failing checks print last, so
+ * they take no room on page one, and when either exists the header says so beside the subtitle, in a pill no taller
+ * than the subtitle's line. The pill adds height only if the two cannot share the row and it wraps under the subtitle
+ * (see `.ksheet__subrow`).
  */
 export function KitSheet({ projectName, result: r, parts, requester, include, date, t, locale, ref }: Props) {
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
@@ -117,6 +118,7 @@ export function KitSheet({ projectName, result: r, parts, requester, include, da
 
       <div className="ksheet__foot" data-pdf-block="">
         <p className="ksheet__estimate">{t.ui.estimateNotice}</p>
+        {hasPanels(r) && <p className="ksheet__estimate">{t.ui.solarNotSized}</p>}
         {include.notes && <p className="ksheet__fine">{finePrint(t, r, dod, locale)}</p>}
       </div>
 
