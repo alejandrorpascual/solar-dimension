@@ -1,0 +1,58 @@
+QA round 3 for #53 · PR #169 · head 0160d64 · base origin/staging a1da8c5 (merges clean)
+
+GATE (head 0160d64)
+  npm run typecheck                                   exit 0
+  npm run test:coverage                               105 files, 1852 tests passed · quote-items.ts 99.6% lines
+  npm run build                                       exit 0
+  npx vitest run src/lib/quote-items.test.ts src/lib/quote-text.test.ts   174 passed
+  e2e, desktop, E2E_PORT=4106: quotes, quote-lines, quote-evidence, quote-plausibility + UI probe   35 passed
+    the server needs BETTER_AUTH_SECRET, which is only in the production env file QA may not read;
+    QA started it with a random secret made for this run (test database only, never written to a file)
+
+WITNESSES (02-witnesses-probe.test.ts.txt, KIT needs 2/0 AWG), quote-items.ts at three revisions
+  "split" = a wiring line split from one quote line: its own description, the bundle's words as source.text,
+  as the model is told to write them (src/server/quotes/model.ts:41)
+
+  AC  witness                                                   want                      0160d64 head        732fde1 round 2     3ca1535 staging
+  AC1 own lines: 4/0 AC feeder + 6 AWG battery                  short 6 AWG               short 6 AWG         short 6 AWG         ok 4/0
+  AC1 split from "Cableado: alimentador CA 4/0 AWG y cable      short 6 AWG               ok 4/0     FAIL     unknown (unstated)  ok 4/0
+      de baterías 6 AWG"
+  AC1 same split lines + 250 A fuse                             short 6 AWG               unknown 4/0 FAIL    ok                  unknown 4/0
+  AC2 own line: solar 10 AWG alone                              unknown, unstated         unknown, unstated   unknown, unstated   short 10 AWG
+  AC2 split from "Kit solar: 4 paneles 550 W, 2 baterías de     unknown, unstated         short 10 AWG FAIL   unknown, unstated   short 10 AWG
+      litio 200 Ah, cable solar 10 AWG 30 m"
+  AC2 split from "Solar kit: ... 200 Ah batteries, 10 AWG       unknown, unstated         short 10 AWG FAIL   unknown, unstated   short 10 AWG
+      PV wire"
+  AC3 R5: solar 10 AWG + "Cable 4/0 AWG baterías a inversor     ok 4/0                    ok 4/0              unknown (unstated)  ok 4/0
+      solar"
+  AC3 R5: solar 10 AWG + "Cable 4/0 AWG baterías con terminales" ok 4/0                   ok 4/0              unknown (unstated)  ok 4/0
+  AC3 R5: split "Cableado 4/0 AWG a baterías" from              ok 4/0                    ok 4/0              unknown (unstated)  ok 4/0
+      "Controlador solar MPPT ..."
+  AC3 split solar 10 AWG + battery 4/0 from one kit line        ok 4/0                    ok 4/0              unknown (unstated)  ok 4/0
+  AC4 own lines: solar 10 AWG + unsized battery cable           unknown, size             unknown, size       unknown, size       unknown, size
+  AC4 same, split from one kit line                             unknown, size             unknown, size       unknown (unstated)  unknown, size
+  R1  solar 4/0 + ground wire 6 AWG                             unknown, unstated         unknown, unstated   unknown, unstated   ok 4/0
+
+CAUSE
+  namesBattery reads lineText = description + source.text (src/lib/quote-items.ts:256, :260). Lines split from one
+  quote line share its source text, so one "baterías" in the bundle keeps every line split from it, the AC feeder and
+  the solar cable included (:269). Round 2 had these right; the R5 fix turned them back to the staging verdict.
+
+FIX DIRECTION, tried and reverted (not committed)
+  namesBattery = BATTERY.test(l.description)       174/174 quote tests green · every witness above reads as wanted
+
+ON THE PAGE (ui-main-cables-text-after.json, screenshots after-*.png, head 0160d64, kit needs 2 AWG)
+  ac1-split: Main cables ✓ 4/0 AWG, citing the bundle line; the 6 AWG battery cable decides nothing
+  ac2-split: Main cables ✗ 10 AWG "Your kit needs 2 AWG"; the quote reads "Doesn't fit: its cables are thinner than 2 AWG"
+  ac3-r5:    Main cables ✓ 4/0 AWG, citing "Cable 4/0 AWG baterías a inversor solar"
+  probe: the round-2 probe (../issue-53-qa-v2/06-ui-probe.spec.ts.txt) with OUT set to this folder, a `source` per
+  wiring line (coalesce(source, text) in the SQL) and these three scenarios
+
+MUTANTS on the R5 code (quote-items + quote-text tests)
+  every() ignores namesBattery 2 red · filter ignores namesBattery 3 red · BATTERY loses i 1 red
+  BATTERY Spanish only 1 red · fuse skips batteryWiring 3 red · BATTERY accented only ("batería"): SURVIVES
+
+TEST GAPS (not written, none blocks)
+  Medium  "Cable 4/0 AWG bateria a inversor solar" (no accent): no test; the accented-only mutant survives
+  Medium  "Cable solar 10 AWG al controlador de baterías" alone reads short 10 AWG (want unknown): the Builder's stated ceiling
+  Medium  "Zapatas 2/0 para baterías" beside "Cable solar 4/0 AWG" reads ok 2/0 (want unknown, R1): the Builder's stated ceiling

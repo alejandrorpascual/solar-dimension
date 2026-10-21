@@ -1,0 +1,44 @@
+// QA round 3 witness probe for #53. Prints the cables and fuse verdicts for each witness; asserts nothing.
+import { test } from 'vitest'
+import { extraction, line, SAMPLE_KIT as KIT } from './quote-fixtures'
+import { checkItems, type ItemId } from './quote-items'
+import type { QuoteLine } from './quote-schema'
+
+const named = (text: string, awg: string | null = null, qty = 1) =>
+  line('wiring', 1, { qty, description: text, source: { page: 1, text }, specs: { awg } })
+/** A wiring line split from a bundle: its own description, the bundle's words as its source. */
+const split = (description: string, bundle: string, awg: string | null) =>
+  line('wiring', 0, { description, source: { page: 1, text: bundle }, specs: { awg } })
+const fuse = (fuseAmps: number) => line('fuse', 1, { specs: { fuseAmps, fuseClass: 'T' } })
+const verdict = (lines: QuoteLine[], id: ItemId) => {
+  const c = checkItems(extraction(lines), KIT).find((x) => x.id === id)!
+  const f = c.facts as Record<string, unknown>
+  return `${c.status} ${JSON.stringify({ gauge: f.gauge, amps: f.amps, batteryCableUnstated: f.batteryCableUnstated, sizeUnknown: f.sizeUnknown })}`
+}
+
+const KIT_ES = 'Kit solar: 4 paneles 550 W, 2 baterías de litio 200 Ah, cable solar 10 AWG 30 m'
+const KIT_EN = 'Solar kit: 4 x 550 W panels, 2 x 200 Ah batteries, 10 AWG PV wire'
+const WIRING_KIT = 'Cableado: alimentador CA 4/0 AWG y cable de baterías 6 AWG'
+
+const witnesses: Array<[string, string, QuoteLine[], ItemId, string]> = [
+  ['AC1', "ticket example, own lines", [named('Cable 4/0 AWG AC feeder', '4/0'), named('Cable 6 AWG battery', '6')], 'cables', 'short 6 AWG'],
+  ['AC1', 'AC feeder + 6 AWG battery split from one wiring line', [split('Alimentador CA 4/0 AWG', WIRING_KIT, '4/0'), split('Cable de baterías 6 AWG', WIRING_KIT, '6')], 'cables', 'short 6 AWG'],
+  ['AC1', 'same split lines, 250 A fuse', [split('Alimentador CA 4/0 AWG', WIRING_KIT, '4/0'), split('Cable de baterías 6 AWG', WIRING_KIT, '6'), fuse(250)], 'fuse', 'short 6 AWG'],
+  ['AC2', 'solar cable alone, own line', [named('Cable solar 6 mm² (10 AWG), 20 m', '10')], 'cables', 'unknown batteryCableUnstated'],
+  ['AC2', 'solar cable split from a kit line that names batteries (es)', [split('Cable solar 10 AWG, 30 m', KIT_ES, '10')], 'cables', 'unknown batteryCableUnstated'],
+  ['AC2', 'PV wire split from a kit line that names batteries (en)', [split('PV wire 10 AWG', KIT_EN, '10')], 'cables', 'unknown batteryCableUnstated'],
+  ['AC2', "solar cable 'al controlador de baterías' (builder's stated ceiling)", [named('Cable solar 10 AWG al controlador de baterías', '10')], 'cables', 'unknown batteryCableUnstated'],
+  ['AC3', 'R5: PV cable + battery line that says inversor solar', [named('Cable solar 6 mm² (10 AWG), 20 m', '10'), named('Cable 4/0 AWG baterías a inversor solar', '4/0')], 'cables', 'ok 4/0 AWG'],
+  ['AC3', 'R5: solar 10 AWG + battery line con terminales', [named('Cable solar 10 AWG', '10'), named('Cable 4/0 AWG baterías con terminales', '4/0')], 'cables', 'ok 4/0 AWG'],
+  ['AC3', 'R5: bundle from controlador solar, own words name battery', [split('Cableado 4/0 AWG a baterías', 'Controlador solar MPPT 100 A con cableado 4/0 AWG a baterías', '4/0')], 'cables', 'ok 4/0 AWG'],
+  ['AC3', 'PV cable + 4/0 battery cable split from a kit line', [split('Cable solar 10 AWG', 'Kit: cable solar 10 AWG y cable de baterías 4/0 AWG', '10'), split('Cable de baterías 4/0 AWG', 'Kit: cable solar 10 AWG y cable de baterías 4/0 AWG', '4/0')], 'cables', 'ok 4/0 AWG'],
+  ['AC4', 'PV cable + unsized battery cable', [named('Cable solar 6 mm² (10 AWG), 20 m', '10'), named('Cableado de baterías')], 'cables', 'unknown sizeUnknown'],
+  ['AC4', 'PV cable + unsized battery cable split from a kit line', [split('Cable solar 10 AWG', 'Kit: cable solar 10 AWG y cableado de baterías', '10'), split('Cableado de baterías', 'Kit: cable solar 10 AWG y cableado de baterías', null)], 'cables', 'unknown sizeUnknown'],
+  ['R1', "solar 4/0 + sized lugs 'para baterías' (builder's stated ceiling)", [named('Cable solar 4/0 AWG', '4/0'), named('Zapatas 2/0 para baterías', '2/0')], 'cables', 'unknown batteryCableUnstated'],
+  ['R1', 'solar 4/0 + ground wire', [named('Cable solar 4/0 AWG', '4/0'), named('Cable de tierra física 6 AWG', '6')], 'cables', 'unknown batteryCableUnstated'],
+]
+
+test('qa53 witnesses', () => {
+  const rows = witnesses.map(([ac, name, lines, id, want]) => `${ac} | ${name} | want: ${want} | got: ${verdict(lines, id)}`)
+  console.log(`\n${rows.join('\n')}\n`)
+})
