@@ -1,0 +1,16 @@
+{
+  "heading": {
+    "tag": "H2",
+    "fontSize": "24px",
+    "fontWeight": "700",
+    "lineHeight": "25.2px",
+    "letterSpacing": "-0.48px",
+    "top": 137,
+    "height": 25.1875
+  },
+  "slider": {
+    "value": "10",
+    "min": "1",
+    "max": "48"
+  }
+}
