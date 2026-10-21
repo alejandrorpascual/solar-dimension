@@ -31,6 +31,8 @@
 # (no subshell, no `exec` of a native PE), so `$!` names the worker itself rather than a bash stub.
 
 set -euo pipefail
+# Fixed read commands: a malformed payload is GitHub's, so it halts (#32).
+export SB_GITHUB_READ_STRICT=1
 SB_GITHUB_READ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/super-board-github-read.py"
 gh_checkpoint() { python3 "$SB_GITHUB_READ" --check || exit $?; }
 gh_write_once() {
@@ -349,7 +351,8 @@ dispatch_lane() {
     printf 'prompt: %s\n\n' "$prompt"
   } >> "$worker_log"
   gh_checkpoint
-  nohup claude -p "$prompt" >> "$worker_log" 2>&1 &
+  # Lanes are agents: their misreads fail one call, not the run, so they read without strict mode.
+  nohup env -u SB_GITHUB_READ_STRICT claude -p "$prompt" >> "$worker_log" 2>&1 &
   pid=$!
   DISPATCH_COUNT=$((DISPATCH_COUNT + 1))
   DISPATCH_LOG="${DISPATCH_LOG}${issue}

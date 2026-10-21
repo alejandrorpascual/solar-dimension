@@ -22,6 +22,8 @@
 #
 # Stdout: the issue number (new, or the existing one on a fingerprint hit).
 set -euo pipefail
+# Fixed read commands: a malformed payload is GitHub's, so it halts (#32).
+export SB_GITHUB_READ_STRICT=1
 
 CONFIG=""; TITLE=""; BODY_FILE=""; FINGERPRINT=""
 FILES=""; STRENGTH="worth-exploring"; AREA=""; PR=""; COLUMN=""

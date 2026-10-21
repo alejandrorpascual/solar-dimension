@@ -58,6 +58,8 @@
 # "nothing on this board clears it" — credentials, permissions, a product ruling.
 # The sweep must never free one of those; only a person can.
 set -euo pipefail
+# Fixed read commands: a malformed payload is GitHub's, so it halts (#32).
+export SB_GITHUB_READ_STRICT=1
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO=""; LIMIT="200"; ONLY=""; FROM=""

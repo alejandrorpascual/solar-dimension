@@ -30,6 +30,8 @@
 #         70 gh failure · 71 filed but not placed (number still on stdout)
 #         79 repository paused (existing issue number still on stdout after discovery)
 set -uo pipefail
+# Fixed read commands: a malformed payload is GitHub's, so it halts (#32).
+export SB_GITHUB_READ_STRICT=1
 
 ORIGINAL_ARGS=("$@")
 CONFIG=""; TYPE=""; SOURCE=""; TITLE=""; BODY_FILE=""; FP=""

@@ -44,9 +44,12 @@ Required reads use `.claude/bin/super-board-github-read.py --kind <shape> -- <gh
 Three total attempts means the first attempt plus two retries of that same read;
 unrelated successful calls do not reset its failures. Invalid GraphQL queries,
 authentication, and permission errors stop immediately. Do not retry mutations.
-A payload that misses an agent-facing `--kind` shape (`READ_SHAPES` in
-`workflows/super-board-wave.js`) exits 64 for that call only, printing the valid
-form; it never halts the run. Fixed-command scripts set `SB_GITHUB_READ_STRICT=1`.
+A misread exits 64 for that call only and never halts the run: a payload that
+misses its `--kind` shape on all three attempts (the valid form is printed for the
+agent-facing kinds in `READ_SHAPES`, `workflows/super-board-wave.js`), or a gh
+usage error such as `--slurp` with `--jq`, which fails at once without a retry.
+Fixed-command scripts set `SB_GITHUB_READ_STRICT=1`, so both halt there.
+`--kind metadata` pages the PR's files from REST, so PRs over 100 files pass.
 
 Exit **79**, a workflow result with `halted: true`, or a failed `--check` ends this
 run. Check the helper's `--check` before claims, board/comment writes, each new

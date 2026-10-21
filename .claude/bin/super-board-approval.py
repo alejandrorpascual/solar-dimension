@@ -12,6 +12,7 @@ from pathlib import Path
 from datetime import datetime
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -264,6 +265,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # Fixed read commands: a malformed payload is GitHub's, so it halts (#32).
+    os.environ.setdefault("SB_GITHUB_READ_STRICT", "1")
     try:
         main()
     except github_read.ReadHalted as error:
