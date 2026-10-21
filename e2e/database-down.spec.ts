@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { OWNER_KEY, STORAGE_KEY } from '../src/lib/persistence'
-import { openProjectTitle, renameOpenProject, RETRY_AFTER_MS } from './projects'
+import { openProjectTitle, renameOpenProject, RETRY_AFTER_MS, showDownload } from './projects'
 import { signUp } from './quotes'
 import { DOWN_PORT } from './servers'
 
@@ -21,9 +21,15 @@ async function storeCopy(page: Page, copy: StoredCopy): Promise<void> {
   }, [STORAGE_KEY, OWNER_KEY, copy.projects ?? '', copy.owner ?? ''])
 }
 
+/** Everything this browser stores for the page's origin. */
+const everythingStored = (page: Page): Promise<Record<string, string>> => page.evaluate(() => ({ ...localStorage }))
+
+const unreachableNotice = (page: Page) =>
+  page.getByRole('status').filter({ hasText: 'Could not reach your account. You can keep building the kit; changes stay on this page only.' })
+
 async function expectBuilderWithNotice(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
-  await expect(page.getByRole('status').filter({ hasText: 'Could not reach your account. You can keep building the kit; changes stay on this page only.' })).toBeVisible()
+  await expect(unreachableNotice(page)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Something interrupted the kit builder.' })).toHaveCount(0)
 }
 
@@ -59,4 +65,37 @@ test('with the database down, a signed-in browser keeps sizing and leaves the ac
   await expectBuilderWithNotice(page)
   await expect(freezers).toHaveCount(0)
   expect(await storedCopy(page)).toEqual(copy)
+})
+
+test('with the database down, client details stay on the page: the browser keeps neither the draft nor the saved client', async ({ page }) => {
+  await signUp(page)
+  await page.goto(`${DOWN_SERVER}/?step=4`)
+  await expect(unreachableNotice(page)).toBeVisible()
+  const held = await everythingStored(page)
+  await showDownload(page)
+  const form = page.getByRole('dialog', { name: 'Client details' })
+  const addClient = page.getByRole('button', { name: /^Add client details/ })
+
+  await addClient.click()
+  await form.getByLabel('Full name').fill('Ann Lee')
+  await expect(form.getByText('Draft saved on this device')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(form).toBeHidden()
+  expect(await everythingStored(page)).toEqual(held)
+
+  await addClient.click()
+  await expect(form.getByText('Picking up where you left off')).toBeVisible()
+  await expect(form.getByRole('checkbox', { name: 'Save to my clients' })).toBeChecked()
+  await form.getByRole('button', { name: 'Save' }).click()
+  await page.getByRole('button', { name: 'Change: Ann Lee' }).click()
+  const list = page.getByRole('dialog', { name: 'Who is this spec sheet for?' })
+  await expect(list.getByRole('radio', { name: /Ann Lee/ })).toBeChecked()
+  await expect(list.getByText('Only in this project')).toHaveCount(0)
+  expect(await everythingStored(page)).toEqual(held)
+
+  await page.reload()
+  await showDownload(page)
+  await addClient.click()
+  await expect(form.getByLabel('Full name')).toHaveValue('')
+  await expect(form.getByText('Picking up where you left off')).toHaveCount(0)
 })

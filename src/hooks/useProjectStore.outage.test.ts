@@ -2,8 +2,8 @@
 // cannot tell who. What it does with the projects of whoever is signed in is in useProjectStore.accounts.test.ts.
 import { afterAll, afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { addProject, setQty } from '../lib/store'
-import { account, net, resetServer, session } from './fake-account-server'
-import { edit, fakeStorage, home, mount, names, openBrowser, unmount, type FakeStorage } from './project-store-harness'
+import { account, accounts, clock, net, resetServer, session } from './fake-account-server'
+import { edit, fakeStorage, home, mount, names, openBrowser, rerender, unmount, type FakeStorage } from './project-store-harness'
 
 vi.mock('../server/projects', () => import('./fake-account-server'))
 // What the root route read: during an outage it has no user and says the account was unreachable.
@@ -18,6 +18,7 @@ vi.mock('./useRootData', async () => {
 })
 
 const ANA = { id: 'user-ana' }
+const HOUR_MS = 3_600_000
 
 let browser: FakeStorage
 
@@ -60,4 +61,24 @@ test("while the account cannot be read, the page starts empty, keeps its edits t
   const back = await mount()
   expect(names(back.store.projects)).toEqual(['Home', 'Clinic for Lopez'])
   expect(names(account(ANA))).toEqual(['Home', 'Clinic for Lopez'])
+})
+
+test("a save answered after the account became unreachable leaves the account's copy this browser holds as it was", async () => {
+  session.user = ANA
+  await mount()
+  // The account holds a newer Home, so the save below is refused and answered with that copy.
+  accounts.set(ANA.id, account(ANA).map((p) => ({ ...p, hours: 20, updatedAt: clock.now() + HOUR_MS })))
+  let answer!: () => void
+  net.gate = new Promise<void>((resolve) => { answer = resolve })
+  await edit((h) => h.commit(setQty(h.store, 'fridge', 7)))
+  const accountCopy = everythingStored()
+
+  // The root route is read again while the save is in flight (a language switch does it), and the session read fails.
+  page.isAccountUnreachable = true
+  const outage = await rerender()
+  answer()
+  const answered = await edit(() => undefined)
+
+  expect(answered.store).toEqual(outage.store)
+  expect(everythingStored()).toBe(accountCopy)
 })
