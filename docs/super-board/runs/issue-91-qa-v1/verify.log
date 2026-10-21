@@ -1,0 +1,7 @@
+# Verify for issue #91 at 120aee7 (config verify_commands), run in a clone with npm ci
+$ npm run typecheck   -> exit 0
+$ npm run test:coverage
+Test Files  104 passed (104)
+Tests  1785 passed (1785)
+-> exit 0
+$ npm run build       -> exit 0
