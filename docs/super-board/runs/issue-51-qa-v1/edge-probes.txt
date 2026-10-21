@@ -1,0 +1,6 @@
+# Edge probes in the harness and with node Intl
+E1 375 px · 300-char unbroken description, qty 1234.5, 999,999.99 RD$ unit, 1,234,567.89 RD$ total · scrollWidth 375: fits (edge-long-line-mobile.png)
+E2 320 px · same line · scrollWidth 347: 27 px sideways scroll. SolarTec rows at 320 px fit. Low
+E3 unit price 0.125, qty 4000, total 500 · unit shows $0.13 beside $500 (reads as $520). Low
+E4 fmtMoney(45.5, 'USD', 'es', 2) -> 'USD 45.50' · not pinned by a test. Low
+E5 line total 1890.0000001 -> '$1,890.00'. Low
