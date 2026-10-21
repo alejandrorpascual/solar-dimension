@@ -101,9 +101,10 @@ for (const language of ['English', 'Español'] as const) {
   })
 }
 
+const fontSize = (control: Locator) => control.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
+
 test('on a touch screen the duty picker is at least 16 px, so iOS Safari does not zoom in when it is tapped', PHONE, async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'iOS zooms on focus only on touch devices')
-  const fontSize = (picker: Locator) => picker.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
 
   await page.goto('/')
   const onCard = page.getByLabel(FRIDGE_DUTY.English)
@@ -113,6 +114,19 @@ test('on a touch screen the duty picker is at least 16 px, so iOS Safari does no
   await page.goto('/?step=4')
   const panel = await openQuickEdit(page)
   expect(await fontSize(panel.getByLabel(FRIDGE_DUTY.English))).toBeGreaterThanOrEqual(IOS_NO_ZOOM_PX)
+})
+
+test('on a touch screen the quantity fields are at least 16 px, so iOS Safari does not zoom in when one is tapped', PHONE, async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'iOS zooms on focus only on touch devices')
+
+  await page.goto('/')
+  const onCard = cardOf(page, 'Refrigerator').getByLabel('Quantity of Refrigerator')
+  await expect(onCard).toBeVisible()
+  expect(await fontSize(onCard)).toBeGreaterThanOrEqual(IOS_NO_ZOOM_PX)
+
+  await page.goto('/?step=4')
+  const panel = await openQuickEdit(page)
+  expect(await fontSize(panel.getByLabel('Quantity of Refrigerator'))).toBeGreaterThanOrEqual(IOS_NO_ZOOM_PX)
 })
 
 interface CardControls { name: string; top: number; controlsBottom: number; hasMeter: boolean; isAdded: boolean }

@@ -7,6 +7,8 @@
   --faint: #8A93A0;
   --line: #DDE2E9;
   --line-strong: #C9D0DA;
+  /* The edge of a text field or select: 3.6:1 on white and 3.2:1 on --ground, where --line is 1.3:1 and 1.2:1 (WCAG 1.4.11 asks 3:1). */
+  --field-line: #7F8896;
   --accent: #2447E6;
   --accent-hover: #1A36B8;
   --accent-tint: #EEF2FF;

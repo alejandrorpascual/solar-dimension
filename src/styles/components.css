@@ -56,7 +56,7 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; gap:
 a.btn:hover { color: var(--ink); }
 a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 .btn--quiet { border-color: var(--line-strong); }
-.in { font-size: 15px; min-height: var(--tap); padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
+.in { font-size: 15px; min-height: var(--tap); padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--field-line); background: var(--surface); color: var(--ink); width: 100%; }
 .in:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 /* iOS Safari zooms the page in when a field under 16 px gets focus; zoomed, it scrolls the page under any open dialog
    (and react-aria stops tracking the keyboard), so the field you tapped ends up behind the keyboard. */
@@ -120,8 +120,10 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 .add:hover { border-color: var(--accent); color: var(--accent); }
 .stepper-qty { display: flex; align-items: center; gap: 6px; }
 .stepper-qty__n { width: 44px; height: 38px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink); text-align: center; font: inherit; font-weight: 700; font-size: 15px; }
-.stepper-qty__n:hover { border-color: var(--line); }
+.stepper-qty__n:hover { border-color: var(--field-line); }
 .stepper-qty__n:focus { outline: none; border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-ring); }
+/* iOS Safari zooms the page in when a field under 16 px gets focus (see the .in rule above). */
+@media (pointer: coarse) { .stepper-qty__n { font-size: 16px; } }
 .st { width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--line-strong); background: var(--surface); font-size: 20px; display: flex; align-items: center; justify-content: center; }
 .st:hover { border-color: var(--accent); color: var(--accent); }
 .x { width: 32px; height: 32px; border-radius: 999px; border: 0; background: #E6EAF0; color: var(--muted); font-size: 15px; flex-shrink: 0; }
