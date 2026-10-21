@@ -84,6 +84,9 @@ export function parallelNotes(battery: BatteryPick | null): ParallelNote[] {
 /** Whether a warning is about inverters working in parallel, which its wording then names as a set. */
 export const isInverterSet = (p: WarningParams): boolean => (p.inverters ?? 1) > 1
 
+/** Whether the bank a warning is about has a BMS to cut out: AGM lead-acid has none. */
+export const hasBms = (p: WarningParams): boolean => p.chemistry !== 'agm'
+
 /** What inverters working in parallel need on the install sheet. */
 export function inverterNotes(inverter: InverterPick): InverterNote[] {
   return inverter.count > 1 ? ['builtForParallel', 'ownRunAndFuse'] : []

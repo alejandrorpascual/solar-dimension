@@ -51,6 +51,17 @@ describe('dictionaries', () => {
       expect(d.warnings.cableAmbient(p)).toContain('90 °C')
     }
   })
+  test('a LiFePO₄ bank keeps its BMS wording, whether the chemistry is named or not', () => {
+    const p = { needA: 278, maxA: 100, strings: 1, unitLabel: '12 V 100 Ah LiFePO₄', seconds: 1, fuseA: 175, count: 2 }
+    for (const q of [p, { ...p, chemistry: 'lifepo4' as const }]) {
+      expect(en.warnings.bankDischarge(q)).toBe('The inverter draws up to 278 A at full load; 1 × 12 V 100 Ah LiFePO₄ allows 100 A continuous and its BMS would cut out. Pick a larger unit or a higher voltage.')
+      expect(en.warnings.bankPeak(q)).toBe("Start-up pulls 278 A for 1 s; the bank's BMS allows 100 A peak and may shut off. Let fewer motors start at once or add a string.")
+      expect(en.warnings.fuseAboveBank(q)).toBe('The 2 × 175 A fuses are sized for more than the 100 A the bank can deliver, so the BMS, not a fuse, would trip on an overload. Pick a bank that delivers more.')
+      expect(es.warnings.bankDischarge(q)).toBe('El inversor toma hasta 278 A a plena carga; 1 × 12 V 100 Ah LiFePO₄ permite 100 A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.')
+      expect(es.warnings.bankPeak(q)).toBe('El arranque exige 278 A durante 1 s; el BMS del banco permite 100 A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.')
+      expect(es.warnings.fuseAboveBank(q)).toBe('Los 2 fusibles de 175 A están dimensionados para más de los 100 A que el banco puede entregar, así que cortaría el BMS y no un fusible en una sobrecarga. Elige un banco que entregue más.')
+    }
+  })
   test('es has every kind and parallel note that en has', () => {
     expect(Object.keys(es.kinds).sort()).toEqual(Object.keys(en.kinds).sort())
     expect(Object.keys(es.parallelNotes).sort()).toEqual(Object.keys(en.parallelNotes).sort())

@@ -1,8 +1,11 @@
 import type { ConductorKind, WarningParams } from '../lib/sizing'
-import { isInverterSet as isSet } from '../lib/sizing/warnings'
+import { hasBms, isInverterSet as isSet } from '../lib/sizing/warnings'
 import type { Dictionary } from './types'
 import { quoteItemsEs, quoteItemsInlineEs, quoteItemsListEs, quoteItemsShortEs, quotesEs } from './quotes-es'
 import { requesterEs } from './requester-es'
+
+/** What a bank with no BMS (AGM) does past its rating, said where a lithium bank's BMS would cut out. */
+const NO_BMS = 'su voltaje podría caer lo bastante para apagar el inversor'
 
 /** The cable rows as a warning names them mid-sentence. */
 const CONDUCTORS: Record<ConductorKind, string> = { mainCable: 'el cable principal', interconnects: 'las interconexiones', stringLeads: 'los cables de rama' }
@@ -64,6 +67,9 @@ export const es: Dictionary = {
     fuseSpec: '{amps} A clase {class}{perRun}', fuseNote: 'En línea en el cable positivo, lo más cerca posible del banco', perRun: ' por tramo', perInverter: ' por inversor', perRunOfInverter: ' por tramo, {n} tramos a cada inversor',
     fuseAicNote: '{aic} kA de capacidad de interrupción', stringFuseSpec: '{amps} A clase {class}, uno por rama en paralelo', stringFuseNote: 'En el positivo de cada rama, para que una rama en corto se aísle sola',
     batteriesCurrentNote: '{cont} A continuos, {peak} A pico del banco (valores supuestos)',
+    batteriesForContinuous: '{parallel} en paralelo por la corriente continua; la energía sola pide {energy}',
+    batteriesForPeak: '{parallel} en paralelo por la corriente pico; la energía sola pide {energy}',
+    batteriesForLead: '{parallel} en paralelo para que los cables de ninguna rama lleven más de lo que soportan; la energía sola pide {energy}',
     oversizeNote: 'Este banco guarda {ratio} veces los {need} que necesita la carga: tiene que dar toda la corriente de un inversor de {inverter}. A {volts} V el kit llevaría un banco de {bank}, el más pequeño que cumple las mismas verificaciones.',
     oversizeNoteSmallest: 'Este banco guarda {ratio} veces los {need} que necesita la carga: el kit no puede armar un banco más pequeño a {kitVolts} V. A {volts} V el kit llevaría un banco de {bank}, el más pequeño que cumple las mismas verificaciones.',
     batterySize: 'Tamaño de batería', batterySizeHelp: 'Elige la batería que piensas comprar. Automático toma la que más verificaciones cumple, con menos baterías. Si ninguna puede alimentar el inversor, toma la que da más corriente.', batteryAuto: 'Automático',
@@ -145,7 +151,7 @@ export const es: Dictionary = {
     checkBatteryContinuousOkMany: 'El banco entrega {bankA} A continuos supuestos; los {count} inversores toman hasta {needA} A en total',
     checkBatteryPeak: 'Corriente pico de la batería', checkBatteryPeakOk: 'El pico supuesto del banco, {bankA} A, cubre los {needA} A de arranque durante {seconds} s',
     checkParallel: 'Ramas en paralelo', checkParallelOk: '{parallel} en paralelo, dentro del límite supuesto de {max}', checkParallelSingle: 'Una sola rama, nada que balancear · límite supuesto de {max} en paralelo',
-    checkFuse: 'Fusible', checkFuseOk: '{amps} A clase {class}: bajo los {ampacity} A del cable, {aic} kA de interrupción, arranque de {startA} A dentro de lo que aguanta',
+    checkFuse: 'Fusible', checkFuseOk: '{amps} A clase {class}: bajo los {ampacity} A del cable, {aic} kA de interrupción ante una corriente de cortocircuito estimada de {fault} A, arranque de {startA} A dentro de lo que aguanta',
     checkCable: 'Cable', checkCableOk: '{gauge} soporta {ampacity} A tras la corrección ({ambient} °C{bundled}) para {designA} A de diseño{perRun} · {runDrop}% de caída, {drop}% al arrancar',
   },
   categories: { All: 'Todos', Kitchen: 'Cocina', Living: 'Sala', Climate: 'Clima', 'Air conditioning': 'Aire acondicionado', Work: 'Trabajo', Utility: 'Servicios', Security: 'Seguridad', Personal: 'Personal', Custom: 'Personalizados' },
@@ -191,12 +197,20 @@ export const es: Dictionary = {
         : `${start} supera los ${surge} W de arranque ${inverter}.`
       return `${reason} Elige un inversor mayor o deja que arranquen menos motores a la vez.`
     },
-    bankDischarge: (p) => `${isSet(p) ? `Los ${p.inverters} inversores toman hasta ${p.needA?.toLocaleString('es-419')} A en total` : `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A`} a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.`,
-    bankPeak: (p) => `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; el BMS del banco permite ${p.maxA?.toLocaleString('es-419')} A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.`,
-    fuseAboveBank: (p) => `${(p.count ?? 1) > 1 ? `Los ${p.count} fusibles de ${p.fuseA} A están dimensionados` : `El fusible de ${p.fuseA} A está dimensionado`} para más de los ${p.maxA?.toLocaleString('es-419')} A que el banco puede entregar, así que cortaría el BMS y no ${(p.count ?? 1) > 1 ? 'un' : 'el'} fusible en una sobrecarga. Elige un banco que entregue más.`,
+    bankDischarge: (p) => `${isSet(p) ? `Los ${p.inverters} inversores toman hasta ${p.needA?.toLocaleString('es-419')} A en total` : `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A`} a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y ${hasBms(p) ? 'su BMS cortaría' : NO_BMS}. Elige una unidad mayor o más voltaje.`,
+    bankPeak: (p) => {
+      const peak = `${p.maxA?.toLocaleString('es-419')} A pico`
+      const limit = hasBms(p) ? `el BMS del banco permite ${peak} y podría apagarse` : `el banco permite ${peak} y ${NO_BMS}`
+      return `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; ${limit}. Deja que arranquen menos motores a la vez o agrega una rama.`
+    },
+    fuseAboveBank: (p) => {
+      const fuse = `${(p.count ?? 1) > 1 ? 'un' : 'el'} fusible`
+      const overload = hasBms(p) ? `cortaría el BMS y no ${fuse} en una sobrecarga` : `una sobrecarga forzaría las baterías antes de que se queme ${fuse}`
+      return `${(p.count ?? 1) > 1 ? `Los ${p.count} fusibles de ${p.fuseA} A están dimensionados` : `El fusible de ${p.fuseA} A está dimensionado`} para más de los ${p.maxA?.toLocaleString('es-419')} A que el banco puede entregar, así que ${overload}. Elige un banco que entregue más.`
+    },
     fuseAboveCable: (p) => `Ni ${p.count} tramos del cable más grueso soportan más de ${p.maxA?.toLocaleString('es-419')} A cada uno, menos que el fusible de ${p.fuseA} A que necesitan. Sube el voltaje o reduce la carga.`,
     fuseSurge: (p) => `El arranque pasa ${p.surgeA?.toLocaleString('es-419')} A por un fusible de ${p.fuseA} A durante ${p.seconds} s; puede quemarse en un arranque normal. El siguiente tamaño aún protege el cable.`,
-    fuseInterrupt: (p) => `Un banco en corto puede entregar unos ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible. Usa un fusible con esa capacidad o menos ramas.`,
+    fuseInterrupt: (p) => `Un banco en corto puede entregar una corriente estimada de ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible. Usa un fusible con esa capacidad o menos ramas.`,
     fuseVoltage: (p) => `El fusible de ${p.fuseA} A solo está certificado para ${p.maxVdc} V CC, y un banco de ${p.volts} V necesita ${p.needVdc} V CC o más: podría no cortar una falla. Usa un fusible certificado para al menos ${p.needVdc} V CC.`,
     cableDrop: (p) => `El cable cae ${p.dropPct}% a plena carga, más del ${p.maxDropPct}% previsto, aun con el calibre más grueso. Acorta el tramo o elige un voltaje de banco mayor.`,
     startupDrop: (p) => `El cable cae ${p.dropPct}% con la corriente de arranque; el inversor puede apagarse cuando arranque un motor. Acorta el tramo o sube un calibre.`,

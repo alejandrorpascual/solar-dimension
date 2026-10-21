@@ -1,6 +1,6 @@
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtInt, fmtList, fmtW } from '../i18n/format'
-import { SIZING } from './catalog'
+import { SIZING, type ChemistryId } from './catalog'
 import { shareLabel } from './kit-parts'
 import type { SelectedItem, SizingResult, Warning, WarningCode } from './sizing'
 
@@ -28,13 +28,16 @@ export interface KitCheck { id: CheckId; name: string; status: CheckStatus; line
 
 const KA = 1000
 
-/** The warning in the user's language, with the appliance, or each one a note covers, named as the catalog names it there. */
-export function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[]): string {
+/**
+ * The warning in the user's language, with the appliance, or each one a note covers, named as the catalog names it
+ * there, and the bank worded for the kit's chemistry (without it, as a bank with a BMS).
+ */
+export function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[], chemistry?: ChemistryId): string {
   const { itemId, itemIds } = w.params
   const item = items.find((i) => i.id === itemId)
   const listed = itemIds ? fmtList(items.filter((i) => itemIds.includes(i.id)).map((i) => applianceName(t, i)), t.locale) : undefined
   const itemName = listed ?? (item ? applianceName(t, item) : w.params.itemName)
-  return t.warnings[w.code]({ ...w.params, itemName })
+  return t.warnings[w.code]({ ...w.params, itemName, chemistry })
 }
 
 /** A key that tells two warnings of the same code apart (two split-phase appliances, or two cable rows, say). */
@@ -47,7 +50,7 @@ export function uncheckedWarnings(r: SizingResult): Warning[] {
 }
 
 /** Those notes in the reader's language: they travel with the kit onto the sheet, the image and the CSV. */
-export const kitNotes = (t: Dictionary, r: SizingResult): string[] => uncheckedWarnings(r).map((w) => warningText(t, w, r.items))
+export const kitNotes = (t: Dictionary, r: SizingResult): string[] => uncheckedWarnings(r).map((w) => warningText(t, w, r.items, r.chemistry))
 
 export const isFailing = (c: KitCheck): boolean => c.status === 'warn'
 
@@ -74,7 +77,7 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
     case 'parallel':
       return tr(t, b.parallel > 1 ? 'checkParallelOk' : 'checkParallelSingle', { parallel: b.parallel, max: b.unit.maxParallel })
     case 'fuse':
-      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, startA: a(startupA / c.runs) })
+      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, fault: a(b.bankShortCircuitA), startA: a(startupA / c.runs) })
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
@@ -103,7 +106,7 @@ export function kitChecks(t: Dictionary, r: SizingResult, locale: Locale): KitCh
   return CHECK_IDS.map((id) => {
     const failing = failingWarnings(r, id)
     const status: CheckStatus = failing.length > 0 ? 'warn' : 'pass'
-    const main = status === 'pass' ? [passLine(t, r, id, locale)] : failing.map((w) => warningText(t, w, r.items))
+    const main = status === 'pass' ? [passLine(t, r, id, locale)] : failing.map((w) => warningText(t, w, r.items, r.chemistry))
     const extra = id === 'surge' ? contributorsLine(t, r, locale) : null
     return { id, name: t.ui[NAME_KEY[id]], status, lines: extra ? [...main, extra] : main }
   })
