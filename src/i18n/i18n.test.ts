@@ -4,7 +4,7 @@ import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
 import { CUSTOM_DUTY_MIN_PCT, EMPTY_FORM, parseCustom } from '../lib/custom'
 import { en } from './en'
 import { es } from './es'
-import { applianceName, applianceNote, batteryCount, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
+import { applianceName, applianceNote, batteryCount, deleteProjectText, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
 import { ITEM_IDS } from '../lib/quote-items'
 
 describe('dictionaries', () => {
@@ -143,6 +143,19 @@ describe('batteryCount', () => {
     expect(batteryCount(en, 5)).toBe('5 batteries')
     expect(batteryCount(es, 1)).toBe('1 batería')
     expect(batteryCount(es, 2)).toBe('2 baterías')
+  })
+})
+
+describe('deleteProjectText', () => {
+  test('asks about the project alone when it has no quotes, in both languages', () => {
+    expect(deleteProjectText(en, 'Home', 0)).toBe("Delete “Home”? This can't be undone.")
+    expect(deleteProjectText(es, 'Casa', 0)).toBe('¿Eliminar “Casa”? No se puede deshacer.')
+  })
+  test('names how many quotes go with the project, singular for one, in both languages', () => {
+    expect(deleteProjectText(en, 'Home', 1)).toBe("Delete “Home” and its 1 quote? Its file goes too. This can't be undone.")
+    expect(deleteProjectText(en, 'Home', 3)).toBe("Delete “Home” and its 3 quotes? Their files go too. This can't be undone.")
+    expect(deleteProjectText(es, 'Casa', 1)).toBe('¿Eliminar “Casa” y 1 cotización? Su archivo también se elimina. No se puede deshacer.')
+    expect(deleteProjectText(es, 'Casa', 3)).toBe('¿Eliminar “Casa” y sus 3 cotizaciones? Sus archivos también se eliminan. No se puede deshacer.')
   })
 })
 

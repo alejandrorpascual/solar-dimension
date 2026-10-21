@@ -12,7 +12,7 @@ import {
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage, switchLanguageOnLoad } from './header'
 import { PHONE } from './phone'
-import { hideProjects, openProjectAction, showProjects } from './projects'
+import { answerDelete, deleteAsk, hideProjects, openProjectAction, openProjectCard, showProjects } from './projects'
 import {
   captureUploadCall, isJobsRead, isMustSave, isProjectRead, lockedPdf, openVerdictFromTray, pickQuoteFiles, postUpload, quotePdf, saved, signUp, signUpWithProject, slowQuotePdf, tray,
   uploadQuotes, verdictHeading,
@@ -518,7 +518,8 @@ test('an account that used its 20 uploads this month is refused, with the reason
   expect(await countQuoteRows(email, projectId)).toBe(0)
 })
 
-test('deleting a project removes its quotes and their files', async ({ page }) => {
+/** Signs up and uploads one quote to a new project, which is the open one. Returns the account and its quote's row. */
+async function signUpWithOneQuoteInANewProject(page: Page) {
   const email = await signUp(page)
   await page.goto('/')
   await showProjects(page)
@@ -528,17 +529,41 @@ test('deleting a project removes its quotes and their files', async ({ page }) =
   await page.getByRole('button', { name: 'Ok, got it' }).click()
   await expect.poll(async () => (await quoteFiles(email)).length).toBe(1)
   const [quote] = await quoteFiles(email)
-  const file = path.resolve(QUOTE_FILES_DIR, quote!.path)
+  return { email, quote: quote! }
+}
+
+test('deleting a project asks first, naming its quotes, and Cancel keeps the project and its quotes', async ({ page }) => {
+  const { email, quote } = await signUpWithOneQuoteInANewProject(page)
+
+  await page.goto('/')
+  await showProjects(page)
+  // The card shows its quotes line once the page has read the jobs; the question counts from the same jobs.
+  await expect(openProjectCard(page).getByRole('link')).toBeVisible()
+  await openProjectAction(page, 'Delete')
+  await expect(deleteAsk(page)).toHaveText("Delete “Project 2” and its 1 quote? Its file goes too. This can't be undone.")
+  await answerDelete(page, 'Cancel')
+  await expect(deleteAsk(page)).toHaveCount(0)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
+  expect(await countQuoteRows(email, quote.projectId)).toBe(1)
+  expect(existsSync(path.resolve(QUOTE_FILES_DIR, quote.path))).toBe(true)
+})
+
+test('deleting a project removes its quotes and their files', async ({ page }) => {
+  const { email, quote } = await signUpWithOneQuoteInANewProject(page)
+  const file = path.resolve(QUOTE_FILES_DIR, quote.path)
   expect(existsSync(file)).toBe(true)
 
   await page.goto('/')
+  await showProjects(page)
+  await expect(openProjectCard(page).getByRole('link')).toBeVisible()
   const removed = page.waitForResponse((r) => r.request().method() === 'POST' && (r.request().postData() ?? '').includes('"ids"'))
   await openProjectAction(page, 'Delete')
+  await answerDelete(page, 'Delete project')
   expect((await removed).ok()).toBe(true)
-  expect(await countQuoteRows(email, quote!.projectId)).toBe(0)
+  expect(await countQuoteRows(email, quote.projectId)).toBe(0)
   expect(existsSync(file)).toBe(false)
   // The file was trashed with the rows and removed right away, so nothing is left for the sweep.
-  expect(await trashedPaths([quote!.path])).toEqual([])
+  expect(await trashedPaths([quote.path])).toEqual([])
 })
 
 test('deleting a quote removes its file and leaves nothing in the trash', async ({ page }) => {

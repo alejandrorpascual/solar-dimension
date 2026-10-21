@@ -12,6 +12,7 @@ import { currentFirst, summarizeProjects, type ProjectSummary } from '../lib/pro
 import type { Store } from '../lib/schema'
 import type { SelectedItem } from '../lib/sizing'
 import { selectProject, setQtyIn } from '../lib/store'
+import { ProjectDeleteConfirm } from './ProjectDeleteConfirm'
 import { ProjectMenu } from './ProjectMenu'
 import { ProjectNameField } from './ProjectNameField'
 import { QtyStepper } from './QtyStepper'
@@ -111,11 +112,14 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
       <div className="pcard__head">
         <CardTitle name={p.name} titleId={titleId} current={current} onOpen={onOpen} />
         {current && <span className="pcard__badge">{t.ui.current}</span>}
-        {current && !current.isRenaming && (
-          <ProjectMenu name={p.name} canDelete={current.canDelete} onRename={current.onRename} onDuplicate={current.onDuplicate} onDelete={current.onDelete} />
+        {current && !current.isRenaming && !current.isConfirmingDelete && (
+          <ProjectMenu name={p.name} canDelete={current.canDelete} onRename={current.onRename} onDuplicate={current.onDuplicate} onDelete={current.onAskDelete} />
         )}
       </div>
       <p className="pcard__meta num">{tr(t, 'projectMeta', { volts: p.volts, hours: p.hours, count: r.items.length })}</p>
+      {current?.isConfirmingDelete && (
+        <ProjectDeleteConfirm name={p.name} quoteCount={jobs?.total ?? 0} onDelete={current.onDelete} onCancel={current.onCancelDelete} />
+      )}
       <CardKit summary={s} />
       {jobs && (
         <Link className="pcard__quotes" to="/projects/$projectId/quotes" params={{ projectId: p.id }}>
