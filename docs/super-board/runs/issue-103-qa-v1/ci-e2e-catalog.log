@@ -1,0 +1,16 @@
+CI run 39678819178, job 119495613629 (workflow CI, job verify) on PR #177
+Head ffde65ea2a57bf22c2984b7368e9ffddc75dba83, checked out as the PR merge commit into staging a1da8c5 (the merge base, so the same tree).
+Conclusion: success. Lines kept: checkout, unit totals, e2e start, every catalog-api.spec.ts result, e2e totals.
+
+2026-10-21T21:26:42.0009210Z HEAD is now at c847ca2 Merge ffde65ea2a57bf22c2984b7368e9ffddc75dba83 into a1da8c51de4d74c81816519f61f5d5a38ac3838a
+2026-10-21T21:27:18.3959410Z  Test Files  107 passed (107)
+2026-10-21T21:27:18.3970240Z       Tests  1846 passed (1846)
+2026-10-21T21:27:49.2517908Z Running 278 tests using 2 workers
+2026-10-21T21:28:01.3072930Z   ✓   11 [desktop] › e2e/catalog-api.spec.ts:10:1 › the catalog API needs the token (27ms)
+2026-10-21T21:28:01.3268611Z   ✓   12 [desktop] › e2e/catalog-api.spec.ts:15:1 › says which database it is on, as a test one, and only to a request with the token (12ms)
+2026-10-21T21:28:01.7254781Z   ✓   13 [desktop] › e2e/catalog-api.spec.ts:30:1 › writes only when the POST names this database, and writes to the database it names (385ms)
+2026-10-21T21:28:01.9956427Z   ✓   14 [desktop] › e2e/catalog-api.spec.ts:55:1 › a mistyped flag answers 400 naming it, and nothing is written (261ms)
+2026-10-21T21:28:02.3115015Z   ✓   15 [desktop] › e2e/catalog-api.spec.ts:70:1 › the dry run and the write both carry plausibility warnings, and a warning never stops the write (307ms)
+2026-10-21T21:28:03.5644490Z   ✓   16 [desktop] › e2e/catalog-api.spec.ts:101:1 › dry run, create, show in the picker in both languages, then retire (1.2s)
+2026-10-21T21:32:01.3216799Z   6 skipped
+2026-10-21T21:32:01.3217088Z   272 passed (4.3m)

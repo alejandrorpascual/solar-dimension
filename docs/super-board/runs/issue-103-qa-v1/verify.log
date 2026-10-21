@@ -1,0 +1,4 @@
+npm run typecheck   exit 0
+npm run test:coverage   exit 0  (107 files, 1846 tests; lines 98.34%)
+npm run build   exit 0
+head ffde65e, run in a clone, 2026-10-21T21:34:41Z
