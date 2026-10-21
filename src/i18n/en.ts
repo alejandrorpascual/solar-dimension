@@ -24,6 +24,7 @@ export const en: Dictionary = {
   ui: {
     step1: 'Appliances', step2: 'Backup window', step3: 'Solar panels', step4: 'Your kit', stepOf: 'Step {n} of 4',
     project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
+    firstProject: 'Home', projectNumbered: 'Project {n}', copySuffix: ' copy', customTag: 'Custom',
     acInverter: 'Inverter air conditioning', acInverterHelp: 'Soft start. Easy on the inverter.', acConventional: 'Conventional air conditioning', acConventionalHelp: 'Starts at ~3× its running power. Needs a bigger inverter.', acSizeOne: '{tons} ton · {btu}k BTU', acSizeMany: '{tons} ton · {btu}k BTU',
     q1: 'Which appliances need to stay on?', q1Help: 'Add each one and set how many. Running watts drive the battery, surge watts drive the inverter.',
     search: 'Search appliances', nothingMatches: 'Nothing matches. Try another word or add it below.', sectionAdded: '{count} added',
@@ -71,7 +72,7 @@ export const en: Dictionary = {
     inverterSizeOne: '{w} inverter', inverterSizeMany: '{count} × {w} inverters',
     legal: 'Legal',
     estimateNotice: 'An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equipment and your local electrical code before you buy or install anything.',
-    fine: 'Every appliance counts in every hour of the window. Assumes 90% inverter efficiency, 25% inverter headroom, {dod}% depth of discharge, 1,100 W per ton of cooling, {starts}, copper cable with {insulation} °C insulation at {ambient} °C{bundled}. NEC ampacity tables; verify against local code. Inverter sizes are continuous watts, not VA, at room temperature; the 25% headroom covers power factor and heat.',
+    fine: 'Every appliance counts in every hour of the window. Assumes {efficiency}% inverter efficiency, {headroom}% inverter headroom, {dod}% depth of discharge, {perTon} per ton of cooling, {starts}, copper cable with {insulation} °C insulation at {ambient} °C{bundled}. NEC ampacity tables; verify against local code. Inverter sizes are continuous watts, not VA, at room temperature; the {headroom}% headroom covers power factor and heat.',
     fineStartsOne: 'one motor starting at a time', fineStartsTwo: 'two motors starting together', fineStartsAll: 'every motor starting at once', fineBundled: ', bundled',
     fineAcDuty: ' Air conditioning runs {typical} of each hour on a typical day and {hard} on a hard day.',
     fineRatings: " Assumed ratings, not a maker's datasheet: each {battery} battery gives {cont} A continuous and {peak} A peak for {peakSeconds} s, at most {parallel} in parallel, and {shortCircuit} A per Ah into a short; each {inverter} inverter surges to {surge} for {surgeSeconds} s.",

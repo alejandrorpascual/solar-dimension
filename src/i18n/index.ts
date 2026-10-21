@@ -3,6 +3,7 @@ import { es } from './es'
 import { fmtW } from './format'
 import type { Dictionary, Locale, QuoteKey, UiKey } from './types'
 import type { ApplianceLabels } from '../lib/catalog'
+import { customNote } from '../lib/custom'
 
 export type { Dictionary, LegalPage, Locale, QuoteKey, RequesterKey, UiKey } from './types'
 export const LOCALES: readonly Locale[] = ['en', 'es']
@@ -83,5 +84,5 @@ export function applianceName(t: Dictionary, item: Labelled & { name: string }):
 }
 
 export function applianceNote(t: Dictionary, item: Labelled & { note: string }): string {
-  return item.isCustom ? item.note : (item.labels?.[t.locale]?.note ?? item.note)
+  return item.isCustom ? customNote(item.note, t.ui.customTag) : (item.labels?.[t.locale]?.note ?? item.note)
 }

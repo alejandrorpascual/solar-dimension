@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { CATEGORIES } from '../lib/catalog'
 import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
-import { CUSTOM_DUTY_MIN_PCT } from '../lib/custom'
+import { CUSTOM_DUTY_MIN_PCT, EMPTY_FORM, parseCustom } from '../lib/custom'
 import { en } from './en'
 import { es } from './es'
 import { applianceName, applianceNote, batteryCount, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
@@ -205,8 +205,33 @@ test('applianceName reads the item labels in the active language and keeps custo
 test('applianceNote reads the item labels and keeps custom notes', () => {
   const fridge = CATALOG_SNAPSHOT.find((a) => a.id === 'fridge')!
   expect(applianceNote(getDictionary('es'), fridge)).toBe('El compresor trabaja ~35% de cada hora')
-  expect(applianceNote(getDictionary('es'), { id: 'custom1', note: 'Custom · 230 V × 4.5 A', isCustom: true })).toBe('Custom · 230 V × 4.5 A')
+  expect(applianceNote(getDictionary('en'), { id: 'custom1', note: 'Custom · 230 V × 4.5 A', isCustom: true })).toBe('Custom · 230 V × 4.5 A')
   expect(applianceNote(getDictionary('es'), { id: 'unknown', note: 'Fallback' })).toBe('Fallback')
+})
+
+test("a custom load's tag is in the language shown, on a load saved before the tag followed the language too", () => {
+  const saved = { id: 'custom1', note: 'Custom · 230 V × 4.5 A', isCustom: true }
+  const added = parseCustom({ ...EMPTY_FORM, name: 'Bomba', watts: '1500' }, [])
+  if (!added.ok) throw new Error('the form refused a valid load')
+  expect(applianceNote(getDictionary('es'), saved)).toBe('Personalizado · 230 V × 4.5 A')
+  expect(applianceNote(getDictionary('es'), { ...added.item, isCustom: true })).toBe('Personalizado · 1500 W')
+  expect(applianceNote(getDictionary('en'), { ...added.item, isCustom: true })).toBe('Custom · 1500 W')
+})
+
+/** Every text a dictionary holds: its strings, and the source of each message it builds from parameters. */
+function texts(value: unknown): string[] {
+  if (typeof value === 'string') return [value]
+  if (typeof value === 'function') return [String(value)]
+  if (value && typeof value === 'object') return Object.values(value).flatMap(texts)
+  return []
+}
+
+/** A digit, a comma, then one or two digits and no third: a decimal comma, never a thousands separator ("1,100"). */
+const COMMA_DECIMAL = /\d,\d{1,2}(?!\d)/
+
+test('the Spanish dictionaries write decimals with a period, as es-419 does, never a comma', () => {
+  expect(es.ui.sunHint).toContain('4.8 h')
+  expect(texts(es).filter((text) => COMMA_DECIMAL.test(text))).toEqual([])
 })
 
 test('the missing-appliances warning agrees in number in both languages', () => {

@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'vitest'
+import { getDictionary } from '../i18n'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { EMPTY_FORM, parseCustom } from './custom'
 import { computeProject } from './project-summary'
 import { compute } from './sizing'
 import {
   addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
-  hasSameLoads, rekeySeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
+  hasSameLoads, nameFirstProject, numberedName, rekeySeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
   renameProject, setSolarIn, takenLoadIds, unreadCustomCount, withSetAside, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
 import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema, StoreSchema, type Project, type Store } from './schema'
@@ -378,6 +379,48 @@ describe("a duplicate's name", () => {
     expect(currentProject(twice).name.length).toBeLessThanOrEqual(PROJECT_NAME_MAX)
     expect(currentProject(twice).name.endsWith(COPY_SUFFIX)).toBe(true)
     expect(StoreSchema.safeParse(twice).success).toBe(true)
+  })
+
+  test('in Spanish a copy ends in the Spanish suffix, and a name at the limit still fits', () => {
+    const es = getDictionary('es')
+    expect(currentProject(duplicateProject(named('Casa'), es)).name).toBe('Casa (copia)')
+    const duplicated = duplicateProject(named('x'.repeat(PROJECT_NAME_MAX)), es)
+    expect(currentProject(duplicated).name).toHaveLength(PROJECT_NAME_MAX)
+    expect(currentProject(duplicated).name.endsWith(' (copia)')).toBe(true)
+    expect(StoreSchema.safeParse(duplicated).success).toBe(true)
+  })
+})
+
+describe('default project names', () => {
+  const es = getDictionary('es')
+  const en = getDictionary('en')
+  const namesOf = (store: Store) => store.projects.map((p) => p.name)
+
+  test('in Spanish the first project and each new one get Spanish names', () => {
+    const first = initialStore(es)
+    const second = addProject(first, numberedName(first, es))
+    const third = addProject(second, numberedName(second, es))
+    expect(namesOf(third)).toEqual(['Casa', 'Proyecto 2', 'Proyecto 3'])
+  })
+
+  test('a first project nobody edited takes the name of the language now shown, and stays unedited', () => {
+    const english = addProject(initialStore(), 'Office')
+    const spanish = nameFirstProject(english, es)
+    expect(namesOf(spanish)).toEqual(['Casa', 'Office'])
+    expect(spanish.projects[0]!.updatedAt).toBe(0)
+    expect(namesOf(nameFirstProject(spanish, en))).toEqual(['Home', 'Office'])
+  })
+
+  test('a first project someone edited keeps its name, and so does one saved unstamped under a name they chose', () => {
+    const edited = patchCurrent(initialStore(), { hours: 24 })
+    const namedByHand: Store = { ...initialStore(), projects: [{ ...currentProject(initialStore()), name: 'Taller' }] }
+    expect(nameFirstProject(edited, es)).toBe(edited)
+    expect(nameFirstProject(namedByHand, es)).toBe(namedByHand)
+  })
+
+  test('a store whose first project already has the name comes back as it was', () => {
+    const spanish = initialStore(es)
+    expect(nameFirstProject(spanish, es)).toBe(spanish)
   })
 })
 

@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeEach, expect, test, vi, type MockInstance } from 'vitest'
+import type { Locale } from '../i18n'
 import { PENDING_KEY } from '../lib/persistence'
 import { addProject, deleteProject, patchCurrent, selectProject, setQty } from '../lib/store'
 import { account, accounts, clock, net, resetServer, session } from './fake-account-server'
@@ -7,9 +8,11 @@ import { byName, edit, fakeStorage, home, mount, names, openBrowser, storedStore
 // What happens to an account's projects when its session ends or another account signs in is in
 // useProjectStore.accounts.test.ts.
 vi.mock('../server/projects', () => import('./fake-account-server'))
+// The language the root route loaded the page in.
+const page = vi.hoisted(() => ({ locale: 'en' as Locale }))
 vi.mock('./useRootData', async () => {
   const server = await import('./fake-account-server')
-  return { useRootData: () => ({ user: server.pageUser() }) }
+  return { useRootData: () => ({ user: server.pageUser(), locale: page.locale }) }
 })
 
 const ANA = { id: 'user-ana' }
@@ -21,6 +24,7 @@ let logged: MockInstance<typeof console.error>
 beforeEach(async () => {
   await unmount()
   resetServer()
+  page.locale = 'en'
   browser = fakeStorage()
   openBrowser(browser)
   // Failed requests are logged by the hook; the tests that care read the spy.
@@ -248,4 +252,49 @@ test('a save answered after its page was left writes nothing over the page that 
 
   expect(names(account(ANA))).toEqual(['Home', 'Made on the new page'])
   expect(browser.getItem(PENDING_KEY)).toBeNull()
+})
+
+test('a page in Spanish names its first project in Spanish', async () => {
+  page.locale = 'es'
+
+  const loaded = await mount()
+
+  expect(names(loaded.store.projects)).toEqual(['Casa'])
+})
+
+test('a first project nobody edited reads in the language of the page, beside a project named by hand', async () => {
+  await mount()
+  await edit((h) => h.commit(addProject(h.store, 'Taller')))
+  expect(names(storedStore(browser)?.projects ?? [])).toEqual(['Home', 'Taller'])
+
+  page.locale = 'es'
+  const inSpanish = await mount()
+
+  expect(names(inSpanish.store.projects)).toEqual(['Casa', 'Taller'])
+})
+
+test("signed in, the account's first project nobody edited reads in the language of the page, and nothing is sent for it", async () => {
+  session.user = ANA
+  await mount()
+  expect(names(account(ANA))).toEqual(['Home'])
+
+  page.locale = 'es'
+  net.calls = []
+  const inSpanish = await mount()
+
+  expect(names(inSpanish.store.projects)).toEqual(['Casa'])
+  expect(net.calls).toEqual(['list'])
+  expect(names(account(ANA))).toEqual(['Home'])
+})
+
+test("the account's first project edited on another device is shown, not this browser's untouched copy of it in another language", async () => {
+  session.user = ANA
+  await mount()
+  accounts.set(ANA.id, account(ANA).map((p) => ({ ...p, name: 'Quinta', hours: 20, updatedAt: clock.now() })))
+
+  page.locale = 'es'
+  const inSpanish = await mount()
+
+  expect(names(inSpanish.store.projects)).toEqual(['Quinta'])
+  expect(inSpanish.store.projects[0]!.hours).toBe(20)
 })

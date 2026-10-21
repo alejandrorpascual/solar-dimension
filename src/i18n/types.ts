@@ -37,6 +37,7 @@ export interface LegalPage { title: string; updated: string; sections: readonly 
 export type UiKey =
   | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
+  | 'firstProject' | 'projectNumbered' | 'copySuffix' | 'customTag'
   | 'q1' | 'q1Help' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'
   | 'search' | 'nothingMatches' | 'sectionAdded' | 'add' | 'addOne' | 'qtyOf' | 'removeOne' | 'remove'
   | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase' | 'checkNameplate240'
