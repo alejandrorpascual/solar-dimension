@@ -1,0 +1,24 @@
+after/en row: Controller to battery: cable and fuseSOLAR 80 A class T fuse · 4 AWG (21.2 mm²) copper Fuse at least 1.25 × the 60 A controller · cable  [... omitted end of long line]
+after/es row: Controlador a batería: cable y fusibleSOLAR Fusible de 80 A clase T · 4 AWG (21.2 mm²) de cobre Fusible de al menos 1.25 × el controlado [... omitted end of long line]
+after/es csv row: Controlador a batería: cable y fusible,Fusible de 80 A clase T · 4 AWG (21.2 mm²) de cobre,"Fusible de al menos 1.25 × el controlado [... omitted end of long line]
+after/es csv last: "De la parte solar, este kit no dimensiona la protección contra fallas a tierra y sobretensiones, la puesta a tierra, la ventana de [... omitted end of long line]
+after/12 controller: Charge controllerSOLAR MPPT 60 A · 450 V max PV · 48 V bank 115 A into the bank at full sun · 149 V open-circuit per string ×2 [... omitted end of long line]
+after/12 row: Controller to battery: cable and fuseSOLAR 80 A class T fuse · 4 AWG (21.2 mm²) copper Fuse at least 1.25 × the 60 A controller · cable  [... omitted end of long line]
+after/12 csv row: Controller to battery: cable and fuse,80 A class T fuse · 4 AWG (21.2 mm²) copper,"Fuse at least 1.25 × the 60 A controller · cable  [... omitted end of long line]
+after/solar pdf pages, default ticks: 2
+after/en csv row: Controller to battery: cable and fuse,80 A class T fuse · 4 AWG (21.2 mm²) copper,"Fuse at least 1.25 × the 60 A controller · cable  [... omitted end of long line]
+after/en csv last two: ["\"An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against the actual equ [... omitted end of long line]
+after/solar pdf pages, nothing ticked: 1
+after/solar sheet foot, nothing ticked: An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against t [... omitted end of long line]
+after/none fuse row: Fuse 100 A class T Inline on the positive lead, as close to the bank as possible · 20 kA interrupting rating ×1
+after/none pdf pages: 2
+after/none pdf pages, nothing ticked: 1
+after/none sheet foot, nothing ticked: An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against th [... omitted end of long line]
+before/none fuse row: Fuse 100 A class T Inline on the positive lead, as close to the bank as possible · 20 kA interrupting rating ×1
+no-panels parts list: after === before (identical text)
+before/none pdf pages: 2
+before/solar pdf pages, default ticks: 2
+before/solar pdf pages, nothing ticked: 1
+before/solar sheet foot, nothing ticked: An estimate for requesting quotes, not an installation design. Have a licensed electrician verify it against  [... omitted end of long line]
+solar kit battery-side rows (inverter to fuse): after === before (identical text)
+font-stylesheet console errors (cross-origin Google Fonts, staging and branch alike): 16 · page errors: 0
