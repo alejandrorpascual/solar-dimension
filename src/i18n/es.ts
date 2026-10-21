@@ -28,6 +28,7 @@ export const es: Dictionary = {
     deleteProject: '¿Eliminar “{name}”? No se puede deshacer.',
     deleteProjectOne: '¿Eliminar “{name}” y 1 cotización? Su archivo también se elimina. No se puede deshacer.',
     deleteProjectMany: '¿Eliminar “{name}” y sus {count} cotizaciones? Sus archivos también se eliminan. No se puede deshacer.',
+    deleteProjectAny: '¿Eliminar “{name}” y las cotizaciones que tenga? Sus archivos también se eliminan. No se puede deshacer.',
     deleteProjectYes: 'Eliminar proyecto',
     acInverter: 'Aire acondicionado inverter', acInverterHelp: 'Arranque suave. Cuida el inversor.', acConventional: 'Aire acondicionado convencional', acConventionalHelp: 'Arranca con ~3× su potencia en marcha. Necesita un inversor más grande.', acSizeOne: '{tons} tonelada · {btu}k BTU', acSizeMany: '{tons} toneladas · {btu}k BTU',
     q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; los de arranque, el inversor.',

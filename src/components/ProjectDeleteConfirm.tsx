@@ -4,8 +4,8 @@ import { deleteProjectText } from '../i18n'
 
 interface Props {
   name: string
-  /** How many quotes go with the project; 0 when it has none or they are not known yet. */
-  quoteCount: number
+  /** How many quotes go with the project: 0 when it has none, null while they are not known yet. */
+  quoteCount: number | null
   onDelete: () => void
   onCancel: () => void
 }

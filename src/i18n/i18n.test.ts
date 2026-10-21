@@ -157,6 +157,10 @@ describe('deleteProjectText', () => {
     expect(deleteProjectText(es, 'Casa', 1)).toBe('¿Eliminar “Casa” y 1 cotización? Su archivo también se elimina. No se puede deshacer.')
     expect(deleteProjectText(es, 'Casa', 3)).toBe('¿Eliminar “Casa” y sus 3 cotizaciones? Sus archivos también se eliminan. No se puede deshacer.')
   })
+  test('while the quotes are not known yet, says any quotes go too and never that there are none, in both languages', () => {
+    expect(deleteProjectText(en, 'Home', null)).toBe("Delete “Home” and any quotes it has? Their files go too. This can't be undone.")
+    expect(deleteProjectText(es, 'Casa', null)).toBe('¿Eliminar “Casa” y las cotizaciones que tenga? Sus archivos también se eliminan. No se puede deshacer.')
+  })
 })
 
 describe('isLocale', () => {

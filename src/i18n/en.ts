@@ -28,6 +28,7 @@ export const en: Dictionary = {
     deleteProject: "Delete “{name}”? This can't be undone.",
     deleteProjectOne: "Delete “{name}” and its 1 quote? Its file goes too. This can't be undone.",
     deleteProjectMany: "Delete “{name}” and its {count} quotes? Their files go too. This can't be undone.",
+    deleteProjectAny: "Delete “{name}” and any quotes it has? Their files go too. This can't be undone.",
     deleteProjectYes: 'Delete project',
     acInverter: 'Inverter air conditioning', acInverterHelp: 'Soft start. Easy on the inverter.', acConventional: 'Conventional air conditioning', acConventionalHelp: 'Starts at ~3× its running power. Needs a bigger inverter.', acSizeOne: '{tons} ton · {btu}k BTU', acSizeMany: '{tons} ton · {btu}k BTU',
     q1: 'Which appliances need to stay on?', q1Help: 'Add each one and set how many. Running watts drive the battery, surge watts drive the inverter.',

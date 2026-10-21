@@ -4,7 +4,7 @@ import { FileText, Pencil } from 'lucide-react'
 import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectRename, type CurrentActions } from '../hooks/useProjectRename'
-import { useProjectJobs } from '../hooks/useQuoteJobs'
+import { useProjectJobs, useProjectQuoteCount } from '../hooks/useQuoteJobs'
 import { applianceName, batteryCount, tr, type Dictionary } from '../i18n'
 import { fmtHours, fmtInverter, fmtKwh, fmtW } from '../i18n/format'
 import { projectLine } from '../lib/quote-text'
@@ -103,6 +103,7 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
   const editId = useId()
   const { project: p, result: r } = s
   const jobs = useProjectJobs(p.id)
+  const quoteCount = useProjectQuoteCount(p.id)
   // The open project is edited in the main area (grid or kit quick edit, which owns Undo); one path, not two.
   const canQuickEdit = !isCurrent && r.items.length > 0
   return (
@@ -118,7 +119,7 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
       </div>
       <p className="pcard__meta num">{tr(t, 'projectMeta', { volts: p.volts, hours: p.hours, count: r.items.length })}</p>
       {current?.isConfirmingDelete && (
-        <ProjectDeleteConfirm name={p.name} quoteCount={jobs?.total ?? 0} onDelete={current.onDelete} onCancel={current.onCancelDelete} />
+        <ProjectDeleteConfirm name={p.name} quoteCount={quoteCount} onDelete={current.onDelete} onCancel={current.onCancelDelete} />
       )}
       <CardKit summary={s} />
       {jobs && (

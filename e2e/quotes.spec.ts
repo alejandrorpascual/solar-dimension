@@ -548,6 +548,24 @@ test('deleting a project asks first, naming its quotes, and Cancel keeps the pro
   expect(existsSync(path.resolve(QUOTE_FILES_DIR, quote.path))).toBe(true)
 })
 
+test('until the account\'s quotes are read, the delete question says any quotes go too, then names them once read', async ({ page }) => {
+  await signUpWithOneQuoteInANewProject(page)
+  // The page's reads of the quote jobs wait until the test lets them through.
+  let letJobsThrough = () => {}
+  const jobsHeld = new Promise<void>((resolve) => { letJobsThrough = resolve })
+  await page.route('**/_serverFn/**', async (route) => {
+    if (route.request().method() === 'GET' && isJobsRead(route.request().url())) await jobsHeld
+    await route.continue()
+  })
+
+  await page.goto('/')
+  await showProjects(page)
+  await openProjectAction(page, 'Delete')
+  await expect(deleteAsk(page)).toHaveText("Delete “Project 2” and any quotes it has? Their files go too. This can't be undone.")
+  letJobsThrough()
+  await expect(deleteAsk(page)).toHaveText("Delete “Project 2” and its 1 quote? Its file goes too. This can't be undone.")
+})
+
 test('deleting a project removes its quotes and their files', async ({ page }) => {
   const { email, quote } = await signUpWithOneQuoteInANewProject(page)
   const file = path.resolve(QUOTE_FILES_DIR, quote.path)

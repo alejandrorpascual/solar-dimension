@@ -69,9 +69,11 @@ export function batteryCount(t: Dictionary, count: number): string {
 
 /**
  * What the project card asks before it deletes `name`: how many quotes go with it when there are any, since their files
- * are removed for good too. With none (or when the count is not known yet) it says nothing about quotes.
+ * are removed for good too. With none it says nothing about quotes. While the count is not known yet (null) it says any
+ * quotes go too: it never claims there are none.
  */
-export function deleteProjectText(t: Dictionary, name: string, quoteCount: number): string {
+export function deleteProjectText(t: Dictionary, name: string, quoteCount: number | null): string {
+  if (quoteCount === null) return tr(t, 'deleteProjectAny', { name })
   if (quoteCount <= 0) return tr(t, 'deleteProject', { name })
   return tr(t, quoteCount === 1 ? 'deleteProjectOne' : 'deleteProjectMany', { name, count: quoteCount })
 }
