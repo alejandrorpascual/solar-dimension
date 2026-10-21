@@ -1,0 +1,16 @@
+
+> test
+> vitest run
+
+
+ RUN  v5.0.1 /private/tmp/claude-501/-Users-alejandrorpascual-projects-solar-dimension--claude-worktrees-determined-jang-9e5404/c87e5d60-b453-4afb-b843-2788a75c6999/scratchpad/lanes/issue-100-qa
+
+
+ Test Files  107 passed (107)
+      Tests  1840 passed (1840)
+   Start at  17:39:28
+   Duration  9.93s (tests 41%, import 35%, transform 22%, worker 1%)
+
+    Isolate  107 workers spawned · ~132ms startup each (spawn + environment, per file)
+             at least ~1.43s faster with isolate: false — reuses workers across files instead of one per file
+
