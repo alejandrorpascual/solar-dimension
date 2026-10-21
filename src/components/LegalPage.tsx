@@ -9,7 +9,7 @@ import { HeaderBar } from './HeaderBar'
 export const CONTACT_EMAIL = 'alexandros2707@gmail.com'
 
 /** Swap the `{email}` placeholder for a mailto link. */
-function withEmailLink(body: string) {
+export function withEmailLink(body: string) {
   const parts = body.split('{email}')
   return parts.map((part, i) => (
     <Fragment key={i}>
