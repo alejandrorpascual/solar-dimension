@@ -157,7 +157,8 @@
 .qv__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
 @media (min-width: 1024px) {
   .qv__title { font-size: 44px; }
-  .qv__grid { grid-template-columns: 400px minmax(0, 1fr); align-items: start; }
+  /* The best quote has a column of its own only when other quotes fill the second; alone it has the page's width. */
+  .qv__grid--split { grid-template-columns: 400px minmax(0, 1fr); align-items: start; }
 }
 .qpanel { display: flex; flex-direction: column; gap: 14px; padding: 22px 24px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); }
 .qpanel--best { border: 1.5px solid var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
