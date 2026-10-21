@@ -5,3 +5,6 @@ Test Files  104 passed (104)
 Tests  1785 passed (1785)
 -> exit 0
 $ npm run build       -> exit 0
+$ E2E_PORT=4182 npx playwright test e2e/spanish-defaults.spec.ts e2e/download.spec.ts e2e/project-card.spec.ts e2e/kit-builder.spec.ts e2e/shared-browser.spec.ts e2e/account.spec.ts
+  116 passed, 2 skipped (desktop + phone) -> exit 0
+Screenshots: a throwaway Playwright capture spec, es-VE, run on staging 19e1398 (before-*) and on 120aee7 (after-*); not committed
