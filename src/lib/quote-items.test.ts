@@ -451,7 +451,10 @@ describe('cables and fuse', () => {
     })
     test('a ground wire or a lug left beside solar or AC wiring is no battery cable: the quote names none (R1)', () => {
       // Fittings are no main cable, so once the array and the AC side are set aside, a fitting alone leaves no cable to judge.
-      const fittings = [named('Cable de tierra física 6 AWG', '6'), named('Cable desnudo tierra 6 AWG', '6'), named('Terminal de ojo 2/0 AWG', '2/0'), named('Zapatas')]
+      const fittings = [
+        named('Cable de tierra física 6 AWG', '6'), named('Cable desnudo tierra 6 AWG', '6'), named('Terminal de ojo 2/0 AWG', '2/0'), named('Zapatas'),
+        named('Zapatas 2/0 para baterías', '2/0'), named('Cable de puesta a tierra 4 AWG', '4'),
+      ]
       for (const array of [named('Cable solar 4/0 AWG', '4/0'), acFeeder]) {
         for (const fitting of fittings) {
           const cables = judge(KIT, [array, fitting], 'cables')
@@ -460,8 +463,36 @@ describe('cables and fuse', () => {
         }
       }
     })
-    test('a fitting alone, with no solar or AC line set aside, reads as before: its size is what is to confirm', () => {
-      expect(judge(KIT, [named('Terminales y conectores')], 'cables')).toMatchObject({ status: 'unknown', facts: { sizeUnknown: true } })
+    test('a fitting or a ground wire alone is no battery cable either: the quote names none, whatever its size', () => {
+      for (const only of [named('Terminales y conectores'), named('Cable de tierra 6 AWG', '6')]) {
+        expect(judge(KIT, [only], 'cables'), only.description).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
+      }
+    })
+    test('a cable that mentions its lugs or its conduit is still a cable, and is judged as the battery cable (R6)', () => {
+      const texts = [
+        'Cable 2/0 AWG con terminales', 'Cable THW 2/0 inversor a banco con zapatas', 'Cable 2/0 AWG en tubo conduit',
+        'Cable 2/0 AWG en canaleta', 'Conductor 2/0 AWG en tubería EMT',
+      ]
+      for (const text of texts) {
+        const bank = named(text, '2/0')
+        for (const lines of [[bank], [bank, named('Cable solar 10 AWG', '10')]]) {
+          const cables = judge(KIT, lines, 'cables')
+          expect(cables, text).toMatchObject({ status: 'ok', facts: { gauge: '2/0 AWG' } })
+          expect(cables.sources, text).toEqual([bank.source])
+        }
+      }
+    })
+    test('a ground wire is never the battery cable: not split from a line that names the batteries, nor thicker than it (R6)', () => {
+      const kit = 'Kit: 4 paneles, 2 baterías 200 Ah, cable solar 10 AWG, cable de tierra 8 AWG'
+      const lines = [split('Cable solar 10 AWG', kit, '10'), split('Cable de tierra 8 AWG', kit, '8'), line('panel', 0, { source: { page: 1, text: kit } })]
+      expect(judge(KIT, lines, 'cables')).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
+      expect(judge(KIT, [named('Cable de tierra 4/0 AWG', '4/0'), thinBattery], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+    })
+    test("a line split from a kit line reads its own words, though its siblings there are panels or an inverter", () => {
+      // The bundle names the array, but the 4/0 cable split from it names nothing: it is the battery cable.
+      const kit = 'Kit solar: 4 paneles 550 W, inversor 5 kW, cable 4/0 AWG'
+      const siblings = [line('panel', 1, { source: { page: 1, text: kit } }), line('inverter', 0, { source: { page: 1, text: kit } })]
+      expect(judge(KIT, [...siblings, split('Cable 4/0 AWG', kit, '4/0')], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
     })
     test('a battery cable beside the ground wire and a solar line is still the one judged', () => {
       expect(judge(KIT, [pvCable, named('Cable de tierra física 6 AWG', '6'), battery], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
