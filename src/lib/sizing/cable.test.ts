@@ -3,7 +3,7 @@ import { FUSES, GAUGES, VOLTAGES } from '../catalog'
 import { AMBIENTS, INSULATIONS } from '../schema'
 import { SOLAR } from '../solar'
 import { canInterruptFault, conductorsFor, correctedAmpacity, maxStringAmps, sizeBankWiring, sizeControllerFeed, sizeMainCable, undersized } from './cable'
-import type { CableConditions } from './types'
+import type { CableConditions, Warning } from './types'
 
 const room: CableConditions = { runLengthM: 1.5, ambientC: 30, bundled: false, insulationC: 90 }
 const noBank = { surgeSeconds: 3, bankContinuousA: null, bankShortCircuitA: null }
@@ -368,6 +368,27 @@ describe('sizeBankWiring', () => {
     const weak = sizeBankWiring({ ...ctx, bankAmps: 200, bankSurgeAmps: 400, battery: { series: 1, parallel: 2, unit: { ...unit, maxContinuousA: 30, shortCircuitA: 30000 } } })
     expect(weak.string!.warnings.map((w) => w.code)).toEqual(['fuseAboveBank', 'fuseInterrupt'])
     expect(weak.warnings).toEqual(weak.string!.warnings)
+  })
+
+  test('every fuse warning says whose fuse it is: the string lead\'s, or the main run\'s', () => {
+    const fuseWarnings = (warnings: readonly Warning[]) => warnings.filter((w) => w.code.startsWith('fuse'))
+    const conductors = (warnings: readonly Warning[]) => fuseWarnings(warnings).map((w) => w.params.conductor)
+    // Six runs of 4/0 in hot air still fall short of the fuse the current needs.
+    const hot = { ...room, ambientC: 50, insulationC: 75 as const }
+    const huge = sizeMainCable(1500, 3000, 12, hot, GAUGES, FUSES, noBank)
+    expect(fuseWarnings(huge.warnings).map((w) => w.code)).toContain('fuseAboveCable')
+    expect(conductors(huge.warnings)).toEqual(fuseWarnings(huge.warnings).map(() => 'mainCable'))
+    // 362 A over two strings is 181 A a lead, one past the 180 A a lead and its fuse can carry.
+    const main = sizeMainCable(362, 724, 48, room, GAUGES, FUSES, noBank)
+    const ctx = { main, bankAmps: 362, bankSurgeAmps: 724, volts: 48 as const, cond: room, gauges: GAUGES, fuses: FUSES, surgeSeconds: 3 }
+    const heavy = sizeBankWiring({ ...ctx, battery: { series: 1, parallel: 2, unit } })
+    expect(fuseWarnings(heavy.string!.warnings).map((w) => w.code)).toContain('fuseAboveCable')
+    expect(conductors(heavy.string!.warnings)).toEqual(fuseWarnings(heavy.string!.warnings).map(() => 'stringLeads'))
+    // A unit that gives 30 A against a 100 A string and can short past the fuse's 20 kA: the bank-side warnings are the lead's too.
+    const weak = sizeBankWiring({ ...ctx, bankAmps: 200, bankSurgeAmps: 400, battery: { series: 1, parallel: 2, unit: { ...unit, maxContinuousA: 30, shortCircuitA: 30000 } } })
+    expect(weak.string!.warnings.map((w) => [w.code, w.params.conductor])).toEqual([['fuseAboveBank', 'stringLeads'], ['fuseInterrupt', 'stringLeads']])
+    // The main run of the same kit says its own.
+    expect(conductors(main.warnings)).toEqual(fuseWarnings(main.warnings).map(() => 'mainCable'))
   })
 
   test('parallel strings: each gets a lead pair and a fuse, and its links match the lead', () => {
