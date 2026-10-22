@@ -1,0 +1,52 @@
+QA run for #117 on 0c37e4e (branch issue-117-shared-link-preview), clone at the session scratchpad, e2e on port 4234, throwaway BETTER_AUTH_SECRET in the shell.
+
+== npm run typecheck ==
+exit 0 (app, e2e, scripts)
+
+== npx vitest run ==
+114 files, 1925 tests passed
+
+== npm run test:coverage ==
+exit 0 · statements 89.26% · branches 89.91% · functions 90.05% · lines 89.27%
+src/server/site-origin.ts is 0% in this report: a server function runs only inside the built app, and the e2e tests cover it
+
+== npx vitest run src/lib/site-head.test.ts src/lib/share-assets.test.ts src/lib/auth-url.test.ts (the Builder's unit tests) ==
+ ✓ src/lib/share-assets.test.ts > the files a shared link and a browser tab fetch > og.png is a PNG of 1200 x 630 pixels 1ms
+ ✓ src/lib/share-assets.test.ts > the files a shared link and a browser tab fetch > favicon.ico is an icon file that holds at least one image 0ms
+ ✓ src/lib/share-assets.test.ts > the files a shared link and a browser tab fetch > icon.svg is an SVG document 1ms
+ ✓ src/lib/auth-url.test.ts > authBaseURL > an explicit BETTER_AUTH_URL always wins 1ms
+ ✓ src/lib/auth-url.test.ts > authBaseURL > production uses the stable production domain, not the per-deployment hostname 0ms
+ ✓ src/lib/auth-url.test.ts > authBaseURL > previews use their own deployment hostname 0ms
+ ✓ src/lib/auth-url.test.ts > authBaseURL > local development falls back to localhost 0ms
+ ✓ src/lib/auth-url.test.ts > authTrustedOrigins > a preview also trusts its branch's own URL, which stays the same across redeploys 0ms
+ ✓ src/lib/auth-url.test.ts > authTrustedOrigins > production and local development trust nothing beyond the base URL 0ms
+ ✓ src/lib/auth-url.test.ts > authTrustedOrigins > an explicit BETTER_AUTH_URL is the only origin, even on a preview 0ms
+ ✓ src/lib/site-head.test.ts > siteHead > describes the product in en, not the help of step 1 3ms
+ ✓ src/lib/site-head.test.ts > siteHead > describes the product in es, not the help of step 1 0ms
+ ✓ src/lib/site-head.test.ts > siteHead > the two languages describe it in their own words 0ms
+ ✓ src/lib/site-head.test.ts > siteHead > the Open Graph description is the meta description 0ms
+ ✓ src/lib/site-head.test.ts > siteHead > titles the preview with the product name and asks for a large image card 0ms
+ ✓ src/lib/site-head.test.ts > siteHead > links a 1200x630 preview image by an absolute https URL 0ms
+ ✓ src/lib/site-head.test.ts > siteHead > joins the origin and the image path with one slash 0ms
+ ✓ src/lib/site-head.test.ts > siteHead > links the favicon and the vector icon 0ms
+ Test Files  3 passed (3)
+      Tests  18 passed (18)
+
+== E2E_PORT=4234 npx playwright test e2e/share-preview.spec.ts (the Builder's e2e) ==
+  ✓  1 [desktop] › e2e/share-preview.spec.ts:31:3 › a link to the app shared in a chat app › has a title, a large image card and a 1200x630 PN
+  ✓  2 [desktop] › e2e/share-preview.spec.ts:45:3 › a link to the app shared in a chat app › links an icon, and /favicon.ico answers (102ms)
+  ✓  3 [desktop] › e2e/share-preview.spec.ts:19:3 › a link to the app shared in a chat app › previews with a product description in English an
+  3 passed (10.1s)
+
+== QA probe, 16 tests, desktop project (not committed; it wrote heads.txt, assets.txt and the ac2/ac3 screenshots) ==
+head tags once each in en, es, no-language, cookie-over-header, es-VE q-list: 5 passed
+en and es descriptions differ: passed · /privacy, /terms, /login, /?step=3 share the home tags: 4 passed
+server with an unreachable database sends the tags and an absolute image URL: passed
+og.png / favicon.ico / icon.svg status, type, size, no redirect: passed · browser decodes og.png at 3 viewports: 3 passed
+browser decodes both linked icons: passed on the second run (the first used createImageBitmap, which cannot decode an SVG with no fixed size: a probe error, not an app one)
+
+== E2E_PORT=4234 npx playwright test (full suite, machine load average 40-70) ==
+303 tests: 292 passed, 10 skipped, 1 failed
+failed: e2e/requester.spec.ts:286 'clients saved while signed out are not offered to an account that signs in on the same browser': the 'Signed in as ...' button was not visible within 5 s after sign-up
+rerun alone, --repeat-each=6: 6 passed. A timing failure under load, in a test the diff does not touch.
+GitHub CI job verify on 0c37e4e: success (it runs the suite on the test database)

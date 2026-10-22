@@ -1,0 +1,135 @@
+QA probe for #117 on the built app (e2e server, port 4234). The <head> the server sends before any script runs: what a chat app reads.
+Every share tag appeared exactly once in each. The /privacy, /terms, /login and /?step=3 heads carried the same description, og:description, og:title, og:image and twitter:card as /.
+The Vercel build lines (modulepreload hashes) are left in as sent.
+
+=== en ===
+Accept-Language: en
+
+<head>
+<meta charSet="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Figtree:wght@400;500;600;700&amp;display=swap" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/styles-DbeNfokYe9bmhps6.css" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/index-CeDCjxfeI9H0zJ5V.css" data-precedence="default"/>
+<title>Solar Dimension</title>
+<meta name="description" content="Size an off-grid solar backup kit: pick the appliances to keep on, set the hours, and get the inverter, batteries, cables and parts list."/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Solar Dimension"/>
+<meta property="og:description" content="Size an off-grid solar backup kit: pick the appliances to keep on, set the hours, and get the inverter, batteries, cables and parts list."/>
+<meta property="og:image" content="http://localhost:4234/og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="google-site-verification" content="G9yqTKOqSP1tOS4jjC6xGCcsVFT7J3iZC5AzXQ2LNFY"/>
+<link rel="modulepreload" href="/_build/index-Cliz55zyiKIKaLla.js"/>
+<link rel="modulepreload" href="/_build/rolldown-runtime-hePW80VL8P5Hda4L.js"/>
+<link rel="modulepreload" href="/_build/catalog-schema-Bel5WknTv0llCVgR.js"/>
+<link rel="modulepreload" href="/_build/steps-Da5QiLPVqVVguG7Y.js"/>
+<link rel="modulepreload" href="/_build/routes-CWUkUKqHbqJIjM1q.js"/>
+<link rel="modulepreload" href="/_build/useSignOut-ulNGBRlFmJJ9qJ9c.js"/>
+<link rel="modulepreload" href="/_build/HeaderBar-C4k6_Xzw-2xqetMj.js"/>
+<link rel="modulepreload" href="/_build/LegalLinks-DFUSU7uW9EZAw17P.js"/>
+<link rel="icon" href="/favicon.ico" sizes="48x48"/>
+<link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+</head>
+
+=== es ===
+Accept-Language: es
+
+<head>
+<meta charSet="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Figtree:wght@400;500;600;700&amp;display=swap" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/styles-DbeNfokYe9bmhps6.css" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/index-CeDCjxfeI9H0zJ5V.css" data-precedence="default"/>
+<title>Solar Dimension</title>
+<meta name="description" content="Dimensiona un kit solar de respaldo: elige los aparatos que deben seguir encendidos, indica las horas y obtén inversor, baterías, cables y lista de piezas."/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Solar Dimension"/>
+<meta property="og:description" content="Dimensiona un kit solar de respaldo: elige los aparatos que deben seguir encendidos, indica las horas y obtén inversor, baterías, cables y lista de piezas."/>
+<meta property="og:image" content="http://localhost:4234/og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="google-site-verification" content="G9yqTKOqSP1tOS4jjC6xGCcsVFT7J3iZC5AzXQ2LNFY"/>
+<link rel="modulepreload" href="/_build/index-Cliz55zyiKIKaLla.js"/>
+<link rel="modulepreload" href="/_build/rolldown-runtime-hePW80VL8P5Hda4L.js"/>
+<link rel="modulepreload" href="/_build/catalog-schema-Bel5WknTv0llCVgR.js"/>
+<link rel="modulepreload" href="/_build/steps-Da5QiLPVqVVguG7Y.js"/>
+<link rel="modulepreload" href="/_build/routes-CWUkUKqHbqJIjM1q.js"/>
+<link rel="modulepreload" href="/_build/useSignOut-ulNGBRlFmJJ9qJ9c.js"/>
+<link rel="modulepreload" href="/_build/HeaderBar-C4k6_Xzw-2xqetMj.js"/>
+<link rel="modulepreload" href="/_build/LegalLinks-DFUSU7uW9EZAw17P.js"/>
+<link rel="icon" href="/favicon.ico" sizes="48x48"/>
+<link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+</head>
+
+=== crawler-no-language ===
+no Accept-Language, no cookie (what a chat app's crawler sends)
+
+<head>
+<meta charSet="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Figtree:wght@400;500;600;700&amp;display=swap" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/styles-DbeNfokYe9bmhps6.css" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/index-CeDCjxfeI9H0zJ5V.css" data-precedence="default"/>
+<title>Solar Dimension</title>
+<meta name="description" content="Size an off-grid solar backup kit: pick the appliances to keep on, set the hours, and get the inverter, batteries, cables and parts list."/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Solar Dimension"/>
+<meta property="og:description" content="Size an off-grid solar backup kit: pick the appliances to keep on, set the hours, and get the inverter, batteries, cables and parts list."/>
+<meta property="og:image" content="http://localhost:4234/og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="google-site-verification" content="G9yqTKOqSP1tOS4jjC6xGCcsVFT7J3iZC5AzXQ2LNFY"/>
+<link rel="modulepreload" href="/_build/index-Cliz55zyiKIKaLla.js"/>
+<link rel="modulepreload" href="/_build/rolldown-runtime-hePW80VL8P5Hda4L.js"/>
+<link rel="modulepreload" href="/_build/catalog-schema-Bel5WknTv0llCVgR.js"/>
+<link rel="modulepreload" href="/_build/steps-Da5QiLPVqVVguG7Y.js"/>
+<link rel="modulepreload" href="/_build/routes-CWUkUKqHbqJIjM1q.js"/>
+<link rel="modulepreload" href="/_build/useSignOut-ulNGBRlFmJJ9qJ9c.js"/>
+<link rel="modulepreload" href="/_build/HeaderBar-C4k6_Xzw-2xqetMj.js"/>
+<link rel="modulepreload" href="/_build/LegalLinks-DFUSU7uW9EZAw17P.js"/>
+<link rel="icon" href="/favicon.ico" sizes="48x48"/>
+<link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+</head>
+
+=== database-down ===
+server on port 4236, database unreachable
+
+<head>
+<meta charSet="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Figtree:wght@400;500;600;700&amp;display=swap" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/styles-DbeNfokYe9bmhps6.css" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/index-CeDCjxfeI9H0zJ5V.css" data-precedence="default"/>
+<title>Solar Dimension</title>
+<meta name="description" content="Size an off-grid solar backup kit: pick the appliances to keep on, set the hours, and get the inverter, batteries, cables and parts list."/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Solar Dimension"/>
+<meta property="og:description" content="Size an off-grid solar backup kit: pick the appliances to keep on, set the hours, and get the inverter, batteries, cables and parts list."/>
+<meta property="og:image" content="http://localhost:4236/og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="google-site-verification" content="G9yqTKOqSP1tOS4jjC6xGCcsVFT7J3iZC5AzXQ2LNFY"/>
+<link rel="modulepreload" href="/_build/index-Cliz55zyiKIKaLla.js"/>
+<link rel="modulepreload" href="/_build/rolldown-runtime-hePW80VL8P5Hda4L.js"/>
+<link rel="modulepreload" href="/_build/catalog-schema-Bel5WknTv0llCVgR.js"/>
+<link rel="modulepreload" href="/_build/steps-Da5QiLPVqVVguG7Y.js"/>
+<link rel="modulepreload" href="/_build/routes-CWUkUKqHbqJIjM1q.js"/>
+<link rel="modulepreload" href="/_build/useSignOut-ulNGBRlFmJJ9qJ9c.js"/>
+<link rel="modulepreload" href="/_build/HeaderBar-C4k6_Xzw-2xqetMj.js"/>
+<link rel="modulepreload" href="/_build/LegalLinks-DFUSU7uW9EZAw17P.js"/>
+<link rel="icon" href="/favicon.ico" sizes="48x48"/>
+<link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+</head>
