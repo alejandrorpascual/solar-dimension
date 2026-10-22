@@ -43,6 +43,19 @@ describe('kitChecks', () => {
     }
   })
 
+  test('a start-up that lasts under a second keeps its seconds in the pass lines, in both languages', () => {
+    // A 500 W load that starts at 800 W is an electronic inrush: 0.02 s is short, but it is a surge, not "no start-up surge".
+    const custom = [{ id: 'x', name: 'Charger', watts: 500, surge: 800, note: '' }]
+    const r = kit({ x: 1 }, { custom })
+    expect(r.surgeSeconds).toBe(0.02)
+    const surge = (t: typeof en, locale: 'en' | 'es') => kitChecks(t, r, locale).find((c) => c.id === 'surge')!.lines[0]
+    expect(surge(en, 'en')).toBe('500 W running on a 3,000 W inverter · 800 W for 0.02 s, within its assumed 6,000 W surge rating')
+    expect(surge(es, 'es')).toBe('500 W en marcha con un inversor de 3,000 W · 800 W durante 0.02 s, dentro de sus 6,000 W de arranque supuestos')
+    // 800 W at 48 V through a 90% inverter is 19 A.
+    expect(kitChecks(en, r, 'en').find((c) => c.id === 'batteryPeak')!.lines[0]).toMatch(/covers the 19 A start-up for 0\.02 s$/)
+    expect(kitChecks(es, r, 'es').find((c) => c.id === 'batteryPeak')!.lines[0]).toMatch(/cubre los 19 A de arranque durante 0\.02 s$/)
+  })
+
   test('a string lead whose fuse its cable cannot back is named in the fuse check, in both languages', () => {
     // 3 kW at 12 V on two 400 Ah units: each string lead carries 231.5 A of design current, past the largest cable.
     const custom = [{ id: 'x', name: 'Workshop', watts: 3000, surge: 3000, note: '' }]
