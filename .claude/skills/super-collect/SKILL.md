@@ -36,7 +36,7 @@ No job, cadence or scheduler is created by this skill.
 2. Secrets come only from `.env` (nearest walking up): `SENTRY_AUTH_TOKEN`,
    `POSTHOG_PERSONAL_API_KEY`. Never print, echo or paste them.
 3. Source `.claude/bin/super-board-gh-guard.sh`; `sb_gh_guard_check 200` before each gh burst.
-4. Snapshot the board through `.claude/bin/super-board-github-read.py --kind items -- project item-list <number> --owner <owner> --format json --limit 500`. A count mismatch or read failure halts; never treat a partial board as complete.
+4. Snapshot the board through `.claude/bin/super-board-github-read.py --kind items -- project item-list <number> --owner <owner> --format json --limit 500`. A count mismatch or read failure halts; never treat a partial board as complete. A board of no cards is read again and believed only when GitHub search finds no open issue on it (a new board); otherwise the read fails.
    It is the dedupe set for verification and the "not on the board" set for `github`.
 
 Scripts live in `.claude/skills/super-collect/scripts/` (`S=` below). Every fetcher takes
