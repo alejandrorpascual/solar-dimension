@@ -1,12 +1,14 @@
 import { trq, type Dictionary, type QuoteKey } from '../i18n'
 import { checkExtraction, hasTotal, isFixedByTotal, linesWithTax, type CheckFailure } from './quote-checks'
 import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtNumber, fmtW } from '../i18n/format'
+import { failingChecks, warningText } from './kit-checks'
 import { entryKey, entryName, nothingRead, quoteSubtitle, type EntryOption, type QuoteView, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
 import { HIGHEST_DOD_CHEMISTRY, LOWEST_DOD_CHEMISTRY, STRIP_ITEMS, type ItemCheck, type ItemFacts, type ItemId, type ItemStatus, type KitNeeds, type Term } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
 import type { QuoteExtraction, QuoteStatus } from './quote-schema'
 import { SIZED_IDS, SIZING_ZONES, suggestedInverterW, type QuoteSizing, type SizedId, type Sizing, type SizingZone } from './quote-sizing'
+import type { SizingResult } from './sizing'
 
 const SECONDS_PER_MINUTE = 60
 
@@ -31,6 +33,10 @@ export function verdictHeading(t: Dictionary, v: Verdict): string {
   return v.unranked.length > 0 ? t.quotes.headingNone : t.quotes.headingEmpty
 }
 
+/**
+ * With no best fit, an unclear quote comes before the closest short one: it fails nothing, so confirming what it leaves
+ * open can make it fit. The first one named is the cheapest, the first in the list below.
+ */
 export function verdictSubline(t: Dictionary, v: Verdict, kit: KitNeeds): string {
   if (v.best) {
     const total = money(t, v.best.total, v.best.currency)
@@ -39,8 +45,9 @@ export function verdictSubline(t: Dictionary, v: Verdict, kit: KitNeeds): string
       ? trq(t, 'subBestOne', { total, musts: v.mustCount })
       : trq(t, 'subBest', { total, count, musts: v.mustCount })
   }
+  const [asking] = v.worthAsking
+  if (asking) return trq(t, 'subUnclear', { name: entryName(asking), gaps: gapsClause(t, asking) })
   if (v.closest) return trq(t, 'subNone', { name: entryName(v.closest), gap: gapText(t, v.closest, kit) })
-  if (v.worthAsking.length > 0) return t.quotes.subUnclear
   if (nothingRead(v)) return t.quotes.subUnread
   return v.ranked.length === 0 && v.unranked.length === 0 ? t.quotes.emptyBody : ''
 }
@@ -55,6 +62,23 @@ export function verdictStatus(t: Dictionary, v: Verdict): { tone: 'ok' | 'warn';
   }
   if (!nothingRead(v)) return null
   return { tone: 'warn', label: v.failedCount === 1 ? t.quotes.unreadOne : trq(t, 'unreadCount', { count: v.failedCount }), meta: null }
+}
+
+/**
+ * Why the verdict compares nothing: the kit leaves out appliances the catalog could not load, so a quote could fit it and
+ * not the real one, or it has no appliances at all. Null when quotes can be judged against it.
+ */
+export function kitHold(t: Dictionary, r: SizingResult): { title: string; note: string } | null {
+  const missing = r.warnings.find((w) => w.code === 'missingAppliances')
+  if (missing) return { title: t.quotes.kitMissingTitle, note: warningText(t, missing, r.items, r.chemistry) }
+  return r.empty ? { title: t.quotes.kitEmptyTitle, note: t.quotes.kitEmptyNote } : null
+}
+
+/** One line when the kit the quotes are judged against fails its own checks; null when it passes them all. */
+export function kitAttentionText(t: Dictionary, r: SizingResult): string | null {
+  const count = failingChecks(r).length
+  if (count === 0) return null
+  return count === 1 ? t.quotes.kitAttentionOne : trq(t, 'kitAttention', { count })
 }
 
 /** The first must-have a quote fails, in words: "its inverter is 3,560 W short". */

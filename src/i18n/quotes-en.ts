@@ -82,7 +82,7 @@ export const quotesEn = {
   subBest: '{total}, the cheapest of your {count} quotes that meets all {musts} must-haves.',
   subBestOne: '{total}. It meets all {musts} must-haves.',
   subNone: '{name} is closest: {gap}.',
-  subUnclear: "Your quotes don't mention everything you need yet. See what's worth asking below.",
+  subUnclear: '{name} could fit: it {gaps}.',
   bestFit: 'Best fit',
   bestFitToConfirm: 'Cheapest fit, to confirm',
   viewOriginal: 'View original',
@@ -275,6 +275,9 @@ export const quotesEn = {
   mustsDone: 'Done',
   kitEmptyTitle: 'Add appliances to compare your quotes',
   kitEmptyNote: "Your quotes are saved. Add appliances to the kit and we'll compare them.",
+  kitMissingTitle: 'Your kit is missing appliances',
+  kitAttentionOne: '1 check on your kit needs attention. Open the kit to see it.',
+  kitAttention: '{count} checks on your kit need attention. Open the kit to see them.',
 } as const
 
 export const quoteItemsEn: Record<ItemId, string> = {
