@@ -82,22 +82,30 @@ export function batteryCandidates(chem: Chemistry, volts: Voltage, requiredAh: n
     .sort((a, b) => b.unitV - a.unitV || a.unitAh - b.unitAh)
 }
 
-/** What the automatic pick reads of a bank: whether it can feed the inverter, and what its wiring would fail. */
-type BankHealth = Pick<BankCandidate, 'dischargeOk' | 'peakOk' | 'overMaxParallel' | 'leadOk' | 'interruptOk' | 'count' | 'bankWh'>
+/** What the automatic pick reads of a bank: whether it can feed the inverter, what its wiring would fail, its current. */
+type BankHealth = Pick<BankCandidate, 'dischargeOk' | 'peakOk' | 'overMaxParallel' | 'leadOk' | 'interruptOk' | 'count' | 'bankWh' | 'bankContinuousA'>
+/** The three checks that say whether a bank can feed the inverter at all. */
+type FeedHealth = Pick<BankHealth, 'dischargeOk' | 'peakOk' | 'overMaxParallel'>
 
-const feedsInverter = (c: BankHealth): boolean => c.dischargeOk && c.peakOk && !c.overMaxParallel
+/** True when the bank passes discharge, peak and parallel: it can feed the inverter. */
+export const feedsInverter = (c: FeedHealth): boolean => c.dischargeOk && c.peakOk && !c.overMaxParallel
 /** How many of its wiring checks a bank fails: strings too heavy for their leads, a fault its fuses cannot interrupt. */
 const wiringFaults = (c: BankHealth): number => Number(!c.leadOk) + Number(!c.interruptOk)
+/** How many of discharge, peak, parallel, leads and interrupt a bank fails. */
+const failCount = (c: BankHealth): number =>
+  Number(!c.dischargeOk) + Number(!c.peakOk) + Number(c.overMaxParallel) + wiringFaults(c)
 
 /**
  * The automatic pick. A bank that can feed the inverter comes before one that cannot. Among those that can, the one
- * whose wiring fails the fewest checks; then the fewest batteries; then the smallest bank. Among those that cannot,
- * the wiring settles nothing: tidy leads do not make a bank worth having.
+ * whose wiring fails the fewest checks; then the fewest batteries; then the smallest bank. When none can, the one that
+ * fails the fewest checks, wiring included, then the one that gives the most continuous current: the closest to
+ * feeding it, not the smallest.
  */
 export function autoPick<T extends BankHealth>(candidates: readonly T[]): T | null {
-  const faults = (c: T): number => (feedsInverter(c) ? wiringFaults(c) : 0)
+  // Only between two banks that cannot feed the inverter: the one giving more current is closer to it.
+  const closerToFeeding = (a: T, b: T): number => (feedsInverter(a) ? 0 : b.bankContinuousA - a.bankContinuousA)
   const byPreference = (a: T, b: T): number =>
-    Number(feedsInverter(b)) - Number(feedsInverter(a)) || faults(a) - faults(b) || a.count - b.count || a.bankWh - b.bankWh
+    Number(feedsInverter(b)) - Number(feedsInverter(a)) || failCount(a) - failCount(b) || closerToFeeding(a, b) || a.count - b.count || a.bankWh - b.bankWh
   return [...candidates].sort(byPreference)[0] ?? null
 }
 

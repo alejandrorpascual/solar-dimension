@@ -1,0 +1,71 @@
+
+ RUN  v5.0.1 /private/tmp/claude-501/-Users-alejandrorpascual-projects-solar-dimension--claude-worktrees-determined-jang-9e5404/c87e5d60-b453-4afb-b843-2788a75c6999/scratchpad/lanes/issue-100-qa
+
+ ❯ src/server/projects-repo.db.test.ts (3 tests | 1 failed) 66ms
+   ❯ saveForUser on the test database (3)
+     × answers with this account's copy only, when another account has a project with the same id 20ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/projects-repo.db.test.ts > saveForUser on the test database > answers with this account's copy only, when another account has a project with the same id
+AssertionError: expected { Object (ok, stale) } to deeply equal { ok: true, stale: [ { …(13) } ] }
+
+- Expected
++ Received
+
+@@ -13,10 +13,38 @@
+          "runLengthM": 1.5,
+          "simultaneousStarts": 1,
+        },
+        "hours": 10,
+        "id": "p-3",
++       "name": "Their project",
++       "qty": {
++         "fridge": 1,
++         "laptop": 1,
++         "lights": 1,
++         "phone": 2,
++         "router": 1,
++         "tv": 1,
++       },
++       "requester": null,
++       "solar": null,
++       "updatedAt": 1767261600000,
++       "volts": 48,
++     },
++     {
++       "batteryUnit": null,
++       "chemistry": "lifepo4",
++       "custom": [],
++       "dutyOverrides": {},
++       "electrical": {
++         "ambientC": 30,
++         "bundled": false,
++         "insulationC": 90,
++         "runLengthM": 1.5,
++         "simultaneousStarts": 1,
++       },
++       "hours": 10,
++       "id": "p-3",
+        "name": "Our newer edit",
+        "qty": {
+          "fridge": 1,
+          "laptop": 1,
+          "lights": 1,
+
+ ❯ src/server/projects-repo.db.test.ts:58:20
+     56|     const answer = await saveForUser(userId, [{ ...ours, name: 'Our ol…
+     57|
+     58|     expect(answer).toEqual({ ok: true, stale: [ours] })
+       |                    ^
+     59|     expect(await listForUser(otherUserId)).toEqual([theirs])
+     60|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  17:38:47
+   Duration  652ms (import 56%, transform 31%, tests 11%, setup 1%)
+

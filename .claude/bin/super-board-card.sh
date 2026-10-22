@@ -70,9 +70,11 @@ REPO=$(echo "$REPO" | sed -E 's#^(https?://github\.com/|git@github\.com:)##; s#\
 
 # Reads go through the kit's bounded retry helper when it is installed, so a
 # board read shares the run's halt file; plain gh otherwise.
-gh_read() {
+gh_read() {  # [--kind <helper kind>] <gh args>…
+  local kind=json
+  [ "${1:-}" = --kind ] && { kind="$2"; shift 2; }
   if [ -f "$HERE/super-board-github-read.py" ]; then
-    python3 "$HERE/super-board-github-read.py" --kind json -- "$@"
+    python3 "$HERE/super-board-github-read.py" --kind "$kind" -- "$@"
   else
     gh "$@"
   fi
@@ -172,7 +174,9 @@ move() {  # $1 = issue, $2 = Status name
 
 items() {  # whole board, gh item-list shape, ~1 point per 100 cards
   local pages
-  pages=$(gh_read api graphql --paginate --slurp -f query='query($owner:String!,$number:Int!,$endCursor:String){
+  # --kind board: the helper re-reads a board of no cards and believes it only
+  # when search finds no open issue on it (GitHub once read 117 cards as 0).
+  pages=$(gh_read --kind board api graphql --paginate --slurp -f query='query($owner:String!,$number:Int!,$endCursor:String){
       repositoryOwner(login:$owner){ ... on ProjectV2Owner { projectV2(number:$number){
         items(first:100, after:$endCursor){ totalCount pageInfo{ hasNextPage endCursor }
           nodes{ id fieldValueByName(name:"Status"){ ... on ProjectV2ItemFieldSingleSelectValue{ name } }

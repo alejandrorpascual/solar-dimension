@@ -145,8 +145,9 @@ export const CHEMISTRIES: Record<ChemistryId, Chemistry> = {
       lfp(48, 100, 100, 16, 'can'), lfp(48, 200, 200, 16, 'can'), lfp(48, 280, 200, 16, 'can'), lfp(48, 300, 200, 16, 'can'), lfp(48, 314, 200, 16, 'can'),
     ],
   },
+  // AGM's shortCircuitPerAh is interim, until each unit carries its maker's figure: 3,430 A on a 12 V 200 Ah datasheet.
   agm: {
-    id: 'agm', label: 'AGM lead-acid', short: 'AGM', dod: 0.5, chargeEff: 0.8, peukertK: 1.15, ratedHours: 20, shortCircuitPerAh: 12,
+    id: 'agm', label: 'AGM lead-acid', short: 'AGM', dod: 0.5, chargeEff: 0.8, peukertK: 1.15, ratedHours: 20, shortCircuitPerAh: 17.15,
     units: [agm(6, 225), agm(12, 100), agm(12, 200)],
   },
 }
@@ -211,8 +212,10 @@ export const GAUGES: readonly Gauge[] = [
 export interface Fuse { a: number; class: FuseClass; aicA: number; maxVdc: number }
 const CLASS_T_AIC_A = 20000
 const CLASS_T_MAX_VDC = 125
-export const FUSES: readonly Fuse[] = [60, 80, 100, 125, 150, 175, 200, 225, 250, 300, 350, 400]
-  .map((a) => ({ a, class: 'T' as const, aicA: CLASS_T_AIC_A, maxVdc: CLASS_T_MAX_VDC }))
+const classT = (a: number): Fuse => ({ a, class: 'T', aicA: CLASS_T_AIC_A, maxVdc: CLASS_T_MAX_VDC })
+export const FUSES: readonly Fuse[] = [60, 80, 100, 125, 150, 175, 200, 225, 250, 300, 350, 400].map(classT)
+/** Sizes only a charge controller's battery fuse takes (1.25 × a 30 or 40 A controller), kept apart so battery fuses do not change. */
+export const CONTROLLER_ONLY_FUSES: readonly Fuse[] = [40, 50].map(classT)
 
 /** Everything the engine sizes with that is not an appliance. Passed to compute() so a managed catalog can replace it later. */
 export interface HardwareCatalog {

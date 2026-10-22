@@ -1,0 +1,25 @@
+# Witnesses against the Builder code (src/lib/quote-items.ts @ f5a104a), KIT = 2/0 AWG kit of the unit tests
+# 'beside 6AWG battery': the line below is a 4/0 AWG wiring line next to 'Cable 6 AWG baterías'; short = the 4/0 line was set aside
+# ALONE: the 4/0 AWG line is the only wiring line; ok = kept as battery cable, unknown = set aside
+CABLE SOLAR 4/0 AWG beside 6AWG battery => "short"
+Cable Solar 4/0 beside 6AWG battery => "short"
+cable pv 4/0 beside 6AWG battery => "short"
+cable ac 4/0 beside 6AWG battery => "short"
+ALIMENTADOR AC 4/0 beside 6AWG battery => "short"
+PANELES 4/0 beside 6AWG battery => "short"
+Cable PV1-F 4/0 beside 6AWG battery => "ok"
+Cable H1Z2Z2-K 4/0 beside 6AWG battery => "ok"
+Alimentador C.A. 4/0 AWG beside 6AWG battery => "ok"
+Alimentador A.C. 4/0 AWG beside 6AWG battery => "ok"
+Cable de red 4/0 beside 6AWG battery => "ok"
+Cable 4/0 AWG strings paneles beside 6AWG battery => "short"
+Cable 4/0 en cañería beside 6AWG battery => "short"
+Cable 4/0 AWG, acá beside 6AWG battery => "short"
+Cable 4/0 AWG para tablero CA beside 6AWG battery => "short"
+two solar lines only: source => [{"page":1,"text":"Cable solar 10 AWG"}]
+solar + lug => {"id":"cables","status":"unknown","facts":{"sizeUnknown":true},"sources":[{"page":1,"text":"Terminales y zapatas"}]}
+Cable 4/0 AWG, caída de tensión menor a 3% ALONE => "unknown"
+Cable 4/0 AWG en cañería ALONE => "unknown"
+Cable 4/0 AWG baterías, tubería EMT ALONE => "ok"
+Cable 4/0 AWG baterías ALONE => "ok"
+battery+PV words one line => {"id":"cables","status":"unknown","facts":{"sizeUnknown":true},"sources":[{"page":1,"text":"Cable 4/0 AWG baterías y pane [... omitted end of long line]

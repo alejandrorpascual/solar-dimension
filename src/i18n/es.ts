@@ -1,11 +1,17 @@
 import type { ConductorKind, WarningParams } from '../lib/sizing'
-import { isInverterSet as isSet } from '../lib/sizing/warnings'
+import { hasBms, isInverterSet as isSet } from '../lib/sizing/warnings'
 import type { Dictionary } from './types'
 import { quoteItemsEs, quoteItemsInlineEs, quoteItemsListEs, quoteItemsShortEs, quotesEs } from './quotes-es'
 import { requesterEs } from './requester-es'
 
+/** What a bank with no BMS (AGM) does past its rating, said where a lithium bank's BMS would cut out. */
+const NO_BMS = 'su voltaje podría caer lo bastante para apagar el inversor'
+
 /** The cable rows as a warning names them mid-sentence. */
 const CONDUCTORS: Record<ConductorKind, string> = { mainCable: 'el cable principal', interconnects: 'las interconexiones', stringLeads: 'los cables de rama' }
+
+/** Said after a fuse's rating: nothing on the main run, which cable it sits on when that is a string lead. */
+const onLead = (p: WarningParams): string => (p.conductor === 'stringLeads' ? ' del cable de rama' : '')
 
 /** What to do about a cable row that falls short: only the ways out the engine says would work for it, ending with the one that always does. */
 function cableRemedy(p: WarningParams): string {
@@ -22,8 +28,14 @@ function cableRemedy(p: WarningParams): string {
 export const es: Dictionary = {
   locale: 'es',
   ui: {
-    step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Paneles solares', step4: 'Tu kit', stepOf: 'Paso {n} de 4',
+    steps: 'Pasos', step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Paneles solares', step4: 'Tu kit', stepOf: 'Paso {n} de 4',
     project: 'Proyecto', projectName: 'Nombre del proyecto', newProject: '+ Nuevo proyecto', duplicate: 'Duplicar', delete: 'Eliminar', untitled: 'Sin nombre',
+    firstProject: 'Casa', projectNumbered: 'Proyecto {n}', copySuffix: ' (copia)', customTag: 'Personalizado',
+    deleteProject: '¿Eliminar “{name}”? No se puede deshacer.',
+    deleteProjectOne: '¿Eliminar “{name}” y 1 cotización? Su archivo también se elimina. No se puede deshacer.',
+    deleteProjectMany: '¿Eliminar “{name}” y sus {count} cotizaciones? Sus archivos también se eliminan. No se puede deshacer.',
+    deleteProjectAny: '¿Eliminar “{name}” y las cotizaciones que tenga? Sus archivos también se eliminan. No se puede deshacer.',
+    deleteProjectYes: 'Eliminar proyecto',
     acInverter: 'Aire acondicionado inverter', acInverterHelp: 'Arranque suave. Cuida el inversor.', acConventional: 'Aire acondicionado convencional', acConventionalHelp: 'Arranca con ~3× su potencia en marcha. Necesita un inversor más grande.', acSizeOne: '{tons} tonelada · {btu}k BTU', acSizeMany: '{tons} toneladas · {btu}k BTU',
     q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; los de arranque, el inversor.',
     search: 'Buscar aparatos', nothingMatches: 'Nada coincide. Prueba otra palabra o agrégalo abajo.', sectionAdded: 'Agregados: {count}',
@@ -63,15 +75,19 @@ export const es: Dictionary = {
     fuseSpec: '{amps} A clase {class}{perRun}', fuseNote: 'En línea en el cable positivo, lo más cerca posible del banco', perRun: ' por tramo', perInverter: ' por inversor', perRunOfInverter: ' por tramo, {n} tramos a cada inversor',
     fuseAicNote: '{aic} kA de capacidad de interrupción', stringFuseSpec: '{amps} A clase {class}, uno por rama en paralelo', stringFuseNote: 'En el positivo de cada rama, para que una rama en corto se aísle sola',
     batteriesCurrentNote: '{cont} A continuos, {peak} A pico del banco (valores supuestos)',
+    batteriesForContinuous: '{parallel} en paralelo por la corriente continua; la energía sola pide {energy}',
+    batteriesForPeak: '{parallel} en paralelo por la corriente pico; la energía sola pide {energy}',
+    batteriesForLead: '{parallel} en paralelo para que los cables de ninguna rama lleven más de lo que soportan; la energía sola pide {energy}',
     oversizeNote: 'Este banco guarda {ratio} veces los {need} que necesita la carga: tiene que dar toda la corriente de un inversor de {inverter}. A {volts} V el kit llevaría un banco de {bank}, el más pequeño que cumple las mismas verificaciones.',
     oversizeNoteSmallest: 'Este banco guarda {ratio} veces los {need} que necesita la carga: el kit no puede armar un banco más pequeño a {kitVolts} V. A {volts} V el kit llevaría un banco de {bank}, el más pequeño que cumple las mismas verificaciones.',
-    batterySize: 'Tamaño de batería', batterySizeHelp: 'Elige la batería que piensas comprar. Automático toma la que más verificaciones cumple, con menos baterías.', batteryAuto: 'Automático',
+    batterySize: 'Tamaño de batería', batterySizeHelp: 'Elige la batería que piensas comprar. Automático toma la que más verificaciones cumple, con menos baterías. Si ninguna puede alimentar el inversor, toma la que da más corriente.', batteryAuto: 'Automático',
     batteryRecommended: 'La mejor opción', batteryGroup: 'Baterías de {v} V', batteryInSeries: '{n} en serie', manyStrings: 'Muchas ramas en paralelo',
+    lowContinuous: 'Corriente continua insuficiente', lowPeak: 'Corriente pico insuficiente',
     batteryCountOne: '{count} batería', batteryCountMany: '{count} baterías', panelCountOne: '{count} panel', panelCountMany: '{count} paneles',
     inverterSizeOne: 'inversor de {w}', inverterSizeMany: '{count} inversores de {w}',
     legal: 'Legal',
     estimateNotice: 'Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada.',
-    fine: 'Cada aparato cuenta en todas las horas del respaldo. Supone 90% de eficiencia del inversor, 25% de margen, {dod}% de profundidad de descarga, 1,100 W por tonelada de refrigeración, {starts}, cable de cobre con aislamiento de {insulation} °C a {ambient} °C{bundled}. Tablas de ampacidad NEC; verifica con la normativa local. Los tamaños de inversor son vatios continuos, no VA, a temperatura ambiente; el margen de 25% cubre el factor de potencia y el calor.',
+    fine: 'Cada aparato cuenta en todas las horas del respaldo. Supone {efficiency}% de eficiencia del inversor, {headroom}% de margen, {dod}% de profundidad de descarga, {perTon} por tonelada de refrigeración, {starts}, cable de cobre con aislamiento de {insulation} °C a {ambient} °C{bundled}. Tablas de ampacidad NEC; verifica con la normativa local. Los tamaños de inversor son vatios continuos, no VA, a temperatura ambiente; el margen de {headroom}% cubre el factor de potencia y el calor.',
     fineStartsOne: 'un solo motor arrancando a la vez', fineStartsTwo: 'dos motores arrancando juntos', fineStartsAll: 'todos los motores arrancando a la vez', fineBundled: ', agrupado',
     fineAcDuty: ' El aire acondicionado funciona {typical} de cada hora en un día típico y {hard} en un día duro.',
     fineRatings: ' Valores supuestos, no de la ficha de un fabricante: cada batería de {battery} entrega {cont} A continuos y {peak} A pico durante {peakSeconds} s, como máximo {parallel} en paralelo, y {shortCircuit} A por Ah en cortocircuito; cada inversor de {inverter} arranca hasta {surge} durante {surgeSeconds} s.',
@@ -80,7 +96,10 @@ export const es: Dictionary = {
     continueGoogle: 'Continuar con Google', orDivider: 'o', googleExists: 'Este correo ya tiene una cuenta. Inicia sesión con tu contraseña y luego conecta Google desde el menú de tu cuenta.', googleFailed: 'No se completó el inicio con Google. Inténtalo de nuevo.', connectGoogle: 'Conectar Google',
     signOutFailed: 'No se pudo cerrar sesión. Sigues con la sesión iniciada. Inténtalo de nuevo.',
     signIn: 'Iniciar sesión', signUp: 'Crear cuenta', signOut: 'Cerrar sesión', email: 'Correo', password: 'Contraseña', noAccount: '¿No tienes cuenta? Crea una', haveAccount: '¿Ya tienes cuenta? Inicia sesión', authFailed: 'No funcionó. Revisa el correo y la contraseña.', signedInAs: 'Sesión iniciada como {email}', syncing: 'Sincronizando tus proyectos…', syncFailed: 'No se pudo guardar en tu cuenta. Los cambios quedan en este dispositivo.', language: 'Idioma',
+    recoverAccess: '¿Olvidaste tu contraseña? Aún no podemos restablecerla aquí. Escribe a {email} y te ayudamos a volver a entrar.',
+    quotesNeedGoogle: 'Subir cotizaciones requiere una cuenta de Google. Una cuenta con correo igual guarda tus proyectos.',
     notFound: 'Página no encontrada', backHome: 'Volver al kit', errorTitle: 'Algo interrumpió el armado del kit.', serverError: 'Error del servidor. Referencia', reload: 'Recargar', updating: 'Cargando la versión más reciente…',
+    accountUnreachable: 'No se pudo conectar con tu cuenta. Puedes seguir armando el kit; los cambios quedan solo en esta página.',
     projects: 'Proyectos', projectsCount: 'Proyectos · {count}', current: 'Actual', quickEdit: 'Edición rápida', done: 'Listo',
     projectMeta: '{volts} V · {hours} h · {count} aparatos', heaviestMore: '{list} y {count} más', bank: 'Banco', inverter: 'Inversor', close: 'Cerrar',
     appliancesCount: 'Aparatos · {count}', windowLabel: 'Horas', hourLess: 'Una hora menos', hourMore: 'Una hora más', hoursShort: '{hours} h',
@@ -93,7 +112,7 @@ export const es: Dictionary = {
     downloadPdf: 'Descargar PDF', downloadPng: 'Descargar imagen', downloadCsv: 'Descargar CSV', share: 'Compartir', making: 'Preparando el archivo…', downloadReady: 'Archivo listo. Descarga iniciada.',
     exportFailed: 'No se pudo crear el archivo. Inténtalo de nuevo.',
     sheetAttention: 'Leer antes de cotizar', sheetAttentionChecks: 'Verificaciones por resolver: {count}', sheetAttentionNotes: 'Notas: {count}', sheetNotes: 'Notas',
-    sheetTitle: 'Kit de respaldo · ficha técnica', date: 'Fecha', loadSchedule: 'Cuadro de cargas', appliance: 'Aparato', each: 'C/u', overHours: 'En {hours} h', total: 'Total', note: 'Nota',
+    sheetTitle: 'Kit de respaldo · ficha técnica', sheetEstimate: 'Estimación', date: 'Fecha', loadSchedule: 'Cuadro de cargas', appliance: 'Aparato', each: 'C/u', overHours: 'En {hours} h', total: 'Total', note: 'Nota',
     eachW: 'C/u (W)', runningWatts: 'En marcha (W)', whOver: 'Wh en {hours} h',
     q3: '¿Tienes espacio en el techo para paneles?', q3Help: 'Los paneles recargan el banco en los días de sol; lo que reponen depende del sol y del techo. Puedes saltarte este paso y quedarte con un kit solo de baterías.',
     solarNo: 'No, solo baterías', solarNoHelp: 'El banco se recarga desde la red o un generador', solarYes: 'Sí, agregar paneles', solarYesHelp: 'Indica el espacio del techo y luego ajusta los paneles',
@@ -101,20 +120,23 @@ export const es: Dictionary = {
     roofSpace: 'Espacio disponible en el techo', roofLess: 'Cinco metros cuadrados menos', roofMore: 'Cinco metros cuadrados más', roofFitsOne: 'Cabe {panels} con pasillos.', roofFitsMany: 'Caben {panels} con pasillos.', roofHint: '¿No estás seguro? Mídelo a pasos: un panel es como una puerta acostada.',
     plannerLabel: 'Planificador del techo · toca para agregar o quitar', plannerTile: '1 casilla = un panel de {w}', addPanel: 'Agregar panel {n}', removePanel: 'Quitar panel {n}',
     panelsLine: '{panels} · {kw}', recommendedPill: 'Recomendado · recarga el banco en un día', recommendedPillLimited: 'Recomendado · lo máximo que cabe en tu techo', backToRecommended: 'Volver a lo recomendado · {n}',
-    sunHours: 'Horas de sol pleno al día', sunHint: 'Caracas promedia unas 4,8 h. Baja el valor si el techo mira lejos del sol o hay árboles que dan sombra.',
+    sunHours: 'Horas de sol pleno al día', sunHint: 'Caracas promedia unas 4.8 h. Baja el valor si el techo mira lejos del sol o hay árboles que dan sombra.',
     clearDay: 'En un día despejado', flowSun: 'de sol pleno', flowBank: 'banco de {volts} V · {batteries}', flowHome: '{count} aparatos · {hours} h',
     coverHead: 'Producción en un día despejado frente al consumo de un día', coverAxis: 'consumo de un día · {use}',
     refillSameDay: 'Banco lleno tras unas {hours} de sol, con {spare} de sobra.', refillDays: 'El banco se recarga en unos {days} días de sol.', noPanelsYet: 'Aún no hay paneles. Toca el techo.',
     cloudyDay: 'Día nublado (40%)', cloudyNote: '{wh}, cerca del {pct}% del consumo de un día.',
-    solarAssumptions: 'Supone 75% de eficiencia de panel a batería y sin sombra al mediodía. Tu kit suma paneles, un controlador de carga MPPT, cable fotovoltaico, un seccionador de CC y la estructura.',
+    solarAssumptions: 'Supone 75% de eficiencia de panel a batería y sin sombra al mediodía. Tu kit suma paneles, un controlador de carga MPPT con su cable y fusible a la batería, cable fotovoltaico, un seccionador de CC y la estructura.',
     solarRecharge: 'Recarga solar', solarRechargeSub: '{wh} en un día despejado',
     footerSolar: '{hours} h a {volts} V · {load} de carga · {panels}, {kw}', footerSolarNone: '{hours} h a {volts} V · {load} de carga · sin paneles', footer4Solar: '{batteries} · {inverter} · {gauge} · {panels}',
     solarPanelsSpec: '{w} monocristalino, {size}', solarPanelsNote: '{strings} · arreglo de {kw} · unos {m2} m² con pasillos',
     chargeControllerSpec: 'MPPT {amps} A · {voc} V máx. FV · banco de {volts} V', chargeControllerNote: '{chargeA} A hacia el banco a pleno sol · {stringVoc} V en circuito abierto por cadena',
+    controllerBatterySpec: 'Fusible de {fuse} A clase {class} · {gauge} ({mm2} mm²) de cobre',
+    controllerBatteryNote: 'Fusible de al menos 1.25 × el controlador de {amps} A · el cable soporta {ampacity} A tras la corrección, al aire libre · verifica que entre en los bornes del controlador · conéctalo del lado de la batería con su propio fusible',
     pvCableSpec: 'Cable solar de {mm2} mm² ({awg}), {length} m cada uno', pvCableNote: 'Del techo al controlador · un par por cadena · terminales MC4',
     pvDisconnectSpec: 'Breaker de CC de {amps} A, 500 V', pvDisconnectNote: 'Entre los paneles y el controlador, accesible desde el suelo',
     mountingSpec: 'Rieles de aluminio y grapas para {panels}', mountingNote: 'Inclinación de 10° hacia el sur en techo plano; a ras en techo inclinado',
     solarTag: 'Solar', fineSolar: ' La parte solar supone paneles de {w}, 75% de eficiencia de panel a batería y {sun} horas de sol pleno al día.',
+    solarNotSized: 'De la parte solar, este kit no dimensiona la protección contra fallas a tierra y sobretensiones, la puesta a tierra, la ventana de voltaje del controlador ni la estructura del techo; las diseña un instalador calificado.',
     stringsOne: '1 cadena de {n} en serie', stringsMany: '{strings} cadenas de {n} en serie',
     average: 'Promedio', averageWatts: 'Promedio (W)', kind: 'Tipo',
     runsLabel: 'Funciona', dutyOf: '{name}: parte de cada hora que funciona', dutyOption: '{pct}% de cada hora', dutyTypical: '{pct}% · típico', dutyNonstop: '100% · no se apaga',
@@ -126,18 +148,22 @@ export const es: Dictionary = {
     cableRun: 'Tramo de cable', cableSummary: '{length} m · {ambient} °C · cable de {insulation} °C{bundled}', cableBundledShort: ' · agrupados',
     runLength: 'De la batería al inversor, un sentido', ambientLabel: 'Temperatura alrededor de los cables',
     ambient30: '30 °C · cuarto fresco', ambient40: '40 °C · garaje, cuarto de máquinas', ambient50: '50 °C · ático o caja al sol',
-    bundledLabel: 'Los cables van en un mismo tubo o atados', bundledHelp: 'La capacidad baja al 80%',
+    bundledLabel: 'Los cables van en un mismo tubo o atados', bundledHelp: 'Factor de agrupamiento del cable principal: {factor}%',
     insulationLabel: 'Aislamiento del cable', insulation75: '75 °C · THW, cable de soldadura', insulation90: '90 °C · THHN, XHHW-2, cable de batería común',
     runtimeRange: '{worst} en un día duro · {best} en un día ligero',
     checks: 'Verificaciones', incChecks: 'Verificaciones', checkPass: 'Cumple', checkWarn: 'Revisar',
+    checksAttentionOne: '1 verificación necesita atención', checksAttentionMany: '{count} verificaciones necesitan atención',
     checkSurge: 'Tamaño del inversor', checkSurgeOk: '{running} en marcha con un inversor de {inverter} · {peak} durante {seconds} s, dentro de sus {rating} de arranque supuestos',
     checkSurgeOkMany: '{running} en marcha con {count} inversores de {unit} ({inverter} en total) · {peak} durante {seconds} s, dentro de sus {rating} de arranque supuestos',
+    checkSurgeOkNoStart: '{running} en marcha con un inversor de {inverter} · sin pico de arranque, dentro de sus {rating} de arranque supuestos',
+    checkSurgeOkManyNoStart: '{running} en marcha con {count} inversores de {unit} ({inverter} en total) · sin pico de arranque, dentro de sus {rating} de arranque supuestos',
     checkSurgeContributors: '{running} en marcha + {list} arrancando',
     checkBatteryContinuous: 'Corriente continua de la batería', checkBatteryContinuousOk: 'El banco entrega {bankA} A continuos supuestos; el inversor toma hasta {needA} A',
     checkBatteryContinuousOkMany: 'El banco entrega {bankA} A continuos supuestos; los {count} inversores toman hasta {needA} A en total',
     checkBatteryPeak: 'Corriente pico de la batería', checkBatteryPeakOk: 'El pico supuesto del banco, {bankA} A, cubre los {needA} A de arranque durante {seconds} s',
+    checkBatteryPeakOkNoStart: 'El pico supuesto del banco, {bankA} A, cubre los {needA} A que toma',
     checkParallel: 'Ramas en paralelo', checkParallelOk: '{parallel} en paralelo, dentro del límite supuesto de {max}', checkParallelSingle: 'Una sola rama, nada que balancear · límite supuesto de {max} en paralelo',
-    checkFuse: 'Fusible', checkFuseOk: '{amps} A clase {class}: bajo los {ampacity} A del cable, {aic} kA de interrupción, arranque de {startA} A dentro de lo que aguanta',
+    checkFuse: 'Fusible', checkFuseOk: '{amps} A clase {class}: bajo los {ampacity} A del cable, {aic} kA de interrupción ante una corriente de cortocircuito estimada de {fault} A, arranque de {startA} A dentro de lo que aguanta',
     checkCable: 'Cable', checkCableOk: '{gauge} soporta {ampacity} A tras la corrección ({ambient} °C{bundled}) para {designA} A de diseño{perRun} · {runDrop}% de caída, {drop}% al arrancar',
   },
   categories: { All: 'Todos', Kitchen: 'Cocina', Living: 'Sala', Climate: 'Clima', 'Air conditioning': 'Aire acondicionado', Work: 'Trabajo', Utility: 'Servicios', Security: 'Seguridad', Personal: 'Personal', Custom: 'Personalizados' },
@@ -183,16 +209,33 @@ export const es: Dictionary = {
         : `${start} supera los ${surge} W de arranque ${inverter}.`
       return `${reason} Elige un inversor mayor o deja que arranquen menos motores a la vez.`
     },
-    bankDischarge: (p) => `${isSet(p) ? `Los ${p.inverters} inversores toman hasta ${p.needA?.toLocaleString('es-419')} A en total` : `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A`} a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.`,
-    bankPeak: (p) => `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; el BMS del banco permite ${p.maxA?.toLocaleString('es-419')} A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.`,
-    fuseAboveBank: (p) => `${(p.count ?? 1) > 1 ? `Los ${p.count} fusibles de ${p.fuseA} A están dimensionados` : `El fusible de ${p.fuseA} A está dimensionado`} para más de los ${p.maxA?.toLocaleString('es-419')} A que el banco puede entregar, así que cortaría el BMS y no ${(p.count ?? 1) > 1 ? 'un' : 'el'} fusible en una sobrecarga. Elige un banco que entregue más.`,
-    fuseAboveCable: (p) => `Ni ${p.count} tramos del cable más grueso soportan más de ${p.maxA?.toLocaleString('es-419')} A cada uno, menos que el fusible de ${p.fuseA} A que necesitan. Sube el voltaje o reduce la carga.`,
-    fuseSurge: (p) => `El arranque pasa ${p.surgeA?.toLocaleString('es-419')} A por un fusible de ${p.fuseA} A durante ${p.seconds} s; puede quemarse en un arranque normal. El siguiente tamaño aún protege el cable.`,
-    fuseInterrupt: (p) => `Un banco en corto puede entregar unos ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible. Usa un fusible con esa capacidad o menos ramas.`,
-    fuseVoltage: (p) => `El fusible de ${p.fuseA} A solo está certificado para ${p.maxVdc} V CC, y un banco de ${p.volts} V necesita ${p.needVdc} V CC o más: podría no cortar una falla. Usa un fusible certificado para al menos ${p.needVdc} V CC.`,
+    bankDischarge: (p) => `${isSet(p) ? `Los ${p.inverters} inversores toman hasta ${p.needA?.toLocaleString('es-419')} A en total` : `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A`} a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y ${hasBms(p) ? 'su BMS cortaría' : NO_BMS}. Elige una unidad mayor o más voltaje.`,
+    bankPeak: (p) => {
+      const peak = `${p.maxA?.toLocaleString('es-419')} A pico`
+      const limit = hasBms(p) ? `el BMS del banco permite ${peak} y podría apagarse` : `el banco permite ${peak} y ${NO_BMS}`
+      return `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; ${limit}. Deja que arranquen menos motores a la vez o agrega una rama.`
+    },
+    fuseAboveBank: (p) => {
+      const fuse = `${(p.count ?? 1) > 1 ? 'un' : 'el'} fusible`
+      const overload = hasBms(p) ? `cortaría el BMS y no ${fuse} en una sobrecarga` : `una sobrecarga forzaría las baterías antes de que se queme ${fuse}`
+      const source = p.conductor === 'stringLeads' ? 'una rama' : 'el banco'
+      return `${(p.count ?? 1) > 1 ? `Los ${p.count} fusibles de ${p.fuseA} A están dimensionados` : `El fusible de ${p.fuseA} A${onLead(p)} está dimensionado`} para más de los ${p.maxA?.toLocaleString('es-419')} A que ${source} puede entregar, así que ${overload}. Elige un banco que entregue más.`
+    },
+    fuseAboveCable: (p) => {
+      const maxA = p.maxA?.toLocaleString('es-419')
+      const way = 'Sube el voltaje o reduce la carga.'
+      if (p.conductor === 'stringLeads') return `Ni el cable más grueso soporta más de ${maxA} A, menos que el fusible de ${p.fuseA} A${onLead(p)}. ${way}`
+      if ((p.count ?? 1) === 1) return `El cable más grueso solo soporta ${maxA} A, menos que el fusible de ${p.fuseA} A que necesita. ${way}`
+      return `Ni ${p.count} tramos del cable más grueso soportan más de ${maxA} A cada uno, menos que el fusible de ${p.fuseA} A que necesitan. ${way}`
+    },
+    fuseSurge: (p) => `El arranque pasa ${p.surgeA?.toLocaleString('es-419')} A por un fusible de ${p.fuseA} A${onLead(p)} durante ${p.seconds} s; puede quemarse en un arranque normal.`,
+    fuseInterrupt: (p) => p.conductor === 'stringLeads'
+      ? `Una batería en corto puede entregar una corriente estimada de ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible${onLead(p)}. Usa un fusible con esa capacidad.`
+      : `Un banco en corto puede entregar una corriente estimada de ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible. Usa un fusible con esa capacidad o menos ramas.`,
+    fuseVoltage: (p) => `El fusible de ${p.fuseA} A${onLead(p)} solo está clasificado para ${p.maxVdc} V CC, y un banco de ${p.volts} V necesita ${p.needVdc} V CC o más: podría no cortar una falla. Usa un fusible clasificado para al menos ${p.needVdc} V CC.`,
     cableDrop: (p) => `El cable cae ${p.dropPct}% a plena carga, más del ${p.maxDropPct}% previsto, aun con el calibre más grueso. Acorta el tramo o elige un voltaje de banco mayor.`,
     startupDrop: (p) => `El cable cae ${p.dropPct}% con la corriente de arranque; el inversor puede apagarse cuando arranque un motor. Acorta el tramo o sube un calibre.`,
-    cableAmbient: (p) => `Ningún cable de la tabla está certificado para aire a ${p.ambientC} °C. Lleva el tramo a un lugar más fresco.`,
+    cableAmbient: (p) => `Ningún cable de la tabla está clasificado para aire a ${p.ambientC} °C. Lleva el tramo a un lugar más fresco.`,
     cableUndersized: (p) => `El ${p.gauge} para ${CONDUCTORS[p.conductor!]} solo soporta ${p.maxA?.toLocaleString('es-419')} A tras la corrección, menos que la corriente de diseño de ${p.needA?.toLocaleString('es-419')} A de cada cable. ${cableRemedy(p)}`,
     missingAppliances: (p) => p.count === 1
       ? 'No se pudo cargar 1 aparato de este proyecto, así que este kit lo deja fuera. Recarga en un minuto; si sigue faltando, agrégalo de nuevo.'
@@ -205,7 +248,7 @@ export const es: Dictionary = {
         : `Una cadena necesita al menos ${p.count} paneles en serie para cargar un banco de ${p.volts} V, y ${fits}. Este kit no lleva paneles; haz espacio para ${p.count} o más.`
     },
   },
-  parts: { inverter: 'Inversor', batteries: 'Baterías', mainCable: 'Cable principal', interconnects: 'Interconexiones', stringLeads: 'Cables de rama', fuse: 'Fusible', stringFuses: 'Fusibles por rama', solarPanels: 'Paneles solares', chargeController: 'Controlador de carga', pvCable: 'Cable fotovoltaico', pvDisconnect: 'Seccionador FV', mounting: 'Estructura'  },
+  parts: { inverter: 'Inversor', batteries: 'Baterías', mainCable: 'Cable principal', interconnects: 'Interconexiones', stringLeads: 'Cables de rama', fuse: 'Fusible', stringFuses: 'Fusibles por rama', solarPanels: 'Paneles solares', chargeController: 'Controlador de carga', controllerBattery: 'Controlador a batería: cable y fusible', pvCable: 'Cable fotovoltaico', pvDisconnect: 'Seccionador FV', mounting: 'Estructura'  },
   kinds: { continuous: 'Siempre encendidos', cycling: 'Encienden y apagan', momentary: 'Ráfagas cortas' },
   parallelNotes: {
     sameModelAge: 'Mismo modelo y edad en cada rama',

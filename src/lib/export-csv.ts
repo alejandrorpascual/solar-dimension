@@ -20,8 +20,8 @@ export interface CsvInput {
   /** Column titles in the user's language. */
   headers: { appliances: string[]; parts: string[]; attention: string[] }
   include: { appliances: boolean; parts: boolean }
-  /** One closing line under everything, such as what kind of document this is. */
-  footer?: string
+  /** Closing lines under everything, one to a row, such as what kind of document this is. */
+  footer?: readonly string[]
   /** The cell separator, from `csvDelimiter`. A comma when left out. */
   delimiter?: CsvDelimiter
 }
@@ -72,7 +72,7 @@ export function buildCsv(input: CsvInput): string {
   if (input.attention.length > 0) {
     blocks.push([line(input.headers.attention), ...input.attention.map((a) => line([a.name, a.text]))])
   }
-  if (input.footer) blocks.push([line([input.footer])])
+  if (input.footer?.length) blocks.push(input.footer.map((text) => line([text])))
   return BOM + blocks.map((b) => b.join(EOL)).join(EOL + EOL)
 }
 

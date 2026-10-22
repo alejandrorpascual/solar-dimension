@@ -1,0 +1,75 @@
+import { test } from 'vitest'
+import { appendFileSync, writeFileSync } from 'node:fs'
+const OUT = process.env.QA_OUT ?? '/dev/null'
+const log = (s: string) => appendFileSync(OUT, s + '\n')
+import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
+import * as head from './quote-items'
+import * as base from './qa-base-items'
+
+type W = [string, number | null, string][]
+const named = (text: string, awg: string | null = null, qty = 1) =>
+  line('wiring', 1, { qty, description: text, source: { page: 1, text }, specs: { awg } })
+const fuse250 = line('fuse', 1, { specs: { fuseAmps: 250, fuseClass: 'T' } })
+
+const show = (mod: typeof head, lines: ReturnType<typeof named>[], id: 'cables' | 'fuse') => {
+  const c = mod.checkItems(extraction(lines), KIT as never, {}).find((i) => i.id === id)!
+  const f = c.facts
+  const facts = [f.gauge, f.batteryCableUnstated ? 'batteryCableUnstated' : '', f.sizeUnknown ? 'sizeUnknown' : '', f.runsUnstated ? 'runsUnstated' : '', f.maxA ? `maxA${f.maxA}` : ''].filter(Boolean).join(',')
+  return `${c.status}${facts ? ` [${facts}]` : ''} cites ${c.sources.map((s) => `"${s.text}"`).join(' + ')}`
+}
+
+const witnesses: [string, ReturnType<typeof named>[]][] = []
+const add = (label: string, ...ls: ReturnType<typeof named>[]) => witnesses.push([label, ls])
+// the four ACs, the ticket's own words
+add('AC1 ticket english: AC feeder 4/0 + battery 6', named('Cable 4/0 AWG AC feeder', '4/0'), named('Cable 6 AWG battery', '6'))
+add('AC1 spanish: Alimentador AC 4/0 + baterias 6', named('Alimentador AC, cable 4/0 AWG', '4/0'), named('Cable 6 AWG baterías', '6'))
+add('AC2 PV alone sized', named('Cable solar 6 mm² (10 AWG), 20 m', '10'))
+add('AC2 AC feeder alone sized', named('Alimentador AC, cable 4/0 AWG', '4/0'))
+add('AC3 PV + sized battery 4/0', named('Cable solar 6 mm² (10 AWG), 20 m', '10'), named('Cable 4/0 AWG baterías', '4/0'))
+add('AC4 PV + unsized battery', named('Cable solar 6 mm² (10 AWG), 20 m', '10'), named('Cableado de baterías'))
+// R1-R4
+add('R1 solar 4/0 + ground 6', named('Cable solar 4/0 AWG', '4/0'), named('Cable de tierra física 6 AWG', '6'))
+add('R1 AC 4/0 + bare ground 6', named('Alimentador AC 4/0 AWG', '4/0'), named('Cable desnudo tierra 6 AWG', '6'))
+add('R1 solar 4/0 + lug 2/0', named('Cable solar 4/0 AWG', '4/0'), named('Terminal de ojo 2/0 AWG', '2/0'))
+add('R2 caida alone', named('Cable 2/0 AWG batería, caída de tensión 2%', '2/0'))
+add('R2 caida + 10 AWG controller', named('Cable 2/0 AWG batería, caída de tensión 2%', '2/0'), named('Cable 10 AWG controlador', '10'))
+add('R2 cañeria alone', named('Cable 2/0 AWG baterías en cañería', '2/0'))
+add('R3 C.A. 4/0 + battery 6', named('Alimentador C.A. 4/0 AWG', '4/0'), named('Cable 6 AWG baterías', '6'))
+add('R3 A.C. 4/0 + battery 6', named('Alimentador A.C. 4/0 AWG', '4/0'), named('Cable 6 AWG baterías', '6'))
+add('R3 PV1-F 4/0 + battery 6', named('Cable PV1-F 4/0', '4/0'), named('Cable 6 AWG baterías', '6'))
+// adversarial new probes
+add('ADV H1Z2Z2-K (PV standard cable) 4/0 + battery 6', named('Cable H1Z2Z2-K 4/0', '4/0'), named('Cable 6 AWG baterías', '6'))
+add('ADV PVC conduit word, battery 4/0 alone', named('Cable 4/0 AWG baterías en PVC', '4/0'))
+add('ADV A/C slash 4/0 + battery 6', named('Alimentador A/C 4/0 AWG', '4/0'), named('Cable 6 AWG baterías', '6'))
+add('ADV "AC" English "AC output" 4/0 + battery 6', named('AC output cable 4/0 AWG', '4/0'), named('Cable 6 AWG baterías', '6'))
+add('ADV "inversor a tablero AC" 4/0 + battery 6', named('Cable inversor a tablero AC 4/0 AWG', '4/0'), named('Cable 6 AWG baterías', '6'))
+add('ADV battery cable to "panel de distribución"', named('Cable 4/0 AWG baterías a panel de distribución DC', '4/0'), named('Cable 10 AWG controlador', '10'))
+add('ADV DC-side "Cable de baterías a inversor (CD)" alone', named('Cable de baterías a inversor 4/0 AWG (CD)', '4/0'))
+add('ADV solar uppercase 4/0 + battery 6 (SOLAR)', named('CABLE SOLAR 4/0 AWG', '4/0'), named('CABLE 6 AWG BATERÍAS', '6'))
+add('ADV "Ca" capital: "Cable Ca 4/0"', named('Cable Ca 4/0 AWG', '4/0'), named('Cable 6 AWG baterías', '6'))
+add('ADV photovoltaic english "photovoltaic" 4/0 + battery 6', named('Photovoltaic cable 4/0 AWG', '4/0'), named('Cable 6 AWG baterías', '6'))
+add('ADV "paneles" fuzzy: "Cable 4/0 AWG baterías (no incluye paneles)" alone', named('Cable 4/0 AWG baterías (no incluye paneles)', '4/0'))
+add('ADV three lines: solar + AC + battery 2/0', named('Cable solar 10 AWG', '10'), named('Alimentador AC 4/0 AWG', '4/0'), named('Cable 2/0 AWG baterías', '2/0'))
+add('ADV three lines: solar + AC + sized ground', named('Cable solar 10 AWG', '10'), named('Alimentador AC 4/0 AWG', '4/0'), named('Cable tierra 6 AWG', '6'))
+add('ADV no solar words at all (regression): 4/0 + 6 AWG', named('Cable 4/0 AWG', '4/0'), named('Cable 6 AWG', '6'))
+add('ADV ground wire alone, no solar (regression)', named('Cable de tierra 6 AWG', '6'))
+add('ADV unsized lug + sized battery + PV', named('Zapatas'), named('Cable solar 10 AWG', '10'), named('Cable 4/0 AWG baterías', '4/0'))
+add('ADV unsized generic + PV (no "bateria" word)', named('Cableado'), named('Cable solar 10 AWG', '10'))
+
+test('witnesses: base (staging) vs head, cables', () => {
+  const rows = witnesses.map(([label, ls]) => `${label}\n    base: ${show(base as never, ls, 'cables')}\n    head: ${show(head, ls, 'cables')}`)
+  log('\n=== CABLES ===\n' + rows.join('\n'))
+})
+test('witnesses: base vs head, fuse 250 A', () => {
+  const rows = witnesses.map(([label, ls]) => `${label} + fuse 250A\n    base: ${show(base as never, [...ls, fuse250], 'fuse')}\n    head: ${show(head, [...ls, fuse250], 'fuse')}`)
+  log('\n=== FUSE ===\n' + rows.join('\n'))
+})
+test('sample quotes unchanged: every item verdict, base vs head', () => {
+  const out: string[] = []
+  for (const [name, q] of Object.entries(SAMPLE_QUOTES)) {
+    const a = JSON.stringify(base.checkItems(q as never, KIT as never, {}))
+    const b = JSON.stringify(head.checkItems(q as never, KIT as never, {}))
+    out.push(`${name}: ${a === b ? 'identical' : 'DIFFERENT'}`)
+  }
+  log('\n=== SAMPLE QUOTES ===\n' + out.join('\n'))
+})

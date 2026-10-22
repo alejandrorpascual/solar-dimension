@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { signIn } from '../lib/auth-client'
+import type { Step } from '../lib/steps'
 
 /** Google's four-colour "G", per its sign-in branding guidelines. */
 function GoogleMark() {
@@ -14,17 +15,20 @@ function GoogleMark() {
   )
 }
 
-/** Starts Google sign-in. Better Auth redirects the whole page; errors come back to /login as ?error=. */
-export function GoogleButton({ label }: { label: string }) {
+/**
+ * Starts Google sign-in. Better Auth redirects the whole page: to the kit at `step` once signed in, and with errors back
+ * to /login as ?error=, still carrying the step.
+ */
+export function GoogleButton({ label, step }: { label: string; step: Step }) {
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
 
   async function start() {
     setBusy(true)
-    const res = await signIn.social({ provider: 'google', callbackURL: '/?step=1', errorCallbackURL: '/login' })
+    const res = await signIn.social({ provider: 'google', callbackURL: `/?step=${step}`, errorCallbackURL: `/login?step=${step}` })
     if (res.error) {
       setBusy(false)
-      await navigate({ to: '/login', search: { error: 'google' } })
+      await navigate({ to: '/login', search: { error: 'google', step } })
     }
   }
 

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { en } from '../i18n/en'
 import { es } from '../i18n/es'
 import { fmtDecimal, fmtKwh, fmtList, fmtW } from '../i18n/format'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { compareQuotes, entryKey, type QuoteView, type RankedQuote, type UnrankedQuote, type UnrankedReason } from './quote-compare'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES, type SampleQuoteId } from './quote-fixtures'
 import { checkItems, DEFAULT_MUSTS, type KitNeeds } from './quote-items'
@@ -9,8 +10,9 @@ import type { ProjectJobs } from './quote-jobs'
 import type { Rejection } from './quote-limits'
 import type { QuoteLine } from './quote-schema'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
+import { compute, type SizingInput } from './sizing'
 import {
-  askText, coverageLines, evidenceLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, markLabel, misreadText, money, oversizeTip,
+  askText, coverageLines, evidenceLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, kitAttentionText, kitHold, markLabel, misreadText, money, oversizeTip,
   projectLine, questionText, ratioLabel, readTotalText, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
@@ -27,16 +29,60 @@ describe('verdict text', () => {
     expect(verdictSubline(en, v, KIT)).toBe('$6,480, the cheapest of your 4 quotes that meets all 6 must-haves.')
     expect(verdictHeading(es, v)).toBe('SolarTec Caribe cumple con tu kit por menos')
   })
-  test('with nothing that fits, the closest quote and its gap', () => {
+  test('with nothing that fits, a lone short quote is named closest with its gap, in both languages', () => {
     const none = compareQuotes(KIT, DEFAULT_MUSTS, [view('enerhogar', 0)])
     expect(verdictHeading(en, none)).toBe('None of your quotes fits yet')
     expect(verdictSubline(en, none, KIT)).toBe('EnerHogar is closest: its inverter is 3,560 W short.')
+    expect(verdictSubline(es, none, KIT)).toBe(`EnerHogar es la más cercana: al inversor le faltan ${fmtW(3560, es.locale)}.`)
+  })
+  test('with nothing that fits, an unclear quote is named before a short one, in both languages', () => {
+    const mixed = compareQuotes(KIT, DEFAULT_MUSTS, [view('enerhogar', 0), view('grupoluz', 1)])
+    expect(mixed.best).toBeNull()
+    expect(verdictHeading(en, mixed)).toBe('None of your quotes fits yet')
+    expect(verdictSubline(en, mixed, KIT)).toBe("Grupo Luz could fit: it doesn't mention a battery charger and a class T fuse.")
+    expect(verdictSubline(es, mixed, KIT)).toBe('Grupo Luz podría cumplir: no menciona un cargador de baterías y un fusible clase T.')
   })
   test('empty and reading', () => {
     const empty = compareQuotes(KIT, DEFAULT_MUSTS, [])
     expect(verdictHeading(en, empty)).toBe('No quotes yet')
     const reading = compareQuotes(KIT, DEFAULT_MUSTS, [{ ...view('solartec', 0), status: 'processing', extraction: null }])
     expect(verdictHeading(en, reading)).toBe('Reading your quotes')
+  })
+})
+
+describe("the kit's own warnings on the verdict", () => {
+  const sized = (qty: Record<string, number>, extra: Partial<SizingInput> = {}) =>
+    compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4', ...extra }, CATALOG_SNAPSHOT)
+  const ESSENTIALS = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
+
+  test('a kit with an appliance the catalog lacks holds the verdict and says so, in both languages', () => {
+    const r = sized({ ...ESSENTIALS, 'no-such-thing': 1 })
+    expect(kitHold(en, r)).toEqual({
+      title: 'Your kit is missing appliances',
+      note: '1 appliance in this project could not be loaded, so this kit leaves it out. Reload in a minute; if it is still missing, add it again.',
+    })
+    expect(kitHold(es, r)).toEqual({
+      title: 'A tu kit le faltan aparatos',
+      note: 'No se pudo cargar 1 aparato de este proyecto, así que este kit lo deja fuera. Recarga en un minuto; si sigue faltando, agrégalo de nuevo.',
+    })
+  })
+  test('a kit whose only appliance is missing says it is missing, not that it is empty', () => {
+    expect(kitHold(en, sized({ 'no-such-thing': 2, 'gone-too': 1 }))?.title).toBe('Your kit is missing appliances')
+  })
+  test('an empty kit asks for appliances, and a whole kit holds nothing', () => {
+    expect(kitHold(en, sized({}))).toEqual({
+      title: 'Add appliances to compare your quotes', note: "Your quotes are saved. Add appliances to the kit and we'll compare them.",
+    })
+    expect(kitHold(en, sized(ESSENTIALS))).toBeNull()
+  })
+  test('a kit that fails its own checks gets one line with how many, in both languages', () => {
+    const r = sized({ micro: 1 }, { hours: 8, volts: 12, chemistry: 'agm', batteryUnit: '12-100' })
+    expect(kitAttentionText(en, r)).toBe('2 checks on your kit need attention. Open the kit to see them.')
+    expect(kitAttentionText(es, r)).toBe('2 verificaciones de tu kit necesitan atención. Abre el kit para verlas.')
+    const one = { ...r, warnings: r.warnings.filter((w) => w.code !== 'bankDischarge') }
+    expect(kitAttentionText(en, one)).toBe('1 check on your kit needs attention. Open the kit to see it.')
+    expect(kitAttentionText(es, one)).toBe('1 verificación de tu kit necesita atención. Abre el kit para verla.')
+    expect(kitAttentionText(en, sized(ESSENTIALS))).toBeNull()
   })
 })
 
@@ -73,6 +119,7 @@ describe('totalHelp', () => {
     compareQuotes(KIT, DEFAULT_MUSTS, [{ ...view('solartec', 0), status: 'needs_review', ...over }]).unranked[0]!
   const lineOff = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, unitPrice: 1 } : l)) }
   const noLines = extraction([], { total: 5000 })
+  const LINE_OFF_EN = "On some lines, the quantity times the unit price doesn't make the line total. A total wouldn't fix it. Read it again, or upload a clearer copy."
 
   test('a quote with no total asks for it, in both languages', () => {
     const u = unranked({ extraction: { ...SAMPLE_QUOTES.solartec, total: 0 } })
@@ -98,13 +145,23 @@ describe('totalHelp', () => {
       "Some amounts don't add up. Correct the total to compare this quote.",
     )
   })
-  test('read again and still not holding, a reading asks for the total as the quote writes it', () => {
-    expect(totalHelp(en, unranked({ extraction: lineOff, retries: 1 }))).toBe(en.quotes.misreadTotalHelp)
+  test('read again and still not holding, a reading names the check that failed, then asks for the total as the quote writes it', () => {
+    const badCurrency = { ...SAMPLE_QUOTES.solartec, currency: 'RD$' }
+    expect(totalHelp(en, unranked({ extraction: lineOff, retries: 1 }))).toBe(
+      "On some lines, the quantity times the unit price doesn't make the line total. We read it again with the same result. If the quote is written that way (a discount on a line, say), enter its total to compare it.",
+    )
+    expect(totalHelp(en, unranked({ extraction: badCurrency, retries: 1 }))).toBe(
+      "We couldn't tell which currency its prices are in. We read it again with the same result. If the quote is written that way (a discount on a line, say), enter its total to compare it.",
+    )
+    expect(totalHelp(es, unranked({ extraction: lineOff, retries: 1 }))).toBe(
+      'En algunas líneas, la cantidad por el precio unitario no da el total de la línea. La leímos de nuevo con el mismo resultado. Si la cotización está escrita así (con un descuento en una línea, por ejemplo), escribe su total para compararla.',
+    )
+    expect(totalHelp(es, unranked({ extraction: badCurrency, retries: 1 }))).toBe(
+      'No pudimos saber en qué moneda están sus precios. La leímos de nuevo con el mismo resultado. Si la cotización está escrita así (con un descuento en una línea, por ejemplo), escribe su total para compararla.',
+    )
     expect(totalHelp(es, unranked({ extraction: noLines, retries: 1 }))).toBe(es.quotes.noLinesTotalHelp)
   })
   test('before it is read again, a reading with no lines says so rather than blaming its line amounts', () => {
-    expect(misreadText(en, lineOff, null, true)).toBe(en.quotes.misreadHelp)
-    expect(misreadText(en, lineOff, null, false)).toBe(en.quotes.misreadHelpNoRetry)
     expect(misreadText(en, noLines, null, true)).toBe("We couldn't read any lines in this quote, so a total alone wouldn't say what it includes. Read it again, or upload a clearer copy.")
     expect(misreadText(es, noLines, null, false)).toBe(es.quotes.noLinesHelpNoRetry)
   })
@@ -121,7 +178,37 @@ describe('totalHelp', () => {
     expect(misreadText(es, tooBig, null, false)).toBe(es.quotes.implausibleHelpNoRetry)
     // SolarTec cites page 2, which a one-page file does not have; read from two pages, only its line amount is off.
     expect(misreadText(en, SAMPLE_QUOTES.solartec, 1, true)).toBe(en.quotes.implausibleHelp)
-    expect(misreadText(en, lineOff, 2, true)).toBe(en.quotes.misreadHelp)
+    expect(misreadText(en, lineOff, 2, true)).toBe(LINE_OFF_EN)
+  })
+  test('a misread card names the check that failed: a line amount and an unreadable currency read differently', () => {
+    const badCurrency = { ...SAMPLE_QUOTES.solartec, currency: 'RD$' }
+    expect(misreadText(en, lineOff, null, true)).toBe(LINE_OFF_EN)
+    expect(misreadText(en, lineOff, null, false)).toBe(
+      "On some lines, the quantity times the unit price doesn't make the line total. A total wouldn't fix it. Upload a clearer copy.",
+    )
+    expect(misreadText(en, badCurrency, null, true)).toBe(
+      "We couldn't tell which currency its prices are in. A total wouldn't fix it. Read it again, or upload a clearer copy.",
+    )
+    expect(misreadText(es, lineOff, null, true)).toBe(
+      'En algunas líneas, la cantidad por el precio unitario no da el total de la línea. Un total no lo arreglaría. Léela de nuevo o sube una copia más clara.',
+    )
+    expect(misreadText(es, badCurrency, null, false)).toBe(
+      'No pudimos saber en qué moneda están sus precios. Un total no lo arreglaría. Sube una copia más clara.',
+    )
+  })
+  test('a misread card names every check that failed, and a quantity of 0', () => {
+    const both = { ...lineOff, currency: 'RD$' }
+    expect(misreadText(en, both, null, true)).toBe(
+      "We couldn't tell which currency its prices are in. On some lines, the quantity times the unit price doesn't make the line total. A total wouldn't fix it. Read it again, or upload a clearer copy.",
+    )
+    const noQty = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, qty: 0 } : l)) }
+    expect(misreadText(en, noQty, null, false)).toBe("Some lines have a quantity of 0 or less. A total wouldn't fix it. Upload a clearer copy.")
+    expect(misreadText(es, noQty, null, false)).toBe('Algunas líneas tienen una cantidad de 0 o menos. Un total no lo arreglaría. Sube una copia más clara.')
+    // A line in an option the quote never listed fails no check the card has a sentence for.
+    const stray = extraction([line('inverter', 1890, { option: '?' })])
+    expect(misreadText(en, stray, null, true)).toBe(
+      "Some line amounts, quantities or the currency we read don't hold together. A total wouldn't fix it. Read it again, or upload a clearer copy.",
+    )
   })
 })
 
@@ -298,6 +385,13 @@ describe('items a quote mentions without enough to judge them', () => {
     expect(markLabel(en, cables)).toBe('To confirm')
     expect(markLabel(es, cables)).toBe('Por confirmar')
   })
+  test('wiring that is all solar or AC says the quote names no battery cable, not that a size is missing (R4)', () => {
+    const solar = line('wiring', 1, { description: 'Alimentador AC, cable 4/0 AWG', source: { page: 1, text: 'Alimentador AC, cable 4/0 AWG' }, specs: { awg: '4/0' } })
+    const cables = judged([solar], 'cables')
+    expect(itemText(en, cables, KIT, 'USD')).toEqual({ label: 'Included', detail: 'Battery cable not stated' })
+    expect(itemText(es, cables, KIT, 'USD')).toEqual({ label: 'Incluido', detail: 'No indica el cable de la batería' })
+    expect(markLabel(en, cables)).toBe('To confirm')
+  })
   test('a cable that must be more runs than the quote counts says how many', () => {
     const kit: KitNeeds = { ...KIT, designA: 231, ampacityByGauge: { ...KIT.ampacityByGauge, '1 AWG': 130 }, cableMm2: 42.4, cableGauge: '1 AWG' }
     expect(itemText(en, judged([wiring('1')], 'cables', kit), kit, 'USD')).toEqual({ label: '1 AWG', detail: "Needs 2 runs of this size; the quote doesn't say how many" })
@@ -366,6 +460,15 @@ describe('items a quote mentions without enough to judge them', () => {
       const { r, verdict } = rank([...good.map((l) => (l.kind === 'inverter' ? { ...l, specs: { ...l.specs, hasCharger: true } } : l)), wiring(null)])
       expect(reasonLine(es, r, verdict, KIT)).toBe('No confirma la medida de los cables principales.')
       expect(questionText(en, r)).toBe('Hi Luz, could you confirm the size of the main cables?')
+    })
+    test('a quote whose wiring is all solar or AC asks for the battery cable (R4)', () => {
+      const noCharger = good.map((l) => (l.kind === 'inverter' ? { ...l, specs: { ...l.specs, hasCharger: true } } : l))
+      const solar = line('wiring', 1, { description: 'Cable solar 4/0 AWG', source: { page: 1, text: 'Cable solar 4/0 AWG' }, specs: { awg: '4/0' } })
+      const { r, verdict } = rank([...noCharger, solar])
+      expect(r.unknownMusts).toEqual(['cables'])
+      expect(reasonLine(en, r, verdict, KIT)).toBe("Doesn't confirm the size of the battery cable.")
+      expect(questionText(en, r)).toBe('Hi Luz, could you confirm the size of the battery cable?')
+      expect(questionText(es, r)).toBe('Hola, Luz: ¿podría confirmar la medida del cable de la batería?')
     })
     test('each open point has its own phrase, so the question names what to check', () => {
       const ask = (lines: Parameters<typeof extraction>[0]) => questionText(en, rank(lines).r)

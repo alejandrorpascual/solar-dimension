@@ -21,6 +21,9 @@ describe('classifyError', () => {
     expect(classifyError(new OpenAI.APIError(503, undefined, 'down', new Headers())).kind).toBe('transient')
     expect(classifyError(new OpenAI.APIConnectionError({ message: 'reset' })).kind).toBe('transient')
   })
+  test('a call that ran out its own request timeout is a timeout, not a transient error to retry at once', () => {
+    expect(classifyError(new OpenAI.APIConnectionTimeoutError()).kind).toBe('timeout')
+  })
   test('a request timeout (408) and a conflict (409) are transient, as the SDK treats them', () => {
     expect(classifyError(new OpenAI.APIError(408, undefined, 'timeout', new Headers())).kind).toBe('transient')
     expect(classifyError(new OpenAI.APIError(409, undefined, 'conflict', new Headers())).kind).toBe('transient')

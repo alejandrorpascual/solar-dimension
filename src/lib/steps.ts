@@ -3,10 +3,15 @@ export type Step = 1 | 2 | 3 | 4
 /** The wizard's steps in order: appliances, backup hours, solar panels, the kit. */
 export const STEPS: readonly Step[] = [1, 2, 3, 4]
 
+/** A step from the URL, or undefined for anything that is not 1–4. */
+export function toStep(v: unknown): Step | undefined {
+  const n = typeof v === 'string' ? Number(v) : v
+  return STEPS.find((s) => s === n)
+}
+
 /** A step from the URL; anything that is not 1–4 starts at the appliances. */
 export function parseStep(v: unknown): Step {
-  const n = typeof v === 'string' ? Number(v) : v
-  return STEPS.find((s) => s === n) ?? 1
+  return toStep(v) ?? 1
 }
 
 /** The appliances step is always open; the rest size a kit, so they need at least one appliance. */

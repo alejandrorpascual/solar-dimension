@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { LayoutGrid } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { AccountMenu } from '../components/AccountMenu'
 import { ApplianceGrid } from '../components/ApplianceGrid'
 import { BackupWindow } from '../components/BackupWindow'
@@ -20,12 +21,16 @@ import { useRootData } from '../hooks/useRootData'
 import { useSignOut } from '../hooks/useSignOut'
 import { batteryCount, inverterSize, panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
+import { attentionLine } from '../lib/kit-checks'
 import { computeProject } from '../lib/project-summary'
 import { patchCurrent } from '../lib/store'
 import type { SizingResult } from '../lib/sizing'
 import { parseStep, type Step } from '../lib/steps'
 
 interface Search { step: Step }
+
+/** From this width the rail sits beside the page (rail.css); narrower screens open its content in a sheet. */
+const RAIL_SHOWN = '(min-width: 1280px)'
 
 export const Route = createFileRoute('/')({
   validateSearch: (search: Record<string, unknown>): Search => ({ step: parseStep(search.step) }),
@@ -42,6 +47,29 @@ function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary,
   if (r.empty || !r.battery) return t.ui.footerEmpty
   const base = { batteries: batteryCount(t, r.battery.count), inverter: inverterSize(t, r.inverter, locale), gauge: r.cable.gauge }
   return r.solar ? tr(t, 'footer4Solar', { ...base, panels: panelCount(t, r.solar.panels) }) : tr(t, 'footer3', base)
+}
+
+/** The question each step asks; the kit step names the project it is for. */
+function stepTitle(step: Step, name: string, t: Dictionary): string {
+  if (step === 1) return t.ui.q1
+  if (step === 2) return t.ui.q2
+  if (step === 3) return t.ui.q3
+  return tr(t, 'kitFor', { name })
+}
+
+/**
+ * The step's heading, focused when the step changes (Next, Back, the stepper) so a screen reader announces the new
+ * step. Not on the first render: a page that just loaded keeps focus where the browser put it.
+ */
+function useStepHeadingFocus(step: Step) {
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const shownStep = useRef(step)
+  useEffect(() => {
+    if (shownStep.current === step) return
+    shownStep.current = step
+    headingRef.current?.focus()
+  }, [step])
+  return headingRef
 }
 
 /**
@@ -65,13 +93,14 @@ function KitBuilderPage() {
   const { step } = Route.useSearch()
   const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
-  const { user } = useRootData()
+  const { user, isAccountUnreachable } = useRootData()
   const appliances = useCatalog()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
   const { signOut, hasFailed: hasSignOutFailed } = useSignOut(user)
   const google = useConnectGoogle(user)
   const result = computeProject(project, appliances)
   const go = (next: Step) => navigate({ search: { step: next } })
+  const headingRef = useStepHeadingFocus(step)
   // The rail sits beside the page on wide screens; narrower ones open the same content in a sheet.
   const [railTab, setRailTab] = useState<RailTab>('projects')
   const [isSheetOpen, setSheetOpen] = useState(false)
@@ -79,50 +108,49 @@ function KitBuilderPage() {
     setRailTab(tab)
     setSheetOpen(true)
   }
+  const railRef = useRef<HTMLElement>(null)
+  // Where the rail shows, Download selects its tab and moves focus there, so a keyboard or screen reader user lands on it.
+  const showDownload = () => {
+    if (!window.matchMedia(RAIL_SHOWN).matches) return openSheet('download')
+    flushSync(() => setRailTab('download'))
+    railRef.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus()
+  }
   const rail = { store, commit, tab: railTab, onTab: setRailTab, download: <DownloadPanel project={project} result={result} onRequesterChange={(requester) => commit(patchCurrent(store, { requester }))} /> }
 
   return (
     <div className="workspace">
       <main className="page">
-        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} onSignOut={signOut} google={google} />} />
+        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} onSignOut={signOut} google={google} step={step} />} />
         {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
         {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
         <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
+        {isAccountUnreachable && <div className="warn" role="status">{t.ui.accountUnreachable}</div>}
         {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
         {syncing && <div className="muted">{t.ui.syncing}</div>}
         <section className="stage">
+          <h1 ref={headingRef} tabIndex={-1} className="stage__title">{stepTitle(step, project.name, t)}</h1>
           {step === 1 && (
             <>
-              <h2>{t.ui.q1}</h2>
               <ApplianceGrid store={store} commit={commit} />
               <CustomApplianceForm store={store} commit={commit} />
             </>
           )}
-          {step === 2 && (
-            <>
-              <h2>{t.ui.q2}</h2>
-              <BackupWindow store={store} commit={commit} result={result} />
-            </>
-          )}
-          {step === 3 && (
-            <>
-              <h2>{t.ui.q3}</h2>
-              <SolarStep store={store} commit={commit} project={project} result={result} />
-            </>
-          )}
+          {step === 2 && <BackupWindow store={store} commit={commit} result={result} />}
+          {step === 3 && <SolarStep store={store} commit={commit} project={project} result={result} />}
           {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={() => go(1)} />}
         </section>
         <LegalLinks />
         <WizardFooter
           step={step}
           summary={footerSummary(step, project.name, result, t, locale)}
+          attention={attentionLine(t, result)}
           onBack={() => go((step - 1) as Step)}
           onNext={() => go((step + 1) as Step)}
           onStartOver={() => go(1)}
-          onDownload={() => openSheet('download')}
+          onDownload={showDownload}
         />
       </main>
-      <aside className="rail" aria-label={t.ui.projects}>
+      <aside ref={railRef} className="rail" aria-label={t.ui.projects}>
         <SideRail {...rail} />
       </aside>
       <RailSheet {...rail} isOpen={isSheetOpen} onOpenChange={setSheetOpen} />

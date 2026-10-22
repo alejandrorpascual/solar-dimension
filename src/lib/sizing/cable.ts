@@ -1,8 +1,8 @@
-import { SIZING, VOLTAGES, type Fuse, type Gauge, type InsulationC, type Voltage } from '../catalog'
+import { CONTROLLER_ONLY_FUSES, SIZING, VOLTAGES, type Fuse, type Gauge, type InsulationC, type Voltage } from '../catalog'
 import { ambientFactor, ampsAt, bundleFactor } from '../nec'
 import { fusePool, interrupts, pickFuse } from './fuse'
 import { wholeUnits } from './inverter'
-import type { BatteryPick, CableConditions, ConductorKind, FusePick, LinkCable, StringCable, Warning } from './types'
+import type { BatteryPick, CableConditions, ConductorKind, ControllerFeed, FusePick, LinkCable, StringCable, Warning } from './types'
 
 /** One DC run is a positive and a negative lead: two current-carrying conductors. */
 const CONDUCTORS_PER_RUN = 2
@@ -49,6 +49,8 @@ export interface ProtectionContext {
   surgeSeconds: number
   bankContinuousA: number | null
   bankShortCircuitA: number | null
+  /** The cable these fuses protect, named on each of their warnings; the main run unless it says otherwise. */
+  conductor?: ConductorKind
 }
 
 /**
@@ -104,9 +106,10 @@ export function sizeMainCable(
   }
   const { runs, conductors, perRun, ampacityAt, sized } = attempt
   const g = gauges[sized.gaugeIndex]!
-  const warnings = [...sized.warnings]
+  const conductor = protection.conductor ?? 'mainCable'
+  const warnings: Warning[] = sized.warnings.map((w) => ({ ...w, params: { ...w.params, conductor } }))
   if (sized.fuse.a > ampacityAt(sized.gaugeIndex)) {
-    warnings.push({ code: 'fuseAboveCable', params: { fuseA: sized.fuse.a, maxA: Math.round(ampacityAt(sized.gaugeIndex)), count: runs } })
+    warnings.push({ code: 'fuseAboveCable', params: { fuseA: sized.fuse.a, maxA: Math.round(ampacityAt(sized.gaugeIndex)), count: runs, conductor } })
   }
   const runDropPct = dropPct(g, perRun, cond.runLengthM, volts)
   // Judged to a tenth, as it prints: a drop the sheet shows as 3.0% is not called over 3%.
@@ -195,7 +198,7 @@ export function maxStringAmps(volts: Voltage, cond: CableConditions, gauges: rea
 const sizeStringRun = (ctx: BankWiringContext, battery: BankLayout): MainCableSizing =>
   sizeMainCable(
     ctx.bankAmps / battery.parallel, ctx.bankSurgeAmps / battery.parallel, ctx.volts, jumperConditions(ctx.cond), ctx.gauges, ctx.fuses,
-    { surgeSeconds: ctx.surgeSeconds, bankContinuousA: battery.unit.maxContinuousA, bankShortCircuitA: battery.unit.shortCircuitA }, { fixedRuns: 1 },
+    { surgeSeconds: ctx.surgeSeconds, bankContinuousA: battery.unit.maxContinuousA, bankShortCircuitA: battery.unit.shortCircuitA, conductor: 'stringLeads' }, { fixedRuns: 1 },
   )
 
 const toStringCable = (sized: MainCableSizing, parallel: number, site: RowSite): StringCable => ({
@@ -244,4 +247,21 @@ export function sizeBankWiring(ctx: BankWiringContext): BankWiring {
   const string = stringRun ? toStringCable(stringRun, battery.parallel, site) : null
   const linked = battery.series > 1 ? sizeLinks(stringRun ?? main, battery, site) : null
   return { links: linked?.links ?? null, string, warnings: [...(string?.warnings ?? []), ...(linked?.warnings ?? [])] }
+}
+
+/**
+ * The cable and fuse from each of `controllers` charge controllers to the battery. The fuse is the smallest stock size,
+ * from the battery fuses and the controller-only ones, at or above the NEC continuous factor over the rating; the cable
+ * the smallest gauge that carries that fuse in open air at the kit's ambient and insulation.
+ */
+export function sizeControllerFeed(
+  controllerA: number, controllers: number, volts: Voltage, cond: CableConditions, gauges: readonly Gauge[], fuses: readonly Fuse[],
+): ControllerFeed {
+  const pool = fusePool([...CONTROLLER_ONLY_FUSES, ...fuses].sort((x, y) => x.a - y.a), volts)
+  const fuse = pool.find((f) => f.a >= controllerA * SIZING.NEC_CONTINUOUS) ?? pool[pool.length - 1]!
+  const carries = (g: Gauge) => microAmps(correctedAmpacity(g, cond, CONDUCTORS_PER_RUN))
+  // ponytail: air past 60 °C on 75 °C cable, or 75 °C on 90 °C cable, hotter than step 2 offers, leaves even the largest
+  // gauge short of a 125 A fuse; the row then prints that gauge and what it carries.
+  const gauge = gauges.find((g) => carries(g) >= microAmps(fuse.a)) ?? gauges[gauges.length - 1]!
+  return { controllerA, fuse: { ...fuse, count: controllers }, gauge: gauge.awg, mm2: gauge.mm2, ampacity: Math.floor(carries(gauge) / MICRO_PER_AMP) }
 }

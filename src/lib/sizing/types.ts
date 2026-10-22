@@ -234,6 +234,20 @@ export interface CablePick {
   string: StringCable | null
 }
 
+/**
+ * The cable and fuse from each charge controller to the battery, one set per controller: the fuse is the smallest
+ * stock size at or above 1.25 × the controller's rating, the cable the smallest gauge that carries that fuse in open air.
+ */
+export interface ControllerFeed {
+  controllerA: number
+  /** `count` is the number of controllers. */
+  fuse: FusePick
+  gauge: string
+  mm2: number
+  /** What the cable carries after the ambient correction, unbundled and capped at the terminations, rounded down. */
+  ampacity: number
+}
+
 export type WarningCode =
   | 'inverterVoltage' | 'highCurrent' | 'parallelStrings' | 'dominantLoad' | 'splitPhase' | 'lockedRotor'
   | 'inverterUndersized' | 'surgeDuration' | 'bankDischarge' | 'bankPeak' | 'fuseAboveBank' | 'fuseAboveCable' | 'fuseSurge' | 'fuseInterrupt' | 'cableDrop' | 'startupDrop' | 'cableAmbient'
@@ -288,6 +302,7 @@ export interface WarningParams {
   /** The most a main run may drop at full load, in percent. */
   maxDropPct?: number
   ambientC?: number
+  /** The cable a cable or fuse warning is about: the main run, the interconnects or a string lead. */
   conductor?: ConductorKind
   gauge?: string
   /** Whether a short cable row would cover its design current in a cool room, and on 90 °C cable. */
@@ -295,6 +310,8 @@ export interface WarningParams {
   canRaiseInsulation?: boolean
   fit?: number
   need?: number
+  /** The kit's chemistry, filled in when the warning is shown: the bank wording names a BMS only where there is one. */
+  chemistry?: ChemistryId
 }
 export interface Warning { code: WarningCode; params: WarningParams }
 
@@ -327,6 +344,8 @@ export interface SizingResult {
   battery: BatteryPick | null
   /** The solar side, or null for a battery-only kit. */
   solar: SolarPick | null
+  /** Each controller's cable and fuse to the battery; null without panels. */
+  controllerFeed: ControllerFeed | null
   cable: CablePick
   fuse: FusePick
   parallelNotes: ParallelNote[]

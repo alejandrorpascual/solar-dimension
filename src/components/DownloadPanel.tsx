@@ -107,7 +107,8 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
       saveBlob(new Blob([csvFor(result, parts, { appliances: include.appliances, parts: include.parts }, t, file)], { type: 'text/csv;charset=utf-8' }), name)
       return
     }
-    saveBlob(await withinCaptureLimit(format === 'pdf' ? renderPdf(sheetNode()) : renderPng(sheetNode())), name)
+    // The PDF's title, language and running line come from the same props the sheet prints.
+    saveBlob(await withinCaptureLimit(format === 'pdf' ? renderPdf(sheetNode(), sheetProps) : renderPng(sheetNode())), name)
   }, 'success')
   // `run` calls the task synchronously, so navigator.share starts inside the tap's activation window.
   const share = () => {

@@ -1,6 +1,7 @@
 import { Check, TriangleAlert } from 'lucide-react'
 import type { Dictionary } from '../i18n'
 import type { CheckStatus, KitCheck } from '../lib/kit-checks'
+import { CHECKS_ID } from './ChecksAttention'
 
 /** A pass or attention mark that always carries its own word for screen readers. */
 export function CheckMark({ status, t }: { status: CheckStatus; t: Dictionary }) {
@@ -16,7 +17,7 @@ export function CheckMark({ status, t }: { status: CheckStatus; t: Dictionary })
 export function ChecksList({ checks, t }: { checks: readonly KitCheck[]; t: Dictionary }) {
   if (checks.length === 0) return null
   return (
-    <section className="checks" aria-label={t.ui.checks}>
+    <section className="checks" aria-label={t.ui.checks} id={CHECKS_ID} tabIndex={-1}>
       <h3 className="lab">{t.ui.checks}</h3>
       <ul className="checks__list">
         {checks.map((c) => (

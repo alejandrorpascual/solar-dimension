@@ -1,15 +1,33 @@
 import { checkExtraction } from '../../lib/quote-checks'
 import type { QuoteMime } from '../../lib/quote-limits'
 import { normalizeExtraction, type QuoteExtraction, type QuoteStatus, type QuoteUsage } from '../../lib/quote-schema'
-import { ModelError, type ModelInput, type QuoteModel } from './model'
+import { ModelError, REQUEST_TIMEOUT_MS, type ModelInput, type QuoteModel } from './model'
 import type { QuoteStorage } from './storage'
+import { FUNCTION_MAX_DURATION_MS } from './time-limits'
 
 export const MAX_ATTEMPTS = 3
+const MODELS_PER_JOB = 2
+/** A try and one retry (attempt). */
+const CALLS_PER_MODEL = 2
 /**
- * One job can run 2 models x (a try and a retry) x the 120 s request timeout in model.ts = 8 min, so a claim older
- * than 10 min belongs to a worker that died. This plan sets no maxDuration; a platform limit only makes that more likely.
+ * Room for the claim, the file read and the write of the outcome around the model calls.
+ * ponytail: storage and the database have no timeout of their own; a call that hangs runs into the function limit,
+ * and the stale-claim window below starts the job again.
  */
-export const STALE_CLAIM_MS = 10 * 60_000
+const JOB_OVERHEAD_MS = 30_000
+/**
+ * The longest one job can run: both models, every retry, each call running to the request timeout, plus the overhead.
+ * It is under the function limit (time-limits.ts), so a read that starts at once ends, or fails, before the platform
+ * cuts it off; the sweep starts a job only while this much time is left.
+ */
+export const JOB_WORST_CASE_MS = MODELS_PER_JOB * CALLS_PER_MODEL * REQUEST_TIMEOUT_MS + JOB_OVERHEAD_MS
+/** Slack for the server clock (which ages a claim) running ahead of the database clock (which stamps it). */
+const CLOCK_SKEW_MS = 60_000
+/**
+ * The platform stops a worker at the function limit, so a claim older than that, plus the clock skew, belongs to a
+ * worker that died or was cut off: another may take the job over.
+ */
+export const STALE_CLAIM_MS = FUNCTION_MAX_DURATION_MS + CLOCK_SKEW_MS
 /** A queued job that no worker picked up (or that went back to the queue) waits this long before a re-kick. */
 export const STALE_QUEUE_MS = 60_000
 
@@ -41,7 +59,10 @@ type Attempt =
 
 const asModelError = (e: unknown): ModelError => (e instanceof ModelError ? e : new ModelError('invalid', String(e)))
 
-/** One model's answer, checked against the file's page count; a transient error gets one immediate retry. */
+/**
+ * One model's answer, checked against the file's page count. A transient error gets one immediate retry; a timeout
+ * does not, since a second wait as long would push the read past the function limit: the other model goes next.
+ */
 async function attempt(deps: ProcessDeps, input: ModelInput, model: string, pages: number | null): Promise<Attempt> {
   const once = async (): Promise<Attempt> => {
     const out = await deps.model.extract(input, model)
@@ -61,9 +82,12 @@ async function attempt(deps: ProcessDeps, input: ModelInput, model: string, page
   }
 }
 
+/** Errors that may pass on a later attempt. */
+const canPassLater = (e: ModelError): boolean => e.kind === 'transient' || e.kind === 'timeout'
+
 /**
  * What to store. A passing answer is ready. An answer that fails the checks still beats no answer: needs_review.
- * No answer at all goes back to the queue only when every error was transient and attempts remain.
+ * No answer at all goes back to the queue only when every error was transient (a timeout included) and attempts remain.
  */
 export function decide(primary: Attempt, fallback: Attempt | null, attempts: number, models: ProcessDeps['models']): Finish {
   const usage = [primary, fallback].flatMap((a) => (a?.ok ? [a.usage] : []))
@@ -72,7 +96,7 @@ export function decide(primary: Attempt, fallback: Attempt | null, attempts: num
   if (fallback?.ok) return { status: 'needs_review', extraction: fallback.extraction, modelUsed: models.fallback, usage }
   if (primary.ok) return { status: 'needs_review', extraction: primary.extraction, modelUsed: models.primary, usage }
   const errors = [primary, fallback].flatMap((a) => (a && !a.ok ? [a.error] : []))
-  const onlyTransient = errors.every((e) => e.kind === 'transient')
+  const onlyTransient = errors.every(canPassLater)
   return {
     status: onlyTransient && attempts < MAX_ATTEMPTS ? 'queued' : 'failed',
     error: errors.map((e) => `${e.kind}: ${e.message}`).join(' | '),

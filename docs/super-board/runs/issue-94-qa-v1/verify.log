@@ -1,0 +1,14 @@
+# Verify for issue #94 at c021396 (config verify_commands), run in a clone with npm ci
+$ npm run typecheck   -> exit 0
+$ npm run test:coverage
+Test Files  105 passed (105)
+Tests  1829 passed (1829)
+Coverage  Statements 98.32% · Branches 93.89% · Functions 99.29% · Lines 98.93%
+-> exit 0
+$ npm run build       -> exit 0
+$ E2E_PORT=4188 npx playwright test e2e/project-card.spec.ts e2e/kit-builder.spec.ts e2e/quotes.spec.ts --workers=2
+  117 passed, 2 skipped (desktop + phone) -> exit 0
+$ E2E_PORT=4188 npx playwright test --workers=2   (whole suite)
+  264 passed, 6 skipped (desktop + phone) -> exit 0
+e2e auth secret: a throwaway generated in the shell for each run (the clone has no production env file); database: the e2e Neon branch through the test env link.
+Screenshots: a throwaway Playwright capture spec, run on staging 3ca1535 (before-*) and on c021396 (after-*); not committed

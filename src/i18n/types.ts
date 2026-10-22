@@ -13,7 +13,7 @@ export interface Dictionary {
   chemistries: Record<ChemistryId, string>
   voltageHints: Record<Voltage, string>
   warnings: Record<WarningCode, (p: WarningParams) => string>
-  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'stringLeads' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
+  parts: Record<'inverter' | 'batteries' | 'mainCable' | 'interconnects' | 'stringLeads' | 'fuse' | 'stringFuses' | 'solarPanels' | 'chargeController' | 'controllerBattery' | 'pvCable' | 'pvDisconnect' | 'mounting', string>
   /** Load kinds as the schedule groups them. */
   kinds: Record<LoadKind, string>
   /** Installation notes a bank with parallel strings carries. */
@@ -35,8 +35,10 @@ export interface Dictionary {
 export interface LegalPage { title: string; updated: string; sections: readonly { heading: string; body: string }[] }
 
 export type UiKey =
-  | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
+  | 'steps' | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
+  | 'firstProject' | 'projectNumbered' | 'copySuffix' | 'customTag'
+  | 'deleteProject' | 'deleteProjectOne' | 'deleteProjectMany' | 'deleteProjectAny' | 'deleteProjectYes'
   | 'q1' | 'q1Help' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'
   | 'search' | 'nothingMatches' | 'sectionAdded' | 'add' | 'addOne' | 'qtyOf' | 'removeOne' | 'remove'
   | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase' | 'checkNameplate240'
@@ -49,13 +51,14 @@ export type UiKey =
   | 'part' | 'specification' | 'quantity' | 'nothingSelected'
   | 'inverterSpec' | 'splitPhaseOutput' | 'inverterNote' | 'inverterNoteTight' | 'inverterNoteTightPeak' | 'inverterNoteUnder' | 'inverterNotePeak' | 'inverterSurge' | 'inverterSurgeSet' | 'inverterParallelNote' | 'batteriesNote' | 'mainCableSpec' | 'mainCableNote' | 'mainCableParallelNote' | 'interconnectsSpec' | 'seriesLinksNote' | 'seriesLinksSharedNote' | 'stringLeadsSpec' | 'stringLeadsNote' | 'fuseSpec' | 'fuseNote' | 'perRun' | 'perInverter' | 'perRunOfInverter'
   | 'legal' | 'estimateNotice' | 'fine'
-  | 'oversizeNote' | 'oversizeNoteSmallest' | 'batterySize' | 'batterySizeHelp' | 'batteryAuto' | 'batteryRecommended' | 'batteryGroup' | 'batteryInSeries' | 'manyStrings'
+  | 'oversizeNote' | 'oversizeNoteSmallest' | 'batterySize' | 'batterySizeHelp' | 'batteryAuto' | 'batteryRecommended' | 'batteryGroup' | 'batteryInSeries' | 'manyStrings' | 'lowContinuous' | 'lowPeak'
   | 'batteryCountOne' | 'batteryCountMany' | 'panelCountOne' | 'panelCountMany' | 'inverterSizeOne' | 'inverterSizeMany'
   | 'footer1' | 'footer2' | 'footer3' | 'footerEmpty'
   | 'back' | 'next' | 'buildKit' | 'startOver'
   | 'continueGoogle' | 'orDivider' | 'googleExists' | 'googleFailed' | 'connectGoogle' | 'signOutFailed'
   | 'signIn' | 'signUp' | 'signOut' | 'email' | 'password' | 'noAccount' | 'haveAccount' | 'authFailed' | 'signedInAs' | 'syncing' | 'syncFailed' | 'language'
-  | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating'
+  | 'recoverAccess' | 'quotesNeedGoogle'
+  | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating' | 'accountUnreachable'
   | 'projects' | 'projectsCount' | 'current' | 'quickEdit' | 'done' | 'projectMeta' | 'heaviestMore' | 'bank' | 'inverter' | 'close'
   | 'appliancesCount' | 'windowLabel' | 'hourLess' | 'hourMore' | 'hoursShort' | 'saved' | 'undo' | 'allAppliances'
   | 'addApplianceSearch' | 'noSearchMatch'
@@ -64,14 +67,15 @@ export type UiKey =
   | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'
   | 'downloadPdf' | 'downloadPng' | 'downloadCsv' | 'share' | 'making' | 'downloadReady' | 'exportFailed'
   | 'sheetAttention' | 'sheetAttentionChecks' | 'sheetAttentionNotes' | 'sheetNotes'
-  | 'sheetTitle' | 'date' | 'loadSchedule' | 'appliance' | 'each' | 'overHours' | 'total' | 'note' | 'eachW' | 'runningWatts' | 'whOver'
+  | 'sheetTitle' | 'sheetEstimate' | 'date' | 'loadSchedule' | 'appliance' | 'each' | 'overHours' | 'total' | 'note' | 'eachW' | 'runningWatts' | 'whOver'
   | 'q3' | 'q3Help' | 'solarNo' | 'solarNoHelp' | 'solarYes' | 'solarYesHelp' | 'solarSkipped'
   | 'roofSpace' | 'roofLess' | 'roofMore' | 'roofFitsOne' | 'roofFitsMany' | 'roofHint' | 'plannerLabel' | 'plannerTile' | 'addPanel' | 'removePanel'
   | 'panelsLine' | 'recommendedPill' | 'recommendedPillLimited' | 'backToRecommended' | 'sunHours' | 'sunHint'
   | 'clearDay' | 'flowSun' | 'flowBank' | 'flowHome' | 'coverHead' | 'coverAxis'
   | 'refillSameDay' | 'refillDays' | 'noPanelsYet' | 'cloudyDay' | 'cloudyNote' | 'solarAssumptions'
   | 'solarRecharge' | 'solarRechargeSub' | 'nextSolar' | 'footerSolar' | 'footerSolarNone' | 'footer4Solar'
-  | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'pvCableSpec' | 'pvCableNote'
+  | 'solarPanelsSpec' | 'solarPanelsNote' | 'chargeControllerSpec' | 'chargeControllerNote' | 'controllerBatterySpec' | 'controllerBatteryNote'
+  | 'pvCableSpec' | 'pvCableNote' | 'solarNotSized'
   | 'pvDisconnectSpec' | 'pvDisconnectNote' | 'mountingSpec' | 'mountingNote' | 'solarTag' | 'fineSolar'
   | 'stringsOne' | 'stringsMany'
   | 'average' | 'averageWatts' | 'kind'
@@ -81,11 +85,12 @@ export type UiKey =
   | 'cableRun' | 'cableSummary' | 'cableBundledShort' | 'runLength' | 'ambientLabel' | 'ambient30' | 'ambient40' | 'ambient50'
   | 'bundledLabel' | 'bundledHelp' | 'insulationLabel' | 'insulation75' | 'insulation90'
   | 'runtimeRange'
-  | 'checks' | 'incChecks' | 'checkPass' | 'checkWarn'
-  | 'checkSurge' | 'checkSurgeOk' | 'checkSurgeOkMany' | 'checkSurgeContributors' | 'checkBatteryContinuous' | 'checkBatteryContinuousOk' | 'checkBatteryContinuousOkMany'
-  | 'checkBatteryPeak' | 'checkBatteryPeakOk' | 'checkParallel' | 'checkParallelOk' | 'checkParallelSingle'
+  | 'checks' | 'incChecks' | 'checkPass' | 'checkWarn' | 'checksAttentionOne' | 'checksAttentionMany'
+  | 'checkSurge' | 'checkSurgeOk' | 'checkSurgeOkMany' | 'checkSurgeOkNoStart' | 'checkSurgeOkManyNoStart' | 'checkSurgeContributors' | 'checkBatteryContinuous' | 'checkBatteryContinuousOk' | 'checkBatteryContinuousOkMany'
+  | 'checkBatteryPeak' | 'checkBatteryPeakOk' | 'checkBatteryPeakOkNoStart' | 'checkParallel' | 'checkParallelOk' | 'checkParallelSingle'
   | 'checkFuse' | 'checkFuseOk' | 'checkCable' | 'checkCableOk'
   | 'fuseAicNote' | 'stringFuseSpec' | 'stringFuseNote' | 'batteriesCurrentNote'
+  | 'batteriesForContinuous' | 'batteriesForPeak' | 'batteriesForLead'
   | 'fineStartsOne' | 'fineStartsTwo' | 'fineStartsAll' | 'fineBundled' | 'fineRatings' | 'fineAcDuty'
 
 export type QuoteKey = keyof typeof quotesEn

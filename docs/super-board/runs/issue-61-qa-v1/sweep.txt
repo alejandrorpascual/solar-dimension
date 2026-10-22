@@ -1,0 +1,1 @@
+[qa61] no-panel kits compared: 6912 · solar kits' battery side compared: 576 · battery-side 40/50 A fuses: 0

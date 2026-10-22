@@ -1,6 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Check, ChevronUp, FileText, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { useQuoteJobs } from '../../hooks/useQuoteJobs'
 import { trq } from '../../i18n'
@@ -19,19 +19,44 @@ function useVerdictProjectId(): string | null {
   })
 }
 
+/** Read by quotes.css, which leaves that much room under the end of the page for the tray to float over. */
+const TRAY_ROOM_PROPERTY = '--qtray-room'
+
+/**
+ * Keeps the tray's height in TRAY_ROOM_PROPERTY while it shows. It is not a constant: the tray is taller once the
+ * verdict is ready on a narrow phone, with a long project name, or with its file list open.
+ */
+function useTrayRoom(element: RefObject<HTMLElement | null>, isShown: boolean): void {
+  useEffect(() => {
+    const tray = element.current
+    if (!isShown || !tray) return
+    const root = document.documentElement
+    const publish = () => root.style.setProperty(TRAY_ROOM_PROPERTY, `${tray.offsetHeight}px`)
+    publish()
+    const observer = new ResizeObserver(publish)
+    observer.observe(tray)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty(TRAY_ROOM_PROPERTY)
+    }
+  }, [element, isShown])
+}
+
 /** Follows the user around the app while quotes are read, then says the verdict is ready. */
 export function QuoteTray() {
   const { t } = useLocale()
   const { jobs, offline, markSeen } = useQuoteJobs()
   const hidden = useVerdictProjectId()
   const [isOpen, setOpen] = useState(false)
+  const element = useRef<HTMLElement>(null)
   const tray = pickTray(jobs, hidden)
+  useTrayRoom(element, tray !== null)
   if (!tray) return null
   const p = tray.project
 
   if (tray.mode === 'ready') {
     return (
-      <section className="qtray" aria-label={t.quotes.trayLabel} aria-live="polite">
+      <section ref={element} className="qtray" aria-label={t.quotes.trayLabel} aria-live="polite">
         <div className="qtray__row">
           <span className="qtray__icon" aria-hidden="true"><Check size={20} /></span>
           <p className="qtray__title qtray__text">{trq(t, 'trayReady', { project: p.projectName })}</p>
@@ -52,7 +77,7 @@ export function QuoteTray() {
   ].filter(Boolean).join(' · ')
   const percent = p.total === 0 ? 0 : Math.round((p.done / p.total) * 100)
   return (
-    <section className="qtray" aria-label={t.quotes.trayLabel} aria-live="polite">
+    <section ref={element} className="qtray" aria-label={t.quotes.trayLabel} aria-live="polite">
       <div className="qtray__row">
         <span className="qtray__icon" aria-hidden="true"><FileText size={20} /></span>
         <div className="qtray__text">

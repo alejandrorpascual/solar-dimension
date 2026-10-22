@@ -37,12 +37,15 @@ export function fmtHours(h: number, locale: Locale): string {
   return `${(Math.round(h * 10) / 10).toLocaleString(TAGS[locale])} h`
 }
 
-/** A quote amount in its own currency, whole units ("$6,480"); an unknown code falls back to "6,480 XYZ". */
-export function fmtMoney(amount: number, currency: string, locale: Locale): string {
+/**
+ * A quote amount in its own currency, whole units unless `digits` asks for decimals ("$6,480", "$45.50"); an unknown code
+ * falls back to "6,480 XYZ".
+ */
+export function fmtMoney(amount: number, currency: string, locale: Locale, digits = 0): string {
   try {
-    return new Intl.NumberFormat(TAGS[locale], { style: 'currency', currency, maximumFractionDigits: 0, minimumFractionDigits: 0 }).format(amount)
+    return new Intl.NumberFormat(TAGS[locale], { style: 'currency', currency, maximumFractionDigits: digits, minimumFractionDigits: digits }).format(amount)
   } catch {
-    return `${fmtInt(amount, locale)} ${currency}`
+    return `${digits > 0 ? fmtDecimal(amount, digits, locale) : fmtInt(amount, locale)} ${currency}`
   }
 }
 

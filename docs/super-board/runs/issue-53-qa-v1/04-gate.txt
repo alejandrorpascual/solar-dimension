@@ -1,0 +1,12 @@
+# Gate on the QA head, npm ci done, no env file linked
+npm run typecheck: exit 0
+npm run test:coverage: exit 0
+ Test Files  105 passed (105)
+      Tests  1841 passed (1841)
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+All files          |   98.32 |    93.89 |    99.3 |   98.93 |                   
+  quote-items.ts   |   99.59 |    93.75 |     100 |     100 | ...43,355,360,400 
+npm run build: exit 0
+✓ built in 679ms
+✓ built in 258ms
+✓ built in 534ms

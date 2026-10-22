@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { renameOutcome, type RenameClose, type Renaming } from '../lib/project-rename'
 import type { Store } from '../lib/schema'
-import { addProject, currentProject, deleteProject, duplicateProject, renameProject } from '../lib/store'
+import { addProject, currentProject, deleteProject, duplicateProject, numberedName, renameProject } from '../lib/store'
 import { useLocale } from './useLocale'
 
 /** What only the open project's card can do: rename in place and the ··· menu. */
 export interface CurrentActions {
   isRenaming: boolean
+  /** Delete was chosen and the card is asking before it goes ahead. */
+  isConfirmingDelete: boolean
   /** Goes on the title button, so focus can be put there (see useTitleFocus). */
   titleRef: RefObject<HTMLButtonElement | null>
   canDelete: boolean
@@ -15,7 +17,11 @@ export interface CurrentActions {
   onRenameType: (raw: string) => void
   onRenameClose: (via: RenameClose) => void
   onDuplicate: () => void
+  /** Delete chosen in the ··· menu: the card asks first. */
+  onAskDelete: () => void
+  /** The yes to that question: the project is deleted, and another one opens. */
   onDelete: () => void
+  onCancelDelete: () => void
 }
 
 interface Args {
@@ -27,7 +33,8 @@ interface Args {
 
 /**
  * Puts focus on the open project's title after the next commit, so the keyboard is not stranded when the control that
- * had focus goes away: the name field on Enter or Escape, the ··· menu's button after Duplicate or Delete.
+ * had focus goes away: the name field on Enter or Escape, the ··· menu's button after Duplicate or a confirmed Delete,
+ * and the delete question's Cancel button once it has been answered.
  */
 function useTitleFocus() {
   const titleRef = useRef<HTMLButtonElement>(null)
@@ -53,11 +60,20 @@ function useRenaming(openId: string) {
   return [renaming, setRenaming] as const
 }
 
+/** The delete waiting for an answer, if any. It is always the open project's: once another project is open, the ask is over. */
+function useDeleteAsk(openId: string) {
+  const [askedId, setAskedId] = useState<string | null>(null)
+  // Reset here, as in useRenaming, rather than in an effect: the ask must not come back when its project is opened again.
+  if (askedId !== null && askedId !== openId) setAskedId(null)
+  return { isAsking: askedId === openId, ask: () => setAskedId(openId), drop: () => setAskedId(null) }
+}
+
 /** Renaming on the open project's card: which rename is in progress, where focus goes after it, and the card's actions. */
 export function useProjectRename({ store, commit, onPicked }: Args) {
   const { t } = useLocale()
   const open = currentProject(store)
   const [renaming, setRenaming] = useRenaming(open.id)
+  const deleteAsk = useDeleteAsk(open.id)
   const { titleRef, focusTitle } = useTitleFocus()
   // Called from handlers of the latest render only, never from a cleanup: `commit` replaces the whole store, so an
   // older `store` here would undo whatever changed since. A blank name is stored as the fallback straight away.
@@ -68,7 +84,7 @@ export function useProjectRename({ store, commit, onPicked }: Args) {
   // A new project opens on top already renaming, and the sheet stays open so its name field shows. Enter in that field
   // calls onPicked, which closes the sheet on phones; leaving the field or pressing Escape keeps the sheet open.
   const createProject = () => {
-    const next = addProject(store)
+    const next = addProject(store, numberedName(store, t))
     const created = currentProject(next)
     commit(next)
     setRenaming({ id: created.id, original: created.name, isNew: true })
@@ -81,21 +97,30 @@ export function useProjectRename({ store, commit, onPicked }: Args) {
     if (outcome.shouldFocusTitle) focusTitle()
     if (outcome.shouldPick) onPicked?.()
   }
-  // Duplicate and Delete open another project. The ··· button that had focus was on the card of the one that was open,
-  // so the title of the one now open takes it.
+  // Duplicate and a confirmed Delete open another project. The ··· button that had focus was on the card of the one that
+  // was open, so the title of the one now open takes it.
   const openInstead = (next: Store) => {
     commit(next)
     focusTitle()
   }
   const currentActions: CurrentActions = {
     isRenaming: renaming?.id === open.id,
+    isConfirmingDelete: deleteAsk.isAsking,
     titleRef,
     canDelete: store.projects.length > 1,
-    onRename: () => setRenaming({ id: open.id, original: open.name, isNew: false }),
+    onRename: () => {
+      deleteAsk.drop()
+      setRenaming({ id: open.id, original: open.name, isNew: false })
+    },
     onRenameType: (raw) => rename(open.id, raw),
     onRenameClose: closeRename,
-    onDuplicate: () => openInstead(duplicateProject(store)),
+    onDuplicate: () => openInstead(duplicateProject(store, t)),
+    onAskDelete: deleteAsk.ask,
     onDelete: () => openInstead(deleteProject(store)),
+    onCancelDelete: () => {
+      deleteAsk.drop()
+      focusTitle()
+    },
   }
   return { createProject, currentActions }
 }

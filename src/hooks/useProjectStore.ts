@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Dictionary } from '../i18n'
 import { localCopyPlan } from '../lib/local-copy'
 import {
   clearPendingSave, clearUnsent, hasPendingSave, loadOwner, loadStore, loadUnsent, markPendingSave, releaseAccountCopy, saveOwner, saveStore,
 } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
-import { currentProject, initialStore, rekeySeed, withSetAside } from '../lib/store'
+import { currentProject, initialStore, nameFirstProject, rekeySeed, withSetAside } from '../lib/store'
 import { adoptStale, applyChanges, diffProjects, hasUnsent, NOTHING_UNSENT, outgoing, unsentOf, type Unsent } from '../lib/sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
+import { useLocale } from './useLocale'
 import { useRootData } from './useRootData'
 
 function fromServer(list: Project[], prev: Store): Store {
@@ -24,17 +26,22 @@ function fromServer(list: Project[], prev: Store): Store {
  * marked as the account's with all of it still to send, so a load that fails does not leave it behind as work done
  * signed out for the next account to take.
  *
+ * While the account cannot be read, the page starts from a new project and this browser's copy is left as it is.
+ *
  * Until the account's list is read, the screen shows this copy, and the account's own first project is not in it:
  * the first project of a copy that is not the account's takes an id of its own, so nothing done to it meanwhile
  * reaches the account's.
  */
-function startingCopy(account: string | null): { local: Store; mustPush: boolean } {
+function startingCopy(account: string | null, isAccountUnreachable: boolean, t: Dictionary): { local: Store; mustPush: boolean } {
+  // Someone may be signed in, and nobody can tell who: what this browser holds may be their account's, so it is neither
+  // shown nor touched, and the page starts from a project of its own that nothing saves.
+  if (isAccountUnreachable) return { local: initialStore(t), mustPush: false }
   // The owner first: reading it takes over a marker left by an earlier release, which sets the pending marker.
   const owner = loadOwner()
   const plan = localCopyPlan(account, owner, hasPendingSave())
   if (plan === 'release') releaseAccountCopy()
   // After a release nothing is read back: if storage refused the removal, the copy must still not be shown.
-  const stored = plan === 'release' ? initialStore() : loadStore() ?? initialStore()
+  const stored = plan === 'release' ? initialStore(t) : loadStore() ?? initialStore(t)
   if (!account) return { local: stored, mustPush: false }
   const isOwn = plan === 'pull' || plan === 'push'
   const setAside = loadUnsent(account)
@@ -49,9 +56,13 @@ function startingCopy(account: string | null): { local: Store; mustPush: boolean
 }
 
 export function useProjectStore() {
-  const { user } = useRootData()
+  const { user, isAccountUnreachable } = useRootData()
   const account = user?.id ?? null
-  const [store, setStore] = useState<Store>(initialStore)
+  const { t } = useLocale()
+  /** The language on screen, for requests answered after it changed. */
+  const language = useRef(t)
+  language.current = t
+  const [store, setStore] = useState<Store>(() => initialStore(t))
   const [syncing, setSyncing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [syncError, setSyncError] = useState(false)
@@ -61,14 +72,16 @@ export function useProjectStore() {
    * Shows a store and keeps it in this browser. `latest` moves at once, not at the next render: a request that is
    * answered before React renders again must still read what the user last did. Signed in, the copy is marked as the
    * account's on every write, not only at load: another tab may have signed out and released it meanwhile, and what
-   * this page writes back must not read as work done signed out.
+   * this page writes back must not read as work done signed out. While the account cannot be read nothing is kept: the
+   * copy this browser holds may be the account's.
    */
   const show = useCallback((next: Store) => {
     latest.current = next
     setStore(next)
+    if (isAccountUnreachable) return
     if (account) saveOwner(account)
     saveStore(next)
-  }, [account])
+  }, [account, isAccountUnreachable])
   const inFlight = useRef(0)
   /** True once this mount's first sync with the account worked; until then nothing here knows what the account holds. */
   const loaded = useRef(false)
@@ -77,14 +90,15 @@ export function useProjectStore() {
   /** Whether the account holds everything this device does, as far as the requests answered so far can tell. */
   const isClean = useCallback(() => loaded.current && !hasUnsent(unsent.current), [])
   /**
-   * False once the page was left. A save answered after that must not write the store or clear the pending marker:
-   * the page that replaced this one has shown and marked its own, and a marker left set only costs that page a push.
+   * The account state the page shows: a new token each time the account changes or becomes unreachable, null once the
+   * page was left. A save answered under an earlier one must not write the store or clear the pending marker: what the
+   * page shows now has its own copy and marker, and a marker left set only costs a push.
    */
-  const alive = useRef(true)
+  const scope = useRef<symbol | null>(null)
   useEffect(() => {
-    alive.current = true
-    return () => { alive.current = false }
-  }, [])
+    scope.current = Symbol('account state')
+    return () => { scope.current = null }
+  }, [account, isAccountUnreachable])
   // Every request to the account runs through this chain, so saves reach the server in the order they were made.
   const queue = useRef<Promise<unknown>>(Promise.resolve())
   const enqueue = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
@@ -94,14 +108,15 @@ export function useProjectStore() {
   }, [])
 
   useEffect(() => {
-    const { local, mustPush } = startingCopy(account)
+    const { local, mustPush } = startingCopy(account, isAccountUnreachable, language.current)
     latest.current = local
     setStore(local)
     loaded.current = false
     unsent.current = NOTHING_UNSENT
+    // A load this run cancelled leaves the flag to it: with no account there is nothing to sync.
+    setSyncing(account !== null)
     if (!account) return
     let cancelled = false
-    setSyncing(true)
     // Unless something here still has to reach the account, the server copy is the source of truth.
     enqueue(() => (mustPush ? importProjects({ data: { account, projects: local.projects } }) : listProjects({ data: { account } })))
       .then((list) => {
@@ -109,8 +124,10 @@ export function useProjectStore() {
         loaded.current = true
         clearUnsent(account)
         if (inFlight.current === 0) clearPendingSave()
-        // Edits made while the load was in flight are already queued behind it; keep them visible.
-        show(fromServer(applyChanges(list, diffProjects(local.projects, latest.current.projects)), latest.current))
+        // Edits made while the load was in flight are already queued behind it; keep them visible. A first project
+        // named for a language switched to meanwhile is no edit: compared in the language on screen, it is not one.
+        const edits = diffProjects(nameFirstProject(local, language.current).projects, latest.current.projects)
+        show(fromServer(applyChanges(list, edits), latest.current))
       })
       .catch((error: unknown) => {
         if (cancelled) return
@@ -120,7 +137,17 @@ export function useProjectStore() {
       })
       .finally(() => { if (!cancelled) setSyncing(false) })
     return () => { cancelled = true }
-  }, [account, enqueue, show])
+  }, [account, isAccountUnreachable, enqueue, show])
+
+  // A first project nobody has edited reads in the language on screen, wherever it came from: made here, read back from
+  // this browser or from the account, or shown before the language was switched. Only the screen changes: nothing is
+  // saved or sent for it, and an edit saves it under the name it shows.
+  useEffect(() => {
+    const named = nameFirstProject(latest.current, t)
+    if (named === latest.current) return
+    latest.current = named
+    setStore(named)
+  }, [store, t])
 
   const commit = useCallback((next: Store) => {
     const prev = latest.current
@@ -128,6 +155,7 @@ export function useProjectStore() {
     if (!account) return
     const { upserts, deletes } = diffProjects(prev.projects, next.projects)
     if (upserts.length === 0 && deletes.length === 0) return
+    const sentIn = scope.current
     inFlight.current += 1
     markPendingSave()
     setSaving(true)
@@ -148,7 +176,7 @@ export function useProjectStore() {
       }
     })
       .then(({ sent, stale }) => {
-        if (!alive.current) return
+        if (scope.current !== sentIn) return
         if (stale.length) {
           // The account holds a newer copy of these: show it, unless the project was edited again meanwhile.
           show({ ...latest.current, projects: adoptStale(latest.current.projects, sent, stale) })
@@ -161,11 +189,11 @@ export function useProjectStore() {
       })
       .finally(() => {
         inFlight.current -= 1
-        if (inFlight.current > 0 || !alive.current) return
+        if (inFlight.current > 0 || scope.current === null) return
         setSaving(false)
         // A save that failed keeps the marker, so the next load sends this device's copy before it reads the account's.
         // What that load sends is projects: one deleted here whose delete never arrived is back after it.
-        if (isClean()) clearPendingSave()
+        if (scope.current === sentIn && isClean()) clearPendingSave()
       })
   }, [account, enqueue, isClean, show])
 

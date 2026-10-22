@@ -1,0 +1,12 @@
+
+ RUN  v5.0.1 /private/tmp/claude-501/-Users-alejandrorpascual-projects-solar-dimension--claude-worktrees-determined-jang-9e5404/c87e5d60-b453-4afb-b843-2788a75c6999/scratchpad/lanes/issue-100-qa
+
+ ✓ src/server/projects-repo.db.test.ts > saveForUser on the test database > keeps the newer edit when an older copy arrives, and answers with it in stale 31ms
+ ✓ src/server/projects-repo.db.test.ts > saveForUser on the test database > stores a newer edit over the older one, with nothing in stale 6ms
+ ✓ src/server/projects-repo.db.test.ts > saveForUser on the test database > answers with this account's copy only, when another account has a project with the same id 10ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  17:39:00
+   Duration  516ms (import 57%, transform 31%, tests 11%, setup 1%)
+

@@ -1,0 +1,13 @@
+Mutants on src/client/export-file.ts at 1017b48, each reverted after its run (none committed)
+unit: npx vitest run src/client/export-file.test.ts (14 tests)
+- setLanguage dropped: red at export-file.test.ts:102 (en, es)
+- title dropped from setProperties: red at :102 (en, es) and :124
+- drawRunningLine call dropped: red at :110, :117, :124
+- "page N of M" dropped from the line: red at :110, :117, :124
+- fontCss ||= changed to fontCss = (read fonts on every capture): red at :141, :151
+e2e: E2E_PORT=4176 npx playwright test e2e/download.spec.ts:103 e2e/download.spec.ts:123 --project desktop
+- base app code (07c6e71): red at download.spec.ts:103 en+es (title undefined), :123 (820 rules after 1 capture, 946 after 10)
+- "page N of M" dropped: red at download.spec.ts:103 en+es (e2e-mutation-no-page-number.log)
+Edge probes (sheetPdf, es, read back with poppler):
+- 60 x "W" name (PROJECT_NAME_MAX): line wraps to 2 lines; line 2 ends at 32.7 pt, top margin is 42 pt
+- "Casa (norte) \ sur": title and line print it intact

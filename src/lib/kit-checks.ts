@@ -1,6 +1,6 @@
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtInt, fmtList, fmtW } from '../i18n/format'
-import { SIZING } from './catalog'
+import { SIZING, type ChemistryId } from './catalog'
 import { shareLabel } from './kit-parts'
 import type { SelectedItem, SizingResult, Warning, WarningCode } from './sizing'
 
@@ -28,13 +28,16 @@ export interface KitCheck { id: CheckId; name: string; status: CheckStatus; line
 
 const KA = 1000
 
-/** The warning in the user's language, with the appliance, or each one a note covers, named as the catalog names it there. */
-export function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[]): string {
+/**
+ * The warning in the user's language, with the appliance, or each one a note covers, named as the catalog names it
+ * there, and the bank worded for the kit's chemistry (without it, as a bank with a BMS).
+ */
+export function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[], chemistry?: ChemistryId): string {
   const { itemId, itemIds } = w.params
   const item = items.find((i) => i.id === itemId)
   const listed = itemIds ? fmtList(items.filter((i) => itemIds.includes(i.id)).map((i) => applianceName(t, i)), t.locale) : undefined
   const itemName = listed ?? (item ? applianceName(t, item) : w.params.itemName)
-  return t.warnings[w.code]({ ...w.params, itemName })
+  return t.warnings[w.code]({ ...w.params, itemName, chemistry })
 }
 
 /** A key that tells two warnings of the same code apart (two split-phase appliances, or two cable rows, say). */
@@ -47,13 +50,19 @@ export function uncheckedWarnings(r: SizingResult): Warning[] {
 }
 
 /** Those notes in the reader's language: they travel with the kit onto the sheet, the image and the CSV. */
-export const kitNotes = (t: Dictionary, r: SizingResult): string[] => uncheckedWarnings(r).map((w) => warningText(t, w, r.items))
+export const kitNotes = (t: Dictionary, r: SizingResult): string[] => uncheckedWarnings(r).map((w) => warningText(t, w, r.items, r.chemistry))
 
 export const isFailing = (c: KitCheck): boolean => c.status === 'warn'
 
 const NAME_KEY: Record<CheckId, 'checkSurge' | 'checkBatteryContinuous' | 'checkBatteryPeak' | 'checkParallel' | 'checkFuse' | 'checkCable'> = {
   surge: 'checkSurge', batteryContinuous: 'checkBatteryContinuous', batteryPeak: 'checkBatteryPeak', parallel: 'checkParallel', fuse: 'checkFuse', cable: 'checkCable',
 }
+
+/** The two start-up pass lines of the inverter size check, for one inverter or a set: with the seconds a surge lasts, or without when nothing surges. */
+const SURGE_PASS_KEY = {
+  one: { surge: 'checkSurgeOk', none: 'checkSurgeOkNoStart' },
+  many: { surge: 'checkSurgeOkMany', none: 'checkSurgeOkManyNoStart' },
+} as const
 
 function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): string {
   const b = r.battery!
@@ -62,19 +71,21 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
   const w = (n: number) => fmtW(n, locale)
   const a = (n: number) => fmtInt(Math.round(n), locale)
   const startupA = r.surgeW / r.volts / SIZING.INVERTER_EFF
+  // No appliance starts above its running watts: there is no surge, so no seconds to print.
+  const hasSurge = r.surgeSeconds > 0
   switch (id) {
     case 'surge':
-      return tr(t, inv.count > 1 ? 'checkSurgeOkMany' : 'checkSurgeOk', {
+      return tr(t, SURGE_PASS_KEY[inv.count > 1 ? 'many' : 'one'][hasSurge ? 'surge' : 'none'], {
         running: w(r.runningW), inverter: w(inv.w), count: inv.count, unit: w(inv.unitW), peak: w(r.surgeW), seconds: r.surgeSeconds, rating: w(inv.surgeRatedW),
       })
     case 'batteryContinuous':
       return tr(t, inv.count > 1 ? 'checkBatteryContinuousOkMany' : 'checkBatteryContinuousOk', { bankA: a(b.bankContinuousA), needA: a(inv.continuousA), count: inv.count })
     case 'batteryPeak':
-      return tr(t, 'checkBatteryPeakOk', { bankA: a(b.bankPeakA), needA: a(startupA), seconds: r.surgeSeconds })
+      return tr(t, hasSurge ? 'checkBatteryPeakOk' : 'checkBatteryPeakOkNoStart', { bankA: a(b.bankPeakA), needA: a(startupA), seconds: r.surgeSeconds })
     case 'parallel':
       return tr(t, b.parallel > 1 ? 'checkParallelOk' : 'checkParallelSingle', { parallel: b.parallel, max: b.unit.maxParallel })
     case 'fuse':
-      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, startA: a(startupA / c.runs) })
+      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, fault: a(b.bankShortCircuitA), startA: a(startupA / c.runs) })
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
@@ -94,14 +105,30 @@ function contributorsLine(t: Dictionary, r: SizingResult, locale: Locale): strin
   return tr(t, 'checkSurgeContributors', { running: fmtW(r.runningW, locale), list: fmtList(named, locale) })
 }
 
+/** The warnings that fail one check. */
+const failingWarnings = (r: SizingResult, id: CheckId): Warning[] => r.warnings.filter((w) => CHECK_WARNINGS[id].includes(w.code))
+
 /** The six checks for a sized kit, in order; empty when there is nothing to check. */
 export function kitChecks(t: Dictionary, r: SizingResult, locale: Locale): KitCheck[] {
   if (r.empty || !r.battery) return []
   return CHECK_IDS.map((id) => {
-    const failing = r.warnings.filter((w) => CHECK_WARNINGS[id].includes(w.code))
+    const failing = failingWarnings(r, id)
     const status: CheckStatus = failing.length > 0 ? 'warn' : 'pass'
-    const main = status === 'pass' ? [passLine(t, r, id, locale)] : failing.map((w) => warningText(t, w, r.items))
+    const main = status === 'pass' ? [passLine(t, r, id, locale)] : failing.map((w) => warningText(t, w, r.items, r.chemistry))
     const extra = id === 'surge' ? contributorsLine(t, r, locale) : null
     return { id, name: t.ui[NAME_KEY[id]], status, lines: extra ? [...main, extra] : main }
   })
+}
+
+/** The checks a kit fails, in order; none when there is nothing to check. */
+export function failingChecks(r: SizingResult): CheckId[] {
+  if (r.empty || !r.battery) return []
+  return CHECK_IDS.filter((id) => failingWarnings(r, id).length > 0)
+}
+
+/** "2 checks need attention" in the reader's language, shown before export; null when every check passes. */
+export function attentionLine(t: Dictionary, r: SizingResult): string | null {
+  const count = failingChecks(r).length
+  if (count === 0) return null
+  return tr(t, count === 1 ? 'checksAttentionOne' : 'checksAttentionMany', { count })
 }

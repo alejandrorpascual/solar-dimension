@@ -3,6 +3,7 @@ import { es } from './es'
 import { fmtW } from './format'
 import type { Dictionary, Locale, QuoteKey, UiKey } from './types'
 import type { ApplianceLabels } from '../lib/catalog'
+import { customNote } from '../lib/custom'
 
 export type { Dictionary, LegalPage, Locale, QuoteKey, RequesterKey, UiKey } from './types'
 export const LOCALES: readonly Locale[] = ['en', 'es']
@@ -66,6 +67,17 @@ export function batteryCount(t: Dictionary, count: number): string {
   return tr(t, count === 1 ? 'batteryCountOne' : 'batteryCountMany', { count })
 }
 
+/**
+ * What the project card asks before it deletes `name`: how many quotes go with it when there are any, since their files
+ * are removed for good too. With none it says nothing about quotes. While the count is not known yet (null) it says any
+ * quotes go too: it never claims there are none.
+ */
+export function deleteProjectText(t: Dictionary, name: string, quoteCount: number | null): string {
+  if (quoteCount === null) return tr(t, 'deleteProjectAny', { name })
+  if (quoteCount <= 0) return tr(t, 'deleteProject', { name })
+  return tr(t, quoteCount === 1 ? 'deleteProjectOne' : 'deleteProjectMany', { name, count: quoteCount })
+}
+
 /** "8,000 W inverter" / "2 × 8,000 W inverters" in the active language: one unit's size, and how many work in parallel. */
 export function inverterSize(t: Dictionary, inverter: { count: number; unitW: number }, locale: Locale): string {
   return tr(t, inverter.count > 1 ? 'inverterSizeMany' : 'inverterSizeOne', { count: inverter.count, w: fmtW(inverter.unitW, locale) })
@@ -83,5 +95,5 @@ export function applianceName(t: Dictionary, item: Labelled & { name: string }):
 }
 
 export function applianceNote(t: Dictionary, item: Labelled & { note: string }): string {
-  return item.isCustom ? item.note : (item.labels?.[t.locale]?.note ?? item.note)
+  return item.isCustom ? customNote(item.note, t.ui.customTag) : (item.labels?.[t.locale]?.note ?? item.note)
 }

@@ -1,0 +1,41 @@
+QA v1 for #78 (PR #164)
+Builder head: 179a00f · QA head: bcef812 (adds one unit test) · base: origin/staging 19e1398
+
+Local checks (all on a fresh clone, npm ci)
+- npm run typecheck: exit 0 (179a00f and bcef812)
+- npm run test:coverage: 106 files, 1,785 tests passed on bcef812 (1,784 on 179a00f); lines 98.91 %, branches 94.06 %
+- npm run build: exit 0
+- npx playwright test, E2E_PORT=4156, a throwaway BETTER_AUTH_SECRET made with openssl as CI does:
+  260 passed, 6 skipped, 0 failed (3.5 min), desktop + phone. kit-attention.spec.ts 7/7.
+- Local tests (the Reviewer reruns this):
+  npx vitest run src/lib/sizing src/lib/kit-checks.test.ts src/lib/battery-labels.test.ts src/components && npx playwright test e2e/kit-attention.spec.ts
+  vitest part on bcef812: 16 files, 292 tests passed
+
+AC ledger (unit / component / e2e)
+- AC1 attention line: src/lib/kit-checks.test.ts:310 / src/components/KitSummary.test.ts:67, src/components/WizardFooter.test.ts:16 / e2e/kit-attention.spec.ts:38 (en + es, desktop + phone, tap scrolls to and focuses the checks)
+- AC2 fallback order: src/lib/sizing/battery.test.ts:123, :139 (new), :156; src/lib/sizing.test.ts:762 names two 6 V 225 Ah units, 2S1P, 68 A for the 12 V AGM heavy kit / n/a: engine rule / e2e/kit-attention.spec.ts:73 shows 6 V 225 Ah on Auto
+- AC3 picker tags: src/lib/battery-labels.test.ts:36, :43 / n/a / e2e/kit-attention.spec.ts:73
+- AC4 no "Best fit" on a failing Auto: src/lib/battery-labels.test.ts:23 / n/a / e2e/kit-attention.spec.ts:73 (en + es)
+
+Mutations on src/lib/sizing/battery.ts (restored after each; none committed)
+Run: npx vitest run src/lib src/components
+- parallel dropped from the failed-check count: survived the builder's tests
+- discharge dropped from the failed-check count: survived the builder's tests
+- peak dropped: 1 failed · wiring dropped: 10 failed · current guard removed: 31 failed
+- current order reversed: 4 failed · current tie-break removed: 4 failed
+New test battery.test.ts:139: red with parallel, discharge, peak or wiring dropped; green as built.
+
+Screenshots
+A throwaway Playwright spec (not committed) on the desktop project with each viewport set by test.use:
+desktop 1920x1080, tablet 1024x768, mobile 375x667 at 2x with touch. Seeded projects, as in kit-attention.spec.ts:
+- ac1-*: microwave, 8 h, 12 V AGM, 12 V 100 Ah units (2 failing checks)
+- ac3-ac4-*: fridge, microwave and kettle, 2 h, 12 V AGM, Auto (no bank feeds the inverter), picker open
+- ac1-after-tap-mobile: after tapping the footer line
+- before-*: the same spec on a build of origin/staging 19e1398
+Crops are the .kit__head block and the picker popover. The ring on the language button comes from the
+spec opening that menu once to wait for hydration.
+
+Test gaps (not written)
+- Low: the reduced-motion branch of goToChecks (scroll behaviour auto) has no test
+- Low: the picker help says Auto then "takes the one that gives the most current"; the rule is the
+  fewest failed checks first, then the most current

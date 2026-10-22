@@ -1,0 +1,80 @@
+QA round 4 for #53 · PR #169 · head 8ef8aeb · base origin/staging a1da8c5 (merges clean, no overlap with base changes)
+
+GATE (head 8ef8aeb)
+  npx vitest run src/lib/quote-items.test.ts src/lib/quote-text.test.ts   179 passed
+  npm run typecheck                                   exit 0
+  npm run test:coverage                               105 files, 1857 tests passed · quote-items.ts 100% lines, 94.5% branches
+  npm run build                                       exit 0
+  e2e and screenshots                                 not run: the guard refused linking .env.test.local, so no test
+                                                      database for the quote pages. The page words below come from
+                                                      quote-text.ts, the code the Main cables check renders.
+
+RED FIRST (head tests, quote-items.ts swapped for an older revision, then restored)
+  quote-items.ts from f36bc29 (round 3)    2 red: the two split-line tests (quote-items.test.ts:394 AC1, :398 AC2)
+  quote-items.ts from 3ca1535 (staging)   19 red, 160 green
+
+WITNESSES (01-witnesses-probe.test.ts.txt, KIT needs 2/0 AWG), quote-items.ts at four revisions
+  "split" = a wiring line split from one quote line: its own description, the bundle's words as source.text
+  (src/server/quotes/model.ts:41)
+
+  AC   witness                                                want              8ef8aeb head      f36bc29 r3        732fde1 r2        3ca1535 staging
+  AC1  own lines: 4/0 AC feeder + 6 AWG battery               short 6 AWG       short 6 AWG       short 6 AWG       short 6 AWG       ok 4/0
+  AC1  split es: alimentador CA 4/0 + baterías 6              short 6 AWG       short 6 AWG       ok 4/0            unknown unstated  ok 4/0
+  AC1  same split + 250 A fuse                                short 6 AWG       short 6 AWG       unknown 4/0       ok                unknown 4/0
+  AC1  split en: 4/0 AWG AC feeder + 6 AWG battery cable      short 6 AWG       short 6 AWG       ok 4/0            unknown unstated  ok 4/0
+  AC1  split es, dotted C.A.                                  short 6 AWG       short 6 AWG       ok 4/0            unknown unstated  ok 4/0
+  AC1  split es, feeder description drops the CA word         short 6 AWG       ok 4/0            ok 4/0            unknown unstated  ok 4/0   (Low)
+  AC2  own line: solar 10 AWG alone                           unknown unstated  unknown unstated  unknown unstated  unknown unstated  short 10
+  AC2  split es from a kit naming baterías                    unknown unstated  unknown unstated  short 10          unknown unstated  short 10
+  AC2  split en from a kit naming batteries                   unknown unstated  unknown unstated  short 10          unknown unstated  short 10
+  AC2  split es + 250 A fuse                                  not short         ok 250 A          ok 250 A          ok 250 A          ok 250 A
+  AC2  own: solar cable "al controlador de baterías"          unknown unstated  short 10          short 10          unknown unstated  short 10 (ceiling)
+  AC3  R5: solar 10 + "baterías a inversor solar" 4/0         ok 4/0            ok 4/0            ok 4/0            unknown unstated  ok 4/0
+  AC3  R5 unaccented: "bateria a inversor solar" 4/0          ok 4/0            ok 4/0            ok 4/0            unknown unstated  ok 4/0
+  AC3  R5: split from "Controlador solar MPPT ... a baterías"  ok 4/0            ok 4/0            ok 4/0            unknown unstated  ok 4/0
+  AC3  split: solar 10 + battery 4/0 from one kit line        ok 4/0            ok 4/0            ok 4/0            unknown unstated  ok 4/0
+  AC3  split: solar 4/0 thicker than battery 2/0              ok 2/0            ok 2/0            ok 4/0            unknown unstated  ok 4/0
+  AC4  own: solar 10 + unsized battery cable                  unknown size      unknown size      unknown size      unknown size      unknown size
+  AC4  split: solar 10 + unsized battery cable                unknown size      unknown size      unknown size      unknown unstated  unknown size
+  R1   own: solar 4/0 + ground wire 6                         unknown unstated  unknown unstated  unknown unstated  unknown unstated  ok 4/0
+  R1   split: solar 10 + ground 8 from a kit naming baterías  unknown unstated  short 8           short 8           unknown unstated  short 8  (Medium)
+  R1   own: solar 4/0 + lugs "para baterías" 2/0              unknown unstated  ok 2/0            ok 2/0            unknown unstated  ok 4/0   (ceiling)
+  new  split: "Cable 4/0 AWG" from a solar kit, no battery    ok 4/0            unknown unstated  unknown unstated  unknown unstated  ok 4/0   (Low)
+  new  own: "Cable 2/0 AWG del inversor al panel DC" alone    ok 2/0            unknown unstated  unknown unstated  unknown unstated  ok 2/0   (Low)
+
+ON THE PAGE AT HEAD (quote-text.ts itemText + markLabel, the Main cables check's words; probe's second test)
+  AC1 split  en: Too small · 6 AWG · Your kit needs 2/0 AWG                es: Se queda corto · 6 AWG · Tu kit necesita 2/0 AWG
+  AC2 split  en: To confirm · Included · Battery cable not stated         es: Por confirmar · Incluido · No indica el cable de la batería
+  AC3 split  en: Meets it · 4/0 AWG                                        es: Cumple · 4/0 AWG
+  AC4 split  en: To confirm · Included · Size not stated                  es: Por confirmar · Incluido · No indica la medida
+
+MUTANTS on head (02-mutants.py.txt; quote-items + quote-text tests; file restored after each)
+  CAUGHT  wiringFor reads the description only (no source fallback)        1 red
+  CAUGHT  wiringFor reads the source text first                            2 red
+  CAUGHT  wiringFor reads description + source as one text (round 3)       2 red
+  CAUGHT  wiringFor tests the solar/AC words before the battery word       3 red
+  CAUGHT  batteryWiring every() ignores the battery word                   2 red
+  CAUGHT  batteryWiring never empties to fittings-only                     2 red
+  CAUGHT  fuse skips batteryWiring                                         4 red
+  CAUGHT  checkCables skips the unstated branch                            5 red
+  CAUGHT  BATTERY loses the unaccented i                                   1 red   (v3's surviving mutant, now pinned at :375)
+  CAUGHT  BATTERY loses English                                            1 red
+  CAUGHT  OFF_BATTERY loses dotted A.C./C.A.                               1 red
+  CAUGHT  OFF_BATTERY loses PV/FV                                          4 red
+  CAUGHT  OFF_BATTERY loses panel                                          1 red
+  CAUGHT  OFF_BATTERY loses the letter bounds                              1 red
+  SURVIVES isFitting reads the description only                            0 red   (Low, unchanged from staging)
+
+TEST GAPS (not written, none blocks: no AC lacks a test, and each needs app code to change)
+  Medium  "Cable de tierra 8 AWG" split from "Kit: 4 paneles, 2 baterías 200 Ah, cable solar 10 AWG, cable de tierra 8 AWG"
+          beside the split solar cable reads short 8 AWG, want unknown "Battery cable not stated" (R1 on split lines).
+          wiringFor falls back to the bundle's "baterías", and a 'battery' line is never dropped as a fitting
+          (src/lib/quote-items.ts:281). Round 2 read it right. Needs: a fitting named battery by its own description only.
+  Medium  the Builder's stated ceiling (quote-items.ts:276): a solar cable "al controlador de baterías" alone reads short 10,
+          lugs "para baterías" beside a solar 4/0 read ok 2/0. Carried from v3.
+  Low     "Alimentador 4/0 AWG" split from a bundle naming CA and baterías reads ok 4/0: its own words name no AC, so the
+          ticket's rule keeps it; the model usually keeps the CA word in the description.
+  Low     "Cable 4/0 AWG" split from a solar kit line that names no battery, and "del inversor al panel DC" (panel), read
+          unknown, battery cable not stated; staging read ok. Leaves it to confirm, never fails a quote.
+  Low     the surviving isFitting mutant: no test says whether a bundle's lug or ground word makes a split battery line a
+          fitting (unchanged from staging).

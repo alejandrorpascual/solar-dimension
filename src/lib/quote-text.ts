@@ -1,12 +1,14 @@
 import { trq, type Dictionary, type QuoteKey } from '../i18n'
-import { checkExtraction, hasTotal, isFixedByTotal, linesWithTax } from './quote-checks'
+import { checkExtraction, hasTotal, isFixedByTotal, linesWithTax, type CheckFailure } from './quote-checks'
 import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtNumber, fmtW } from '../i18n/format'
+import { failingChecks, warningText } from './kit-checks'
 import { entryKey, entryName, nothingRead, quoteSubtitle, type EntryOption, type QuoteView, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
 import { HIGHEST_DOD_CHEMISTRY, LOWEST_DOD_CHEMISTRY, STRIP_ITEMS, type ItemCheck, type ItemFacts, type ItemId, type ItemStatus, type KitNeeds, type Term } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
 import type { QuoteExtraction, QuoteStatus } from './quote-schema'
 import { SIZED_IDS, SIZING_ZONES, suggestedInverterW, type QuoteSizing, type SizedId, type Sizing, type SizingZone } from './quote-sizing'
+import type { SizingResult } from './sizing'
 
 const SECONDS_PER_MINUTE = 60
 
@@ -31,6 +33,10 @@ export function verdictHeading(t: Dictionary, v: Verdict): string {
   return v.unranked.length > 0 ? t.quotes.headingNone : t.quotes.headingEmpty
 }
 
+/**
+ * With no best fit, an unclear quote comes before the closest short one: it fails nothing, so confirming what it leaves
+ * open can make it fit. The first one named is the cheapest, the first in the list below.
+ */
 export function verdictSubline(t: Dictionary, v: Verdict, kit: KitNeeds): string {
   if (v.best) {
     const total = money(t, v.best.total, v.best.currency)
@@ -39,8 +45,9 @@ export function verdictSubline(t: Dictionary, v: Verdict, kit: KitNeeds): string
       ? trq(t, 'subBestOne', { total, musts: v.mustCount })
       : trq(t, 'subBest', { total, count, musts: v.mustCount })
   }
+  const [asking] = v.worthAsking
+  if (asking) return trq(t, 'subUnclear', { name: entryName(asking), gaps: gapsClause(t, asking) })
   if (v.closest) return trq(t, 'subNone', { name: entryName(v.closest), gap: gapText(t, v.closest, kit) })
-  if (v.worthAsking.length > 0) return t.quotes.subUnclear
   if (nothingRead(v)) return t.quotes.subUnread
   return v.ranked.length === 0 && v.unranked.length === 0 ? t.quotes.emptyBody : ''
 }
@@ -55,6 +62,23 @@ export function verdictStatus(t: Dictionary, v: Verdict): { tone: 'ok' | 'warn';
   }
   if (!nothingRead(v)) return null
   return { tone: 'warn', label: v.failedCount === 1 ? t.quotes.unreadOne : trq(t, 'unreadCount', { count: v.failedCount }), meta: null }
+}
+
+/**
+ * Why the verdict compares nothing: the kit leaves out appliances the catalog could not load, so a quote could fit it and
+ * not the real one, or it has no appliances at all. Null when quotes can be judged against it.
+ */
+export function kitHold(t: Dictionary, r: SizingResult): { title: string; note: string } | null {
+  const missing = r.warnings.find((w) => w.code === 'missingAppliances')
+  if (missing) return { title: t.quotes.kitMissingTitle, note: warningText(t, missing, r.items, r.chemistry) }
+  return r.empty ? { title: t.quotes.kitEmptyTitle, note: t.quotes.kitEmptyNote } : null
+}
+
+/** One line when the kit the quotes are judged against fails its own checks; null when it passes them all. */
+export function kitAttentionText(t: Dictionary, r: SizingResult): string | null {
+  const count = failingChecks(r).length
+  if (count === 0) return null
+  return count === 1 ? t.quotes.kitAttentionOne : trq(t, 'kitAttention', { count })
 }
 
 /** The first must-have a quote fails, in words: "its inverter is 3,560 W short". */
@@ -109,7 +133,9 @@ function confirmPhrase(t: Dictionary, c: ItemCheck): string {
       if (f.capacityPartial) return q.confirmBatteryAll
       return f.usableLowWh === undefined ? q.confirmBatteryCapacity : q.confirmBatteryChemistry
     case 'panels': return q.confirmPanelSize
-    case 'cables': return f.runsUnstated ? trq(t, 'confirmCableRuns', { runs: f.runs ?? 0, gauge: f.gauge ?? '' }) : q.confirmCableSize
+    case 'cables':
+      if (f.batteryCableUnstated) return q.confirmBatteryCable
+      return f.runsUnstated ? trq(t, 'confirmCableRuns', { runs: f.runs ?? 0, gauge: f.gauge ?? '' }) : q.confirmCableSize
     case 'fuse': return fuseConfirm(t, f)
     default: return t.quoteItemsInline[c.id]
   }
@@ -295,6 +321,7 @@ function unclearText(t: Dictionary, c: ItemCheck, kit: KitNeeds): { label: strin
     case 'battery': return { label: q.included, detail: batteryOpen(t, f) }
     case 'panels': return { label: f.arrayW ? fmtW(f.arrayW, t.locale) : q.included, detail: q.sizeNotStated }
     case 'cables':
+      if (f.batteryCableUnstated) return { label: q.included, detail: q.batteryCableNotStated }
       return f.runsUnstated ? { label: f.gauge ?? q.included, detail: trq(t, 'needsRuns', { runs: f.runs ?? 0 }) } : { label: q.included, detail: q.sizeNotStated }
     case 'fuse': return { label: f.amps !== undefined ? trq(t, 'amps', { amps: f.amps }) : q.included, detail: fuseOpen(t, f, kit) }
     default: return { label: q.included, detail: q.markUnclear }
@@ -303,22 +330,37 @@ function unclearText(t: Dictionary, c: ItemCheck, kit: KitNeeds): { label: strin
 
 /**
  * The help above the enter-a-total form: the total is missing, or the amounts don't add up. A reading that still doesn't
- * hold once read again (takesTypedTotal) asks instead for the total as the quote writes it.
+ * hold once read again (takesTypedTotal) names the checks it failed, then asks for the total as the quote writes it.
  */
 export function totalHelp(t: Dictionary, u: UnrankedQuote): string {
   const x = u.quote.extraction
-  if (x !== null && !isFixedByTotal(x)) return x.lines.length === 0 ? t.quotes.noLinesTotalHelp : t.quotes.misreadTotalHelp
+  if (x !== null && !isFixedByTotal(x)) {
+    if (x.lines.length === 0) return t.quotes.noLinesTotalHelp
+    return [...failedCheckSentences(t, checkExtraction(x)), t.quotes.misreadTotalAction].join(' ')
+  }
   return u.reason === 'no_total' ? t.quotes.noTotalHelp : t.quotes.checkNumbersHelp
+}
+
+/** The sentence for each check a misread reading can fail that a typed total wouldn't fix, in the order the card names them. */
+const MISREAD_REASONS: readonly (readonly [CheckFailure, QuoteKey])[] = [
+  ['bad_currency', 'misreadCurrency'], ['line_mismatch', 'misreadLines'], ['bad_qty', 'misreadQty'],
+]
+
+/** One sentence per failed check a typed total wouldn't fix, or a general one when none of them has its own. */
+function failedCheckSentences(t: Dictionary, failures: readonly CheckFailure[]): string[] {
+  const reasons = MISREAD_REASONS.filter(([f]) => failures.includes(f)).map(([, key]) => t.quotes[key])
+  return reasons.length > 0 ? reasons : [t.quotes.misreadOther]
 }
 
 /**
  * Why a reading waits to be read again rather than for a total: a number no real quote states (a 5,120 kWh battery, a
- * page past the file's `pages`), no lines were read, or the ones read don't hold together.
+ * page past the file's `pages`), no lines were read, or the checks the ones read failed, each named.
  */
 export function misreadText(t: Dictionary, x: QuoteExtraction, pages: number | null, canReadAgain: boolean): string {
-  if (checkExtraction(x, pages).includes('implausible')) return canReadAgain ? t.quotes.implausibleHelp : t.quotes.implausibleHelpNoRetry
+  const failures = checkExtraction(x, pages)
+  if (failures.includes('implausible')) return canReadAgain ? t.quotes.implausibleHelp : t.quotes.implausibleHelpNoRetry
   if (x.lines.length === 0) return canReadAgain ? t.quotes.noLinesHelp : t.quotes.noLinesHelpNoRetry
-  return canReadAgain ? t.quotes.misreadHelp : t.quotes.misreadHelpNoRetry
+  return [...failedCheckSentences(t, failures), canReadAgain ? t.quotes.misreadAction : t.quotes.misreadActionNoRetry].join(' ')
 }
 
 /**
