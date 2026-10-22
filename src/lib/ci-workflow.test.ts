@@ -27,10 +27,21 @@ test('a step migrates an empty database, made for the run and not the test branc
   expect(workflow).toMatch(/FRESH_DATABASE:\s*ci_fresh_\$\{\{ github\.run_id \}\}_\$\{\{ github\.run_attempt \}\}/)
 })
 
-test('the last step drops that database, and runs when an earlier step failed or the run was cancelled', () => {
+test('the step right after the migration drops that database, also when it failed or the run was cancelled', () => {
+  const make = stepRunning('fresh-database.ts create')
   const drop = stepRunning('fresh-database.ts drop')
 
   expect(drop, 'a step that drops the database').toBeGreaterThanOrEqual(0)
-  expect(drop).toBe(steps.length - 1)
+  // Not last: a run that uses up the job's timeout on the tests or the build would never reach it.
+  expect(drop).toBe(make + 1)
   expect(steps[drop]).toMatch(/if:\s*\$\{\{ always\(\) \}\}/)
+})
+
+test('a hung migration or drop ends long before the job does, so the drop still runs', () => {
+  const minutes = (step: string) => Number(/timeout-minutes:\s*(\d+)/.exec(step)?.[1])
+  const job = minutes(workflow)
+  const make = steps[stepRunning('fresh-database.ts create')]
+  const drop = steps[stepRunning('fresh-database.ts drop')]
+
+  expect(minutes(make) + minutes(drop)).toBeLessThan(job / 2)
 })
