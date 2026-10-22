@@ -7,7 +7,7 @@ import { quotesEn } from '../src/i18n/quotes-en'
 import { quotesEs } from '../src/i18n/quotes-es'
 import {
   cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFiles, quoteRetryStates, seedFailedQuote,
-  seedQuoteRows, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
+  seedQuoteRows, setQuoteCurrency, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage, switchLanguageOnLoad } from './header'
@@ -127,6 +127,22 @@ test('the same quote uploaded twice ranks once with a warning, and inverter and 
     await expect(fixed).toHaveAttribute('aria-checked', 'true')
     await expect(fixed).toBeDisabled()
   }
+})
+
+test('a tie between currencies says on screen which one was compared (AI-28)', async ({ page }) => {
+  const email = await signUp(page)
+  await uploadQuotes(page, await Promise.all(['solartec', 'voltia'].map(quotePdf)))
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  await expect(page.getByText(/split evenly/)).toHaveCount(0)
+
+  // Voltia's quote read in euros: one quote in each currency, and SolarTec's was uploaded first.
+  await setQuoteCurrency(email, await firstProjectId(email), 'voltia.pdf', 'EUR')
+  await page.reload()
+  await expect(page.getByRole('note').filter({ hasText: 'split evenly' }))
+    .toHaveText('Your quotes are split evenly between USD and EUR. Only the ones in USD, the currency of your first quote, are compared.')
+  await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toContainText('In EUR, so not compared')
 })
 
 test('must-haves and confirmations change the winner, and stick', async ({ page }) => {

@@ -1,0 +1,39 @@
+# QA v1 for #55 · PR #205 · head under test 189a0bc (base 47211d5) · 2026-10-22T23:40Z
+
+## Verify command: npm run typecheck && npm run test:coverage && npm run build  -> exit 0
+ Test Files  119 passed (119)
+      Tests  2008 passed (2008)
+Statements   : 89.41% ( 3887/4347 )
+Branches     : 90.06% ( 2936/3260 )
+Functions    : 90.25% ( 1297/1437 )
+Lines        : 89.4% ( 2945/3294 )
+✓ built in 1.08s
+✓ built in 448ms
+
+## Mutation checks (vitest on quote-items, quote-checks, quote-compare, quote-text, quote-caveats tests)
+M1 TAX_WORDS back to the old list      -> red: quote-checks.test.ts 'an ITBMS, IGV, GST or IVU line...'
+M2 resolveMusts without FIXED_MUSTS     -> red: quote-items.test.ts 'inverter and battery stay must-haves...'
+M3 withoutDuplicates keeps every entry  -> red: 3 tests in quote-compare.test.ts 'the same quote uploaded twice'
+M4 bad_currency takes a typed total     -> red: quote-compare.test.ts 'a reading whose currency could not be read...'
+M5 mainCurrency reports no tie          -> red: quote-compare.test.ts tie test + quote-text.test.ts currencyTieText
+M6 VerdictView tie line not rendered    -> survives: npx vitest run still 2008/2008; new e2e quotes.spec.ts:132 red (below)
+
+## New e2e (QA): e2e/quotes.spec.ts:132 'a tie between currencies says on screen which one was compared'
+red with the VerdictView tie line removed:
+    Error: element(s) not found
+  1 failed
+green on 189a0bc + this test (full run below): 
+  ✓  163 [desktop] › e2e/quotes.spec.ts:132:1 › a tie between currencies says on screen which one was compared (AI-28) (7.2s)
+  ✓  162 [desktop] › e2e/quotes.spec.ts:110:1 › the same quote uploaded twice ranks once with a warning, and inverter and battery stay must-haves (AI- [..
+
+## Full e2e: BETTER_AUTH_SECRET=<generated> E2E_PORT=4110 npx playwright test
+  1 failed
+  10 skipped
+  314 passed (3.9m)
+failure: quote-budget.spec.ts:13 'an admitted upload takes one of the day's reads' - file chooser timeout in the upload helper (e2e/quotes.ts:97), a file this PR does not touch
+rerun alone: npx playwright test e2e/quote-budget.spec.ts --project desktop
+  4 passed (16.8s)
+
+## Screenshots: a throwaway Playwright script on the E2E build (stub reader), desktop 1920x1080, tablet 1024x768, phone width 375x667
+ac1-*, ac2-*, ac4-*: 189a0bc · before-*: the same script on 47211d5's src/ (inverter and battery clicked off to show the bug)
+AC3 has no screenshot: it is a reading check with no screen of its own
