@@ -1,0 +1,6 @@
+# config.verify_commands in a clone of the PR branch plus the QA commit, node v24.15.0. The machine was shared with other lanes (load average 58 to 68).
+npm ci: exit 0 · npm run typecheck: exit 0 · npm run build: exit 0
+npm run test:coverage, run 1 (load 65): exit 1, 1 failed | 1918 passed. src/lib/solar.test.ts timed out at 5000 ms; not in this diff, passes alone, suite took 28 s against 14 to 17 s
+npm run test:coverage, run 2, same command: exit 0, 112 files, 1919 tests passed
+Statements : 89.25% ( 3797/4254 ) Branches : 89.86% ( 2881/3206 ) Functions : 90.2% ( 1271/1409 ) Lines : 89.23% ( 2877/3224 ) 
+Before the QA test file: 111 files, 1904 tests passed
