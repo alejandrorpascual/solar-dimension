@@ -35,8 +35,10 @@ export function StartsPicker({ electrical, onChange }: Props) {
   )
 }
 
-/** Where the battery cable runs. Closed by default; the summary line still states the values in effect. */
-export function CableConditions({ electrical: e, onChange }: Props) {
+const PERCENT = 100
+
+/** Where the battery cable runs. Closed by default; the summary line still states the values in effect. `bundleFactor` is the share of its table ampacity the engine gave the main cable. */
+export function CableConditions({ electrical: e, onChange, bundleFactor }: Props & { bundleFactor: number }) {
   const { t } = useLocale()
   const rangeId = useId()
   const summary = tr(t, 'cableSummary', { length: e.runLengthM, ambient: e.ambientC, insulation: e.insulationC, bundled: e.bundled ? t.ui.cableBundledShort : '' })
@@ -73,7 +75,7 @@ export function CableConditions({ electrical: e, onChange }: Props) {
         </div>
         <label className="elec__check">
           <input type="checkbox" checked={e.bundled} onChange={(ev) => onChange({ bundled: ev.target.checked })} />
-          <span><span className="elec__check-title">{t.ui.bundledLabel}</span><span className="muted elec__check-help">{t.ui.bundledHelp}</span></span>
+          <span><span className="elec__check-title">{t.ui.bundledLabel}</span><span className="muted elec__check-help">{tr(t, 'bundledHelp', { factor: Math.round(bundleFactor * PERCENT) })}</span></span>
         </label>
       </div>
     </details>

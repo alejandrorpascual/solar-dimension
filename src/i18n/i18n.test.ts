@@ -51,6 +51,34 @@ describe('dictionaries', () => {
       expect(d.warnings.cableAmbient(p)).toContain('90 °C')
     }
   })
+  test('the fuse and cable warnings claim nothing the engine does not check, and Spanish says clasificado, not certificado', () => {
+    const p = { fuseA: 100, surgeA: 309, seconds: 3, maxA: 173, count: 2, maxVdc: 32, needVdc: 60, volts: 48, ambientC: 90 }
+    expect(en.warnings.fuseSurge(p)).toBe('Start-up pushes 309 A through a 100 A fuse for 3 s; it may blow on a normal start.')
+    expect(es.warnings.fuseSurge(p)).toBe('El arranque pasa 309 A por un fusible de 100 A durante 3 s; puede quemarse en un arranque normal.')
+    expect(es.warnings.fuseVoltage(p)).toBe('El fusible de 100 A solo está clasificado para 32 V CC, y un banco de 48 V necesita 60 V CC o más: podría no cortar una falla. Usa un fusible clasificado para al menos 60 V CC.')
+    expect(es.warnings.cableAmbient(p)).toBe('Ningún cable de la tabla está clasificado para aire a 90 °C. Lleva el tramo a un lugar más fresco.')
+  })
+  test('a fuse warning on a single run says so in the singular, and several runs keep the plural', () => {
+    const p = { fuseA: 175, maxA: 173 }
+    expect(en.warnings.fuseAboveCable({ ...p, count: 2 })).toBe('Even 2 runs of the largest cable carry only 173 A each, under the 175 A fuse they need. Raise the voltage or trim the load.')
+    expect(en.warnings.fuseAboveCable({ ...p, count: 1 })).toBe('The largest cable carries only 173 A, under the 175 A fuse it needs. Raise the voltage or trim the load.')
+    expect(es.warnings.fuseAboveCable({ ...p, count: 2 })).toBe('Ni 2 tramos del cable más grueso soportan más de 173 A cada uno, menos que el fusible de 175 A que necesitan. Sube el voltaje o reduce la carga.')
+    expect(es.warnings.fuseAboveCable({ ...p, count: 1 })).toBe('El cable más grueso solo soporta 173 A, menos que el fusible de 175 A que necesita. Sube el voltaje o reduce la carga.')
+  })
+  test('every fuse warning on a string lead says string lead, in both languages, and the main run never does', () => {
+    const p = { fuseA: 100, surgeA: 309, seconds: 3, maxA: 173, count: 1, maxVdc: 32, needVdc: 60, volts: 48, shortCircuitA: 21600, aicA: 20000 }
+    const codes = ['fuseVoltage', 'fuseAboveBank', 'fuseAboveCable', 'fuseSurge', 'fuseInterrupt'] as const
+    for (const code of codes) {
+      expect(en.warnings[code]({ ...p, conductor: 'stringLeads' }), `en ${code}`).toContain('string lead')
+      expect(es.warnings[code]({ ...p, conductor: 'stringLeads' }), `es ${code}`).toContain('cable de rama')
+      for (const conductor of [undefined, 'mainCable' as const]) {
+        expect(en.warnings[code]({ ...p, conductor }), `en ${code} main`).not.toContain('string lead')
+        expect(es.warnings[code]({ ...p, conductor }), `es ${code} main`).not.toContain('cable de rama')
+      }
+    }
+    expect(en.warnings.fuseAboveCable({ ...p, conductor: 'stringLeads' })).toBe('Even the largest cable carries only 173 A, under the 100 A fuse on the string lead. Raise the voltage or trim the load.')
+    expect(es.warnings.fuseAboveCable({ ...p, conductor: 'stringLeads' })).toBe('Ni el cable más grueso soporta más de 173 A, menos que el fusible de 100 A del cable de rama. Sube el voltaje o reduce la carga.')
+  })
   test('a LiFePO₄ bank keeps its BMS wording, whether the chemistry is named or not', () => {
     const p = { needA: 278, maxA: 100, strings: 1, unitLabel: '12 V 100 Ah LiFePO₄', seconds: 1, fuseA: 175, count: 2 }
     for (const q of [p, { ...p, chemistry: 'lifepo4' as const }]) {

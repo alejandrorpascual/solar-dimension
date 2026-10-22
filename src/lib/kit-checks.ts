@@ -58,6 +58,12 @@ const NAME_KEY: Record<CheckId, 'checkSurge' | 'checkBatteryContinuous' | 'check
   surge: 'checkSurge', batteryContinuous: 'checkBatteryContinuous', batteryPeak: 'checkBatteryPeak', parallel: 'checkParallel', fuse: 'checkFuse', cable: 'checkCable',
 }
 
+/** The two start-up pass lines of the inverter size check, for one inverter or a set: with the seconds a surge lasts, or without when nothing surges. */
+const SURGE_PASS_KEY = {
+  one: { surge: 'checkSurgeOk', none: 'checkSurgeOkNoStart' },
+  many: { surge: 'checkSurgeOkMany', none: 'checkSurgeOkManyNoStart' },
+} as const
+
 function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): string {
   const b = r.battery!
   const c = r.cable
@@ -65,15 +71,17 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
   const w = (n: number) => fmtW(n, locale)
   const a = (n: number) => fmtInt(Math.round(n), locale)
   const startupA = r.surgeW / r.volts / SIZING.INVERTER_EFF
+  // No appliance starts above its running watts: there is no surge, so no seconds to print.
+  const hasSurge = r.surgeSeconds > 0
   switch (id) {
     case 'surge':
-      return tr(t, inv.count > 1 ? 'checkSurgeOkMany' : 'checkSurgeOk', {
+      return tr(t, SURGE_PASS_KEY[inv.count > 1 ? 'many' : 'one'][hasSurge ? 'surge' : 'none'], {
         running: w(r.runningW), inverter: w(inv.w), count: inv.count, unit: w(inv.unitW), peak: w(r.surgeW), seconds: r.surgeSeconds, rating: w(inv.surgeRatedW),
       })
     case 'batteryContinuous':
       return tr(t, inv.count > 1 ? 'checkBatteryContinuousOkMany' : 'checkBatteryContinuousOk', { bankA: a(b.bankContinuousA), needA: a(inv.continuousA), count: inv.count })
     case 'batteryPeak':
-      return tr(t, 'checkBatteryPeakOk', { bankA: a(b.bankPeakA), needA: a(startupA), seconds: r.surgeSeconds })
+      return tr(t, hasSurge ? 'checkBatteryPeakOk' : 'checkBatteryPeakOkNoStart', { bankA: a(b.bankPeakA), needA: a(startupA), seconds: r.surgeSeconds })
     case 'parallel':
       return tr(t, b.parallel > 1 ? 'checkParallelOk' : 'checkParallelSingle', { parallel: b.parallel, max: b.unit.maxParallel })
     case 'fuse':

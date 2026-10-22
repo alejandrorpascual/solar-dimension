@@ -10,6 +10,9 @@ const NO_BMS = 'su voltaje podría caer lo bastante para apagar el inversor'
 /** The cable rows as a warning names them mid-sentence. */
 const CONDUCTORS: Record<ConductorKind, string> = { mainCable: 'el cable principal', interconnects: 'las interconexiones', stringLeads: 'los cables de rama' }
 
+/** Said after a fuse's rating: nothing on the main run, which cable it sits on when that is a string lead. */
+const onLead = (p: WarningParams): string => (p.conductor === 'stringLeads' ? ' del cable de rama' : '')
+
 /** What to do about a cable row that falls short: only the ways out the engine says would work for it, ending with the one that always does. */
 function cableRemedy(p: WarningParams): string {
   const ways = [
@@ -139,17 +142,20 @@ export const es: Dictionary = {
     cableRun: 'Tramo de cable', cableSummary: '{length} m · {ambient} °C · cable de {insulation} °C{bundled}', cableBundledShort: ' · agrupados',
     runLength: 'De la batería al inversor, un sentido', ambientLabel: 'Temperatura alrededor de los cables',
     ambient30: '30 °C · cuarto fresco', ambient40: '40 °C · garaje, cuarto de máquinas', ambient50: '50 °C · ático o caja al sol',
-    bundledLabel: 'Los cables van en un mismo tubo o atados', bundledHelp: 'La capacidad baja al 80%',
+    bundledLabel: 'Los cables van en un mismo tubo o atados', bundledHelp: 'El cable principal soporta el {factor}% de su capacidad de tabla',
     insulationLabel: 'Aislamiento del cable', insulation75: '75 °C · THW, cable de soldadura', insulation90: '90 °C · THHN, XHHW-2, cable de batería común',
     runtimeRange: '{worst} en un día duro · {best} en un día ligero',
     checks: 'Verificaciones', incChecks: 'Verificaciones', checkPass: 'Cumple', checkWarn: 'Revisar',
     checksAttentionOne: '1 verificación necesita atención', checksAttentionMany: '{count} verificaciones necesitan atención',
     checkSurge: 'Tamaño del inversor', checkSurgeOk: '{running} en marcha con un inversor de {inverter} · {peak} durante {seconds} s, dentro de sus {rating} de arranque supuestos',
     checkSurgeOkMany: '{running} en marcha con {count} inversores de {unit} ({inverter} en total) · {peak} durante {seconds} s, dentro de sus {rating} de arranque supuestos',
+    checkSurgeOkNoStart: '{running} en marcha con un inversor de {inverter} · sin pico de arranque, dentro de sus {rating} de arranque supuestos',
+    checkSurgeOkManyNoStart: '{running} en marcha con {count} inversores de {unit} ({inverter} en total) · sin pico de arranque, dentro de sus {rating} de arranque supuestos',
     checkSurgeContributors: '{running} en marcha + {list} arrancando',
     checkBatteryContinuous: 'Corriente continua de la batería', checkBatteryContinuousOk: 'El banco entrega {bankA} A continuos supuestos; el inversor toma hasta {needA} A',
     checkBatteryContinuousOkMany: 'El banco entrega {bankA} A continuos supuestos; los {count} inversores toman hasta {needA} A en total',
     checkBatteryPeak: 'Corriente pico de la batería', checkBatteryPeakOk: 'El pico supuesto del banco, {bankA} A, cubre los {needA} A de arranque durante {seconds} s',
+    checkBatteryPeakOkNoStart: 'El pico supuesto del banco, {bankA} A, cubre los {needA} A de arranque',
     checkParallel: 'Ramas en paralelo', checkParallelOk: '{parallel} en paralelo, dentro del límite supuesto de {max}', checkParallelSingle: 'Una sola rama, nada que balancear · límite supuesto de {max} en paralelo',
     checkFuse: 'Fusible', checkFuseOk: '{amps} A clase {class}: bajo los {ampacity} A del cable, {aic} kA de interrupción ante una corriente de cortocircuito estimada de {fault} A, arranque de {startA} A dentro de lo que aguanta',
     checkCable: 'Cable', checkCableOk: '{gauge} soporta {ampacity} A tras la corrección ({ambient} °C{bundled}) para {designA} A de diseño{perRun} · {runDrop}% de caída, {drop}% al arrancar',
@@ -206,15 +212,24 @@ export const es: Dictionary = {
     fuseAboveBank: (p) => {
       const fuse = `${(p.count ?? 1) > 1 ? 'un' : 'el'} fusible`
       const overload = hasBms(p) ? `cortaría el BMS y no ${fuse} en una sobrecarga` : `una sobrecarga forzaría las baterías antes de que se queme ${fuse}`
-      return `${(p.count ?? 1) > 1 ? `Los ${p.count} fusibles de ${p.fuseA} A están dimensionados` : `El fusible de ${p.fuseA} A está dimensionado`} para más de los ${p.maxA?.toLocaleString('es-419')} A que el banco puede entregar, así que ${overload}. Elige un banco que entregue más.`
+      const source = p.conductor === 'stringLeads' ? 'una rama' : 'el banco'
+      return `${(p.count ?? 1) > 1 ? `Los ${p.count} fusibles de ${p.fuseA} A están dimensionados` : `El fusible de ${p.fuseA} A${onLead(p)} está dimensionado`} para más de los ${p.maxA?.toLocaleString('es-419')} A que ${source} puede entregar, así que ${overload}. Elige un banco que entregue más.`
     },
-    fuseAboveCable: (p) => `Ni ${p.count} tramos del cable más grueso soportan más de ${p.maxA?.toLocaleString('es-419')} A cada uno, menos que el fusible de ${p.fuseA} A que necesitan. Sube el voltaje o reduce la carga.`,
-    fuseSurge: (p) => `El arranque pasa ${p.surgeA?.toLocaleString('es-419')} A por un fusible de ${p.fuseA} A durante ${p.seconds} s; puede quemarse en un arranque normal. El siguiente tamaño aún protege el cable.`,
-    fuseInterrupt: (p) => `Un banco en corto puede entregar una corriente estimada de ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible. Usa un fusible con esa capacidad o menos ramas.`,
-    fuseVoltage: (p) => `El fusible de ${p.fuseA} A solo está certificado para ${p.maxVdc} V CC, y un banco de ${p.volts} V necesita ${p.needVdc} V CC o más: podría no cortar una falla. Usa un fusible certificado para al menos ${p.needVdc} V CC.`,
+    fuseAboveCable: (p) => {
+      const maxA = p.maxA?.toLocaleString('es-419')
+      const way = 'Sube el voltaje o reduce la carga.'
+      if (p.conductor === 'stringLeads') return `Ni el cable más grueso soporta más de ${maxA} A, menos que el fusible de ${p.fuseA} A${onLead(p)}. ${way}`
+      if ((p.count ?? 1) === 1) return `El cable más grueso solo soporta ${maxA} A, menos que el fusible de ${p.fuseA} A que necesita. ${way}`
+      return `Ni ${p.count} tramos del cable más grueso soportan más de ${maxA} A cada uno, menos que el fusible de ${p.fuseA} A que necesitan. ${way}`
+    },
+    fuseSurge: (p) => `El arranque pasa ${p.surgeA?.toLocaleString('es-419')} A por un fusible de ${p.fuseA} A${onLead(p)} durante ${p.seconds} s; puede quemarse en un arranque normal.`,
+    fuseInterrupt: (p) => p.conductor === 'stringLeads'
+      ? `Una batería en corto puede entregar una corriente estimada de ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible${onLead(p)}. Usa un fusible con esa capacidad.`
+      : `Un banco en corto puede entregar una corriente estimada de ${p.shortCircuitA?.toLocaleString('es-419')} A, más que los ${p.aicA?.toLocaleString('es-419')} A de interrupción del fusible. Usa un fusible con esa capacidad o menos ramas.`,
+    fuseVoltage: (p) => `El fusible de ${p.fuseA} A${onLead(p)} solo está clasificado para ${p.maxVdc} V CC, y un banco de ${p.volts} V necesita ${p.needVdc} V CC o más: podría no cortar una falla. Usa un fusible clasificado para al menos ${p.needVdc} V CC.`,
     cableDrop: (p) => `El cable cae ${p.dropPct}% a plena carga, más del ${p.maxDropPct}% previsto, aun con el calibre más grueso. Acorta el tramo o elige un voltaje de banco mayor.`,
     startupDrop: (p) => `El cable cae ${p.dropPct}% con la corriente de arranque; el inversor puede apagarse cuando arranque un motor. Acorta el tramo o sube un calibre.`,
-    cableAmbient: (p) => `Ningún cable de la tabla está certificado para aire a ${p.ambientC} °C. Lleva el tramo a un lugar más fresco.`,
+    cableAmbient: (p) => `Ningún cable de la tabla está clasificado para aire a ${p.ambientC} °C. Lleva el tramo a un lugar más fresco.`,
     cableUndersized: (p) => `El ${p.gauge} para ${CONDUCTORS[p.conductor!]} solo soporta ${p.maxA?.toLocaleString('es-419')} A tras la corrección, menos que la corriente de diseño de ${p.needA?.toLocaleString('es-419')} A de cada cable. ${cableRemedy(p)}`,
     missingAppliances: (p) => p.count === 1
       ? 'No se pudo cargar 1 aparato de este proyecto, así que este kit lo deja fuera. Recarga en un minuto; si sigue faltando, agrégalo de nuevo.'

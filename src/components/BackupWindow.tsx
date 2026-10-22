@@ -63,7 +63,7 @@ export function BackupWindow({ store, commit, result }: Props) {
           <StartsPicker electrical={p.electrical} onChange={setElectrical} />
         </div>
       </div>
-      <CableConditions electrical={p.electrical} onChange={setElectrical} />
+      <CableConditions electrical={p.electrical} onChange={setElectrical} bundleFactor={result.cable.bundleFactor} />
     </div>
   )
 }
