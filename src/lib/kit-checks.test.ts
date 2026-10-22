@@ -35,9 +35,9 @@ describe('kitChecks', () => {
     expect(r.surgeSeconds).toBe(0)
     const by = (t: typeof en, locale: 'en' | 'es') => Object.fromEntries(kitChecks(t, r, locale).map((c) => [c.id, c]))
     expect(by(en, 'en').surge!.lines[0]).toBe('90 W running on a 3,000 W inverter · no start-up surge, within its assumed 6,000 W surge rating')
-    expect(by(en, 'en').batteryPeak!.lines).toEqual(['Bank peak of an assumed 200 A covers the 2 A start-up'])
+    expect(by(en, 'en').batteryPeak!.lines).toEqual(['Bank peak of an assumed 200 A covers the 2 A it draws'])
     expect(by(es, 'es').surge!.lines[0]).toBe('90 W en marcha con un inversor de 3,000 W · sin pico de arranque, dentro de sus 6,000 W de arranque supuestos')
-    expect(by(es, 'es').batteryPeak!.lines).toEqual(['El pico supuesto del banco, 200 A, cubre los 2 A de arranque'])
+    expect(by(es, 'es').batteryPeak!.lines).toEqual(['El pico supuesto del banco, 200 A, cubre los 2 A que toma'])
     for (const [t, locale] of [[en, 'en'], [es, 'es']] as const) {
       expect(kitChecks(t, r, locale).flatMap((c) => c.lines).join('\n')).not.toMatch(/\b0 s\b/)
     }

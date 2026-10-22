@@ -27,9 +27,9 @@ test('step 2 says every appliance counts in every hour of the window, in English
   expect(stepTwo('es')).toContain('Cada aparato cuenta en todas las horas del respaldo.')
 })
 
-/** Step 2 for a 48 V kit of `qty` with the cables bundled: the line under the "share a conduit" box, tags out. */
-function bundlingHelp(locale: Locale, qty: Record<string, number>): string {
-  const html = stepTwo(locale, (store) => setElectricalIn(patchCurrent(store, { qty, volts: 48 }), store.currentId, { bundled: true }))
+/** Step 2 for a 48 V kit of `qty`: the line under the "share a conduit" box, tags out, or '' when the box shows none. */
+function bundlingHelp(locale: Locale, qty: Record<string, number>, bundled = true): string {
+  const html = stepTwo(locale, (store) => setElectricalIn(patchCurrent(store, { qty, volts: 48 }), store.currentId, { bundled }))
   return /<span class="muted elec__check-help">([^<]*)<\/span>/.exec(html)?.[1] ?? ''
 }
 
@@ -38,7 +38,12 @@ test('the bundling help gives the factor the engine applied to this kit\'s main 
   // One water heater at 48 V is one run (two conductors); two need two runs (four conductors); three need four (eight).
   const factors = [[{ ac3i: 1 }, 100], [{ wheater: 2 }, 80], [{ wheater: 3 }, 70]] as const
   for (const [qty, percent] of factors) {
-    expect(bundlingHelp('en', qty)).toBe(`The main cable carries ${percent}% of its table ampacity`)
-    expect(bundlingHelp('es', qty)).toBe(`El cable principal soporta el ${percent}% de su capacidad de tabla`)
+    expect(bundlingHelp('en', qty)).toBe(`Bundling factor on the main cable: ${percent}%`)
+    expect(bundlingHelp('es', qty)).toBe(`Factor de agrupamiento del cable principal: ${percent}%`)
   }
+})
+
+test('with the box unticked there is no bundling factor to show, in either language', () => {
+  // An unbundled run always gets factor 1: printing it would read 100% on a kit that drops to 80% once ticked.
+  for (const locale of ['en', 'es'] as const) expect(bundlingHelp(locale, { wheater: 2 }, false)).toBe('')
 })
