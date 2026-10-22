@@ -73,7 +73,7 @@ Env var names (never values): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH
 | E2E | Playwright, desktop and iPhone-13-sized projects | `npm run e2e`; builds and serves the app itself on `E2E_PORT` (default 3000) plus a second server with a spent quote budget; stub model and local quote files |
 | E2E database | Own Neon branch via `.env.test.local` | Refuses to run without it, if it equals the production DB, or if it matches `.env.local`; tests create `e2e-*` rows |
 
-CI (`.github/workflows/ci.yml`, job `verify`, Node 24): refuse production DB, `db:migrate` on the test DB, typecheck, unit tests with coverage, build, install Chromium, e2e (1 retry, `test.only` fails), upload traces. Needs repository secret `DATABASE_URL` (test branch). Merging is gated only by a branch rule requiring `verify`.
+CI (`.github/workflows/ci.yml`, job `verify`, Node read from `engines.node` in `package.json`, 24.x): refuse production DB, `db:migrate` on the test DB, `db:migrate` on an empty database made for the run (`scripts/fresh-database.ts`, dropped by the last step), `test:db`, typecheck, unit tests with coverage, build, install Chromium, e2e (1 retry, `test.only` fails), upload traces. Needs repository secret `DATABASE_URL` (test branch). Merging is gated only by a branch rule requiring `verify`.
 
 ## 6. Deploy and data
 
