@@ -21,11 +21,38 @@ export function fakeStorage() {
 }
 export type FakeStorage = ReturnType<typeof fakeStorage>
 
-/** Makes `storage` the browser the hook runs in from now on. */
+/**
+ * Makes `storage` the browser the hook runs in from now on, with a window and a document to hear its events: another
+ * tab's write, and the tab coming back.
+ */
 export function openBrowser(storage: FakeStorage): void {
   const g = globalThis as Record<string, unknown>
   Object.defineProperty(g, 'localStorage', { value: storage, configurable: true, writable: true })
+  const page = new EventTarget()
+  g.addEventListener = page.addEventListener.bind(page)
+  g.removeEventListener = page.removeEventListener.bind(page)
+  g.dispatchEvent = page.dispatchEvent.bind(page)
+  g.document = Object.assign(new EventTarget(), { visibilityState: 'visible' })
   prepareReactInNode()
+}
+
+/** Another tab of this browser keeps `store`: the browser writes it, then tells every other tab, as a storage event. */
+export async function otherTabKeeps(storage: FakeStorage, store: Store): Promise<Hook> {
+  storage.setItem(STORAGE_KEY, JSON.stringify(store))
+  await act(async () => {
+    dispatchEvent(Object.assign(new Event('storage'), { key: STORAGE_KEY }))
+    await settle()
+  })
+  return mounted()
+}
+
+/** The user comes back to this tab: `focus` from another window, `visibilitychange` from another tab or app. */
+export async function comeBack(event: 'focus' | 'visibilitychange' = 'focus'): Promise<Hook> {
+  await act(async () => {
+    ;(event === 'focus' ? globalThis : document).dispatchEvent(new Event(event))
+    await settle()
+  })
+  return mounted()
 }
 
 let root: Root | null = null

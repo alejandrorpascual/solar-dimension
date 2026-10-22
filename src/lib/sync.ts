@@ -1,4 +1,4 @@
-import type { Project } from './schema'
+import { ProjectSchema, type Project } from './schema'
 
 export function diffProjects(prev: readonly Project[], next: readonly Project[]): { upserts: Project[]; deletes: string[] } {
   const before = new Map(prev.map((p) => [p.id, JSON.stringify(p)]))
@@ -69,6 +69,26 @@ export function outgoing(next: readonly Project[], change: { upserts: readonly P
 /** A save that failed, as what the next one must carry. */
 export function unsentOf(sent: Outgoing): Unsent {
   return { upserts: new Set(sent.upserts.map((p) => p.id)), deletes: new Set(sent.deletes) }
+}
+
+type Field = keyof typeof ProjectSchema.shape
+
+/** The fields ProjectSchema fills in when a project comes without them, read from the schema so a new one is covered. */
+const DEFAULTED = (Object.keys(ProjectSchema.shape) as Field[]).filter((field) => ProjectSchema.shape[field].safeParse(undefined).success)
+
+/** By project id, the fields a save left out. The account keeps its own value of each: the save's is only a default. */
+export type LeftOut = ReadonlyMap<string, readonly Field[]>
+
+/**
+ * The fields each project of a save (`sent`, as the request carried it, before parsing) leaves out. A build older than
+ * a field sends none of it, and its save must not clear what the account holds there. A field sent as null is carried:
+ * a battery-only kit sends `solar: null`.
+ */
+export function leftOut(sent: readonly unknown[]): LeftOut {
+  return new Map(sent.map((project) => {
+    const fields: Record<string, unknown> = typeof project === 'object' && project !== null ? { ...project } : {}
+    return [String(fields.id), DEFAULTED.filter((field) => fields[field] === undefined)]
+  }))
 }
 
 /** One copy per project id, the one stamped latest (the later in the list on a tie), in the order ids first appear. */

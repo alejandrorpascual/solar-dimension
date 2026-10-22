@@ -1,6 +1,9 @@
 import { expect, test } from 'vitest'
 import { addProject, currentProject, initialStore, patchCurrent } from './store'
-import { adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, isForAccount, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing, unsentOf } from './sync'
+import {
+  adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, isForAccount, leftOut, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing,
+  unsentOf,
+} from './sync'
 
 test('reports new and changed projects as upserts and missing ones as deletes', () => {
   const a = initialStore()
@@ -141,4 +144,16 @@ test('a request acts on the signed-in account only from a page that was loaded f
   expect(isForAccount('user-ana', 'user-bea')).toBe(false)
   // A page built before requests said which account they were for.
   expect(isForAccount(undefined, 'user-bea')).toBe(true)
+})
+
+test('a save leaves out the fields its build does not know, by project; a battery-only kit still carries its solar', () => {
+  const home = currentProject(initialStore())
+  // A build older than solar and duty overrides sends neither.
+  const { solar: _solar, dutyOverrides: _duty, ...older } = { ...home, id: 'p-older' }
+
+  expect(leftOut([older, { ...home, id: 'p-whole' }, { ...home, id: 'p-battery-only', solar: null }])).toEqual(new Map([
+    ['p-older', ['solar', 'dutyOverrides']],
+    ['p-whole', []],
+    ['p-battery-only', []],
+  ]))
 })

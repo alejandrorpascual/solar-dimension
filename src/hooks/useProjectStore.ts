@@ -3,6 +3,7 @@ import type { Dictionary } from '../i18n'
 import { localCopyPlan } from '../lib/local-copy'
 import {
   clearPendingSave, clearUnsent, hasPendingSave, loadOwner, loadStore, loadUnsent, markPendingSave, releaseAccountCopy, saveOwner, saveStore,
+  STORAGE_KEY,
 } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
 import { currentProject, initialStore, nameFirstProject, rekeySeed, withSetAside } from '../lib/store'
@@ -138,6 +139,51 @@ export function useProjectStore() {
       .finally(() => { if (!cancelled) setSyncing(false) })
     return () => { cancelled = true }
   }, [account, isAccountUnreachable, enqueue, show])
+
+  // Another tab of this browser kept its copy: show it here, so the next edit here starts from it instead of sending
+  // this tab's older copy over that tab's edit. Nothing is written or sent: that tab did both. This tab keeps the project
+  // it has open, and a copy kept for another account (another tab signed out, or in as someone else) stays that tab's.
+  useEffect(() => {
+    if (isAccountUnreachable) return
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY || loadOwner() !== account) return
+      const kept = loadStore()
+      if (!kept) return
+      const next = fromServer(kept.projects, latest.current)
+      latest.current = next
+      setStore(next)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [account, isAccountUnreachable])
+
+  // Back on this tab: another device may have saved since. The account's list is read again and shown, with what is
+  // edited here meanwhile kept on top, as the first load does. Only while the account holds everything this device does:
+  // a list read past an edit that never reached it would take that edit off the screen.
+  useEffect(() => {
+    if (!account) return
+    let isReading = false
+    const reread = () => {
+      if (isReading || document.visibilityState === 'hidden' || !isClean()) return
+      isReading = true
+      const readIn = scope.current
+      // Edits made from here on are saved after this read, so the list cannot hold them yet.
+      const before = latest.current
+      enqueue(() => listProjects({ data: { account } }))
+        .then((list) => {
+          if (scope.current !== readIn || !isClean()) return
+          show(fromServer(applyChanges(list, diffProjects(before.projects, latest.current.projects)), latest.current))
+        })
+        .catch((error: unknown) => console.error('[projects] reload failed', { error }))
+        .finally(() => { isReading = false })
+    }
+    window.addEventListener('focus', reread)
+    document.addEventListener('visibilitychange', reread)
+    return () => {
+      window.removeEventListener('focus', reread)
+      document.removeEventListener('visibilitychange', reread)
+    }
+  }, [account, enqueue, isClean, show])
 
   // A first project nobody has edited reads in the language on screen, wherever it came from: made here, read back from
   // this browser or from the account, or shown before the language was switched. Only the screen changes: nothing is

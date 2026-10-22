@@ -7,6 +7,7 @@ import { db } from '../db/client'
 import { projects } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
 import { currentProject, initialStore } from '../lib/store'
+import { leftOut } from '../lib/sync'
 import { listForUser, saveForUser } from './projects-repo'
 
 const userId = `test-db-${randomUUID()}`
@@ -57,5 +58,17 @@ describe('saveForUser on the test database', () => {
 
     expect(answer).toEqual({ ok: true, stale: [ours] })
     expect(await listForUser(otherUserId)).toEqual([theirs])
+  })
+
+  it('keeps the stored solar settings when a save leaves the solar field out, and writes the fields it carries', async () => {
+    const withPanels: Project = { ...project('With panels', EARLIER), solar: { roofM2: 40, panels: 6, sunHours: 5 } }
+    await saveForUser(userId, [withPanels])
+    // A build older than solar: it sends the project without the field, and the schema reads it as battery-only.
+    const { solar: _solar, ...sent } = { ...withPanels, hours: 12, updatedAt: LATER }
+
+    const answer = await saveForUser(userId, [ProjectSchema.parse(sent)], leftOut([sent]))
+
+    expect(answer).toEqual({ ok: true, stale: [] })
+    expect((await listForUser(userId)).find((p) => p.id === withPanels.id)).toEqual({ ...withPanels, hours: 12, updatedAt: LATER })
   })
 })
