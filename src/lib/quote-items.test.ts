@@ -488,6 +488,15 @@ describe('cables and fuse', () => {
       expect(judge(KIT, lines, 'cables')).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
       expect(judge(KIT, [named('Cable de tierra 4/0 AWG', '4/0'), thinBattery], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
     })
+    test('a ground word comes before a battery word: a ground wire for the battery bank is no battery cable (QA v5)', () => {
+      // The first rule that matches wins, and the ground rule is first, so "tierra" or "ground" decides though the line names the batteries.
+      for (const words of ['Cable de tierra para banco de baterías', 'Battery bank ground wire']) {
+        const thin = named(`${words} 6 AWG`, '6')
+        expect(judge(KIT, [named('Cable solar 4/0 AWG', '4/0'), thin], 'cables'), words).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
+        const thick = named(`${words} 4/0 AWG`, '4/0')
+        expect(judge(KIT, [thick, thinBattery], 'cables'), words).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+      }
+    })
     test("a line split from a kit line reads its own words, though its siblings there are panels or an inverter", () => {
       // The bundle names the array, but the 4/0 cable split from it names nothing: it is the battery cable.
       const kit = 'Kit solar: 4 paneles 550 W, inversor 5 kW, cable 4/0 AWG'
