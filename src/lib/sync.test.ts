@@ -34,12 +34,13 @@ test('applyChanges overlays local edits on a server list', () => {
 test('rebase lays the fields edited here over the account copy, and takes a project added here whole', () => {
   const before = initialStore()
   const account = patchCurrent(before, { hours: 20, updatedAt: 5 }).projects
-  const after = addProject(patchCurrent(before, { volts: 48, updatedAt: 9 }), 'Office')
+  // 24 V, not the 48 V a new project starts with: an edit to the value already there changes only the stamp.
+  const after = addProject(patchCurrent(before, { volts: 24, updatedAt: 9 }), 'Office')
 
   const merged = rebase(account, before.projects, after.projects)
 
   expect(merged.map((p) => p.name)).toEqual(['Home', 'Office'])
-  expect(merged[0]).toMatchObject({ hours: 20, volts: 48, updatedAt: 9 })
+  expect(merged[0]).toMatchObject({ hours: 20, volts: 24, updatedAt: 9 })
   expect(rebase([], before.projects, after.projects).map((p) => p.name)).toEqual(['Home', 'Office'])
 })
 

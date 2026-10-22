@@ -15,6 +15,8 @@ vi.mock('./useRootData', async () => {
 
 const ANA = { id: 'user-ana' }
 const BOB = { id: 'user-bob' }
+/** The volts an edit here picks: not the 48 V a new project starts with, as an edit to that changes only the stamp. */
+const VOLTS = 24
 
 let browser: FakeStorage
 
@@ -41,11 +43,11 @@ test('hours changed in another tab show here, and volts changed here next keep t
 
   const shown = await otherTabEdits((store) => patchCurrent(store, { hours: 20 }))
   expect(home(shown.store.projects).hours).toBe(20)
-  await edit((h) => h.commit(patchCurrent(h.store, { volts: 48 })))
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
 
-  expect(home(account(ANA))).toMatchObject({ hours: 20, volts: 48 })
+  expect(home(account(ANA))).toMatchObject({ hours: 20, volts: VOLTS })
   const reloaded = await mount()
-  expect(home(reloaded.store.projects)).toMatchObject({ hours: 20, volts: 48 })
+  expect(home(reloaded.store.projects)).toMatchObject({ hours: 20, volts: VOLTS })
 })
 
 test("a copy another tab keeps for another account is not shown here", async () => {
@@ -68,9 +70,9 @@ test.each(['focus', 'visibilitychange'] as const)(
 
     const back = await comeBack(event)
     expect(home(back.store.projects).hours).toBe(20)
-    await edit((h) => h.commit(patchCurrent(h.store, { volts: 48 })))
+    await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
 
-    expect(home(account(ANA))).toMatchObject({ hours: 20, volts: 48 })
+    expect(home(account(ANA))).toMatchObject({ hours: 20, volts: VOLTS })
   },
 )
 
@@ -101,14 +103,14 @@ test("the click that brings this tab back edits volts, and the hours another dev
   net.gate = new Promise<void>((resolve) => { answer = resolve })
 
   await comeBack()
-  await edit((h) => h.commit(patchCurrent(h.store, { volts: 48 })))
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
   net.gate = null
   answer()
   const after = await edit(() => undefined)
 
   expect({ screen: home(after.store.projects), account: home(account(ANA)) }).toMatchObject({
-    screen: { hours: 20, volts: 48 },
-    account: { hours: 20, volts: 48 },
+    screen: { hours: 20, volts: VOLTS },
+    account: { hours: 20, volts: VOLTS },
   })
 })
 
@@ -124,6 +126,26 @@ test('coming back while an edit has not reached the account reads nothing and ke
 
   expect(net.calls).toEqual([])
   expect(home(back.store.projects).hours).toBe(30)
+})
+
+test('an edit whose save fails while the account is read again stays on screen, and the next save carries it', async () => {
+  session.user = ANA
+  await mount()
+  let answer!: () => void
+  net.gate = new Promise<void>((resolve) => { answer = resolve })
+  // The save is in flight when this tab is left and come back to, so the read goes out behind it, and then it fails.
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 30 })))
+  await comeBack()
+  net.failing = new Set(['save'])
+  net.gate = null
+  answer()
+  const failed = await edit(() => undefined)
+
+  expect(home(failed.store.projects).hours).toBe(30)
+  expect(failed.syncError).toBe(true)
+  net.failing = new Set()
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
+  expect(home(account(ANA))).toMatchObject({ hours: 30, volts: VOLTS })
 })
 
 test('a read that fails when this tab is back is logged and changes nothing on screen', async () => {
