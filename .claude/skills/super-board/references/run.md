@@ -284,7 +284,7 @@ The agent may turn a `proceed` into a `hold` on evidence. It may turn a mechanic
 | Verdict | Action | Block template (`block-template.md`) |
 |---|---|---|
 | `proceed` | nothing; the Builder starts | — |
-| `hold` — done | move card to Blocked | `👯` · names the merged PR / closed issue · Owner: Eric (close as duplicate) · `blocked-by: -` |
+| `hold` — done | move card to Blocked | `👯` · names the merged PR / closed issue · Owner: @<human_identity> (close as duplicate) · `blocked-by: -` |
 | `hold` — in progress | move card to Blocked | `👯` · names the open PR / card · `blocked-by: <the issue that PR or card closes>` — the sweep returns it when that closes, and pre-flight then finds it done |
 | `hold` — unclear | move card to Blocked | `❓` · the missing AC or the contradiction with `file:line` · `blocked-by: -` |
 | `hold` — too big | move card to Blocked | `❓` · "too big — likely over <cap> changed lines / spans <areas>" · suggests splitting with `/to-tickets` into vertical slices, each under the cap · `blocked-by: -` |
@@ -524,11 +524,13 @@ Every lane writes BOTH on every exit, in the comment format of writing-standard.
 Did: <one line>
 ✅ Done: <what passed or landed, with sha / file:line / command>
 ❌ Not done: <what failed or was skipped, and why>   (omit when nothing)
-Next: <builder | qa | reviewer | Eric | none>
+Next: <builder | qa | reviewer | @<human_identity> | none>
 ```
 
 - Role = who writes it: `builder` · `qa` · `reviewer` · `collect` · `orchestrator`. Label for a
   lane exit is `report`; `blocker` for a Block comment.
+- `@<human_identity>` = the GitHub login in config `notifications.human_identity` (absent:
+  `project.owner`).
 - ≤ 8 lines. Evidence before prose. An unchecked thing is never implied to pass.
 - NEVER list changed files — the PR shows them. No restating the issue, no adjectives.
 - Machine lines go last and do not count: `Local tests:` (Tester and Builder, the exact command

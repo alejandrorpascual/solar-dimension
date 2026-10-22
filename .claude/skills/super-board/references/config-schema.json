@@ -417,6 +417,12 @@
     // step 11 as either `super-board-bot[bot]` (when a GitHub App is
     // installed on the repo) or the user's own GitHub login (solo projects).
     // Pick during step 2 based on what `gh auth status` returned.
-    "bot_identity": "auto"
+    "bot_identity": "auto",
+
+    // GitHub login of the person who acts on a block. Lanes write it as
+    // `@<human_identity>` wherever a template asks for the human: a block's
+    // `Owner:`, a report's `Next:`, a PR's "needs" line. Never the bot.
+    // Absent → `project.owner`.
+    "human_identity": "<github-login>"
   }
 }

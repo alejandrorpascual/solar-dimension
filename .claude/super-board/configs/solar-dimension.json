@@ -159,6 +159,7 @@
   "notifications": {
     "channel": "session",
     "chat_id": null,
-    "bot_identity": "alejandrorpascual-bot"
+    "bot_identity": "alejandrorpascual-bot",
+    "human_identity": "alejandrorpascual"
   }
 }
