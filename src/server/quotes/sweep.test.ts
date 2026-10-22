@@ -88,6 +88,16 @@ describe("the sweep's counts", () => {
     expect(await response.json()).toMatchObject({ stuck: 3, failed: 1, processed: 3 })
   })
 
+  test('a read that throws counts as stuck, not as failed: it keeps its claim and has not ended', async () => {
+    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a'], stuck: 1, failed: 0 })
+    vi.mocked(processQuote).mockRejectedValue(new Error('storage down'))
+
+    const response = await sweep(SECRET)
+
+    expect(await response.json()).toMatchObject({ stuck: 1, failed: 0, processed: 1, left: 0, outcomes: ['error'] })
+    expect(errors).toHaveBeenCalledWith('[quotes] sweep failed on a job', expect.objectContaining({ id: 'a' }))
+  })
+
   test('a stuck job left for later still counts as stuck', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: 0 })
     // A trash pass that takes the whole limit leaves no time to start the stuck job.
