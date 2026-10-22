@@ -1,0 +1,68 @@
+# AC2 witness on ddf681e: the hook test below, appended after otherTabEdits in useProjectStore.sync.test.ts's setup, run with
+# npx vitest run src/hooks/qa-ac2-witness.test.ts   (file not committed; expected red until the AC2 race is fixed)
+
+
+test('an edit made before the re-read answers keeps the hours another device saved', async () => {
+  session.user = ANA
+  await mount()
+  accounts.set(ANA.id, account(ANA).map((p) => ({ ...p, hours: 20, updatedAt: clock.now() })))
+  let answer!: () => void
+  net.gate = new Promise<void>((resolve) => { answer = resolve })
+
+  await comeBack()
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: 48 })))
+  net.gate = null
+  answer()
+  const after = await edit(() => undefined)
+
+  expect({ screen: home(after.store.projects), account: home(account(ANA)) }).toMatchObject({
+    screen: { hours: 20, volts: 48 },
+    account: { hours: 20, volts: 48 },
+  })
+})
+
+# output
+
+ RUN  v5.0.1 <clone>
+
+ ❯ src/hooks/qa-ac2-witness.test.ts (1 test | 1 failed) 32ms
+   × an edit made before the re-read answers keeps the hours another device saved 30ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/hooks/qa-ac2-witness.test.ts > an edit made before the re-read answers keeps the hours another device saved
+AssertionError: expected { screen: { …(13) }, …(1) } to match object { …(2) }
+(44 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "account": {
+-     "hours": 20,
++     "hours": 10,
+      "volts": 48,
+    },
+    "screen": {
+-     "hours": 20,
++     "hours": 10,
+      "volts": 48,
+    },
+  }
+
+ ❯ src/hooks/qa-ac2-witness.test.ts:51:79
+     49|   const after = await edit(() => undefined)
+     50|
+     51|   expect({ screen: home(after.store.projects), account: home(account(A…
+       |                                                                               ^
+     52|     screen: { hours: 20, volts: 48 },
+     53|     account: { hours: 20, volts: 48 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  17:43:16
+   Duration  1.04s (transform 77%, import 18%, tests 4%, worker 1%)
+
