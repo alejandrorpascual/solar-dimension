@@ -116,8 +116,8 @@ export const getQuoteJobs = createServerFn({ method: 'GET' })
   .validator((d: unknown) => ListInput.parse(d))
   .handler(async ({ data }): Promise<ProjectJobs[]> => {
     const userId = await requireAccount(data?.account)
-    const stale = await recoverStaleQuotes(userId)
-    if (stale.length) kickQuotes(stale)
+    const { kick } = await recoverStaleQuotes(userId)
+    if (kick.length) kickQuotes(kick)
     const rows = await db.select().from(quotes).where(eq(quotes.userId, userId)).orderBy(quotes.createdAt)
     if (rows.length === 0) return []
     const ids = [...new Set(rows.map((r) => r.projectId))]

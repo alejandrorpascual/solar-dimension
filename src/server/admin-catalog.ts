@@ -13,7 +13,7 @@ async function adminUser() {
 }
 
 /** Throws a plain "Not found" so a non-admin cannot tell the admin tools exist. */
-const requireAdmin = createServerOnlyFn(async () => {
+export const requireAdmin = createServerOnlyFn(async () => {
   const user = await adminUser()
   if (!user) throw new PublicError('Not found')
   return user

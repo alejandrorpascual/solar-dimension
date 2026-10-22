@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AdminAppliancesRouteImport } from './routes/admin/appliances'
+import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCatalogAppliancesRouteImport } from './routes/api/catalog/appliances'
 import { Route as ApiCatalogDatabaseRouteImport } from './routes/api/catalog/database'
@@ -47,6 +48,11 @@ const TermsRoute = TermsRouteImport.update({
 const AdminAppliancesRoute = AdminAppliancesRouteImport.update({
   id: '/admin/appliances',
   path: '/admin/appliances',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminQuotesRoute = AdminQuotesRouteImport.update({
+  id: '/admin/quotes',
+  path: '/admin/quotes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/admin/appliances': typeof AdminAppliancesRoute
+  '/admin/quotes': typeof AdminQuotesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
   '/api/catalog/database': typeof ApiCatalogDatabaseRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/admin/appliances': typeof AdminAppliancesRoute
+  '/admin/quotes': typeof AdminQuotesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
   '/api/catalog/database': typeof ApiCatalogDatabaseRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/admin/appliances': typeof AdminAppliancesRoute
+  '/admin/quotes': typeof AdminQuotesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
   '/api/catalog/database': typeof ApiCatalogDatabaseRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/appliances'
+    | '/admin/quotes'
     | '/api/auth/$'
     | '/api/catalog/appliances'
     | '/api/catalog/database'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/appliances'
+    | '/admin/quotes'
     | '/api/auth/$'
     | '/api/catalog/appliances'
     | '/api/catalog/database'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/appliances'
+    | '/admin/quotes'
     | '/api/auth/$'
     | '/api/catalog/appliances'
     | '/api/catalog/database'
@@ -203,6 +215,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   AdminAppliancesRoute: typeof AdminAppliancesRoute
+  AdminQuotesRoute: typeof AdminQuotesRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCatalogAppliancesRoute: typeof ApiCatalogAppliancesRouteWithChildren
   ApiCatalogDatabaseRoute: typeof ApiCatalogDatabaseRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/appliances'
       fullPath: '/admin/appliances'
       preLoaderRoute: typeof AdminAppliancesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/quotes': {
+      id: '/admin/quotes'
+      path: '/admin/quotes'
+      fullPath: '/admin/quotes'
+      preLoaderRoute: typeof AdminQuotesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -334,6 +354,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   AdminAppliancesRoute: AdminAppliancesRoute,
+  AdminQuotesRoute: AdminQuotesRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCatalogAppliancesRoute: ApiCatalogAppliancesRouteWithChildren,
   ApiCatalogDatabaseRoute: ApiCatalogDatabaseRoute,

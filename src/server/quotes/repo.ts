@@ -53,11 +53,19 @@ export const dbJobRepo: QuoteJobRepo = {
   },
 }
 
+/** What one recovery pass did with the stuck jobs. */
+export interface StaleQuotes {
+  /** The stuck jobs to start again, oldest first, at most the pass's limit. */
+  kick: string[]
+  /** How many stuck jobs, out of attempts, it gave up on: their reads end failed. */
+  gaveUp: number
+}
+
 /**
  * Looks at the queued and processing jobs (one user's, or everyone's for the cron), marks as failed the stuck ones
  * with no attempts left, and returns the ids of the stuck ones that should be started again.
  */
-export async function recoverStaleQuotes(userId?: string, limit = 10): Promise<string[]> {
+export async function recoverStaleQuotes(userId?: string, limit = 10): Promise<StaleQuotes> {
   const inFlight = inArray(quotes.status, ['queued', 'processing'])
   const rows = await db
     .select({ id: quotes.id, status: quotes.status, attempts: quotes.attempts, claimedAt: quotes.claimedAt, createdAt: quotes.createdAt })
@@ -71,7 +79,7 @@ export async function recoverStaleQuotes(userId?: string, limit = 10): Promise<s
     // Logged like a failed read: otherwise a worker that keeps dying shows only in the database.
     console.error('[quotes] gave up on a stuck quote', { ids: fail })
   }
-  return kick.slice(0, limit)
+  return { kick: kick.slice(0, limit), gaveUp: fail.length }
 }
 
 /**

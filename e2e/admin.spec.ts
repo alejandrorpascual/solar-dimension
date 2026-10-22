@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { slugify } from '../src/lib/catalog-schema'
 import { deleteTestAppliance, markEmailVerified } from './db'
+import { quotePdf, signUp, uploadQuotes } from './quotes'
 import { E2E_ADMIN as ADMIN } from './servers'
 
 // The admin tests share the run's one admin account, which the first of them to sign in creates: one at a time, in order.
@@ -22,20 +23,46 @@ async function signInOrUp(page: Page, email: string, password: string) {
   await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
 }
 
-test('non-admins get a 404 at /admin/appliances', async ({ page }) => {
-  await page.goto('/admin/appliances')
-  await expect(page.getByText('Page not found')).toBeVisible()
-  await signInOrUp(page, `e2e-${Date.now()}@example.com`, 'correct-horse-battery')
-  await page.goto('/admin/appliances')
-  await expect(page.getByText('Page not found')).toBeVisible()
-})
-
-test('an admin adds an appliance, sees it in the picker, and retires it', async ({ page }) => {
+/** Signs in as the run's admin, verified: sign-up never verifies, and the admin check requires it. */
+async function signInAsAdmin(page: Page) {
   await signInOrUp(page, ADMIN.email, ADMIN.password)
   await markEmailVerified(ADMIN.email)
   // The session cookie caches the user for 5 minutes; a fresh sign-in picks up email_verified.
   await page.context().clearCookies()
   await signInOrUp(page, ADMIN.email, ADMIN.password)
+}
+
+for (const path of ['/admin/appliances', '/admin/quotes']) {
+  test(`non-admins get a 404 at ${path}`, async ({ page }) => {
+    await page.goto(path)
+    await expect(page.getByText('Page not found')).toBeVisible()
+    await signInOrUp(page, `e2e-${Date.now()}@example.com`, 'correct-horse-battery')
+    await page.goto(path)
+    await expect(page.getByText('Page not found')).toBeVisible()
+  })
+}
+
+test('a quote the model could not read shows on /admin/quotes with its file name, account and error', async ({ page }) => {
+  // Sign-up, an upload and its read, then the admin's sign-in: more than 30 s on a slow CI runner.
+  test.slow()
+  const owner = await signUp(page)
+  // The stub reads only the sample quotes; any other file name fails on both models.
+  const unreadable = await quotePdf(`unreadable-${Date.now()}`)
+  await uploadQuotes(page, [unreadable])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: unreadable.name }).getByText("Couldn't read it", { exact: true }))
+    .toBeVisible({ timeout: 30_000 })
+
+  await page.context().clearCookies()
+  await signInAsAdmin(page)
+  await page.goto('/admin/quotes')
+  const row = page.getByRole('row').filter({ hasText: unreadable.name })
+  await expect(row).toContainText(owner)
+  await expect(row).toContainText(`No stub fixture matches ${unreadable.name}`)
+})
+
+test('an admin adds an appliance, sees it in the picker, and retires it', async ({ page }) => {
+  await signInAsAdmin(page)
   const name = `E2E hot plate ${Date.now()}`
   const id = slugify(name)
   try {
@@ -73,10 +100,7 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
 })
 
 test('"New appliance" refuses an id that already belongs to another appliance', async ({ page }) => {
-  await signInOrUp(page, ADMIN.email, ADMIN.password)
-  await markEmailVerified(ADMIN.email)
-  await page.context().clearCookies()
-  await signInOrUp(page, ADMIN.email, ADMIN.password)
+  await signInAsAdmin(page)
 
   await page.goto('/admin/appliances')
   await page.getByRole('button', { name: 'New appliance' }).click()

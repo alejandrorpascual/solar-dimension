@@ -37,11 +37,11 @@ describe('recoverStaleQuotes', () => {
     vi.clearAllMocks()
   })
 
-  test('a stuck quote with no attempts left is failed and logged; one with attempts left is started again', async () => {
+  test('a stuck quote with no attempts left is failed, logged and counted; one with attempts left is started again', async () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.mocked(db.select).mockReturnValue(chain([stuck('spent', MAX_ATTEMPTS), stuck('again', 1)]) as never)
     vi.mocked(db.update).mockReturnValue(chain(undefined) as never)
-    expect(await recoverStaleQuotes('u1')).toEqual(['again'])
+    expect(await recoverStaleQuotes('u1')).toEqual({ kick: ['again'], gaveUp: 1 })
     expect(db.update).toHaveBeenCalledTimes(1)
     expect(errors).toHaveBeenCalledWith('[quotes] gave up on a stuck quote', { ids: ['spent'] })
   })
@@ -58,7 +58,7 @@ describe('recoverStaleQuotes', () => {
   test('nothing is failed or logged when no stuck quote is out of attempts', async () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.mocked(db.select).mockReturnValue(chain([stuck('again', 1)]) as never)
-    expect(await recoverStaleQuotes('u1')).toEqual(['again'])
+    expect(await recoverStaleQuotes('u1')).toEqual({ kick: ['again'], gaveUp: 0 })
     expect(db.update).not.toHaveBeenCalled()
     expect(errors).not.toHaveBeenCalled()
   })
