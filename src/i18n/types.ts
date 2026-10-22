@@ -35,9 +35,10 @@ export interface Dictionary {
 export interface LegalPage { title: string; updated: string; sections: readonly { heading: string; body: string }[] }
 
 export type UiKey =
-  | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
+  | 'steps' | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
   | 'firstProject' | 'projectNumbered' | 'copySuffix' | 'customTag'
+  | 'deleteProject' | 'deleteProjectOne' | 'deleteProjectMany' | 'deleteProjectAny' | 'deleteProjectYes'
   | 'q1' | 'q1Help' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'
   | 'search' | 'nothingMatches' | 'sectionAdded' | 'add' | 'addOne' | 'qtyOf' | 'removeOne' | 'remove'
   | 'running' | 'surge' | 'runningSurgeLine' | 'splitPhase' | 'checkNameplate240'
@@ -57,7 +58,7 @@ export type UiKey =
   | 'continueGoogle' | 'orDivider' | 'googleExists' | 'googleFailed' | 'connectGoogle' | 'signOutFailed'
   | 'signIn' | 'signUp' | 'signOut' | 'email' | 'password' | 'noAccount' | 'haveAccount' | 'authFailed' | 'signedInAs' | 'syncing' | 'syncFailed' | 'language'
   | 'recoverAccess' | 'quotesNeedGoogle'
-  | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating'
+  | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating' | 'accountUnreachable'
   | 'projects' | 'projectsCount' | 'current' | 'quickEdit' | 'done' | 'projectMeta' | 'heaviestMore' | 'bank' | 'inverter' | 'close'
   | 'appliancesCount' | 'windowLabel' | 'hourLess' | 'hourMore' | 'hoursShort' | 'saved' | 'undo' | 'allAppliances'
   | 'addApplianceSearch' | 'noSearchMatch'
@@ -85,8 +86,8 @@ export type UiKey =
   | 'bundledLabel' | 'bundledHelp' | 'insulationLabel' | 'insulation75' | 'insulation90'
   | 'runtimeRange'
   | 'checks' | 'incChecks' | 'checkPass' | 'checkWarn' | 'checksAttentionOne' | 'checksAttentionMany'
-  | 'checkSurge' | 'checkSurgeOk' | 'checkSurgeOkMany' | 'checkSurgeContributors' | 'checkBatteryContinuous' | 'checkBatteryContinuousOk' | 'checkBatteryContinuousOkMany'
-  | 'checkBatteryPeak' | 'checkBatteryPeakOk' | 'checkParallel' | 'checkParallelOk' | 'checkParallelSingle'
+  | 'checkSurge' | 'checkSurgeOk' | 'checkSurgeOkMany' | 'checkSurgeOkNoStart' | 'checkSurgeOkManyNoStart' | 'checkSurgeContributors' | 'checkBatteryContinuous' | 'checkBatteryContinuousOk' | 'checkBatteryContinuousOkMany'
+  | 'checkBatteryPeak' | 'checkBatteryPeakOk' | 'checkBatteryPeakOkNoStart' | 'checkParallel' | 'checkParallelOk' | 'checkParallelSingle'
   | 'checkFuse' | 'checkFuseOk' | 'checkCable' | 'checkCableOk'
   | 'fuseAicNote' | 'stringFuseSpec' | 'stringFuseNote' | 'batteriesCurrentNote'
   | 'batteriesForContinuous' | 'batteriesForPeak' | 'batteriesForLead'

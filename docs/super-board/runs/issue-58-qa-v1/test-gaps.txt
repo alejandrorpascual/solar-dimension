@@ -1,0 +1,25 @@
+# Test-gap check · #58 · diff a1da8c5...8529c8f plus the QA test. Server-only change: component and e2e rungs n/a.
+
+## Ledger
+AC1 worst case < 300 s   unit process.test.ts:135 · integration sdk-timeout-probe.log (503s: 4 calls), runs.log (maxDuration 300)
+AC2 stale-claim window   unit process.test.ts:235 (300 s kept, 7 min kicked), :232, :240 (window -1 s / +1 s)
+AC3 no same-model retry  unit process.test.ts:87, :93, model.test.ts:24 · integration sdk-timeout-probe.log (sol at +60.0 s)
+AC4 sweep starts no late unit sweep.test.ts:44, :56
+AC5 16/31: 401 + 1 log   unit sweep.test.ts:73 (16, 31), :87 (32), :94, :101 · e2e none: one CRON_SECRET per e2e server
+
+## Edge cases
+auth        wrong token, no header, no secret, short secret: 401 and no trash pass, stale scan or read
+            pinned by the QA test sweep.test.ts:111; before it, M9 in mutants.txt survived
+boundaries  secret 31/32 pinned · stale window -1 s/+1 s pinned
+            gap (Low): hasTimeForJob at 30_000 ms elapsed (starts) vs 30_001 ms (refused) not pinned
+errors      gap (Medium): processQuote rejecting inside the sweep is not tested
+            witness: stale ['a','b'], processQuote rejects for 'a' -> outcomes ['error', ...], one log, 'b' still read
+            gap (Medium): openAiModel() options not pinned (M7, M8); the probe shows today's client behaves
+volume      0 stale jobs -> 200 (sweep.test.ts:87) · 5 jobs of 20 s -> 2 started, 3 left (sweep.test.ts:44)
+n/a         money, text input, UI states, accessibility: no new input or UI
+
+## For the Reviewer (not test gaps)
+- The SDK clears its timer when response headers arrive (openai/client.js fetchWithTimeout); a body sent slowly after
+  them is not cut at 60 s. Non-streamed answers arrive whole, so Low.
+- The sweep starts reads only in its first 30 s, so one daily call reads about 1-2 stuck quotes; before, up to 20 ran
+  in a row until the platform cut the call off.

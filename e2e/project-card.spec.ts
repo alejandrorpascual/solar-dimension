@@ -1,7 +1,8 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 import { PHONE } from './phone'
 import {
-  openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, RETRY_AFTER_MS, showProjects, startNewProject, startRename,
+  answerDelete, deleteAsk, openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, RETRY_AFTER_MS, showProjects, startNewProject,
+  startRename,
 } from './projects'
 
 /** Sizes read back from computed styles are rounded; two that differ by less than this are the same size. */
@@ -82,6 +83,7 @@ for (const action of ['Duplicate', 'Delete'] as const) {
     await addProject(page)
     const menu = await openProjectMenu(page)
     await menu.getByRole('menuitem', { name: action }).click()
+    if (action === 'Delete') await answerDelete(page, 'Delete project')
     const title = openProjectTitle(page)
     await expect(title).toHaveText(action === 'Duplicate' ? 'Project 2 copy' : 'Home')
     await expect(title).toBeFocused()
@@ -93,6 +95,43 @@ for (const action of ['Duplicate', 'Delete'] as const) {
     await expectSheet(page, testInfo, 'closed')
   })
 }
+
+test('Delete from the ··· menu asks on the card first, and Cancel keeps the project, with focus back on its title', PHONE, async ({ page }, testInfo) => {
+  await page.goto('/')
+  await addProject(page)
+  const menu = await openProjectMenu(page)
+  await menu.getByRole('menuitem', { name: 'Delete' }).click()
+  await expect(deleteAsk(page)).toHaveText("Delete “Project 2”? This can't be undone.")
+  // The safe answer has focus, and keeps it once react-aria has finished with the menu.
+  const cancel = openProjectCard(page).getByRole('button', { name: 'Cancel', exact: true })
+  await expect(cancel).toBeFocused()
+  await afterNextFrames(page)
+  await expect(cancel).toBeFocused()
+  await expect(page.getByRole('article')).toHaveCount(2)
+
+  await answerDelete(page, 'Cancel')
+  await expect(deleteAsk(page)).toHaveCount(0)
+  const title = openProjectTitle(page)
+  await expect(title).toHaveText('Project 2')
+  await expect(title).toBeFocused()
+  await expect(openProjectMore(page)).toBeVisible()
+  await expectSheet(page, testInfo, 'open')
+  await page.reload()
+  await showProjects(page)
+  await expect(page.getByRole('article')).toHaveCount(2)
+  await expect(openProjectCard(page).getByRole('heading')).toHaveText('Project 2')
+})
+
+test('the delete question goes away when the person starts renaming instead', async ({ page }) => {
+  await page.goto('/')
+  await addProject(page)
+  const menu = await openProjectMenu(page)
+  await menu.getByRole('menuitem', { name: 'Delete' }).click()
+  await expect(deleteAsk(page)).toBeVisible()
+  await startRename(page)
+  await expect(deleteAsk(page)).toHaveCount(0)
+  await expect(projectNameField(page)).toBeVisible()
+})
 
 test('a name is saved as it is typed: a reload with the field still open keeps it', async ({ page }) => {
   await page.goto('/')

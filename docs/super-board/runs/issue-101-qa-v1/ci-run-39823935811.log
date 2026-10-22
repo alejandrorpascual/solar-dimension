@@ -1,0 +1,20 @@
+# CI run 39823935811 (PR #187, head c6a30d8), job verify: key lines of its log (ANSI codes stripped, test branch endpoint id replaced)
+## AC3 step 3, setup-node@v4 with node-version-file: package.json
+  node-version-file: package.json
+##[endgroup]
+Resolved package.json as 24.x
+Found in cache @ /opt/hostedtoolcache/node/24.22.0/x64
+node: v24.22.0
+npm: 11.19.1
+## AC1 step 6 (2 s), db:migrate on the test branch, which already has the older migrations
+db:migrate: migrating <test-branch-endpoint>
+[5 spinner frames][✓] migrations applied successfully!db:migrate: <test-branch-endpoint> has all 15 migrations of the journal
+## AC1 step 7 (7 s), Migrate an empty database
+made database ci_fresh_39823935811_1
+db:migrate: migrating <test-branch-endpoint>
+[33 spinner frames][✓] migrations applied successfully!db:migrate: <test-branch-endpoint> has all 15 migrations of the journal
+## AC2 step 16, Drop the empty database, last, under if: always(); no 'does not exist, skipping' notice, so the database was there
+##[group]Run node scripts/fresh-database.ts drop
+node scripts/fresh-database.ts drop
+dropped database ci_fresh_39823935811_1
+## Steps 1 to 16 and the job: success

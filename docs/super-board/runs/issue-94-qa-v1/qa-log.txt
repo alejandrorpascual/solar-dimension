@@ -1,0 +1,13 @@
+# Runtime checks from the throwaway capture spec (desktop project; viewports set per test), on c021396
+3 quotes seeded as failed rows on Home, a second project beside it, Home open, signed in:
+- AC1 question at 1920x1080, 1024x768 and 375x667: "Delete “Home” and its 3 quotes? Their files go too. This can't be undone."; Cancel has focus
+- AC1 in Spanish at 375x667 (the first project shows as Casa): "¿Eliminar “Casa” y sus 3 cotizaciones? Sus archivos también se eliminan. No se puede deshacer."
+- AC1 with no quotes (signed out): "Delete “Project 2”? This can't be undone."
+- AC2 Cancel: question gone, title focused, 3 quote rows still in the database, still 3 after a reload
+- AC3 Delete project: Project 2 opens, quote rows for the project 3 -> 0 (polled)
+- On staging 3ca1535 the same Delete removes Home and its 3 quotes at once (before-*)
+- 60-character name at 375x667: page scrollWidth 375 = innerWidth 375, question scrollWidth 309 = clientWidth 309 (no sideways scroll)
+Observed with the jobs read held back (route held until released), 2 quotes seeded:
+- OBSERVED while jobs not loaded: "Delete “Home”? This can't be undone."
+- OBSERVED asks open after Escape: 1 (Escape does not dismiss the question)
+- OBSERVED after jobs arrive: "Delete “Home” and its 2 quotes? Their files go too. This can't be undone."

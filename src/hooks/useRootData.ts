@@ -5,7 +5,13 @@ import type { CatalogItem } from '../lib/catalog'
 import { DEFAULT_POLL_MS } from '../lib/quote-jobs'
 import type { SessionUser } from '../server/session'
 
-export interface RootData { locale: Locale; user: SessionUser | null; googleEnabled: boolean; catalog: CatalogItem[]; quotePollMs: number }
+/**
+ * `isAccountUnreachable`: the session could not be read (the database is down), so `user` is null although someone may
+ * be signed in.
+ */
+export interface RootData {
+  locale: Locale; user: SessionUser | null; isAccountUnreachable: boolean; googleEnabled: boolean; catalog: CatalogItem[]; quotePollMs: number
+}
 
 /**
  * Locale, signed-in user, available sign-in methods, the appliance catalog and how often to ask about quotes being
@@ -17,6 +23,7 @@ export function useRootData(): RootData {
   return {
     locale: data?.locale ?? DEFAULT_LOCALE,
     user: data?.user ?? null,
+    isAccountUnreachable: data?.isAccountUnreachable ?? false,
     googleEnabled: data?.googleEnabled ?? false,
     catalog: data?.catalog ?? [...CATALOG_SNAPSHOT],
     quotePollMs: data?.quotePollMs ?? DEFAULT_POLL_MS,

@@ -29,6 +29,45 @@ describe('kitChecks', () => {
     expect(kitChecks(es, kit(ESSENTIALS), 'es').at(-1)!.lines[0]).toBe('2 AWG soporta 115 A tras la corrección (30 °C) para 87 A de diseño · 0.2% de caída, 0.1% al arrancar')
   })
 
+  test('a kit with no start-up surge leaves the seconds out of its pass lines, in both languages', () => {
+    // Lights only: nothing in it starts above its running watts, so there is no surge to last any seconds.
+    const r = kit({ lights: 1 })
+    expect(r.surgeSeconds).toBe(0)
+    const by = (t: typeof en, locale: 'en' | 'es') => Object.fromEntries(kitChecks(t, r, locale).map((c) => [c.id, c]))
+    expect(by(en, 'en').surge!.lines[0]).toBe('90 W running on a 3,000 W inverter · no start-up surge, within its assumed 6,000 W surge rating')
+    expect(by(en, 'en').batteryPeak!.lines).toEqual(['Bank peak of an assumed 200 A covers the 2 A it draws'])
+    expect(by(es, 'es').surge!.lines[0]).toBe('90 W en marcha con un inversor de 3,000 W · sin pico de arranque, dentro de sus 6,000 W de arranque supuestos')
+    expect(by(es, 'es').batteryPeak!.lines).toEqual(['El pico supuesto del banco, 200 A, cubre los 2 A que toma'])
+    for (const [t, locale] of [[en, 'en'], [es, 'es']] as const) {
+      expect(kitChecks(t, r, locale).flatMap((c) => c.lines).join('\n')).not.toMatch(/\b0 s\b/)
+    }
+  })
+
+  test('a start-up that lasts under a second keeps its seconds in the pass lines, in both languages', () => {
+    // A 500 W load that starts at 800 W is an electronic inrush: 0.02 s is short, but it is a surge, not "no start-up surge".
+    const custom = [{ id: 'x', name: 'Charger', watts: 500, surge: 800, note: '' }]
+    const r = kit({ x: 1 }, { custom })
+    expect(r.surgeSeconds).toBe(0.02)
+    const surge = (t: typeof en, locale: 'en' | 'es') => kitChecks(t, r, locale).find((c) => c.id === 'surge')!.lines[0]
+    expect(surge(en, 'en')).toBe('500 W running on a 3,000 W inverter · 800 W for 0.02 s, within its assumed 6,000 W surge rating')
+    expect(surge(es, 'es')).toBe('500 W en marcha con un inversor de 3,000 W · 800 W durante 0.02 s, dentro de sus 6,000 W de arranque supuestos')
+    // 800 W at 48 V through a 90% inverter is 19 A.
+    expect(kitChecks(en, r, 'en').find((c) => c.id === 'batteryPeak')!.lines[0]).toMatch(/covers the 19 A start-up for 0\.02 s$/)
+    expect(kitChecks(es, r, 'es').find((c) => c.id === 'batteryPeak')!.lines[0]).toMatch(/cubre los 19 A de arranque durante 0\.02 s$/)
+  })
+
+  test('a string lead whose fuse its cable cannot back is named in the fuse check, in both languages', () => {
+    // 3 kW at 12 V on two 400 Ah units: each string lead carries 231.5 A of design current, past the largest cable.
+    const custom = [{ id: 'x', name: 'Workshop', watts: 3000, surge: 3000, note: '' }]
+    const r = kit({ x: 1 }, { custom, hours: 2, volts: 12, batteryUnit: '12-400' })
+    expect(r.battery!.config).toBe('1S2P')
+    const fuse = (t: typeof en, locale: 'en' | 'es') => kitChecks(t, r, locale).find((c) => c.id === 'fuse')!
+    expect(fuse(en, 'en').status).toBe('warn')
+    // 4/0 carries 230 A at its lugs; the least class T fuse over 231.5 A is 250 A.
+    expect(fuse(en, 'en').lines).toEqual(['Even the largest cable carries only 230 A, under the 250 A fuse on the string lead. Raise the voltage or trim the load.'])
+    expect(fuse(es, 'es').lines).toEqual(['Ni el cable más grueso soporta más de 230 A, menos que el fusible de 250 A del cable de rama. Sube el voltaje o reduce la carga.'])
+  })
+
   test('names come from the dictionary in both languages', () => {
     expect(kitChecks(en, kit(ESSENTIALS), 'en').map((c) => c.name)).toEqual(['Inverter size', 'Battery continuous current', 'Battery peak current', 'Parallel strings', 'Fuse', 'Cable'])
     expect(kitChecks(es, kit(ESSENTIALS), 'es').map((c) => c.name)).toEqual(['Tamaño del inversor', 'Corriente continua de la batería', 'Corriente pico de la batería', 'Ramas en paralelo', 'Fusible', 'Cable'])
@@ -188,8 +227,8 @@ describe('kitChecks', () => {
     const r = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 7000, surge: 7000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, hardware)
     const lines = (locale: 'en' | 'es') => Object.fromEntries(kitChecks(locale === 'en' ? en : es, r, locale).map((c) => [c.id, c.lines[0]]))
     expect(kitChecks(en, r, 'en').map((c) => c.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass'])
-    expect(lines('en').surge).toBe('7,000 W running on 2 × 5,000 W inverters (10.0 kW together) · 7,000 W for 0 s, within their assumed 20.0 kW surge rating')
-    expect(lines('es').surge).toBe('7,000 W en marcha con 2 inversores de 5,000 W (10.0 kW en total) · 7,000 W durante 0 s, dentro de sus 20.0 kW de arranque supuestos')
+    expect(lines('en').surge).toBe('7,000 W running on 2 × 5,000 W inverters (10.0 kW together) · no start-up surge, within their assumed 20.0 kW surge rating')
+    expect(lines('es').surge).toBe('7,000 W en marcha con 2 inversores de 5,000 W (10.0 kW en total) · sin pico de arranque, dentro de sus 20.0 kW de arranque supuestos')
     expect(lines('en').batteryContinuous).toMatch(/^Bank gives an assumed \d+ A continuous; the 2 inverters draw up to 231 A together$/)
     expect(lines('es').batteryContinuous).toMatch(/^El banco entrega \d+ A continuos supuestos; los 2 inversores toman hasta 231 A en total$/)
     // The 162 A start-up is split between the two fuses.
@@ -228,7 +267,7 @@ describe('kitChecks', () => {
     expect(discharge.params).toMatchObject({ inverters: 4, needA: 741, maxA: 550, strings: 11 })
     // Its eight fuses are judged against the bank's share for each, and the note counts them.
     const above = starved.warnings.find((w) => w.code === 'fuseAboveBank')!
-    expect(above.params).toEqual({ fuseA: 125, maxA: 550, count: 8 })
+    expect(above.params).toEqual({ fuseA: 125, maxA: 550, count: 8, conductor: 'mainCable' })
     expect(warningText(en, above, [])).toBe('The 8 × 125 A fuses are sized for more than the 550 A the bank can deliver, so the BMS, not a fuse, would trip on an overload. Pick a bank that delivers more.')
     expect(warningText(es, above, [])).toBe('Los 8 fusibles de 125 A están dimensionados para más de los 550 A que el banco puede entregar, así que cortaría el BMS y no un fusible en una sobrecarga. Elige un banco que entregue más.')
     expect(warningText(en, discharge, starved.items)).toMatch(/^The 4 inverters draw up to 741 A together at full load; \d+ × 48 V 50 Ah LiFePO₄ allows [\d,]+ A continuous and its BMS would cut out\. /)
@@ -328,7 +367,7 @@ describe('kitChecks', () => {
     })
     expect(fuse('es')).toMatchObject({
       status: 'warn',
-      lines: ['El fusible de 100 A solo está certificado para 32 V CC, y un banco de 48 V necesita 60 V CC o más: podría no cortar una falla. Usa un fusible certificado para al menos 60 V CC.'],
+      lines: ['El fusible de 100 A solo está clasificado para 32 V CC, y un banco de 48 V necesita 60 V CC o más: podría no cortar una falla. Usa un fusible clasificado para al menos 60 V CC.'],
     })
     expect(uncheckedWarnings(r).map((w) => w.code)).not.toContain('fuseVoltage')
   })

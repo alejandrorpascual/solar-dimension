@@ -1,0 +1,247 @@
+QA v5 for #53: every wording of the ticket's table, read as the page shows it (mark · label, or what is left to confirm), en and es.
+head = 78c66fc · r3 = d9c1790 (reviewer round 3, R6) · base = staging 3ca1535. Kit needs 2/0 AWG and a 175 A fuse (SAMPLE_KIT).
+Command: QA53_REV=<rev> npx vitest run src/lib/__qa53_probe.test.ts (probe source: 01-table-rows-probe.test.ts.txt)
+
+revision: head
+as table | row 1        | Alimentador AC, cable 4/0 AWG + Cable 6 AWG baterías
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 2        | Cable 4/0 AWG AC feeder + Cable 6 AWG battery
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 3        | "Cableado: alimentador CA 4/0 AWG y cable de baterías 6 AWG" split in two
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 4        | Alimentador C.A. 4/0 AWG + Cable 6 AWG baterías
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 4        | Cable PV1-F 4/0 AWG + Cable 6 AWG baterías
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 5        | Cable solar 10 AWG alone, own line
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+as table | row 5        | Cable solar 10 AWG split from "Kit solar: 4 paneles 550 W, 2 baterías de litio 200 Ah, cable solar 10 AWG"
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías a inversor solar
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías con terminales
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías, kit solar
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 7        | Cable solar 4/0 AWG + Cable 2/0 AWG baterías
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+as table | row 8        | Cable solar 10 AWG + Cable 2/0 AWG con terminales
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+as table | row 8        | Cable solar 10 AWG + Cable 2/0 AWG en tubo conduit
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+as table | row 8        | Cable solar 10 AWG + Cable 2/0 AWG inversor a banco con zapatas
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+as table | row 9        | Cable solar 10 AWG + Cableado de baterías (no size)
+           en: To confirm · Size not stated
+           es: Por confirmar · No indica la medida
+as table | row 10       | Cable solar 4/0 AWG + Cable de tierra física 6 AWG
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+as table | row 10       | Cable solar 4/0 AWG + Terminal de ojo 2/0 AWG
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+as table | row 10       | Cable solar 4/0 AWG + Zapatas 2/0 para baterías
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+as table | row 11       | Cable solar + cable de tierra split from "Kit solar: 4 paneles 550 W, 2 baterías de litio 200 Ah, cable solar 10 AWG, cable de tierra 8 AWG"
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+as table | row 12       | Cable 2/0 AWG batería, caída de tensión 2%
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+as table | row AC2 fuse | row 1 + fuse 250 A
+           en: Too small · 250 A
+           es: Se queda corto · 250 A
+as table | row AC2 fuse | row 3 split + fuse 250 A
+           en: Too small · 250 A
+           es: Se queda corto · 250 A
+as table | row AC2 fuse | row 5 own line + fuse 250 A
+           en: Meets it · 250 A
+           es: Cumple · 250 A
+as table | row AC2 fuse | row 10 ground wire + fuse 250 A
+           en: Meets it · 250 A
+           es: Cumple · 250 A
+as table | row AC2 fuse | Cable solar 4/0 + Cable 6 AWG con terminales + fuse 250 A
+           en: Too small · 250 A
+           es: Se queda corto · 250 A
+rows that differ from the table: 0 of 26
+
+revision: r3
+as table | row 1        | Alimentador AC, cable 4/0 AWG + Cable 6 AWG baterías
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 2        | Cable 4/0 AWG AC feeder + Cable 6 AWG battery
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 3        | "Cableado: alimentador CA 4/0 AWG y cable de baterías 6 AWG" split in two
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 4        | Alimentador C.A. 4/0 AWG + Cable 6 AWG baterías
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 4        | Cable PV1-F 4/0 AWG + Cable 6 AWG baterías
+           en: Too small · 6 AWG
+           es: Se queda corto · 6 AWG
+as table | row 5        | Cable solar 10 AWG alone, own line
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+as table | row 5        | Cable solar 10 AWG split from "Kit solar: 4 paneles 550 W, 2 baterías de litio 200 Ah, cable solar 10 AWG"
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías a inversor solar
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías con terminales
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías, kit solar
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 7        | Cable solar 4/0 AWG + Cable 2/0 AWG baterías
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+DIFFERS  | row 8        | Cable solar 10 AWG + Cable 2/0 AWG con terminales
+           en: To confirm · Battery cable not stated   (table: Meets it · 2/0 AWG)
+           es: Por confirmar · No indica el cable de la batería
+DIFFERS  | row 8        | Cable solar 10 AWG + Cable 2/0 AWG en tubo conduit
+           en: To confirm · Battery cable not stated   (table: Meets it · 2/0 AWG)
+           es: Por confirmar · No indica el cable de la batería
+DIFFERS  | row 8        | Cable solar 10 AWG + Cable 2/0 AWG inversor a banco con zapatas
+           en: To confirm · Battery cable not stated   (table: Meets it · 2/0 AWG)
+           es: Por confirmar · No indica el cable de la batería
+as table | row 9        | Cable solar 10 AWG + Cableado de baterías (no size)
+           en: To confirm · Size not stated
+           es: Por confirmar · No indica la medida
+as table | row 10       | Cable solar 4/0 AWG + Cable de tierra física 6 AWG
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+as table | row 10       | Cable solar 4/0 AWG + Terminal de ojo 2/0 AWG
+           en: To confirm · Battery cable not stated
+           es: Por confirmar · No indica el cable de la batería
+DIFFERS  | row 10       | Cable solar 4/0 AWG + Zapatas 2/0 para baterías
+           en: Meets it · 2/0 AWG   (table: To confirm · Battery cable not stated)
+           es: Cumple · 2/0 AWG
+DIFFERS  | row 11       | Cable solar + cable de tierra split from "Kit solar: 4 paneles 550 W, 2 baterías de litio 200 Ah, cable solar 10 AWG, cable de tierra 8 AWG"
+           en: Too small · 8 AWG   (table: To confirm · Battery cable not stated)
+           es: Se queda corto · 8 AWG
+as table | row 12       | Cable 2/0 AWG batería, caída de tensión 2%
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+as table | row AC2 fuse | row 1 + fuse 250 A
+           en: Too small · 250 A
+           es: Se queda corto · 250 A
+as table | row AC2 fuse | row 3 split + fuse 250 A
+           en: Too small · 250 A
+           es: Se queda corto · 250 A
+as table | row AC2 fuse | row 5 own line + fuse 250 A
+           en: Meets it · 250 A
+           es: Cumple · 250 A
+as table | row AC2 fuse | row 10 ground wire + fuse 250 A
+           en: Meets it · 250 A
+           es: Cumple · 250 A
+DIFFERS  | row AC2 fuse | Cable solar 4/0 + Cable 6 AWG con terminales + fuse 250 A
+           en: Meets it · 250 A   (table: Too small · 250 A)
+           es: Cumple · 250 A
+rows that differ from the table: 6 of 26
+
+revision: base
+DIFFERS  | row 1        | Alimentador AC, cable 4/0 AWG + Cable 6 AWG baterías
+           en: Meets it · 4/0 AWG   (table: Too small · 6 AWG)
+           es: Cumple · 4/0 AWG
+DIFFERS  | row 2        | Cable 4/0 AWG AC feeder + Cable 6 AWG battery
+           en: Meets it · 4/0 AWG   (table: Too small · 6 AWG)
+           es: Cumple · 4/0 AWG
+DIFFERS  | row 3        | "Cableado: alimentador CA 4/0 AWG y cable de baterías 6 AWG" split in two
+           en: Meets it · 4/0 AWG   (table: Too small · 6 AWG)
+           es: Cumple · 4/0 AWG
+DIFFERS  | row 4        | Alimentador C.A. 4/0 AWG + Cable 6 AWG baterías
+           en: Meets it · 4/0 AWG   (table: Too small · 6 AWG)
+           es: Cumple · 4/0 AWG
+DIFFERS  | row 4        | Cable PV1-F 4/0 AWG + Cable 6 AWG baterías
+           en: Meets it · 4/0 AWG   (table: Too small · 6 AWG)
+           es: Cumple · 4/0 AWG
+DIFFERS  | row 5        | Cable solar 10 AWG alone, own line
+           en: Too small · 10 AWG   (table: To confirm · Battery cable not stated)
+           es: Se queda corto · 10 AWG
+DIFFERS  | row 5        | Cable solar 10 AWG split from "Kit solar: 4 paneles 550 W, 2 baterías de litio 200 Ah, cable solar 10 AWG"
+           en: Too small · 10 AWG   (table: To confirm · Battery cable not stated)
+           es: Se queda corto · 10 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías a inversor solar
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías con terminales
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+as table | row 6        | Cable solar 10 AWG + Cable 4/0 AWG baterías, kit solar
+           en: Meets it · 4/0 AWG
+           es: Cumple · 4/0 AWG
+DIFFERS  | row 7        | Cable solar 4/0 AWG + Cable 2/0 AWG baterías
+           en: Meets it · 4/0 AWG   (table: Meets it · 2/0 AWG)
+           es: Cumple · 4/0 AWG
+as table | row 8        | Cable solar 10 AWG + Cable 2/0 AWG con terminales
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+as table | row 8        | Cable solar 10 AWG + Cable 2/0 AWG en tubo conduit
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+as table | row 8        | Cable solar 10 AWG + Cable 2/0 AWG inversor a banco con zapatas
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+as table | row 9        | Cable solar 10 AWG + Cableado de baterías (no size)
+           en: To confirm · Size not stated
+           es: Por confirmar · No indica la medida
+DIFFERS  | row 10       | Cable solar 4/0 AWG + Cable de tierra física 6 AWG
+           en: Meets it · 4/0 AWG   (table: To confirm · Battery cable not stated)
+           es: Cumple · 4/0 AWG
+DIFFERS  | row 10       | Cable solar 4/0 AWG + Terminal de ojo 2/0 AWG
+           en: Meets it · 4/0 AWG   (table: To confirm · Battery cable not stated)
+           es: Cumple · 4/0 AWG
+DIFFERS  | row 10       | Cable solar 4/0 AWG + Zapatas 2/0 para baterías
+           en: Meets it · 4/0 AWG   (table: To confirm · Battery cable not stated)
+           es: Cumple · 4/0 AWG
+DIFFERS  | row 11       | Cable solar + cable de tierra split from "Kit solar: 4 paneles 550 W, 2 baterías de litio 200 Ah, cable solar 10 AWG, cable de tierra 8 AWG"
+           en: Too small · 8 AWG   (table: To confirm · Battery cable not stated)
+           es: Se queda corto · 8 AWG
+as table | row 12       | Cable 2/0 AWG batería, caída de tensión 2%
+           en: Meets it · 2/0 AWG
+           es: Cumple · 2/0 AWG
+DIFFERS  | row AC2 fuse | row 1 + fuse 250 A
+           en: To confirm · Needs 2 runs of 4/0 AWG in parallel; the quote doesn't say how many   (table: Too small · 250 A)
+           es: Por confirmar · Hacen falta 2 tramos de 4/0 AWG en paralelo; la cotización no dice cuántos
+DIFFERS  | row AC2 fuse | row 3 split + fuse 250 A
+           en: To confirm · Needs 2 runs of 4/0 AWG in parallel; the quote doesn't say how many   (table: Too small · 250 A)
+           es: Por confirmar · Hacen falta 2 tramos de 4/0 AWG en paralelo; la cotización no dice cuántos
+as table | row AC2 fuse | row 5 own line + fuse 250 A
+           en: Meets it · 250 A
+           es: Cumple · 250 A
+DIFFERS  | row AC2 fuse | row 10 ground wire + fuse 250 A
+           en: To confirm · Needs 2 runs of 4/0 AWG in parallel; the quote doesn't say how many   (table: Meets it · 250 A)
+           es: Por confirmar · Hacen falta 2 tramos de 4/0 AWG en paralelo; la cotización no dice cuántos
+DIFFERS  | row AC2 fuse | Cable solar 4/0 + Cable 6 AWG con terminales + fuse 250 A
+           en: To confirm · Needs 2 runs of 4/0 AWG in parallel; the quote doesn't say how many   (table: Too small · 250 A)
+           es: Por confirmar · Hacen falta 2 tramos de 4/0 AWG en paralelo; la cotización no dice cuántos
+rows that differ from the table: 16 of 26
+

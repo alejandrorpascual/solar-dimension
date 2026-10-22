@@ -17,11 +17,16 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # The empty database this run migrates (scripts/fresh-database.ts): a name of its own per run and attempt, since
+      # runs of other branches write to the same test branch at the same time.
+      FRESH_DATABASE: ci_fresh_${{ github.run_id }}_${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          # engines.node in package.json, so the build, CI and Vercel run on the same major.
+          node-version-file: package.json
           cache: npm
       - run: npm ci
       # Migrations and e2e both write to this database: stop here if the secret is the production one.
@@ -30,6 +35,28 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - run: npm run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # The step above applies only the migrations the test branch has not run yet. This one runs all of them, on an
+      # empty database made for this run and dropped by the next step. Its timeout and the drop's are well inside the
+      # job's, so a hung migration still leaves the drop time to run.
+      - name: Migrate an empty database
+        timeout-minutes: 5
+        run: |
+          fresh_url="$(node scripts/fresh-database.ts create)"
+          echo "::add-mask::$fresh_url"
+          DATABASE_URL="$fresh_url" npm run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # Straight after the migration, and also when a step above failed or the run was cancelled: the database made for
+      # this run goes with it. Not last, where a run that used up the job's timeout on the tests would never reach it.
+      - name: Drop the empty database
+        if: ${{ always() }}
+        timeout-minutes: 2
+        run: node scripts/fresh-database.ts drop
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - run: npm run test:db
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - run: npm run typecheck

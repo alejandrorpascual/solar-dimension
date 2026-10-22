@@ -1,0 +1,30 @@
+
+> test:db
+> vitest run --config vitest.db.config.ts
+
+
+ RUN  v5.0.1 /private/tmp/claude-501/-Users-alejandrorpascual-projects-solar-dimension--claude-worktrees-determined-jang-9e5404/c87e5d60-b453-4afb-b843-2788a75c6999/scratchpad/lanes/issue-100-qa
+
+ ❯ src/server/projects-repo.db.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/projects-repo.db.test.ts [ src/server/projects-repo.db.test.ts ]
+Error: e2e refuses to run without .env.test.local: put the test branch's DATABASE_URL there, so tests never use .env.local's database.
+ ❯ loadTestEnv e2e/test-env.ts:49:11
+     47|   const endpoint = assertTestDatabase(process.env.DATABASE_URL)
+     48|   if (!process.env.CI && !testEnv.DATABASE_URL) {
+     49|     throw new Error(`e2e refuses to run without ${TEST_ENV_FILE}: put …
+       |           ^
+     50|   }
+     51|   if (endpoint === endpointOf(devEnv.DATABASE_URL)) {
+ ❯ vitest.db.setup.ts:6:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  17:35:55
+   Duration  95ms (worker 96%, environment 4%)
+

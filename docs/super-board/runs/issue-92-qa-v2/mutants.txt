@@ -1,0 +1,5 @@
+baseline (60ea20a): exit 0
+M1 show() writes while unreachable (drop 'if (isAccountUnreachable) return'): vitest exit 1
+M2 startingCopy reads the stored copy while unreachable (drop its early return): vitest exit 1
+restored: exit 0
+M3 root loader fallback says reachable (isAccountUnreachable: false): playwright e2e/database-down.spec.ts exit 1

@@ -8,15 +8,21 @@ import { useLocale } from '../hooks/useLocale'
 import { useRootData } from '../hooks/useRootData'
 import type { Dictionary } from '../i18n'
 import { signIn, signUp } from '../lib/auth-client'
+import { toStep, type Step } from '../lib/steps'
 
-interface LoginSearch { error?: string }
+/** `step` is the kit step to come back to once signed in (1–4, else step 1). */
+interface LoginSearch { error?: string; step?: Step }
 
 export const Route = createFileRoute('/login')({
   // Better Auth sends failed Google sign-ins back here as ?error=<code>.
-  validateSearch: (search: Record<string, unknown>): LoginSearch => (typeof search.error === 'string' ? { error: search.error } : {}),
-  loader: async ({ parentMatchPromise }) => {
+  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+    error: typeof search.error === 'string' ? search.error : undefined,
+    step: toStep(search.step),
+  }),
+  loaderDeps: ({ search }) => ({ step: search.step ?? 1 }),
+  loader: async ({ parentMatchPromise, deps }) => {
     const root = await parentMatchPromise
-    if (root.loaderData?.user) throw redirect({ to: '/', search: { step: 1 } })
+    if (root.loaderData?.user) throw redirect({ to: '/', search: { step: deps.step } })
   },
   component: LoginPage,
 })
@@ -30,7 +36,7 @@ function oauthErrorMessage(t: Dictionary, code: string | undefined): string {
 function LoginPage() {
   const { t } = useLocale()
   const { googleEnabled } = useRootData()
-  const { error: oauthError } = Route.useSearch()
+  const { error: oauthError, step = 1 } = Route.useSearch()
   const router = useRouter()
   const navigate = useNavigate()
   const [mode, setMode] = useState<'in' | 'up'>('in')
@@ -48,17 +54,17 @@ function LoginPage() {
     setBusy(false)
     if (res.error) { setError(t.ui.authFailed); return }
     await router.invalidate({ sync: true })
-    await navigate({ to: '/', search: { step: 1 } })
+    await navigate({ to: '/', search: { step } })
   }
 
   return (
     <main className="page">
       <HeaderBar stepper={{ step: 1 }} />
       <section className="stage stage--narrow">
-        <h2>{mode === 'up' ? t.ui.signUp : t.ui.signIn}</h2>
+        <h1 className="stage__title">{mode === 'up' ? t.ui.signUp : t.ui.signIn}</h1>
         {googleEnabled && (
           <>
-            <GoogleButton label={t.ui.continueGoogle} />
+            <GoogleButton label={t.ui.continueGoogle} step={step} />
             <div className="or" role="separator"><span>{t.ui.orDivider}</span></div>
           </>
         )}

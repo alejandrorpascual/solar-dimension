@@ -1,0 +1,2 @@
+head under test: f5a104a (Builder) + QA test commit
+command: npx vitest run src/lib/quote-items.test.ts

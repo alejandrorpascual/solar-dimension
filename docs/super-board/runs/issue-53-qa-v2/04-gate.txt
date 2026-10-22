@@ -1,0 +1,10 @@
+# gate on 619c381, clean npm ci, no env file besides .env.test.local
+npm run typecheck: typecheck exit=0
+ Test Files  105 passed (105)
+      Tests  1849 passed (1849)
+coverage exit=0
+All files          |   98.32 |    93.94 |    99.3 |   98.93 |                   
+  quote-items.ts   |   99.59 |    94.33 |     100 |     100 | ...56,368,373,413 
+  quote-text.ts    |   94.42 |    80.27 |     100 |   96.27 | ...16,231,235,303 
+npm run build: build exit=0
+e2e (desktop + phone):   38 passed (59.2s) · e2e/quote-evidence.spec.ts quote-lines.spec.ts quotes.spec.ts quote-plausibility.spec.ts

@@ -2,7 +2,7 @@ import { expect, test, vi } from 'vitest'
 import {
   CLIENTS_KEY_PREFIX, DRAFT_KEY, LEGACY_SYNCED_KEY, OWNER_KEY, PENDING_KEY, REQUESTER_KEY, STORAGE_KEY, UNSENT_KEY_PREFIX, clearPendingSave,
   clearRequesterDraft, clearUnsent, hasPendingSave, loadOwner, loadRequesterDraft, loadSavedClients, loadStore, loadUnsent, markPendingSave,
-  releaseAccountCopy, saveOwner, saveRequesterDraft, saveSavedClients, saveStore,
+  releaseAccountCopy, requesterStorage, saveOwner, saveRequesterDraft, saveSavedClients, saveStore,
 } from './persistence'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { computeProject } from './project-summary'
@@ -146,6 +146,28 @@ test('clearing a draft leaves one written by another form, say in another tab', 
   clearRequesterDraft({ owner: null, projectId: 'p1', target: 'project' }, mem)
   clearRequesterDraft({ owner: null, projectId: 'p2', target: 'new' }, mem)
   expect(loadRequesterDraft(mem)).toEqual(draft)
+})
+
+test("while the account cannot be read, the requester's clients and draft stay in the page and the browser's are left as they were", () => {
+  const browser = removableStorage({ [`${CLIENTS_KEY_PREFIX}guest`]: JSON.stringify([lee]) })
+  const held = { ...browser.data }
+  vi.stubGlobal('window', { localStorage: browser })
+  try {
+    const page = requesterStorage(true)
+    const draft = { owner: null, projectId: 'p1', target: 'new' as const, draft: ann, shouldRemember: true }
+    expect(loadSavedClients(null, page)).toEqual([])
+    saveSavedClients(null, [ruiz], page)
+    expect(saveRequesterDraft(draft, page)).toBe(true)
+
+    expect(loadSavedClients(null, requesterStorage(true))).toEqual([ruiz])
+    expect(loadRequesterDraft(requesterStorage(true))).toEqual(draft)
+    expect(browser.data).toEqual(held)
+
+    saveSavedClients(null, [ruiz], requesterStorage(false))
+    expect(loadSavedClients(null, browser)).toEqual([ruiz])
+  } finally {
+    vi.unstubAllGlobals()
+  }
 })
 
 test('blocked or missing storage never throws', () => {

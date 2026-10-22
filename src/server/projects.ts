@@ -1,10 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client'
 import { projects, quoteFileTrash, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { clampStamp, importable } from '../lib/sync'
+import { importable } from '../lib/sync'
+import { listForUser, saveForUser, upsertAll } from './projects-repo'
 import { emptyQuoteTrash } from './quotes/deps'
 import { lockUserQuotes } from './quotes/limits'
 import { trashQuoteFiles } from './quotes/repo'
@@ -16,75 +17,14 @@ const ProjectsInput = z.object({ account: AccountClaim, projects: z.array(Projec
 const IdsInput = z.object({ account: AccountClaim, ids: z.array(z.string().min(1)).max(MAX_BATCH) })
 const ListInput = z.object({ account: AccountClaim }).optional()
 
-export function toProject(row: typeof projects.$inferSelect): Project {
-  return ProjectSchema.parse({
-    id: row.id, name: row.name, qty: row.qty, custom: row.custom, hours: row.hours, volts: row.volts, chemistry: row.chemistry,
-    batteryUnit: row.batteryUnit,
-    requester: row.requester,
-    solar: row.solar,
-    dutyOverrides: row.dutyOverrides,
-    electrical: row.electrical,
-    updatedAt: row.updatedAt.getTime(),
-  })
-}
-
-async function listForUser(userId: string): Promise<Project[]> {
-  const rows = await db.select().from(projects).where(eq(projects.userId, userId)).orderBy(projects.createdAt)
-  return rows.map(toProject)
-}
-
-/**
- * Last edit wins by the client's `updatedAt`, not by arrival order: a save that a reload cut off can still reach the
- * database after a newer write, so the update only applies when the incoming stamp is not older than the stored one.
- * A stamp from a clock far ahead is stored as the server's time (clampStamp), or it would refuse every edit after it.
- * Returns the ids it wrote: a project that is missing from them was refused as older than the stored copy.
- */
-async function upsertAll(userId: string, list: Project[]): Promise<Set<string>> {
-  if (list.length === 0) return new Set()
-  const now = Date.now()
-  const written = await db
-    .insert(projects)
-    .values(list.map((p) => ({ ...p, userId, updatedAt: new Date(clampStamp(p.updatedAt, now)) })))
-    .onConflictDoUpdate({
-      target: [projects.userId, projects.id],
-      set: {
-        name: sql`excluded.name`,
-        qty: sql`excluded.qty`,
-        custom: sql`excluded.custom`,
-        hours: sql`excluded.hours`,
-        volts: sql`excluded.volts`,
-        chemistry: sql`excluded.chemistry`,
-        batteryUnit: sql`excluded.battery_unit`,
-        requester: sql`excluded.requester`,
-        solar: sql`excluded.solar`,
-        dutyOverrides: sql`excluded.duty_overrides`,
-        electrical: sql`excluded.electrical`,
-        updatedAt: sql`excluded.updated_at`,
-      },
-      setWhere: sql`excluded.updated_at >= ${projects.updatedAt}`,
-    })
-    .returning({ id: projects.id })
-  return new Set(written.map((row) => row.id))
-}
-
 export const listProjects = createServerFn({ method: 'GET' })
   .validator((d: unknown) => ListInput.parse(d))
   .handler(async ({ data }): Promise<Project[]> => listForUser(await requireAccount(data?.account)))
 
-/**
- * Saves the projects it is given and answers with `stale`: the account's copy of each one it refused as older, so the
- * device shows what the account holds instead of an edit that was never stored.
- */
+/** saveForUser for the account the page was loaded for: `stale` holds the account's copy of each project it refused. */
 export const saveProjects = createServerFn({ method: 'POST' })
   .validator((d: unknown) => ProjectsInput.parse(d))
-  .handler(async ({ data }): Promise<{ ok: true; stale: Project[] }> => {
-    const userId = await requireAccount(data.account)
-    const written = await upsertAll(userId, data.projects)
-    const refused = data.projects.filter((p) => !written.has(p.id)).map((p) => p.id)
-    if (refused.length === 0) return { ok: true, stale: [] }
-    const rows = await db.select().from(projects).where(and(eq(projects.userId, userId), inArray(projects.id, refused)))
-    return { ok: true, stale: rows.map(toProject) }
-  })
+  .handler(async ({ data }): Promise<{ ok: true; stale: Project[] }> => saveForUser(await requireAccount(data.account), data.projects))
 
 export const deleteProjects = createServerFn({ method: 'POST' })
   .validator((d: unknown) => IdsInput.parse(d))

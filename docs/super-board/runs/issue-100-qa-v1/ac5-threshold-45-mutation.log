@@ -1,0 +1,89 @@
+
+> test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.1 /private/tmp/claude-501/-Users-alejandrorpascual-projects-solar-dimension--claude-worktrees-determined-jang-9e5404/c87e5d60-b453-4afb-b843-2788a75c6999/scratchpad/lanes/issue-100-qa
+      Coverage enabled with v8
+
+
+ Test Files  107 passed (107)
+      Tests  1840 passed (1840)
+   Start at  17:35:08
+   Duration  10.50s (tests 41%, import 39%, transform 17%, worker 4%)
+
+    Isolate  107 workers spawned · ~128ms startup each (spawn + environment, per file)
+             at least ~1.39s faster with isolate: false — reuses workers across files instead of one per file
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   88.88 |    89.64 |   89.79 |   88.83 |                   
+ i18n              |     100 |    91.09 |     100 |     100 |                   
+  en.ts            |     100 |    89.58 |     100 |     100 | 162-163           
+  es.ts            |     100 |       88 |     100 |     100 | 162-163,210       
+  index.ts         |     100 |    94.87 |     100 |     100 | 26,43             
+ lib               |   98.08 |    93.51 |   99.17 |   98.73 |                   
+  ...nce-groups.ts |     100 |       80 |     100 |     100 | 15                
+  auth-client.ts   |       0 |      100 |     100 |       0 | 3-4               
+  auth.ts          |      80 |       50 |     100 |     100 | 10-21             
+  brand.ts         |       0 |      100 |     100 |       0 | 2                 
+  custom.ts        |     100 |    97.56 |     100 |     100 | 47                
+  db-endpoint.ts   |     100 |    91.66 |     100 |     100 | 22                
+  fine-print.ts    |     100 |    81.25 |     100 |     100 | 36-39             
+  kit-checks.ts    |     100 |    98.14 |     100 |     100 | 92                
+  kit-parts.ts     |   98.03 |    97.61 |     100 |     100 | 17                
+  ...on-journal.ts |     100 |    96.42 |     100 |     100 | 24                
+  parse-amount.ts  |     100 |       90 |     100 |     100 | 11                
+  pdf-fixtures.ts  |      96 |       50 |   85.71 |     100 | 19-20             
+  pdf-info.ts      |     100 |    83.33 |     100 |     100 | 20                
+  pdf-pages.ts     |     100 |    96.55 |     100 |     100 | 35                
+  persistence.ts   |   95.27 |    92.23 |     100 |     100 | ...75,227,240,277 
+  product-merge.ts |   99.07 |    94.11 |     100 |     100 | 32-37             
+  ...aveat-text.ts |   73.52 |    67.74 |     100 |      70 | ...30-31,35-36,38 
+  quote-caveats.ts |     100 |    98.14 |     100 |     100 | 118               
+  quote-checks.ts  |    99.1 |    99.14 |   97.61 |     100 | 76                
+  quote-compare.ts |   98.09 |    97.29 |   95.65 |     100 | 133,200           
+  quote-items.ts   |   99.58 |    93.68 |     100 |     100 | ...34,346,351,391 
+  quote-limits.ts  |     100 |    95.65 |     100 |     100 | 57                
+  quote-poller.ts  |     100 |    93.75 |     100 |     100 | 26                
+  quote-text.ts    |   94.35 |    80.05 |     100 |   96.24 | ...14,229,233,300 
+  requester.ts     |     100 |    96.69 |     100 |     100 | 96,112,167-170    
+  sign-out.ts      |     100 |       75 |     100 |     100 | 21                
+  sizing.ts        |     100 |     94.8 |     100 |     100 | 93-94,124-127     
+  solar.ts         |   98.68 |    96.55 |     100 |   98.27 | 161               
+  stale-chunk.ts   |   76.47 |    85.71 |      75 |   71.42 | 25-28,45          
+  store.ts         |    95.3 |    90.47 |   95.89 |   98.03 | 22-23             
+ lib/sizing        |   99.69 |    98.91 |     100 |     100 |                   
+  cable.ts         |     100 |    96.72 |     100 |     100 | 258-262           
+  runtime.ts       |   94.11 |    94.73 |     100 |     100 | 40                
+ server            |   23.13 |    35.57 |   12.94 |   23.03 |                   
+  admin-catalog.ts |       0 |        0 |       0 |       0 | 11-54             
+  catalog-api.ts   |   96.22 |    96.87 |     100 |   95.34 | 87-88             
+  catalog-repo.ts  |       0 |        0 |       0 |       0 | 9-80              
+  catalog.ts       |       0 |      100 |       0 |       0 | 8-15              
+  locale.ts        |       0 |        0 |       0 |       0 | 5-18              
+  product-repo.ts  |       0 |        0 |       0 |       0 | 9-91              
+  projects-repo.ts |       0 |        0 |       0 |       0 | 8-67              
+  projects.ts      |       0 |        0 |       0 |       0 | 14-53             
+  session.ts       |       0 |        0 |       0 |       0 | 23-81             
+ server/quotes     |    49.5 |    57.78 |      50 |    50.3 |                   
+  api.ts           |       0 |        0 |       0 |       0 | 32-225            
+  deps.ts          |       0 |        0 |       0 |       0 | 9-32              
+  limits.ts        |       0 |        0 |       0 |       0 | 9-103             
+  model.ts         |   86.84 |    84.84 |   77.77 |   85.71 | 119-125           
+  poll.ts          |       0 |        0 |       0 |       0 | 4-10              
+  process.ts       |   98.36 |    92.59 |     100 |   97.87 | 123               
+  repo.ts          |   68.96 |    70.58 |    37.5 |   74.07 | 10,22-31,88-92    
+  storage.ts       |   72.72 |    66.66 |   71.42 |      72 | 54-64,73          
+  trash.ts         |   97.29 |    91.66 |     100 |     100 | 21                
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 88.88% ( 3640/4095 )
+Branches     : 89.64% ( 2763/3082 )
+Functions    : 89.79% ( 1214/1352 )
+Lines        : 88.83% ( 2753/3099 )
+================================================================================
+ERROR: Coverage for lines (42.1%) does not meet "src/server/**" threshold (45%)

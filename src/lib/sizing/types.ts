@@ -302,6 +302,7 @@ export interface WarningParams {
   /** The most a main run may drop at full load, in percent. */
   maxDropPct?: number
   ambientC?: number
+  /** The cable a cable or fuse warning is about: the main run, the interconnects or a string lead. */
   conductor?: ConductorKind
   gauge?: string
   /** Whether a short cable row would cover its design current in a cool room, and on 90 °C cable. */

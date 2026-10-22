@@ -1,0 +1,38 @@
+# red on base: app code of staging 3ca1535, tests of 619c381
+       × an AC feeder beside a thin battery cable reads short, on the battery cable 5ms
+       × a thick solar line beside a thin battery cable reads short too 1ms
+       × sized solar or AC wiring alone reads unknown, whatever its size 1ms
+       × a solar or AC cable beside a battery cable with no size stays unknown, and cites the battery cable 1ms
+       × a solar or AC line thicker than a battery cable that passes does not decide: the verdict reads, and cites, the battery cable 0ms
+       × the ticket's own example reads short, in the quote's English 1ms
+       × capital letters set a line aside too: quotes print their wiring lines in capitals 1ms
+       × one line that names the battery and the array is no battery cable: with nothing else beside it, it is to confirm 0ms
+       × the words that name the array or the AC side, in English and Spanish, set a line aside 7ms
+       × a dot or a digit is no letter: "C.A.", "A.C." and "PV1-F" name the AC side or the array (R3) 1ms
+       × a ground wire or a lug left beside solar or AC wiring is no battery cable: the quote names none (R1) 1ms
+       × the runs a quote counts are those of the battery cable, not of the solar leads beside it 1ms
+       × the runs a fuse needs are counted in battery cable leads, not in the solar leads beside them 1ms
+       × the fuse is judged against the battery cable too: an AC feeder does not carry it, a solar cable does not fail it 2ms
+       × a ground wire left beside solar or AC wiring is no cable for the fuse either (R1) 1ms
+     × wiring that is all solar or AC says the quote names no battery cable, not that a size is missing (R4) 6ms
+       × a quote whose wiring is all solar or AC asks for the battery cable (R4) 1ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > an AC feeder beside a thin battery cabl [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a thick solar line beside a thin batter [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > sized solar or AC wiring alone reads un [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a solar or AC cable beside a battery ca [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a solar or AC line thicker than a batte [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > the ticket's own example reads short, i [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > capital letters set a line aside too: q [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > one line that names the battery and the [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > the words that name the array or the AC [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a dot or a digit is no letter: "C.A.",  [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground wire or a lug left beside sola [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > the runs a quote counts are those of th [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > the runs a fuse needs are counted in ba [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > the fuse is judged against the battery  [... omitted end of long line]
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground wire left beside solar or AC w [... omitted end of long line]
+ FAIL  src/lib/quote-text.test.ts > items a quote mentions without enough to judge them > wiring that is all solar or AC says the quote names no batte [... omitted end of long line]
+ FAIL  src/lib/quote-text.test.ts > items a quote mentions without enough to judge them > reason, ask and question > a quote whose wiring is all solar [... omitted end of long line]
+ Test Files  2 failed (2)
+      Tests  17 failed | 154 passed (171)

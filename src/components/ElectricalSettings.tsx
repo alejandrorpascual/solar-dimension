@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react'
 import { useId } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
@@ -35,8 +36,10 @@ export function StartsPicker({ electrical, onChange }: Props) {
   )
 }
 
-/** Where the battery cable runs. Closed by default; the summary line still states the values in effect. */
-export function CableConditions({ electrical: e, onChange }: Props) {
+const PERCENT = 100
+
+/** Where the battery cable runs. Closed by default; the summary line still states the values in effect. `bundleFactor` is the derating the engine gave the main cable; the help shows it only while the box is ticked, since an unbundled run always gets 1. */
+export function CableConditions({ electrical: e, onChange, bundleFactor }: Props & { bundleFactor: number }) {
   const { t } = useLocale()
   const rangeId = useId()
   const summary = tr(t, 'cableSummary', { length: e.runLengthM, ambient: e.ambientC, insulation: e.insulationC, bundled: e.bundled ? t.ui.cableBundledShort : '' })
@@ -45,6 +48,7 @@ export function CableConditions({ electrical: e, onChange }: Props) {
       <summary className="elec__summary">
         <span>{t.ui.cableRun}</span>
         <span className="num elec__values">{summary}</span>
+        <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
       </summary>
       <div className="elec__grid">
         <div className="elec__field">
@@ -73,7 +77,7 @@ export function CableConditions({ electrical: e, onChange }: Props) {
         </div>
         <label className="elec__check">
           <input type="checkbox" checked={e.bundled} onChange={(ev) => onChange({ bundled: ev.target.checked })} />
-          <span><span className="elec__check-title">{t.ui.bundledLabel}</span><span className="muted elec__check-help">{t.ui.bundledHelp}</span></span>
+          <span><span className="elec__check-title">{t.ui.bundledLabel}</span>{e.bundled && <span className="muted elec__check-help">{tr(t, 'bundledHelp', { factor: Math.round(bundleFactor * PERCENT) })}</span>}</span>
         </label>
       </div>
     </details>
