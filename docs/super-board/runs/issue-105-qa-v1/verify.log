@@ -1,0 +1,6 @@
+Lane clone at 389d777 plus the QA tests (src/server/catalog-repo.test.ts, src/server/admin-catalog.test.ts), 2026-10-22.
+The config's verify command, step by step (npm ci ran first with --prefer-offline):
+npm run typecheck      exit 0
+npm run test:coverage  exit 0 · 110 files · 1888 tests (1877 on 389d777 + 11 new) · lines 98.98%
+npm run build          exit 0
+e2e not run in this lane: a hook refused linking .env.test.local into the clone. CI ran it on 389d777: ci-e2e-catalog.log.

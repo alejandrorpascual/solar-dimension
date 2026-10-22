@@ -1,0 +1,21 @@
+CI run 39807105526, job 119923138491 (workflow CI, job verify) on PR #185
+Head 389d7775d35a6d675c282c0310c99013be472ecb, checked out as the PR merge commit into staging e9da7d9 (the merge base, so the same tree).
+Conclusion: success. Lines kept: checkout, migration result, unit totals, e2e start, every admin.spec.ts and catalog-api.spec.ts result, e2e totals.
+
+2026-10-22T15:41:03.0244180Z HEAD is now at 3598795 Merge 389d7775d35a6d675c282c0310c99013be472ecb into e9da7d99e0f5f4813550608900acbc157bf162bd
+2026-10-22T15:41:16.7007133Z [✓] migrations applied successfully!
+2026-10-22T15:41:40.4406950Z  Test Files  108 passed (108)
+2026-10-22T15:41:40.4416671Z       Tests  1877 passed (1877)
+2026-10-22T15:47:28.0676179Z Running 291 tests using 2 workers
+2026-10-22T15:47:34.8311480Z   ✓    5 [desktop] › e2e/admin.spec.ts:25:1 › non-admins get a 404 at /admin/appliances (1.7s)
+2026-10-22T15:47:40.6306320Z   ✓   10 [desktop] › e2e/catalog-api.spec.ts:10:1 › the catalog API needs the token (21ms)
+2026-10-22T15:47:40.6483173Z   ✓   11 [desktop] › e2e/catalog-api.spec.ts:15:1 › says which database it is on, as a test one, and only to a request wi [... omitted end of long line]
+2026-10-22T15:47:40.8995262Z   ✓    6 [desktop] › e2e/admin.spec.ts:33:1 › an admin adds an appliance, sees it in the picker, and retires it (6.1s) [... omitted end of long line]
+2026-10-22T15:47:41.3264751Z   ✓   12 [desktop] › e2e/catalog-api.spec.ts:30:1 › writes only when the POST names this database, and writes to the data [... omitted end of long line]
+2026-10-22T15:47:41.7623349Z   ✓   14 [desktop] › e2e/catalog-api.spec.ts:55:1 › a mistyped flag answers 400 naming it, and nothing is written (428ms) [... omitted end of long line]
+2026-10-22T15:47:42.3113793Z   ✓   15 [desktop] › e2e/catalog-api.spec.ts:70:1 › the dry run and the write both carry plausibility warnings, and a war [... omitted end of long line]
+2026-10-22T15:47:44.0259705Z   ✓   13 [desktop] › e2e/admin.spec.ts:81:1 › "New appliance" refuses an id that already belongs to another appliance (3. [... omitted end of long line]
+2026-10-22T15:47:44.0509443Z   ✓   16 [desktop] › e2e/catalog-api.spec.ts:101:1 › dry run, create, show in the picker in both languages, then retire ( [... omitted end of long line]
+2026-10-22T15:47:44.8302950Z   ✓   17 [desktop] › e2e/catalog-api.spec.ts:136:1 › every write to an appliance is logged with the row before and after; [... omitted end of long line]
+2026-10-22T15:52:23.1052658Z   10 skipped
+2026-10-22T15:52:23.1052905Z   281 passed (5.0m)

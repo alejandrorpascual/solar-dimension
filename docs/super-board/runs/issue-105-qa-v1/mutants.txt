@@ -1,0 +1,16 @@
+Each mutant was applied to the code under test, the new test file was run, and the file was restored from a pristine copy.
+None of them reached a commit. Every mutant was killed (red); the pristine code is green (unit-change-log.log).
+
+| Mutant | Change | Red tests |
+|---|---|---|
+| M1 | upsert batch without the change-log insert | catalog-repo.test.ts:83, :96 |
+| M2 | change-log insert awaited after the batch, not in it | catalog-repo.test.ts:83, :96 |
+| M3 | retire/restore batch without the change-log insert | catalog-repo.test.ts:115 |
+| M4 | retire/restore always writes, even when already in that state | catalog-repo.test.ts:130 |
+| M5 | recent changes limit 49 instead of 50 | catalog-repo.test.ts:148 |
+| M6 | recent changes oldest first | catalog-repo.test.ts:148 |
+| M7 | recent changes without the join to the user's email | catalog-repo.test.ts:148 |
+| M8 | log entry with a fixed actor instead of the writer | catalog-repo.test.ts:83, :96, :115 |
+| M9 | upsert writes every item, unchanged ones too | catalog-repo.test.ts:83, :96, :105 |
+| M10 | a row that fails the schema is reported as retired | catalog-repo.test.ts:140 |
+| M11 | adminRecentChanges without requireAdmin() | admin-catalog.test.ts:29 (all 3 cases) |
