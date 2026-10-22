@@ -1,0 +1,51 @@
+import subprocess, sys, re
+ITEMS='src/lib/quote-items.ts'
+TEXT='src/lib/quote-text.ts'
+M=[
+ ('M01 OFF_BATTERY loses i flag', ITEMS, 'solar|fotovolt|panel|corriente alterna/iu', 'solar|fotovolt|panel|corriente alterna/u'),
+ ('M02 letter edges back to ASCII \\b (R2)', ITEMS, "(?<!\\p{L})(?:PV|FV|A\\.?C\\.?|C\\.?A\\.?)(?!\\p{L})", "\\b(?:PV|FV|A\\.?C\\.?|C\\.?A\\.?)\\b"),
+ ('M03 dots dropped from AC / CA (R3)', ITEMS, 'A\\.?C\\.?|C\\.?A\\.?', 'AC|CA'),
+ ('M04 PV word dropped', ITEMS, '(?:PV|FV|', '(?:FV|'),
+ ('M05 FV word dropped', ITEMS, '(?:PV|FV|', '(?:PV|'),
+ ('M06 solar word dropped', ITEMS, ')|solar|fotovolt', ')|fotovolt'),
+ ('M07 fotovolt word dropped', ITEMS, '|solar|fotovolt|panel|', '|solar|panel|'),
+ ('M08 panel word dropped', ITEMS, '|fotovolt|panel|corriente', '|fotovolt|corriente'),
+ ('M09 corriente alterna dropped', ITEMS, '|panel|corriente alterna/iu', '|panel/iu'),
+ ('M10 batteryWiring returns rest even if only fittings (R1)', ITEMS, 'return rest.length < lines.length && rest.every(isFitting) ? [] : rest', 'return rest'),
+ ('M11 batteryWiring: fittings rule without "some set aside" guard', ITEMS, 'rest.length < lines.length && rest.every(isFitting)', 'rest.every(isFitting)'),
+ ('M12 batteryWiring: guard < becomes <=', ITEMS, 'rest.length < lines.length && rest.every(isFitting)', 'rest.length <= lines.length && rest.every(isFitting)'),
+ ('M13 batteryWiring: every -> some', ITEMS, 'rest.every(isFitting)', 'rest.some(isFitting)'),
+ ('M14 checkCables: cites first wiring line only when none left', ITEMS, "{ batteryCableUnstated: true }, sourcesOf(wiring))", "{ batteryCableUnstated: true }, [wiring[0]!.source])"),
+ ('M15 checkCables: no batteryCableUnstated fact (sizeUnknown instead)', ITEMS, "{ batteryCableUnstated: true }, sourcesOf(wiring))", "{ sizeUnknown: true }, sourcesOf(wiring))"),
+ ('M16 checkCables: status ok when nothing left', ITEMS, "check('cables', 'unknown', { batteryCableUnstated: true }", "check('cables', 'ok', { batteryCableUnstated: true }"),
+ ('M17 checkCables ignores batteryWiring (judges all wiring)', ITEMS, 'const lines = batteryWiring(wiring)', 'const lines = wiring'),
+ ('M18 checkFuse ignores batteryWiring', ITEMS, "const wiring = batteryWiring(ofKind(x, 'wiring', false))", "const wiring = ofKind(x, 'wiring', false)"),
+ ('M19 mainCable receives unfiltered lines in fuse but runs filtered', ITEMS, "const cable = mainCable(wiring, kit)", "const cable = mainCable(ofKind(x, 'wiring', false), kit)"),
+ ('M20 checkCables runsOf counts unfiltered wiring', ITEMS, 'const isCounted = runsOf(lines, top.size.mm2) >= runs || runsOf(lines, kit.mainMm2) >= kit.cableRuns', 'const isCounted = runsOf(wiring, top.size.mm2) >= runs || runsOf(wiring, kit.mainMm2) >= kit.cableRuns'),
+ ('M21 text: confirmPhrase ignores batteryCableUnstated', TEXT, "      if (f.batteryCableUnstated) return q.confirmBatteryCable\n", ''),
+ ('M22 text: unclearText ignores batteryCableUnstated', TEXT, "      if (f.batteryCableUnstated) return { label: q.included, detail: q.batteryCableNotStated }\n", ''),
+ ('M23 isFitting always false', ITEMS, 'const isFitting = (l: QuoteLine): boolean => FITTINGS.test(lineText(l))', 'const isFitting = (l: QuoteLine): boolean => false'),
+ ('M24 lineText drops source.text', ITEMS, 'const lineText = (l: QuoteLine): string => `${l.description} ${l.source.text}`', 'const lineText = (l: QuoteLine): string => `${l.description}`'),
+ ('M25 OFF_BATTERY tested on source text only', ITEMS, 'filter((l) => !OFF_BATTERY.test(lineText(l)))', 'filter((l) => !OFF_BATTERY.test(l.source.text))'),
+ ('M26 OFF_BATTERY tested on description only', ITEMS, 'filter((l) => !OFF_BATTERY.test(lineText(l)))', 'filter((l) => !OFF_BATTERY.test(l.description))'),
+ ('M27 FITTINGS loses "tierra"', ITEMS, '|ducto|tierra|ground/i', '|ducto|ground/i'),
+ ('M28 FITTINGS loses "terminal"', ITEMS, "FITTINGS = /terminal|", "FITTINGS = /"),
+]
+def run():
+    p=subprocess.run(['npx','vitest','run','src/lib/quote-items.test.ts','src/lib/quote-text.test.ts'],capture_output=True,text=True)
+    out=re.sub(r'\x1b\[[0-9;]*m','',p.stdout+p.stderr)
+    m=re.search(r'Tests\s+(?:(\d+) failed \| )?(\d+) passed',out)
+    failed=[l.strip()[:110] for l in out.splitlines() if l.strip().startswith('×') or re.match(r'\s*×',l)]
+    return p.returncode, (m.group(1) or '0') if m else '?', failed, out
+for name,path,old,new in M:
+    src=open(path).read()
+    if old not in src:
+        print(f'{name}: PATTERN NOT FOUND'); continue
+    open(path,'w').write(src.replace(old,new,1))
+    try:
+        rc,nf,failed,out=run()
+    finally:
+        open(path,'w').write(src)
+    status='KILLED' if rc!=0 else 'SURVIVED'
+    print(f'{name}: {status} ({nf} failing)')
+    if rc==0: pass

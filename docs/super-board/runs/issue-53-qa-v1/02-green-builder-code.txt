@@ -1,0 +1,17 @@
+# Builder implementation (expected: green)
+✓ an AC feeder beside a thin battery cable re [... omitted end of long line]
+✓ a thick solar line beside a thin battery ca [... omitted end of long line]
+✓ sized solar or AC wiring alone reads unknow [... omitted end of long line]
+✓ a solar line beside a sized battery cable i [... omitted end of long line]
+✓ a solar or AC cable beside a battery cable  [... omitted end of long line]
+✓ a solar or AC line thicker than a battery c [... omitted end of long line]
+✓ the ticket's own example reads short, in th [... omitted end of long line]
+✓ capital letters set a line aside too: quote [... omitted end of long line]
+✓ one line that names the battery and the arr [... omitted end of long line]
+✓ the words that name the array or the AC sid [... omitted end of long line]
+✓ a line that names neither is a battery cabl [... omitted end of long line]
+✓ the runs a quote counts are those of the ba [... omitted end of long line]
+✓ the runs a fuse needs are counted in batter [... omitted end of long line]
+✓ the fuse is judged against the battery cabl [... omitted end of long line]
+Test Files  1 passed (1)
+     Tests  82 passed (82)

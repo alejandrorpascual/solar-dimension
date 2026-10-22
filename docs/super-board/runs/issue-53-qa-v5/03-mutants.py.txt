@@ -1,0 +1,90 @@
+"""QA round 5 for #53: break quote-items.ts / quote-text.ts in small named ways, rerun the quote tests, restore.
+
+Prints one row per break: CAUGHT (a test went red) or SURVIVES (every test still green). Never commits a break.
+Usage: python3 qa53_mutants.py <repo root>
+"""
+import pathlib
+import re
+import subprocess
+import sys
+
+ROOT = pathlib.Path(sys.argv[1])
+ITEMS = 'src/lib/quote-items.ts'
+TEXT = 'src/lib/quote-text.ts'
+TESTS = ['src/lib/quote-items.test.ts', 'src/lib/quote-text.test.ts']
+
+GROUND_RULE = "  ['ground', (t) => GROUND.test(t)],\n"
+FITTING_RULE = "  ['fitting', (t) => PARTS.test(t) && !CABLE.test(t)],\n"
+BATTERY_RULE = "  ['battery', (t) => BATTERY.test(t)],\n"
+OFF_RULE = "  ['offBattery', (t) => OFF_BATTERY.test(t)],\n"
+RULES = GROUND_RULE + FITTING_RULE + BATTERY_RULE + OFF_RULE
+
+MUTANTS = [
+    # AC1: the order of the role rules, first match wins.
+    ('AC1 order: battery before ground', ITEMS, RULES, BATTERY_RULE + GROUND_RULE + FITTING_RULE + OFF_RULE),
+    ('AC1 order: battery before fitting', ITEMS, RULES, GROUND_RULE + BATTERY_RULE + FITTING_RULE + OFF_RULE),
+    ('AC1 order: fitting, battery, then ground', ITEMS, RULES, FITTING_RULE + BATTERY_RULE + GROUND_RULE + OFF_RULE),
+    ('AC1 order: solar/AC before battery', ITEMS, RULES, GROUND_RULE + FITTING_RULE + OFF_RULE + BATTERY_RULE),
+    ('AC1 order: solar/AC first of all', ITEMS, RULES, OFF_RULE + GROUND_RULE + FITTING_RULE + BATTERY_RULE),
+    ('AC1 order: fitting before ground', ITEMS, RULES, FITTING_RULE + GROUND_RULE + BATTERY_RULE + OFF_RULE),
+    # AC1: each rule.
+    ('AC1 ground rule dropped', ITEMS, GROUND_RULE, ''),
+    ('AC1 fitting rule dropped', ITEMS, FITTING_RULE, ''),
+    ('AC1 fitting ignores the cable word (R6 back)', ITEMS, 'PARTS.test(t) && !CABLE.test(t)', 'PARTS.test(t)'),
+    ('AC1 battery rule dropped', ITEMS, BATTERY_RULE, ''),
+    ('AC1 solar/AC rule dropped', ITEMS, OFF_RULE, ''),
+    # AC1: own description first, source text only when it names nothing and no other line shares it.
+    ('AC1 source text never read', ITEMS, 'return isSplit ? own : roleIn(l.source.text)', 'return own'),
+    ('AC1 source text read even for split lines', ITEMS, 'return isSplit ? own : roleIn(l.source.text)', 'return roleIn(l.source.text)'),
+    ('AC1 source text read first', ITEMS, '  const own = roleIn(l.description)\n  if (own !== \'cable\') return own\n',
+     '  const src = roleIn(l.source.text)\n  if (src !== \'cable\') return src\n  const own = roleIn(l.description)\n'),
+    ('AC1 split ignores the page', ITEMS, 'o !== l && o.source.page === l.source.page && o.source.text', 'o !== l && o.source.text'),
+    ('AC1 a line counts as its own sibling', ITEMS, 'all.some((o) => o !== l && ', 'all.some((o) => '),
+    # AC1: the words.
+    ('GROUND loses its letter bound', ITEMS, 'const GROUND = /(?<!\\p{L})(?:tierra|ground)/iu', 'const GROUND = /(?:tierra|ground)/iu'),
+    ('PARTS loses tubo', ITEMS, '|conduit|tubo|', '|conduit|'),
+    ('PARTS loses zapata', ITEMS, '|connector|zapata|', '|connector|'),
+    ('CABLE loses conductor', ITEMS, 'const CABLE = /cabl|conductor|', 'const CABLE = /cabl|'),
+    ('BATTERY loses the unaccented i', ITEMS, 'bater[ií]a', 'batería'),
+    ('BATTERY loses English', ITEMS, 'bater[ií]a|batter(?:y|ies)', 'bater[ií]a'),
+    ('BATTERY loses "batteries"', ITEMS, 'batter(?:y|ies)', 'battery'),
+    ('OFF_BATTERY loses dotted C.A./A.C.', ITEMS, 'A\\.?C\\.?|C\\.?A\\.?', 'AC|CA'),
+    ('OFF_BATTERY loses PV/FV', ITEMS, '(?:PV|FV|A', '(?:A'),
+    ('OFF_BATTERY loses the letter bounds', ITEMS, '(?<!\\p{L})(?:PV', '(?:PV'),
+    # AC2: judged on battery and plain-cable lines only; none left reads "Battery cable not stated".
+    ('AC2 battery wiring keeps solar/AC lines', ITEMS, "['battery', 'cable'].includes", "['battery', 'cable', 'offBattery'].includes"),
+    ('AC2 battery wiring keeps ground and fittings', ITEMS, "['battery', 'cable'].includes", "['battery', 'cable', 'ground', 'fitting'].includes"),
+    ('AC2 battery wiring drops plain cables', ITEMS, "['battery', 'cable'].includes", "['battery'].includes"),
+    ('AC2 fuse reads every wiring line', ITEMS, '  const wiring = batteryWiring(x)\n  const cable = mainCable(wiring, kit)',
+     "  const wiring = ofKind(x, 'wiring', false)\n  const cable = mainCable(wiring, kit)"),
+    ('AC2 none left reads absent', ITEMS, "if (lines.length === 0) return check('cables', 'unknown', { batteryCableUnstated: true }, sourcesOf(wiring))",
+     "if (lines.length === 0) return absent('cables', x, 'wiring')"),
+    ('AC2 none left reads size not stated', ITEMS, "check('cables', 'unknown', { batteryCableUnstated: true }, sourcesOf(wiring))",
+     "check('cables', 'unknown', { sizeUnknown: true }, sourcesOf(wiring))"),
+    ('AC2 page says "Size not stated" for no battery cable', TEXT,
+     'if (f.batteryCableUnstated) return { label: q.included, detail: q.batteryCableNotStated }', ''),
+    ('AC2 question asks for the main cables', TEXT, '      if (f.batteryCableUnstated) return q.confirmBatteryCable\n', ''),
+]
+
+originals = {p: (ROOT / p).read_text() for p in {ITEMS, TEXT}}
+try:
+    for name, path, old, new in MUTANTS:
+        src = originals[path]
+        if src.count(old) != 1:
+            print(f'NOT APPLIED | {name} ({src.count(old)} matches)')
+            continue
+        (ROOT / path).write_text(src.replace(old, new, 1))
+        r = subprocess.run(['npx', 'vitest', 'run', *TESTS], cwd=ROOT, capture_output=True, text=True)
+        (ROOT / path).write_text(src)
+        out = r.stdout + r.stderr
+        m = re.search(r'Tests\s+(?:(\d+) failed \| )?(\d+) passed', out)
+        failed = m.group(1) if m and m.group(1) else ('?' if r.returncode != 0 else '0')
+        verdict = 'CAUGHT' if r.returncode != 0 else 'SURVIVES'
+        print(f'{verdict:<9}| {failed:>2} red | {name}')
+        if verdict == 'CAUGHT':
+            reds = sorted(set(re.findall(r'FAIL\s+\S+\s+>\s+(.+?)(?:\s+\d+ms)?$', out, re.M)))[:2]
+            for t in reds:
+                print(f'           - {t.strip()[:140]}')
+finally:
+    for p, src in originals.items():
+        (ROOT / p).write_text(src)

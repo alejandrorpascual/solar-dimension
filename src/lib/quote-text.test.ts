@@ -339,6 +339,13 @@ describe('items a quote mentions without enough to judge them', () => {
     expect(markLabel(en, cables)).toBe('To confirm')
     expect(markLabel(es, cables)).toBe('Por confirmar')
   })
+  test('wiring that is all solar or AC says the quote names no battery cable, not that a size is missing (R4)', () => {
+    const solar = line('wiring', 1, { description: 'Alimentador AC, cable 4/0 AWG', source: { page: 1, text: 'Alimentador AC, cable 4/0 AWG' }, specs: { awg: '4/0' } })
+    const cables = judged([solar], 'cables')
+    expect(itemText(en, cables, KIT, 'USD')).toEqual({ label: 'Included', detail: 'Battery cable not stated' })
+    expect(itemText(es, cables, KIT, 'USD')).toEqual({ label: 'Incluido', detail: 'No indica el cable de la batería' })
+    expect(markLabel(en, cables)).toBe('To confirm')
+  })
   test('a cable that must be more runs than the quote counts says how many', () => {
     const kit: KitNeeds = { ...KIT, designA: 231, ampacityByGauge: { ...KIT.ampacityByGauge, '1 AWG': 130 }, cableMm2: 42.4, cableGauge: '1 AWG' }
     expect(itemText(en, judged([wiring('1')], 'cables', kit), kit, 'USD')).toEqual({ label: '1 AWG', detail: "Needs 2 runs of this size; the quote doesn't say how many" })
@@ -407,6 +414,15 @@ describe('items a quote mentions without enough to judge them', () => {
       const { r, verdict } = rank([...good.map((l) => (l.kind === 'inverter' ? { ...l, specs: { ...l.specs, hasCharger: true } } : l)), wiring(null)])
       expect(reasonLine(es, r, verdict, KIT)).toBe('No confirma la medida de los cables principales.')
       expect(questionText(en, r)).toBe('Hi Luz, could you confirm the size of the main cables?')
+    })
+    test('a quote whose wiring is all solar or AC asks for the battery cable (R4)', () => {
+      const noCharger = good.map((l) => (l.kind === 'inverter' ? { ...l, specs: { ...l.specs, hasCharger: true } } : l))
+      const solar = line('wiring', 1, { description: 'Cable solar 4/0 AWG', source: { page: 1, text: 'Cable solar 4/0 AWG' }, specs: { awg: '4/0' } })
+      const { r, verdict } = rank([...noCharger, solar])
+      expect(r.unknownMusts).toEqual(['cables'])
+      expect(reasonLine(en, r, verdict, KIT)).toBe("Doesn't confirm the size of the battery cable.")
+      expect(questionText(en, r)).toBe('Hi Luz, could you confirm the size of the battery cable?')
+      expect(questionText(es, r)).toBe('Hola, Luz: ¿podría confirmar la medida del cable de la batería?')
     })
     test('each open point has its own phrase, so the question names what to check', () => {
       const ask = (lines: Parameters<typeof extraction>[0]) => questionText(en, rank(lines).r)

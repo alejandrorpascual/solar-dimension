@@ -1,0 +1,12 @@
+# red on the round-1 app code (f5a104a, before the R1-R4 fixes), tests of 619c381
+       × sized solar or AC wiring alone reads unknown, whatever its size 15ms
+       × one line that names the battery and the array is no battery cable: with nothing else beside it, it is to confirm 1ms
+       × letters bound the words, as for a length: "caída", "cañería" and "acá" are no CA or AC (R2) 1ms
+       × a dot or a digit is no letter: "C.A.", "A.C." and "PV1-F" name the AC side or the array (R3) 2ms
+       × a ground wire or a lug left beside solar or AC wiring is no battery cable: the quote names none (R1) 2ms
+       × a ground wire left beside solar or AC wiring is no cable for the fuse either (R1) 0ms
+     × wiring that is all solar or AC says the quote names no battery cable, not that a size is missing (R4) 12ms
+       × a quote whose wiring is all solar or AC asks for the battery cable (R4) 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed (2)
+      Tests  8 failed | 163 passed (171)

@@ -1,0 +1,5 @@
+head under test: 619c381 (Builder rebuild 1, fixes R1-R4); branch issue-53-main-cables-judge-the-battery-cable; base staging 3ca1535
+round: QA v2 (v1 passed on f5a104a, the Reviewer bounced R1-R4, the Builder rebuilt)
+unit command (the Reviewer reruns it): npx vitest run src/lib/quote-items.test.ts src/lib/quote-text.test.ts
+e2e: BETTER_AUTH_SECRET=<throwaway random value, set inline> E2E_PORT=4106 npx playwright test <quote specs>; only .env.test.local linked (no other env file read)
+no QA test files added: the test-gap check found no High gap (see the PR comment for Medium and Low)
