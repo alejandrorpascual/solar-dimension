@@ -51,7 +51,9 @@ def view(files, changed):
                                                "deletions": f["deletions"]} for f in files[:100]]}
 
 
-class GitHubReadTests(unittest.TestCase):
+class StubGitHub:
+    """A temp dir holding the stub `gh`, its fixture and the halt file."""
+
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -71,21 +73,26 @@ class GitHubReadTests(unittest.TestCase):
         first = {"out": "" if out is None else json.dumps(out), "err": err, "code": code}
         self.replies.insert(0, [needle, first if then is None else [first, {"out": json.dumps(then)}]])
 
+    def run_helper(self, *argv, strict=False):
+        return self.run_command("python3", str(HELPER), *argv, strict=strict)
+
+    def run_command(self, *command, strict=False):
+        (self.work / "fixture.json").write_text(json.dumps(self.replies))
+        env = dict(self.env, SB_GITHUB_READ_STRICT="1") if strict else self.env
+        return subprocess.run(command, env=env, capture_output=True, text=True)
+
+    def calls(self):
+        log = self.work / "calls.log"
+        return log.read_text().splitlines() if log.exists() else []
+
+
+class GitHubReadTests(StubGitHub, unittest.TestCase):
     def big_pr(self, rest_files=104, then_files=None):
         files = [png(i) for i in range(100)] + [dict(png(i), filename=f"src/lib/kit-{i}.ts", additions=5, deletions=1)
                                                 for i in range(100, 104)]
         self.reply("pr view 151", view(files, 104))
         self.reply(FILES, [files[:100], files[100:rest_files]],
                    then=None if then_files is None else [files[:100], files[100:then_files]])
-
-    def run_helper(self, *argv, strict=False):
-        (self.work / "fixture.json").write_text(json.dumps(self.replies))
-        env = dict(self.env, SB_GITHUB_READ_STRICT="1") if strict else self.env
-        return subprocess.run(["python3", str(HELPER), *argv], env=env, capture_output=True, text=True)
-
-    def calls(self):
-        log = self.work / "calls.log"
-        return log.read_text().splitlines() if log.exists() else []
 
     def test_metadata_pages_files_past_the_100_that_pr_view_returns(self):
         self.big_pr()
