@@ -25,9 +25,22 @@ function toRecord(row: Row): ApplianceRecord | null {
   return { ...parsed.data, sortOrder: row.sortOrder, retired: row.retiredAt !== null }
 }
 
+/** A row as stored, with the schema check skipped: the "before" of a write that replaces a row failing the schema. */
+function storedRecord(row: Row): ApplianceRecord {
+  return {
+    id: row.id, category: row.category, watts: row.watts, surge: row.surge, duty: row.duty,
+    tons: row.tons, acType: row.acType, labels: row.labels, sortOrder: row.sortOrder,
+    kind: row.kind, surgeClass: row.surgeClass, burstSeconds: row.burstSeconds, cyclesPerHour: row.cyclesPerHour,
+    retired: row.retiredAt !== null,
+  } as ApplianceRecord
+}
+
+const selectRows = () => db.select().from(appliances).orderBy(asc(appliances.sortOrder), asc(appliances.id))
+
+const validRecords = (rows: readonly Row[]) => rows.map(toRecord).filter((r): r is ApplianceRecord => r !== null)
+
 export async function listRecords(): Promise<ApplianceRecord[]> {
-  const rows = await db.select().from(appliances).orderBy(asc(appliances.sortOrder), asc(appliances.id))
-  return rows.map(toRecord).filter((r): r is ApplianceRecord => r !== null)
+  return validRecords(await selectRows())
 }
 
 /** Checks the table directly (unlike listRecords, includes retired rows and rows that no longer pass the schema). */
@@ -40,6 +53,21 @@ export async function queryCatalog(): Promise<CatalogItem[]> {
   return (await listRecords()).map(toCatalogItem)
 }
 
+/**
+ * A write whose row is not in the valid list but is in the table replaces a row that fails the schema (listRecords skips
+ * it). Its entry keeps that row as "before", not null ("Created"). An upsert never touches `retired_at`, so the row's
+ * retired state carries over into "after".
+ */
+function keepReplacedRows(writes: readonly ApplianceWrite[], rows: readonly Row[]): ApplianceWrite[] {
+  const stored = new Map(rows.map((row) => [row.id, row]))
+  return writes.map((write) => {
+    const row = write.before === null ? stored.get(write.after.id) : undefined
+    if (!row) return write
+    const before = storedRecord(row)
+    return { before, after: { ...write.after, retired: before.retired } }
+  })
+}
+
 /** The change-log entries for a batch's writes, in the order written. */
 const logStatement = (writes: readonly ApplianceWrite[], actor: string) =>
   db.insert(applianceChanges).values(writes.map(({ before, after }) => ({ applianceId: after.id, actor, before, after })))
@@ -50,8 +78,10 @@ const logStatement = (writes: readonly ApplianceWrite[], actor: string) =>
  * rows are read before the batch, so a concurrent writer to the same item can be missing from an entry's "before".
  */
 export async function upsertAppliances(items: readonly ApplianceInput[], actor: string): Promise<{ created: string[]; updated: string[]; warnings: ApplianceWarnings[] }> {
-  const existing = await listRecords()
-  const { changes, writes } = planUpsert(existing, items)
+  const rows = await selectRows()
+  const existing = validRecords(rows)
+  const { changes, writes: planned } = planUpsert(existing, items)
+  const writes = keepReplacedRows(planned, rows)
   if (writes.length > 0) {
     await db.batch([
       db

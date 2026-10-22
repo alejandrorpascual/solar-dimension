@@ -102,6 +102,20 @@ test('a new appliance is logged with no row before it', async () => {
   expect(decoded(log!.params)).toEqual(['fridge', 'api-token', null, { ...storedFridge, sortOrder: 10 }])
 })
 
+test('a write over a stored row that fails the schema logs that row as the "before", not a new appliance', async () => {
+  store(fridgeRow({ watts: 0, retiredAt: new Date('2026-10-20T00:00:00Z') }))
+
+  await upsertAppliances([fridgeInput], 'api-token')
+
+  const [, log] = wire.batches[0]!
+  // The row stays retired (an upsert never touches `retired_at`), so the entry says it was and still is.
+  expect(decoded(log!.params)).toEqual([
+    'fridge', 'api-token',
+    { ...storedFridge, watts: 0, retired: true },
+    { ...storedFridge, sortOrder: 10, retired: true },
+  ])
+})
+
 test('an unchanged write sends nothing to write and logs nothing', async () => {
   store(fridgeRow())
 
