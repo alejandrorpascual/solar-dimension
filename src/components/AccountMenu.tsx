@@ -4,6 +4,7 @@ import { Button, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, type
 import type { ConnectGoogle } from '../hooks/useConnectGoogle'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
+import type { Step } from '../lib/steps'
 import type { SessionUser } from '../server/session'
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
   onSignOut: () => Promise<void>
   /** From useConnectGoogle: the page says when connecting failed too, under the header for the same reason. */
   google: Pick<ConnectGoogle, 'canConnect' | 'connect'>
+  /** The kit step the page is on: the sign-in link carries it, so signing in comes back to it. */
+  step?: Step
 }
 
 /** One letter for the avatar: the name's first letter, else the email's. */
@@ -21,11 +24,11 @@ function initialOf(user: SessionUser): string {
   return (user.name.trim() || user.email).charAt(0).toUpperCase()
 }
 
-export function AccountMenu({ user, busy = false, onSignOut, google }: Props) {
+export function AccountMenu({ user, busy = false, onSignOut, google, step }: Props) {
   const { t } = useLocale()
   if (!user) {
     return (
-      <Link to="/login" className="chip">
+      <Link to="/login" search={{ step }} className="chip">
         <LogIn size={16} strokeWidth={2} aria-hidden="true" />
         {t.ui.signIn}
       </Link>

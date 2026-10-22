@@ -21,3 +21,12 @@ test('the footer shows no attention line before the kit step, or when every chec
   expect(footerHtml(3, '2 checks need attention')).not.toContain('class="attn"')
   expect(footerHtml(4, null)).not.toContain('class="attn"')
 })
+
+/** The class list of the footer button labelled `label`. */
+const buttonClass = (html: string, label: string) => new RegExp(`<button type="button" class="([^"]*)"[^>]*>(?:<svg[\\s\\S]*?</svg>)?${label}</button>`).exec(html)?.[1]
+
+test('on the kit step Download is the primary button and Start over a secondary one', () => {
+  const html = footerHtml(4, null)
+  expect(buttonClass(html, 'Download')?.split(' ')).toContain('btn--primary')
+  expect(buttonClass(html, 'Start over')?.split(' ')).toEqual(['btn'])
+})

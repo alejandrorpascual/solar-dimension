@@ -8,7 +8,7 @@ interface Props {
   /** "2 checks need attention" on the kit step, or null when every check passes. */
   attention: string | null
   onBack: () => void; onNext: () => void; onStartOver: () => void
-  /** Opens the download sheet; the button only shows where the side rail is hidden. */
+  /** The kit step's main action: opens the Download tab, in the side rail where it shows and in a sheet elsewhere. */
   onDownload: () => void
 }
 
@@ -27,12 +27,12 @@ export function WizardFooter({ step, summary, attention, onBack, onNext, onStart
             {step === 1 ? t.ui.next : step === 2 ? t.ui.nextSolar : t.ui.buildKit}
           </button>
         )}
+        {step === 4 && <button type="button" className="btn" onClick={onStartOver}>{t.ui.startOver}</button>}
         {step === 4 && (
-          <button type="button" className="btn footer__download" aria-haspopup="dialog" onClick={onDownload}>
+          <button type="button" className="btn btn--primary footer__download" onClick={onDownload}>
             <Download size={18} aria-hidden="true" />{t.ui.download}
           </button>
         )}
-        {step === 4 && <button type="button" className="btn btn--primary" onClick={onStartOver}>{t.ui.startOver}</button>}
       </div>
     </footer>
   )

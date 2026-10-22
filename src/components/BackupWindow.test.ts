@@ -47,3 +47,9 @@ test('with the box unticked there is no bundling factor to show, in either langu
   // An unbundled run always gets factor 1: printing it would read 100% on a kit that drops to 80% once ticked.
   for (const locale of ['en', 'es'] as const) expect(bundlingHelp(locale, { wheater: 2 }, false)).toBe('')
 })
+
+test('the Cable run summary shows a chevron, so it reads as something that opens', () => {
+  const summary = /<summary class="elec__summary">([\s\S]*?)<\/summary>/.exec(stepTwo('en'))?.[1] ?? ''
+  expect(summary).toContain('Cable run')
+  expect(summary).toMatch(/<svg[^>]*class="[^"]*lucide-chevron-down/)
+})
