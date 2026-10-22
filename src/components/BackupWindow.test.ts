@@ -27,6 +27,14 @@ test('step 2 says every appliance counts in every hour of the window, in English
   expect(stepTwo('es')).toContain('Cada aparato cuenta en todas las horas del respaldo.')
 })
 
+test('a 60 h project sets the hours slider to 60 within a range that reaches it', () => {
+  const html = stepTwo('en', (store) => patchCurrent(store, { hours: 60 }))
+  const slider = /<input id="hours"[^>]*>/.exec(html)?.[0] ?? ''
+  expect(slider).toContain('value="60"')
+  expect(slider).toContain('min="1"')
+  expect(slider).toContain('max="72"')
+})
+
 /** Step 2 for a 48 V kit of `qty`: the line under the "share a conduit" box, tags out, or '' when the box shows none. */
 function bundlingHelp(locale: Locale, qty: Record<string, number>, bundled = true): string {
   const html = stepTwo(locale, (store) => setElectricalIn(patchCurrent(store, { qty, volts: 48 }), store.currentId, { bundled }))

@@ -2,14 +2,12 @@ import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES, FEW_INVERTERS_VOLTAGE, VOLTAGES, type ChemistryId, type Voltage } from '../lib/catalog'
-import type { Store } from '../lib/schema'
+import { HOURS_MAX, HOURS_MIN, type Store } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
 import { currentProject, patchCurrent, setElectricalIn } from '../lib/store'
 import { CableConditions, StartsPicker } from './ElectricalSettings'
 
 const PRESET_HOURS = [4, 8, 10, 12, 24, 48] as const
-const HOURS_MIN = 1
-const HOURS_MAX = 48
 
 interface Props { store: Store; commit: (s: Store) => void; result: SizingResult }
 
@@ -37,7 +35,7 @@ export function BackupWindow({ store, commit, result }: Props) {
           <input id="hours" type="range" min={HOURS_MIN} max={HOURS_MAX} step={1} value={p.hours} onChange={(e) => setHours(Number(e.target.value))} />
           <div className="hs presets">
             {PRESET_HOURS.map((h) => (
-              <button key={h} type="button" className={`chip${h === p.hours ? ' chip--on' : ''}`} onClick={() => setHours(h)}>{h} h</button>
+              <button key={h} type="button" className={`chip${h === p.hours ? ' chip--on' : ''}`} aria-pressed={h === p.hours} onClick={() => setHours(h)}>{h} h</button>
             ))}
           </div>
           <div className="note-box">{summary}</div>
@@ -46,7 +44,7 @@ export function BackupWindow({ store, commit, result }: Props) {
           <div className="window__label">{t.ui.batteryVoltage}</div>
           <div className="opt-grid">
             {VOLTAGES.map((v: Voltage) => (
-              <button key={v} type="button" className={`opt${v === p.volts ? ' opt--on' : ''}`} onClick={() => commit(patchCurrent(store, { volts: v }))}>
+              <button key={v} type="button" className={`opt${v === p.volts ? ' opt--on' : ''}`} aria-pressed={v === p.volts} onClick={() => commit(patchCurrent(store, { volts: v }))}>
                 <span className="opt__t">{v} V</span><span className="opt__h">{t.voltageHints[v]}</span>
               </button>
             ))}
@@ -55,7 +53,7 @@ export function BackupWindow({ store, commit, result }: Props) {
           <div className="window__label">{t.ui.batteryChemistry}</div>
           <div className="opt-grid">
             {(Object.keys(CHEMISTRIES) as ChemistryId[]).map((k) => (
-              <button key={k} type="button" className={`opt${k === p.chemistry ? ' opt--on' : ''}`} onClick={() => commit(patchCurrent(store, { chemistry: k }))}>
+              <button key={k} type="button" className={`opt${k === p.chemistry ? ' opt--on' : ''}`} aria-pressed={k === p.chemistry} onClick={() => commit(patchCurrent(store, { chemistry: k }))}>
                 <span className="opt__t">{t.chemistries[k]}</span><span className="opt__h">{tr(t, 'usableCapacity', { pct: Math.round(CHEMISTRIES[k].dod * 100) })}</span>
               </button>
             ))}

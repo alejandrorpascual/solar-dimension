@@ -90,7 +90,7 @@ export function ApplianceGrid({ store, commit }: { store: Store; commit: (s: Sto
       </div>
       <div className="hs">
         {filters.map((f) => (
-          <button key={f} type="button" className={`chip${f === filter ? ' chip--on' : ''}`} onClick={() => setFilter(f)}>{t.categories[f]}</button>
+          <button key={f} type="button" className={`chip${f === filter ? ' chip--on' : ''}`} aria-pressed={f === filter} onClick={() => setFilter(f)}>{t.categories[f]}</button>
         ))}
       </div>
       <div className="catalog">

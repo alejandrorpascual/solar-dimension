@@ -1,0 +1,5 @@
+- navigation "Pasos":
+  - 'button "Paso 1: Electrodomésticos"'
+  - 'button "Paso 2: Horas de respaldo"'
+  - 'button "Paso 3: Paneles solares"'
+  - 'button "Paso 4: Tu kit"'

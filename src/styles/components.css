@@ -72,6 +72,10 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 
 /* Stage and footer */
 .stage { display: flex; flex-direction: column; gap: 14px; }
+/* A level-1 heading at the size the step questions had as level 2. A step change focuses it; keyboard users see where. */
+.stage__title { font-size: 1.5em; }
+.stage__title:focus { outline: none; }
+.stage__title:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 @media (min-width: 1024px) {
   .stage { flex: 1 1 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 36px 40px; gap: 22px; box-shadow: var(--shadow-card); }
 }

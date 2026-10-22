@@ -32,8 +32,8 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
           <div className="muted custom__hint">{t.ui.customHelp}</div>
         </div>
         <div className="custom__modes">
-          <button type="button" className={`seg${!isVa ? ' seg--on' : ''}`} onClick={() => set({ mode: 'watts' })}>{t.ui.watts}</button>
-          <button type="button" className={`seg${isVa ? ' seg--on' : ''}`} onClick={() => set({ mode: 'va' })}>{t.ui.voltsAmps}</button>
+          <button type="button" className={`seg${!isVa ? ' seg--on' : ''}`} aria-pressed={!isVa} onClick={() => set({ mode: 'watts' })}>{t.ui.watts}</button>
+          <button type="button" className={`seg${isVa ? ' seg--on' : ''}`} aria-pressed={isVa} onClick={() => set({ mode: 'va' })}>{t.ui.voltsAmps}</button>
         </div>
       </div>
       {unread > 0 && (

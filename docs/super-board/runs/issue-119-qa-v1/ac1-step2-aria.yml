@@ -1,0 +1,20 @@
+- text: Hours without the grid 12 h
+- slider "Hours without the grid": "12"
+- button "4 h"
+- button "8 h"
+- button "10 h"
+- button "12 h" [pressed]
+- button "24 h"
+- button "48 h"
+- text: Your 7 appliances draw 465 W and use about 4.4 kWh over 12 hours. We size the bank to 9.8 kWh after inverter losses and depth of discharge. Battery voltage
+- button "12 V Small systems up to ~2 kW"
+- button "24 V Mid-size, up to ~5 kW" [pressed]
+- button "36 V Uncommon; golf-cart banks"
+- button "48 V Whole-home, 3 kW and up"
+- text: Battery chemistry
+- button "LiFePO₄ lithium 85% usable capacity"
+- button "AGM lead-acid 50% usable capacity" [pressed]
+- text: Motors starting at once
+- 'button "One at a time Typical: the biggest motor starts while the rest run." [pressed]'
+- button "Two together Fridge and AC can start in the same second."
+- button "All at once Everything restarts together when the grid drops."
