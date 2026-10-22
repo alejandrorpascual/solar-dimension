@@ -1,0 +1,12 @@
+# Mutation check of src/lib/fresh-database-script.test.ts (12 tests): one guarded line of scripts/fresh-database.ts broken at a time, never committed.
+# RED = the tests fail on the mutant. The script was restored after each.
+M1 drop the production guard: RED, 2 tests fail
+M2 drop runs the create statement: RED, 1 tests fail
+M3 drop also prints the URL: RED, 1 tests fail
+M4 psql stdout reaches the step: RED, 4 tests fail
+M5 psql errors are swallowed: RED, 2 tests fail
+M6 a failing psql passes the step: RED, 2 tests fail
+M7 drop connects to the target itself: RED, 2 tests fail
+M8 a missing psql passes the step: RED, 1 tests fail
+M9 an unknown command is accepted: RED, 2 tests fail
+M10 the run name is not checked: RED, 2 tests fail

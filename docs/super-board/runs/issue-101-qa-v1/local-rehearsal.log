@@ -1,0 +1,29 @@
+# scripts/fresh-database.ts on a private local Postgres 15 (127.0.0.1, torn down after): not Neon, no db:* script. Key lines of the run.
+A. create makes an empty database and prints only its URL on stdout
+[create] exit=0 stdout=[postgresql://qa@127.0.0.1:54711/ci_fresh_9001_1] stderr=[made database ci_fresh_9001_1|]
+tables in it: 0
+B. every migration SQL file of the journal applies to it from empty, in journal order
+journal entries: 15 applied=15 failed=0
+tables after: 12
+C. a failing step, then the always-run drop step (bash -e, as the CI shell)
+failing job exit=1
+left behind by the failed job: ci_fresh_9002_1
+[drop-after-failure] exit=0 stdout=[] stderr=[dropped database ci_fresh_9002_1|]
+D. drop ends a connection that is still open to the database (WITH FORCE)
+[create] exit=0 stdout=[postgresql://qa@127.0.0.1:54711/ci_fresh_9003_1] stderr=[made database ci_fresh_9003_1|]
+connections held on it: 1
+[drop-with-connection] exit=0 stdout=[] stderr=[dropped database ci_fresh_9003_1|]
+held connection saw: FATAL:  terminating connection due to administrator command|server closed the connection unexpectedly|	This probably means the se [... omitted end of long line]
+E. drop is safe to run twice, and when nothing was made
+[drop-again] exit=0 stdout=[] stderr=[NOTICE:  database "ci_fresh_9003_1" does not exist, skipping|dropped database ci_fresh_9003_1|]
+F. refusals: no database is made or dropped
+[name-neondb] exit=1 stdout=[] stderr=[fresh-database create failed: FRESH_DATABASE must be ci_fresh_<run id>_<attempt>, and is "neondb".|]
+[name-injection] exit=1 stdout=[] stderr=[fresh-database drop failed: FRESH_DATABASE must be ci_fresh_<run id>_<attempt>, and is "ci_fresh_1_1\"; DROP [... omitted end of long line]
+[command-unknown] exit=1 stdout=[] stderr=[fresh-database reset failed: the command is one of create or drop.|]
+databases on the server: postgres,template0,template1
+G. the production endpoint is refused before psql is started
+[prod-create] exit=1 stdout=[] stderr=[fresh-database create failed: e2e refuses to run: DATABASE_URL is the production database (ep-round-sea-auutoq9 [... omitted end of long line]
+stub psql calls after the two production runs: 0
+stub psql calls after a test branch URL (control): 1
+[no-psql] exit=1 stdout=[] stderr=[fresh-database create failed: could not start psql: spawnSync psql ENOENT|]
+fresh databases at the end: (none)
