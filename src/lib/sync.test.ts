@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { addProject, currentProject, initialStore, patchCurrent } from './store'
 import {
   adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, isForAccount, leftOut, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing,
-  unsentOf,
+  rebase, unsentOf,
 } from './sync'
 
 test('reports new and changed projects as upserts and missing ones as deletes', () => {
@@ -29,6 +29,18 @@ test('applyChanges overlays local edits on a server list', () => {
   const deleted = applyChanges(server, { upserts: [], deletes: ['p1'] })
   expect(deleted).toEqual([])
   expect(applyChanges(server, { upserts: [], deletes: [] })).toEqual(server)
+})
+
+test('rebase lays the fields edited here over the account copy, and takes a project added here whole', () => {
+  const before = initialStore()
+  const account = patchCurrent(before, { hours: 20, updatedAt: 5 }).projects
+  const after = addProject(patchCurrent(before, { volts: 48, updatedAt: 9 }), 'Office')
+
+  const merged = rebase(account, before.projects, after.projects)
+
+  expect(merged.map((p) => p.name)).toEqual(['Home', 'Office'])
+  expect(merged[0]).toMatchObject({ hours: 20, volts: 48, updatedAt: 9 })
+  expect(rebase([], before.projects, after.projects).map((p) => p.name)).toEqual(['Home', 'Office'])
 })
 
 test('a changed requester makes the project an upsert', () => {

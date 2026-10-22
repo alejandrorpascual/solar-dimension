@@ -18,6 +18,27 @@ export function applyChanges(base: readonly Project[], changes: { upserts: reado
   return [...kept, ...added]
 }
 
+/**
+ * The account's list `base` with what was edited here between `before` and `after` laid over it field by field: a field
+ * edited here takes the value edited here, and every other field keeps the account's, so an edit here does not undo
+ * another device's edit to another field of the same project. A project added here, or gone from the account, is
+ * taken whole. Ceiling: a field is the unit, so edits on two devices to one field (two appliances in `qty`) keep this one.
+ */
+export function rebase(base: readonly Project[], before: readonly Project[], after: readonly Project[]): Project[] {
+  const beforeById = new Map(before.map((p) => [p.id, p]))
+  const accountCopies = new Map(base.map((p) => [p.id, p]))
+  const { upserts, deletes } = diffProjects(before, after)
+  const edits = upserts.map((edited) => {
+    const unedited = beforeById.get(edited.id)
+    const accountCopy = accountCopies.get(edited.id)
+    if (!unedited || !accountCopy) return edited
+    const fields = new Set([...Object.keys(unedited), ...Object.keys(edited)]) as Set<keyof Project>
+    const changed = [...fields].filter((field) => JSON.stringify(unedited[field]) !== JSON.stringify(edited[field]))
+    return { ...accountCopy, ...Object.fromEntries(changed.map((field) => [field, edited[field]])) }
+  })
+  return applyChanges(base, { upserts: edits, deletes })
+}
+
 /** How far ahead of the server a device's clock may run and still be believed: the margin Kerberos allows between clocks. */
 export const MAX_CLOCK_LEAD_MS = 5 * 60_000
 
@@ -55,7 +76,7 @@ type Outgoing = { upserts: Project[]; deletes: string[] }
 
 /**
  * What one save sends: its own change plus whatever failed before it, with every project as it stands in `next`, the
- * store that save was made from. A project that was edited then and deleted since is only deleted.
+ * store the save is sent from. A project that was edited then and deleted since is only deleted.
  */
 export function outgoing(next: readonly Project[], change: { upserts: readonly Project[]; deletes: readonly string[] }, unsent: Unsent): Outgoing {
   const changed = new Set([...change.upserts.map((p) => p.id), ...unsent.upserts])

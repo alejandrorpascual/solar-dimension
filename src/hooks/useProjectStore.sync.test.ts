@@ -93,6 +93,25 @@ test('an edit made here while the account is read again stays on screen and reac
   expect(names(account(ANA))).toEqual(['Home', 'Second renamed'])
 })
 
+test("the click that brings this tab back edits volts, and the hours another device saved stay, on screen and in the account", async () => {
+  session.user = ANA
+  await mount()
+  accounts.set(ANA.id, account(ANA).map((p) => ({ ...p, hours: 20, updatedAt: clock.now() })))
+  let answer!: () => void
+  net.gate = new Promise<void>((resolve) => { answer = resolve })
+
+  await comeBack()
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: 48 })))
+  net.gate = null
+  answer()
+  const after = await edit(() => undefined)
+
+  expect({ screen: home(after.store.projects), account: home(account(ANA)) }).toMatchObject({
+    screen: { hours: 20, volts: 48 },
+    account: { hours: 20, volts: 48 },
+  })
+})
+
 test('coming back while an edit has not reached the account reads nothing and keeps that edit', async () => {
   session.user = ANA
   await mount()

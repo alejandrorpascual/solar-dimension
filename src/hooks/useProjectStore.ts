@@ -7,7 +7,7 @@ import {
 } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
 import { currentProject, initialStore, nameFirstProject, rekeySeed, withSetAside } from '../lib/store'
-import { adoptStale, applyChanges, diffProjects, hasUnsent, NOTHING_UNSENT, outgoing, unsentOf, type Unsent } from '../lib/sync'
+import { adoptStale, applyChanges, diffProjects, hasUnsent, NOTHING_UNSENT, outgoing, rebase, unsentOf, type Unsent } from '../lib/sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
 import { useLocale } from './useLocale'
 import { useRootData } from './useRootData'
@@ -157,9 +157,10 @@ export function useProjectStore() {
     return () => window.removeEventListener('storage', onStorage)
   }, [account, isAccountUnreachable])
 
-  // Back on this tab: another device may have saved since. The account's list is read again and shown, with what is
-  // edited here meanwhile kept on top, as the first load does. Only while the account holds everything this device does:
-  // a list read past an edit that never reached it would take that edit off the screen.
+  // Back on this tab: another device may have saved since. The account's list is read again and shown, with the fields
+  // edited here meanwhile laid over it, so the click that brings the tab back may itself be an edit. Only while the
+  // account holds everything this device does: a list read past an edit that never reached it would take that edit off
+  // the screen.
   useEffect(() => {
     if (!account) return
     let isReading = false
@@ -172,7 +173,7 @@ export function useProjectStore() {
       enqueue(() => listProjects({ data: { account } }))
         .then((list) => {
           if (scope.current !== readIn || !isClean()) return
-          show(fromServer(applyChanges(list, diffProjects(before.projects, latest.current.projects)), latest.current))
+          show(fromServer(rebase(list, before.projects, latest.current.projects), latest.current))
         })
         .catch((error: unknown) => console.error('[projects] reload failed', { error }))
         .finally(() => { isReading = false })
@@ -207,8 +208,9 @@ export function useProjectStore() {
     setSaving(true)
     enqueue(async () => {
       // What failed before goes again with this save. If either request fails both count as unsent: sending a
-      // project or a delete twice changes nothing.
-      const sending = outgoing(next.projects, { upserts, deletes }, unsent.current)
+      // project or a delete twice changes nothing. Each project goes as the screen shows it now: a read of the account
+      // answered since this edit has laid it over the account's copy, which the copy made at the edit would overwrite.
+      const sending = outgoing(scope.current === sentIn ? latest.current.projects : next.projects, { upserts, deletes }, unsent.current)
       try {
         const [saved] = await Promise.all([
           sending.upserts.length ? saveProjects({ data: { account, projects: sending.upserts } }) : null,
