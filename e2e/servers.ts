@@ -12,6 +12,14 @@ export const BUDGET_PORT = E2E_PORT + 1
 export const BUDGET_DAILY_READS = 1
 
 /**
+ * A third server on the same build whose database cannot be reached: its DATABASE_URL names this machine, where
+ * nothing answers, so every query is refused at once (ECONNREFUSED). Signed in on the main server, a browser carries
+ * its session cookie here too, so the page has a session to read that it cannot check.
+ */
+export const DOWN_PORT = E2E_PORT + 2
+export const DOWN_DATABASE_URL = 'postgresql://e2e:e2e@localhost:9/e2e'
+
+/**
  * The admin test's account, made new for every run so the repository holds no email and password for it. Only this
  * account: the other tests still sign up with a password written in their specs. The runner sets the two variables
  * when it loads the config and its workers inherit them, so the server's ADMIN_EMAILS and the test agree on the

@@ -1,0 +1,18 @@
+{
+  "origin": "http://localhost:4186",
+  "accountCopy": {
+    "projects": "{\"version\":1,\"projects\":[{\"id\":\"f6b0a180-f3bc-4973-bac6-cc8c64b88da1\",\"name\":\"Clinica Lopez\",\"qty\":{\"tv\":1,\"phone\":2,\"fridge\":1,\"laptop\":1,\"lights\":1,\"router\":1},\"custom\":[],\"hours\":10,\"volts\":48,\"chemistry\":\"lifepo4\",\"batteryUnit\":null,\"solar\":null,\"updatedAt\":1792602711078,\"requester\":null,\"dutyOverrides\":{},\"electrical\":{\"simultaneousStarts\":1,\"runLengthM\":1.5,\"ambientC\":30,\"bundled\":false,\"insulationC\":90}}],\"currentId\":\"f6b0a180-f3bc-4973-bac6-cc8c64b88da1\"}",
+    "owner": "sha256:c37b6e35e6cc"
+  },
+  "afterEdit": {
+    "projects": "{\"version\":1,\"projects\":[{\"id\":\"f6b0a180-f3bc-4973-bac6-cc8c64b88da1\",\"name\":\"Clinica Lopez\",\"qty\":{\"tv\":1,\"phone\":2,\"fridge\":1,\"laptop\":1,\"lights\":1,\"router\":1},\"custom\":[],\"hours\":10,\"volts\":48,\"chemistry\":\"lifepo4\",\"batteryUnit\":null,\"solar\":null,\"updatedAt\":1792602711078,\"requester\":null,\"dutyOverrides\":{},\"electrical\":{\"simultaneousStarts\":1,\"runLengthM\":1.5,\"ambientC\":30,\"bundled\":false,\"insulationC\":90}}],\"currentId\":\"f6b0a180-f3bc-4973-bac6-cc8c64b88da1\"}",
+    "owner": "sha256:c37b6e35e6cc"
+  },
+  "afterReload": {
+    "projects": "{\"version\":1,\"projects\":[{\"id\":\"f6b0a180-f3bc-4973-bac6-cc8c64b88da1\",\"name\":\"Clinica Lopez\",\"qty\":{\"tv\":1,\"phone\":2,\"fridge\":1,\"laptop\":1,\"lights\":1,\"router\":1},\"custom\":[],\"hours\":10,\"volts\":48,\"chemistry\":\"lifepo4\",\"batteryUnit\":null,\"solar\":null,\"updatedAt\":1792602711078,\"requester\":null,\"dutyOverrides\":{},\"electrical\":{\"simultaneousStarts\":1,\"runLengthM\":1.5,\"ambientC\":30,\"bundled\":false,\"insulationC\":90}}],\"currentId\":\"f6b0a180-f3bc-4973-bac6-cc8c64b88da1\"}",
+    "owner": "sha256:c37b6e35e6cc"
+  },
+  "afterEditEqualsAccountCopy": true,
+  "afterReloadEqualsAccountCopy": true,
+  "chestFreezerRowsAfterReload": 0
+}

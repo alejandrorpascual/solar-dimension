@@ -1,0 +1,85 @@
+// QA round 5 witness probe for #53. Runs every wording of the ticket's table through the Main cables check and prints
+// what the page shows (mark · label, or the detail of an item left to confirm), in English and Spanish. It asserts
+// nothing; the last line counts the rows that differ from the table.
+// QA53_REV picks the quote-items.ts revision: head (default) or a copy of an older one (__qa53_items_<rev>.ts).
+import { test } from 'vitest'
+import { en } from '../i18n/en'
+import { es } from '../i18n/es'
+import { extraction, line, SAMPLE_KIT as KIT } from './quote-fixtures'
+import type { ItemCheck } from './quote-items'
+import type { QuoteLine } from './quote-schema'
+import { itemText, markLabel } from './quote-text'
+
+const rev = process.env.QA53_REV ?? 'head'
+const mod = rev === 'head' ? await import('./quote-items') : await import(`./__qa53_items_${rev}.ts`)
+type Id = 'cables' | 'fuse'
+
+const named = (text: string, awg: string | null = null, qty = 1) =>
+  line('wiring', 1, { qty, description: text, source: { page: 1, text }, specs: { awg } })
+/** A wiring line split from one quote line: its own description, the quote line's words as its source. */
+const split = (description: string, bundle: string, awg: string | null = null) =>
+  line('wiring', 0, { description, source: { page: 1, text: bundle }, specs: { awg } })
+const fuse = (fuseAmps: number) => line('fuse', 1, { specs: { fuseAmps, fuseClass: 'T' } })
+
+const judge = (lines: QuoteLine[], id: Id): ItemCheck => mod.checkItems(extraction(lines), KIT).find((x: ItemCheck) => x.id === id)!
+/** What the page shows for one check: "Too small · 6 AWG", or the detail of an item left to confirm. */
+const reads = (t: typeof en, c: ItemCheck): string => {
+  const { label, detail } = itemText(t, c, KIT, 'USD')
+  const mark = markLabel(t, c)
+  return c.status === 'unknown' ? `${mark} · ${detail ?? label}` : `${mark} · ${label}`
+}
+
+const SOLAR10 = named('Cable solar 10 AWG', '10')
+const SOLAR40 = named('Cable solar 4/0 AWG', '4/0')
+const THIN = named('Cable 6 AWG baterías', '6')
+const WIRING = 'Cableado: alimentador CA 4/0 AWG y cable de baterías 6 AWG'
+const KIT_BATT = 'Kit solar: 4 paneles 550 W, 2 baterías de litio 200 Ah, cable solar 10 AWG'
+const KIT_GROUND = 'Kit solar: 4 paneles 550 W, 2 baterías de litio 200 Ah, cable solar 10 AWG, cable de tierra 8 AWG'
+const kitSiblings = (bundle: string) => [line('panel', 0, { source: { page: 1, text: bundle } }), line('battery', 0, { source: { page: 1, text: bundle } })]
+
+const SHORT6 = 'Too small · 6 AWG'
+const UNSTATED = 'To confirm · Battery cable not stated'
+
+/** [table row, wording, lines, check, what the table says the page shows] */
+const rows: Array<[string, string, QuoteLine[], Id, string]> = [
+  ['1', 'Alimentador AC, cable 4/0 AWG + Cable 6 AWG baterías', [named('Alimentador AC, cable 4/0 AWG', '4/0'), THIN], 'cables', SHORT6],
+  ['2', 'Cable 4/0 AWG AC feeder + Cable 6 AWG battery', [named('Cable 4/0 AWG AC feeder', '4/0'), named('Cable 6 AWG battery', '6')], 'cables', SHORT6],
+  ['3', `"${WIRING}" split in two`, [split('Alimentador CA 4/0 AWG', WIRING, '4/0'), split('Cable de baterías 6 AWG', WIRING, '6')], 'cables', SHORT6],
+  ['4', 'Alimentador C.A. 4/0 AWG + Cable 6 AWG baterías', [named('Alimentador C.A. 4/0 AWG', '4/0'), THIN], 'cables', SHORT6],
+  ['4', 'Cable PV1-F 4/0 AWG + Cable 6 AWG baterías', [named('Cable PV1-F 4/0 AWG', '4/0'), THIN], 'cables', SHORT6],
+  ['5', 'Cable solar 10 AWG alone, own line', [SOLAR10], 'cables', UNSTATED],
+  ['5', `Cable solar 10 AWG split from "${KIT_BATT}"`, [...kitSiblings(KIT_BATT), split('Cable solar 10 AWG', KIT_BATT, '10')], 'cables', UNSTATED],
+  ['6', 'Cable solar 10 AWG + Cable 4/0 AWG baterías', [SOLAR10, named('Cable 4/0 AWG baterías', '4/0')], 'cables', 'Meets it · 4/0 AWG'],
+  ['6', 'Cable solar 10 AWG + Cable 4/0 AWG baterías a inversor solar', [SOLAR10, named('Cable 4/0 AWG baterías a inversor solar', '4/0')], 'cables', 'Meets it · 4/0 AWG'],
+  ['6', 'Cable solar 10 AWG + Cable 4/0 AWG baterías con terminales', [SOLAR10, named('Cable 4/0 AWG baterías con terminales', '4/0')], 'cables', 'Meets it · 4/0 AWG'],
+  ['6', 'Cable solar 10 AWG + Cable 4/0 AWG baterías, kit solar', [SOLAR10, named('Cable 4/0 AWG baterías, kit solar', '4/0')], 'cables', 'Meets it · 4/0 AWG'],
+  ['7', 'Cable solar 4/0 AWG + Cable 2/0 AWG baterías', [SOLAR40, named('Cable 2/0 AWG baterías', '2/0')], 'cables', 'Meets it · 2/0 AWG'],
+  ['8', 'Cable solar 10 AWG + Cable 2/0 AWG con terminales', [SOLAR10, named('Cable 2/0 AWG con terminales', '2/0')], 'cables', 'Meets it · 2/0 AWG'],
+  ['8', 'Cable solar 10 AWG + Cable 2/0 AWG en tubo conduit', [SOLAR10, named('Cable 2/0 AWG en tubo conduit', '2/0')], 'cables', 'Meets it · 2/0 AWG'],
+  ['8', 'Cable solar 10 AWG + Cable 2/0 AWG inversor a banco con zapatas', [SOLAR10, named('Cable 2/0 AWG inversor a banco con zapatas', '2/0')], 'cables', 'Meets it · 2/0 AWG'],
+  ['9', 'Cable solar 10 AWG + Cableado de baterías (no size)', [SOLAR10, named('Cableado de baterías')], 'cables', 'To confirm · Size not stated'],
+  ['10', 'Cable solar 4/0 AWG + Cable de tierra física 6 AWG', [SOLAR40, named('Cable de tierra física 6 AWG', '6')], 'cables', UNSTATED],
+  ['10', 'Cable solar 4/0 AWG + Terminal de ojo 2/0 AWG', [SOLAR40, named('Terminal de ojo 2/0 AWG', '2/0')], 'cables', UNSTATED],
+  ['10', 'Cable solar 4/0 AWG + Zapatas 2/0 para baterías', [SOLAR40, named('Zapatas 2/0 para baterías', '2/0')], 'cables', UNSTATED],
+  ['11', `Cable solar + cable de tierra split from "${KIT_GROUND}"`, [...kitSiblings(KIT_GROUND), split('Cable solar 10 AWG', KIT_GROUND, '10'), split('Cable de tierra 8 AWG', KIT_GROUND, '8')], 'cables', UNSTATED],
+  ['12', 'Cable 2/0 AWG batería, caída de tensión 2%', [named('Cable 2/0 AWG batería, caída de tensión 2%', '2/0')], 'cables', 'Meets it · 2/0 AWG'],
+  // AC2: the fuse reads the same battery cable. 250 A is more than 6 AWG carries, and no cable of the battery's is left to fail it.
+  ['AC2 fuse', 'row 1 + fuse 250 A', [named('Alimentador AC, cable 4/0 AWG', '4/0'), THIN, fuse(250)], 'fuse', 'Too small · 250 A'],
+  ['AC2 fuse', 'row 3 split + fuse 250 A', [split('Alimentador CA 4/0 AWG', WIRING, '4/0'), split('Cable de baterías 6 AWG', WIRING, '6'), fuse(250)], 'fuse', 'Too small · 250 A'],
+  ['AC2 fuse', 'row 5 own line + fuse 250 A', [SOLAR10, fuse(250)], 'fuse', 'Meets it · 250 A'],
+  ['AC2 fuse', 'row 10 ground wire + fuse 250 A', [SOLAR40, named('Cable de tierra física 6 AWG', '6'), fuse(250)], 'fuse', 'Meets it · 250 A'],
+  ['AC2 fuse', 'Cable solar 4/0 + Cable 6 AWG con terminales + fuse 250 A', [SOLAR40, named('Cable 6 AWG con terminales', '6'), fuse(250)], 'fuse', 'Too small · 250 A'],
+]
+
+test('qa53 v5 witnesses', () => {
+  let differ = 0
+  console.log(`revision: ${rev}`)
+  for (const [row, wording, lines, id, want] of rows) {
+    const c = judge(lines, id)
+    const got = reads(en, c)
+    const ok = got === want
+    if (!ok) differ += 1
+    console.log(`${ok ? 'as table' : 'DIFFERS '} | row ${row.padEnd(8)} | ${wording}\n           en: ${got}${ok ? '' : `   (table: ${want})`}\n           es: ${reads(es, c)}`)
+  }
+  console.log(`rows that differ from the table: ${differ} of ${rows.length}`)
+})

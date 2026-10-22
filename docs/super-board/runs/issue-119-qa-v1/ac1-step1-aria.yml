@@ -1,0 +1,14 @@
+# category filter
+- button "All"
+- button "Kitchen" [pressed]
+- button "Living"
+- button "Climate"
+- button "Air conditioning"
+- button "Work"
+- button "Utility"
+- button "Security"
+- button "Personal"
+- button "Custom"
+# custom form mode
+- button "Watts"
+- button "Volts × amps" [pressed]

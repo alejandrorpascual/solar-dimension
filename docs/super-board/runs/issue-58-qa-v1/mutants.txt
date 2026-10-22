@@ -1,0 +1,18 @@
+# Mutants on src/server/quotes at 8529c8f. After each: process.test.ts, model.test.ts and sweep.test.ts run, then
+# `git checkout -- src`; `git status --short` was empty after the last one. No mutant was committed.
+M1 attempt() retries a timeout on the same model                -> 2 failed | 48 passed   AC3 caught
+M2 STALE_CLAIM_MS back to 10 min                                -> 1 failed | 49 passed   AC2 caught
+M3 REQUEST_TIMEOUT_MS 80 s (4 calls = 320 s)                    -> 2 failed | 48 passed   AC1 + AC4 caught
+M4 sweep loop without the hasTimeForJob() break                 -> 2 failed | 48 passed   AC4 caught
+M5 no error log for a CRON_SECRET under 32 characters           -> 2 failed | 48 passed   AC5 caught
+M6 APIConnectionTimeoutError classified transient               -> 3 failed | 47 passed   AC3 caught
+M7 openAiModel() without maxRetries: 0 (SDK default 2 retries)  -> 0 failed | 50 passed   SURVIVES: Medium, not written
+M8 openAiModel() without timeout (SDK default 10 min)           -> 0 failed | 50 passed   SURVIVES: Medium, not written
+M9 sweep auth check moved below emptyQuoteTrash()               -> 0 failed | 50 passed   SURVIVES: High (auth), QA test written
+
+# QA test for M9: sweep.test.ts "a refused call (%s) empties no trash, scans no quotes and starts no read"
+# (wrong token · no Authorization header · no secret · 16-character secret with its own token)
+M9 on the code as built                                         -> 11 passed (sweep.test.ts)
+M9 applied                                                      -> 4 failed | 7 passed    the 4 new cases go red
+M9 restored                                                     -> 11 passed
+# M7 and M8 behave today: sdk-timeout-probe.log shows 1 request per call, cut at 60 s, and 4 calls on 503s.

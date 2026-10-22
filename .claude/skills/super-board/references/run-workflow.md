@@ -233,7 +233,9 @@ Repeat until a done condition or halt gate fires:
    first (Review → QA → Ready), cut to `max_workers` when it is set (0 or
    absent = no cap). `max_workers` is the GitHub-limit valve: step 5 lowers it
    after a wave that hit the hourly limit. If `cards` is empty and
-   Building/QA/Review counts are 0 → done. If empty but cards sit in Blocked
+   Building/QA/Review counts are 0 → done. An empty board read never reaches
+   this rule unconfirmed: the planner re-reads it and, when GitHub search still
+   finds open issues on the board, halts with exit 79 instead of planning. If empty but cards sit in Blocked
    only → report and stop. This is unfinished work, not a completed-run calibration trigger.
 3. **Claim** — for each card, `gh issue edit <n> --add-assignee <bot_identity>`,
    then VERIFY: re-read assignees (`gh issue view <n> --json assignees`) and

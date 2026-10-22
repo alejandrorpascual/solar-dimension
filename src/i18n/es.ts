@@ -28,9 +28,14 @@ function cableRemedy(p: WarningParams): string {
 export const es: Dictionary = {
   locale: 'es',
   ui: {
-    step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Paneles solares', step4: 'Tu kit', stepOf: 'Paso {n} de 4',
+    steps: 'Pasos', step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Paneles solares', step4: 'Tu kit', stepOf: 'Paso {n} de 4',
     project: 'Proyecto', projectName: 'Nombre del proyecto', newProject: '+ Nuevo proyecto', duplicate: 'Duplicar', delete: 'Eliminar', untitled: 'Sin nombre',
     firstProject: 'Casa', projectNumbered: 'Proyecto {n}', copySuffix: ' (copia)', customTag: 'Personalizado',
+    deleteProject: '¿Eliminar “{name}”? No se puede deshacer.',
+    deleteProjectOne: '¿Eliminar “{name}” y 1 cotización? Su archivo también se elimina. No se puede deshacer.',
+    deleteProjectMany: '¿Eliminar “{name}” y sus {count} cotizaciones? Sus archivos también se eliminan. No se puede deshacer.',
+    deleteProjectAny: '¿Eliminar “{name}” y las cotizaciones que tenga? Sus archivos también se eliminan. No se puede deshacer.',
+    deleteProjectYes: 'Eliminar proyecto',
     acInverter: 'Aire acondicionado inverter', acInverterHelp: 'Arranque suave. Cuida el inversor.', acConventional: 'Aire acondicionado convencional', acConventionalHelp: 'Arranca con ~3× su potencia en marcha. Necesita un inversor más grande.', acSizeOne: '{tons} tonelada · {btu}k BTU', acSizeMany: '{tons} toneladas · {btu}k BTU',
     q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; los de arranque, el inversor.',
     search: 'Buscar aparatos', nothingMatches: 'Nada coincide. Prueba otra palabra o agrégalo abajo.', sectionAdded: 'Agregados: {count}',
@@ -94,6 +99,7 @@ export const es: Dictionary = {
     recoverAccess: '¿Olvidaste tu contraseña? Aún no podemos restablecerla aquí. Escribe a {email} y te ayudamos a volver a entrar.',
     quotesNeedGoogle: 'Subir cotizaciones requiere una cuenta de Google. Una cuenta con correo igual guarda tus proyectos.',
     notFound: 'Página no encontrada', backHome: 'Volver al kit', errorTitle: 'Algo interrumpió el armado del kit.', serverError: 'Error del servidor. Referencia', reload: 'Recargar', updating: 'Cargando la versión más reciente…',
+    accountUnreachable: 'No se pudo conectar con tu cuenta. Puedes seguir armando el kit; los cambios quedan solo en esta página.',
     projects: 'Proyectos', projectsCount: 'Proyectos · {count}', current: 'Actual', quickEdit: 'Edición rápida', done: 'Listo',
     projectMeta: '{volts} V · {hours} h · {count} aparatos', heaviestMore: '{list} y {count} más', bank: 'Banco', inverter: 'Inversor', close: 'Cerrar',
     appliancesCount: 'Aparatos · {count}', windowLabel: 'Horas', hourLess: 'Una hora menos', hourMore: 'Una hora más', hoursShort: '{hours} h',

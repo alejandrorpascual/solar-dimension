@@ -1,0 +1,16 @@
+== new test on head 78c66fc (green expected)
+      Tests  1 passed | 99 skipped (100)
+
+== same test with the role rules ordered fitting, battery, ground, solar/AC (red expected)
+ src/lib/quote-items.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+       × a ground word comes before a battery word: a ground wire for the battery bank is no battery cable (QA v5) 12ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/quote-items.test.ts > cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground word comes before a battery wo [... omitted end of long line]
+AssertionError: Cable de tierra para banco de baterías: expected { id: 'cables', status: 'short', …(2) } to match object { status: 'unknown', facts: { [... omitted end of long line]
+- Expected
++ Received
+      Tests  1 failed | 99 skipped (100)
+
+== restored
+      Tests  183 passed (183)

@@ -34,7 +34,7 @@ export function Stepper(props: StepperProps) {
   const hasAppliances = props.onGo ? props.hasAppliances : true
   const states = stepStates(props.step, hasAppliances)
   return (
-    <nav aria-label="Steps" className="stepper">
+    <nav aria-label={t.ui.steps} className="stepper">
       {states.map((state, i) => {
         const { step, isCurrent, isDone, isLocked, isReached } = state
         return (

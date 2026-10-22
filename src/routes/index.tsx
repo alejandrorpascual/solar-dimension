@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { LayoutGrid } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { AccountMenu } from '../components/AccountMenu'
 import { ApplianceGrid } from '../components/ApplianceGrid'
@@ -49,6 +49,29 @@ function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary,
   return r.solar ? tr(t, 'footer4Solar', { ...base, panels: panelCount(t, r.solar.panels) }) : tr(t, 'footer3', base)
 }
 
+/** The question each step asks; the kit step names the project it is for. */
+function stepTitle(step: Step, name: string, t: Dictionary): string {
+  if (step === 1) return t.ui.q1
+  if (step === 2) return t.ui.q2
+  if (step === 3) return t.ui.q3
+  return tr(t, 'kitFor', { name })
+}
+
+/**
+ * The step's heading, focused when the step changes (Next, Back, the stepper) so a screen reader announces the new
+ * step. Not on the first render: a page that just loaded keeps focus where the browser put it.
+ */
+function useStepHeadingFocus(step: Step) {
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const shownStep = useRef(step)
+  useEffect(() => {
+    if (shownStep.current === step) return
+    shownStep.current = step
+    headingRef.current?.focus()
+  }, [step])
+  return headingRef
+}
+
 /**
  * Shown only under 1280px, where the rail of project cards is hidden (rail.css). The button opens the cards in a
  * sheet: renaming, duplicating and deleting live on the open project's card. The name beside it says which project
@@ -70,13 +93,14 @@ function KitBuilderPage() {
   const { step } = Route.useSearch()
   const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
-  const { user } = useRootData()
+  const { user, isAccountUnreachable } = useRootData()
   const appliances = useCatalog()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
   const { signOut, hasFailed: hasSignOutFailed } = useSignOut(user)
   const google = useConnectGoogle(user)
   const result = computeProject(project, appliances)
   const go = (next: Step) => navigate({ search: { step: next } })
+  const headingRef = useStepHeadingFocus(step)
   // The rail sits beside the page on wide screens; narrower ones open the same content in a sheet.
   const [railTab, setRailTab] = useState<RailTab>('projects')
   const [isSheetOpen, setSheetOpen] = useState(false)
@@ -100,28 +124,19 @@ function KitBuilderPage() {
         {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
         {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
         <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
+        {isAccountUnreachable && <div className="warn" role="status">{t.ui.accountUnreachable}</div>}
         {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
         {syncing && <div className="muted">{t.ui.syncing}</div>}
         <section className="stage">
+          <h1 ref={headingRef} tabIndex={-1} className="stage__title">{stepTitle(step, project.name, t)}</h1>
           {step === 1 && (
             <>
-              <h2>{t.ui.q1}</h2>
               <ApplianceGrid store={store} commit={commit} />
               <CustomApplianceForm store={store} commit={commit} />
             </>
           )}
-          {step === 2 && (
-            <>
-              <h2>{t.ui.q2}</h2>
-              <BackupWindow store={store} commit={commit} result={result} />
-            </>
-          )}
-          {step === 3 && (
-            <>
-              <h2>{t.ui.q3}</h2>
-              <SolarStep store={store} commit={commit} project={project} result={result} />
-            </>
-          )}
+          {step === 2 && <BackupWindow store={store} commit={commit} result={result} />}
+          {step === 3 && <SolarStep store={store} commit={commit} project={project} result={result} />}
           {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={() => go(1)} />}
         </section>
         <LegalLinks />

@@ -1,0 +1,21 @@
+# Mutation check of src/lib/fresh-database-script.test.ts (12 tests): one guarded line of scripts/fresh-database.ts broken at a time, never committed.
+# RED = the tests fail on the mutant. The script was restored after each.
+M1 drop the production guard: RED, 2 tests fail
+M2 drop runs the create statement: RED, 1 tests fail
+M3 drop also prints the URL: RED, 1 tests fail
+M4 psql stdout reaches the step: RED, 4 tests fail
+M5 psql errors are swallowed: RED, 2 tests fail
+M6 a failing psql passes the step: RED, 2 tests fail
+M7 drop connects to the target itself: RED, 2 tests fail
+M8 a missing psql passes the step: RED, 1 tests fail
+M9 an unknown command is accepted: RED, 2 tests fail
+M10 the run name is not checked: RED, 2 tests fail
+# Mutation check of the Builder's src/lib/ci-workflow.test.ts (4 tests): the workflow or package.json broken one way at a time, never committed.
+W1 setup-node types its own 24: RED, 1 test fails
+W2 package.json loses engines.node: RED, 1 test fails
+W3 engines.node says 22.x: RED, 1 test fails
+W4 the drop step loses always(): RED, 1 test fails
+W5 the fresh step migrates the branch: RED, 1 test fails
+W6 the run name env is removed: RED, 1 test fails
+W7 a step is added after the drop: RED, 1 test fails
+W8 the drop step loses its DATABASE_URL: GREEN, survives; the step then fails on every run, so the miss is loud

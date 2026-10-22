@@ -28,9 +28,14 @@ function cableRemedy(p: WarningParams): string {
 export const en: Dictionary = {
   locale: 'en',
   ui: {
-    step1: 'Appliances', step2: 'Backup window', step3: 'Solar panels', step4: 'Your kit', stepOf: 'Step {n} of 4',
+    steps: 'Steps', step1: 'Appliances', step2: 'Backup window', step3: 'Solar panels', step4: 'Your kit', stepOf: 'Step {n} of 4',
     project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
     firstProject: 'Home', projectNumbered: 'Project {n}', copySuffix: ' copy', customTag: 'Custom',
+    deleteProject: "Delete “{name}”? This can't be undone.",
+    deleteProjectOne: "Delete “{name}” and its 1 quote? Its file goes too. This can't be undone.",
+    deleteProjectMany: "Delete “{name}” and its {count} quotes? Their files go too. This can't be undone.",
+    deleteProjectAny: "Delete “{name}” and any quotes it has? Their files go too. This can't be undone.",
+    deleteProjectYes: 'Delete project',
     acInverter: 'Inverter air conditioning', acInverterHelp: 'Soft start. Easy on the inverter.', acConventional: 'Conventional air conditioning', acConventionalHelp: 'Starts at ~3× its running power. Needs a bigger inverter.', acSizeOne: '{tons} ton · {btu}k BTU', acSizeMany: '{tons} ton · {btu}k BTU',
     q1: 'Which appliances need to stay on?', q1Help: 'Add each one and set how many. Running watts drive the battery, surge watts drive the inverter.',
     search: 'Search appliances', nothingMatches: 'Nothing matches. Try another word or add it below.', sectionAdded: '{count} added',
@@ -94,6 +99,7 @@ export const en: Dictionary = {
     recoverAccess: "Forgot your password? We can't reset it here yet. Write to {email} and we'll help you get back in.",
     quotesNeedGoogle: 'Uploading quotes needs a Google account. An email account still saves your projects.',
     notFound: 'Page not found', backHome: 'Back to the kit builder', errorTitle: 'Something interrupted the kit builder.', serverError: 'Server error. Reference', reload: 'Reload', updating: 'Loading the latest version…',
+    accountUnreachable: 'Could not reach your account. You can keep building the kit; changes stay on this page only.',
     projects: 'Projects', projectsCount: 'Projects · {count}', current: 'Current', quickEdit: 'Quick edit', done: 'Done',
     projectMeta: '{volts} V · {hours} h · {count} appliances', heaviestMore: '{list} and {count} more', bank: 'Bank', inverter: 'Inverter', close: 'Close',
     appliancesCount: 'Appliances · {count}', windowLabel: 'Window', hourLess: 'One hour less', hourMore: 'One hour more', hoursShort: '{hours} h',

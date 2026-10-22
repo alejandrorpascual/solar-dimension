@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage, switchLanguageOnLoad } from './header'
 import { PHONE } from './phone'
-import { acceptNewProjectName, hideProjects, openProjectCard, renameOpenProject, showDownload, showProjects, startNewProject, startRename } from './projects'
+import { acceptNewProjectName, answerDelete, hideProjects, openProjectCard, renameOpenProject, showDownload, showProjects, startNewProject, startRename } from './projects'
 
 const STORAGE_KEY = 'solar-dimension.projects.v1'
 
@@ -139,6 +139,7 @@ test('a new project can be created, renamed and deleted', PHONE, async ({ page }
   await expect(openProjectCard(page).getByRole('heading')).toHaveText('Office copy')
   await openProjectCard(page).getByRole('button', { name: 'More actions for Office copy' }).click()
   await page.getByRole('menuitem', { name: 'Delete' }).click()
+  await answerDelete(page, 'Delete project')
   await expect(page.getByRole('button', { name: 'Office copy', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Office', exact: true })).toBeVisible()
 })

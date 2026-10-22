@@ -5,7 +5,8 @@ import { QuoteExtractionSchema, type QuoteExtraction } from '../../lib/quote-sch
 
 export interface ModelInput { bytes: Uint8Array; mime: QuoteMime; fileName: string }
 export interface ModelOutput { extraction: QuoteExtraction; input: number; output: number }
-export type ModelErrorKind = 'transient' | 'refused' | 'invalid'
+/** `timeout`: the call ran out REQUEST_TIMEOUT_MS. Worth another attempt later, like `transient`, but not at once. */
+export type ModelErrorKind = 'transient' | 'timeout' | 'refused' | 'invalid'
 
 export class ModelError extends Error {
   constructor(readonly kind: ModelErrorKind, message: string) {
@@ -16,7 +17,11 @@ export class ModelError extends Error {
 
 export interface QuoteModel { extract(input: ModelInput, model: string): Promise<ModelOutput> }
 
-const REQUEST_TIMEOUT_MS = 120_000
+/**
+ * How long one model call may take. One read makes at most 4 calls (2 models, each a try and a retry: process.ts), so
+ * 4 x 60 s leaves a minute of the 300 s function limit for the claim, the file and the write of the outcome.
+ */
+export const REQUEST_TIMEOUT_MS = 60_000
 
 /**
  * The most the model may write for one quote, which bounds what a read can cost. Sized for the largest extraction the
@@ -63,7 +68,8 @@ const isTransientStatus = (status: number): boolean =>
 /** Transient errors are worth another attempt later; anything else goes to the fallback model or fails. */
 export function classifyError(e: unknown): ModelError {
   if (e instanceof ModelError) return e
-  // APIConnectionError (and its timeout subclass) extends APIError, so it is checked first.
+  // APIConnectionError (and its timeout subclass) extends APIError, so it is checked first, the subclass before it.
+  if (e instanceof OpenAI.APIConnectionTimeoutError) return new ModelError('timeout', e.message)
   if (e instanceof OpenAI.APIConnectionError) return new ModelError('transient', e.message)
   if (e instanceof OpenAI.APIError) {
     const status = e.status ?? 0

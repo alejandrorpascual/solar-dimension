@@ -208,6 +208,24 @@ function loadRemembered(storage: Reader, owner: string | null): Requester | null
   return parsed.success && parsed.data.owner === owner ? parsed.data.requester : null
 }
 
+export type RequesterStorage = Reader & Writer & Remover
+
+function memoryStorage(): RequesterStorage {
+  const data = new Map<string, string>()
+  return { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => void data.set(key, value), removeItem: (key) => void data.delete(key) }
+}
+
+/**
+ * Where saved clients and the requester draft are kept from this page, until it is loaded again, while the account cannot
+ * be read: someone may be signed in, so the browser's draft may be their account's and its guest list is not theirs.
+ */
+const pageOnly = memoryStorage()
+
+/** Where the requester sheet keeps saved clients and its draft: this browser, or this page while the account cannot be read. */
+export function requesterStorage(isAccountUnreachable: boolean): RequesterStorage | null {
+  return isAccountUnreachable ? pageOnly : browserStorage()
+}
+
 /**
  * Saved clients, in this browser only, one list per owner (an account id, or `guest` signed out) so another account on a
  * shared browser never sees them.

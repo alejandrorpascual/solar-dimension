@@ -1,0 +1,8 @@
+# Throwaway probe (not committed): openAiModel(), the real OpenAI SDK 6.49.0 client, pointed by OPENAI_BASE_URL at a
+# local server, driven through processQuote() with a stub repo and storage. Server answers: never ("hang"), or 503 at once.
+$ npx vitest run src/server/quotes/qa-probe-58.test.ts
+[probe] hang: outcome queued · requests gpt-6-luna at 18 ms, gpt-6-sol at 60019 ms · total 120020 ms
+              finish: {"status":"queued","error":"timeout: Request timed out. | timeout: Request timed out."}
+[probe] 503:  outcome queued · requests gpt-6-luna, gpt-6-luna, gpt-6-sol, gpt-6-sol (4, no SDK retries)
+              finish: {"status":"queued","error":"transient: 503 503 down | transient: 503 503 down"}
+Tests  2 passed (2) · Duration 120.30s

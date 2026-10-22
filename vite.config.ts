@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import { nitro } from 'nitro/vite'
 import viteReact from '@vitejs/plugin-react'
+import { FUNCTION_MAX_DURATION_S } from './src/server/quotes/time-limits'
 
 const ONE_YEAR_S = 31536000
 /**
@@ -27,6 +28,8 @@ export default defineConfig({
       // mid-deploy stays broken on that device for every later build that reuses its name.
       // The files themselves come from the client build; `dir` is never read (it does not exist, so nothing is copied).
       publicAssets: [{ baseURL: `/${BUILD_ASSETS_DIR}`, dir: `public/${BUILD_ASSETS_DIR}`, maxAge: ONE_YEAR_S, fallthrough: false }],
+      // One function serves every route on Vercel, quote reads included; a read is sized to end inside this limit.
+      vercel: { functions: { maxDuration: FUNCTION_MAX_DURATION_S } },
     }),
     viteReact(),
   ],

@@ -109,7 +109,9 @@ function confirmPhrase(t: Dictionary, c: ItemCheck): string {
       if (f.capacityPartial) return q.confirmBatteryAll
       return f.usableLowWh === undefined ? q.confirmBatteryCapacity : q.confirmBatteryChemistry
     case 'panels': return q.confirmPanelSize
-    case 'cables': return f.runsUnstated ? trq(t, 'confirmCableRuns', { runs: f.runs ?? 0, gauge: f.gauge ?? '' }) : q.confirmCableSize
+    case 'cables':
+      if (f.batteryCableUnstated) return q.confirmBatteryCable
+      return f.runsUnstated ? trq(t, 'confirmCableRuns', { runs: f.runs ?? 0, gauge: f.gauge ?? '' }) : q.confirmCableSize
     case 'fuse': return fuseConfirm(t, f)
     default: return t.quoteItemsInline[c.id]
   }
@@ -295,6 +297,7 @@ function unclearText(t: Dictionary, c: ItemCheck, kit: KitNeeds): { label: strin
     case 'battery': return { label: q.included, detail: batteryOpen(t, f) }
     case 'panels': return { label: f.arrayW ? fmtW(f.arrayW, t.locale) : q.included, detail: q.sizeNotStated }
     case 'cables':
+      if (f.batteryCableUnstated) return { label: q.included, detail: q.batteryCableNotStated }
       return f.runsUnstated ? { label: f.gauge ?? q.included, detail: trq(t, 'needsRuns', { runs: f.runs ?? 0 }) } : { label: q.included, detail: q.sizeNotStated }
     case 'fuse': return { label: f.amps !== undefined ? trq(t, 'amps', { amps: f.amps }) : q.included, detail: fuseOpen(t, f, kit) }
     default: return { label: q.included, detail: q.markUnclear }
