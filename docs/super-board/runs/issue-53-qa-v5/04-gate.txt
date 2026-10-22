@@ -1,0 +1,42 @@
+QA v5 for #53: the project's verify command (config verify_commands) on head 78c66fc plus the QA v5 test, in a clean clone.
+Command: npm ci --silent && npm run typecheck && npm run test:coverage && npm run build
+Build asset listings are cut; every other line is as printed.
+
+
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+
+
+> test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.1 <clone>
+      Coverage enabled with v8
+
+
+ Test Files  105 passed (105)
+      Tests  1861 passed (1861)
+   Start at  12:36:27
+...
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   98.33 |    93.92 |    99.3 |   98.94 |                   
+  quote-items.ts   |   99.62 |       94 |     100 |     100 | ...83,395,400,440 
+  quote-text.ts    |   94.42 |    80.27 |     100 |   96.27 | ...16,231,235,303 
+...
+
+=============================== Coverage summary ===============================
+Statements   : 98.33% ( 3366/3423 )
+Branches     : 93.92% ( 2597/2765 )
+Functions    : 99.3% ( 1143/1151 )
+Lines        : 98.94% ( 2530/2557 )
+================================================================================
+...
+✓ built in 2.25s
+✓ built in 992ms
+[nitro] ✔ Generated public .output/public
+✓ built in 1.66s
+ℹ Generated .output/nitro.json
+[nitro] ✔ You can preview this build using npx vite preview
+GATE_EXIT=0
