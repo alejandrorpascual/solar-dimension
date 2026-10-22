@@ -1,0 +1,28 @@
+# Mutants on app code ca83c72, one at a time, restored after each run (git diff clean after the run)
+# Suite: useProjectStore.sync/.test/.accounts/.outage tests, sync.test.ts, projects.test.ts
+
+## Round-2 code against the tests as the builder left them (80 tests)
+R1 | queued save sends the copy made at the edit       | 1 failed  | red: the click that brings this tab back
+R2 | re-read lays whole edited projects over the account | 1 failed  | red: the click that brings this tab back
+R3 | rebase counts every field as edited               | 2 failed  | red: rebase unit; the click that brings this tab back
+R4 | re-read snapshot taken when the read answers      | 1 failed  | red: an edit made here while the account is read again
+R5 | queued save sends the screen copy after the account changed | 0 failed | survives
+R6 | re-read answer shown although a save failed meanwhile       | 0 failed | survives
+R7 | re-read answer shown after the page was left                | 0 failed | survives
+R8 | two re-reads at once (isReading guard dropped)              | 0 failed | survives
+R9 | rebase drops deletes made during the re-read                | 0 failed | survives
+
+## Red first for the QA v2 test changes: builder tests (80) vs QA v2 tests (81)
+Q1 | queued save sends the copy from before its edit
+     builder: 32 failed; AC1 :40 and AC2 :64 (both events) and :98 pass (volts 48 equals the default)
+     qa v2:   37 failed; adds AC1 :40, AC2 :64 focus, :64 visibilitychange, :98, and :131
+Q2 | re-read snapshot taken when the read answers (the focusing-click edit is dropped)
+     builder: 1 failed (:79 only; :98 passes with the edit dropped)
+     qa v2:   2 failed (:79, :98)
+Q3 | rebase lays only the stamp of an edited project
+     builder: 1 failed (:79 only; the rebase unit test and :98 pass)
+     qa v2:   3 failed (:79, :98, sync.test.ts:34)
+Q4 | re-read answer shown although a save failed while it was in flight (R6)
+     builder: 0 failed
+     qa v2:   1 failed (:131, new)
+Pristine app code: builder 80/80 · qa v2 81/81
