@@ -1,0 +1,16 @@
+# CI run 39846585996 · job 120061347974 · head a854c883a69d421c1c3f39340630da485f046769
+# 'Run npm run e2e' step: the delete-question specs, the one flaky test (unrelated: daily read budget), and the summary
+# ✘ then ✓ on quote-budget.spec.ts:25 is the CI retry (retries: 1 in CI).
+  ✓  122 [desktop] › e2e/project-card.spec.ts:125:1 › the delete question goes away when the person starts renaming instead (1.4s)
+  ✓  121 [desktop] › e2e/project-card.spec.ts:99:1 › Delete from the ··· menu asks on the card first, and Cancel keeps the project, with focus back on its title @phone (1.9s)
+  ✘  139 [desktop] › e2e/quote-budget.spec.ts:25:1 › with the day’s reads spent, an upload is refused with the reason and nothing is stored (7.3s)
+  ✓  143 [desktop] › e2e/quote-budget.spec.ts:25:1 › with the day’s reads spent, an upload is refused with the reason and nothing is stored (retry #1) (5.5s)
+  ✓  167 [desktop] › e2e/quotes.spec.ts:535:1 › deleting a project asks first, naming its quotes, and Cancel keeps the project and its quotes (2.7s)
+  ✓  168 [desktop] › e2e/quotes.spec.ts:551:1 › until the account's quotes are read, the delete question says any quotes go too, then names them once read (2.8s)
+  ✓  169 [desktop] › e2e/quotes.spec.ts:569:1 › deleting a project removes its quotes and their files (2.8s)
+  ✓  170 [desktop] › e2e/quotes.spec.ts:587:1 › deleting a quote removes its file and leaves nothing in the trash (2.8s)
+  ✓  171 [desktop] › e2e/quotes.spec.ts:605:1 › Delete on a quote asks with focus on Cancel, and Cancel gives focus back to Delete, on the verdict and progress rows (3.4s)
+  ✓  272 [phone] › e2e/project-card.spec.ts:99:1 › Delete from the ··· menu asks on the card first, and Cancel keeps the project, with focus back on its title @phone (2.0s)
+  10 skipped
+  290 passed (5.3m)
+  1 flaky
