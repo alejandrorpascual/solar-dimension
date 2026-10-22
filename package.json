@@ -10,6 +10,7 @@
     "test": "vitest run",
     "start": "node --env-file-if-exists=.env.local .output/server/index.mjs",
     "test:coverage": "vitest run --coverage",
+    "test:db": "vitest run --config vitest.db.config.ts",
     "e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/migrate.ts",

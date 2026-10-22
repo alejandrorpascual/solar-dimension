@@ -32,6 +32,9 @@ jobs:
       - run: npm run db:migrate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - run: npm run test:db
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - run: npm run typecheck
       - run: npm run test:coverage
       - run: npm run build
