@@ -1,0 +1,7 @@
+head 60ea20a · 2026-10-21T17:16Z · clone of origin/issue-92-keep-sizing-when-database-down
+npm run typecheck: exit 0
+npm run test:coverage: exit 0
+ Test Files  105 passed (105)
+      Tests  1813 passed (1813)
+coverage % stmts|branch|funcs|lines: All files          |   98.33 |    93.92 |   99.37 |   98.92 |                   
+npm run build: exit 0

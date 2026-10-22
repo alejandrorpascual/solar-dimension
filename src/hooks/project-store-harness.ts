@@ -79,6 +79,17 @@ export async function mount(): Promise<Hook> {
   return mounted()
 }
 
+/** The mounted page rendered again without a page load, as when the root route's data is read again. */
+export async function rerender(): Promise<Hook> {
+  const mountedRoot = root
+  if (!mountedRoot) throw new Error('the hook is not mounted: call mount() first')
+  await act(async () => {
+    mountedRoot.render(createElement(Probe))
+    await settle()
+  })
+  return mounted()
+}
+
 /** One user action on the mounted page, and whatever requests it starts. */
 export async function edit(action: (hook: Hook) => void): Promise<Hook> {
   await act(async () => {

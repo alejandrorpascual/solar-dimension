@@ -1,0 +1,272 @@
+# E2E_PORT=4184 npx playwright test   (full suite on 60ea20a, plus a QA-only evidence spec that is not committed)
+
+Running 265 tests using 5 workers
+
+  ✓    4 [desktop] › e2e/admin.spec.ts:25:1 › non-admins get a 404 at /admin/appliances (4.5s)
+  ✓    2 [desktop] › e2e/account.spec.ts:41:1 › the account menu holds off sign-out and Google linking while a project save is in flight (4.8s)
+  ✓    7 [desktop] › e2e/bank-wiring.spec.ts:23:1 › a bank in series and in parallel lists its links and its string leads, each at the gauge of one st [... omitted end of long line]
+  ✓    1 [desktop] › e2e/account.spec.ts:6:1 › sign up, keep a project across reload and sign-out/sign-in @phone (7.2s)
+  ✓    3 [desktop] › e2e/account.spec.ts:100:1 › an edit the account refuses as older gives way to the newer copy another device saved (7.4s)
+  ✓   10 [desktop] › e2e/catalog-api.spec.ts:10:1 › the catalog API needs the token (423ms)
+  ✓   11 [desktop] › e2e/catalog-api.spec.ts:15:1 › says which database it is on, as a test one, and only to a request with the token (64ms)
+  ✓    9 [desktop] › e2e/brand.spec.ts:5:1 › the home page shows the app name in both languages and carries the Search Console tag (1.3s)
+  ✓   12 [desktop] › e2e/catalog-api.spec.ts:30:1 › writes only when the POST names this database, and writes to the database it names (1.0s)
+  ✓    8 [desktop] › e2e/bank-wiring.spec.ts:37:1 › with both bank-wiring rows the spec sheet still prints on two pages, and the CSV carries the rows  [... omitted end of long line]
+  ✓   13 [desktop] › e2e/catalog-api.spec.ts:55:1 › a mistyped flag answers 400 naming it, and nothing is written (1.4s)
+  ✓   15 [desktop] › e2e/catalog-products.spec.ts:27:1 › the products API needs the token (36ms)
+  ✓   17 [desktop] › e2e/catalog-products.spec.ts:32:1 › dry run, create, keep a conflicting reading aside, then replace it (1.3s)
+  ✓   16 [desktop] › e2e/catalog-products.spec.ts:61:1 › a stored product that no longer passes the schema is never overwritten (1.4s)
+  ✓    5 [desktop] › e2e/account.spec.ts:72:1 › an edit made while saves fail survives a reload and then reaches the account (11.3s)
+  ✓   14 [desktop] › e2e/catalog-api.spec.ts:70:1 › dry run, create, show in the picker in both languages, then retire (2.6s)
+  ✓   18 [desktop] › e2e/catalog-products.spec.ts:81:1 › a write that fills one spec and finds another differing is in updated and in conflicts (784ms [... omitted end of long line]
+  ✓   21 [desktop] › e2e/catalog-products.spec.ts:150:1 › a mistyped flag answers 400 naming it, and nothing is written (671ms)
+  ✓   22 [desktop] › e2e/catalog-products.spec.ts:166:1 › a dry run with replace shows what it would overwrite, and writes nothing (522ms)
+  ✓   20 [desktop] › e2e/catalog-products.spec.ts:129:1 › a write of one new and one unchanged product creates the first and moves last_seen_at of the [... omitted end of long line]
+  ✓   19 [desktop] › e2e/catalog-products.spec.ts:105:1 › sending an unchanged product again moves last_seen_at and nothing else (1.8s)
+  ✓   23 [desktop] › e2e/download.spec.ts:24:3 › on a device set to Spanish (Venezuela), where decimals take a comma › the CSV splits cells on ";" and [... omitted end of long line]
+  ✓   24 [desktop] › e2e/database-down.spec.ts:30:1 › with the database down, a signed-in browser keeps sizing and leaves the account copy it holds as [... omitted end of long line]
+  ✓   25 [desktop] › e2e/download.spec.ts:54:3 › on a device set to English (US) › the CSV splits cells on ",", quotes a cell holding a comma, and ope [... omitted end of long line]
+  ✓   26 [desktop] › e2e/download.spec.ts:69:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone (2.5s)
+  ✓   27 [desktop] › e2e/download.spec.ts:97:1 › the CSV parts list carries the solar parts when panels are chosen (1.3s)
+  ✓    6 [desktop] › e2e/admin.spec.ts:33:1 › an admin adds an appliance, sees it in the picker, and retires it (11.3s)
+  ✓   29 [desktop] › e2e/download.spec.ts:159:3 › a PDF capture still running after 30 s ends in the failed message and saves no file (1.5s)
+  ✓   30 [desktop] › e2e/download.spec.ts:159:3 › a PNG capture still running after 30 s ends in the failed message and saves no file (3.0s)
+  ✓   28 [desktop] › e2e/download.spec.ts:119:1 › export progress is visible while the file is being prepared (3.5s)
+  ✓   31 [desktop] › e2e/download.spec.ts:182:1 › the parts list comes first, and the load schedule gets a PDF page of its own (3.4s)
+  ✓   33 [desktop] › e2e/download.spec.ts:197:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (2.4s) [... omitted end of long line]
+  ✓   32 [desktop] › e2e/admin.spec.ts:75:1 › "New appliance" refuses an id that already belongs to another appliance (3.7s)
+  ✓   34 [desktop] › e2e/download.spec.ts:223:1 › a CSV has no printed pages, so there is no larger view to open (1.1s)
+  ✓   38 [desktop] › e2e/download.spec.ts:305:1 › the checks print last on the sheet and can be left out (1.0s)
+  ✓   36 [desktop] › e2e/download.spec.ts:292:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @ [... omitted end of long line]
+  ✓   39 [desktop] › e2e/duty.spec.ts:77:3 › the duty picker stays inside its appliance card and clear of the quantity buttons at every width, in Engl [... omitted end of long line]
+  ✓   37 [desktop] › e2e/download.spec.ts:292:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @ [... omitted end of long line]
+  -   43 [desktop] › e2e/duty.spec.ts:104:1 › on a touch screen the duty picker is at least 16 px, so iOS Safari does not zoom in when it is tapped @p [... omitted end of long line]
+  ✓   35 [desktop] › e2e/download.spec.ts:232:1 › notes and failing checks stay on the sheet and in the files with their Include boxes unticked (2.9s) [... omitted end of long line]
+  ✓   45 [desktop] › e2e/duty.spec.ts:153:1 › the average on a card says how many units it adds up once there are several (1.1s)
+  ✓   41 [desktop] › e2e/duty.spec.ts:77:3 › the duty picker stays inside its appliance card and clear of the quantity buttons at every width, in Espa [... omitted end of long line]
+  ✓   42 [desktop] › e2e/duty.spec.ts:90:3 › the duty picker stays inside its quick-edit row and clear of the quantity buttons at every width, in Espa [... omitted end of long line]
+  ✓   44 [desktop] › e2e/duty.spec.ts:134:1 › along a desktop row of appliance cards, the Add buttons and the quantity buttons end level (2.3s)
+  ✓   40 [desktop] › e2e/duty.spec.ts:90:3 › the duty picker stays inside its quick-edit row and clear of the quantity buttons at every width, in Engl [... omitted end of long line]
+  ✓   46 [desktop] › e2e/duty.spec.ts:170:1 › a card says how much of each hour its appliance runs, and an added one can change it (2.2s)
+  ✓   47 [desktop] › e2e/google.spec.ts:27:1 › Continue with Google sends the browser to Google with our callback URL (1.4s)
+  ✓   48 [desktop] › e2e/google.spec.ts:35:1 › an email that already has a password account is told how to connect Google (1.3s)
+  ✓   49 [desktop] › e2e/google.spec.ts:40:1 › any other Google error asks to try again (2.2s)
+  ✓   53 [desktop] › e2e/kit-builder.spec.ts:9:1 › shell renders the stepper, a Home project and step navigation @phone (1.3s)
+  ✓   50 [desktop] › e2e/google.spec.ts:45:1 › a signed-in password user can start connecting Google from the account menu (2.6s)
+  ✓   54 [desktop] › e2e/kit-builder.spec.ts:21:1 › the stepper jumps straight to any step (1.5s)
+  ✓   51 [desktop] › e2e/google.spec.ts:59:1 › connecting Google from the account menu while offline says so under the header, and works once back onl [... omitted end of long line]
+  ✓   56 [desktop] › e2e/kit-builder.spec.ts:56:1 › the kit edits appliances and the window in place, shows what moved, and undoes it (2.0s)
+  ✓   55 [desktop] › e2e/kit-builder.spec.ts:39:1 › moving between steps does not wait on the server (2.8s)
+  ✓   57 [desktop] › e2e/kit-builder.spec.ts:83:1 › the full list is split into one labeled section per category (2.0s)
+  ✓   52 [desktop] › e2e/google.spec.ts:73:1 › on a project's quotes page, which also offers Connect Google in the verdict, the menu's failure is said [... omitted end of long line]
+  ✓   58 [desktop] › e2e/kit-builder.spec.ts:102:1 › a condo can type 32 cameras, and the AC list is grouped by compressor type (1.5s)
+  ✓   59 [desktop] › e2e/kit-builder.spec.ts:128:1 › a new project can be created, renamed and deleted @phone (2.0s)
+  ✓   61 [desktop] › e2e/kit-builder.spec.ts:203:1 › clicking another project's card away from its name opens that project @phone (1.7s)
+  ✓   62 [desktop] › e2e/kit-builder.spec.ts:217:1 › quick edit on another project's card shows its steppers without opening it @phone (1.7s)
+  ✓   63 [desktop] › e2e/kit-builder.spec.ts:226:1 › with quick edit open, a click between stepper rows opens nothing @phone (1.7s)
+  ✓   60 [desktop] › e2e/kit-builder.spec.ts:146:1 › project names can be erased with backspace and replaced @phone (2.5s)
+  ✓   64 [desktop] › e2e/kit-builder.spec.ts:245:1 › project cards show each kit and quick edit a project without opening it (1.5s)
+  ✓   66 [desktop] › e2e/kit-builder.spec.ts:293:1 › the custom form explains what is missing (1.1s)
+  ✓   65 [desktop] › e2e/kit-builder.spec.ts:269:1 › appliances can be added, filtered and a custom load created from volts × amps (1.4s)
+  ✓   67 [desktop] › e2e/kit-builder.spec.ts:302:1 › the custom form questions watts typed with a thousands separator, and keeps a name to what a save [... omitted end of long line]
+  ✓   69 [desktop] › e2e/kit-builder.spec.ts:347:1 › a saved custom appliance that no longer loads stays reported until it is removed, and a new one d [... omitted end of long line]
+  ✓   70 [desktop] › e2e/kit-builder.spec.ts:389:1 › hours, voltage and chemistry change the sizing summary (1.1s)
+  ✓   71 [desktop] › e2e/kit-builder.spec.ts:412:3 › only 36 V says few inverters are sold for it, in English (1.4s)
+  ✓   68 [desktop] › e2e/kit-builder.spec.ts:319:1 › a custom pump that runs 30% of each hour cycles, and its duty picker changes it (2.4s)
+  ✓   73 [desktop] › e2e/kit-builder.spec.ts:425:1 › a router alone at 48 V says why its bank is large and names 12 V; at 12 V it says nothing (1.1s) [... omitted end of long line]
+  ✓   74 [desktop] › e2e/kit-builder.spec.ts:438:1 › a saved 36 V project loads, sizes and carries the caveat (1.3s)
+  ✓   75 [desktop] › e2e/kit-builder.spec.ts:463:3 › the kit says it is an estimate between the parts list and the checks, in English @phone (1.3s) [... omitted end of long line]
+  ✓   72 [desktop] › e2e/kit-builder.spec.ts:412:3 › only 36 V says few inverters are sold for it, in Español (2.7s)
+  ✓   78 [desktop] › e2e/kit-builder.spec.ts:475:3 › a kit with nothing selected has no parts to qualify, so it shows no estimate sentence, in Español [... omitted end of long line]
+  ✓   76 [desktop] › e2e/kit-builder.spec.ts:475:3 › a kit with nothing selected has no parts to qualify, so it shows no estimate sentence, in English [... omitted end of long line]
+  ✓   79 [desktop] › e2e/kit-builder.spec.ts:492:3 › Privacy and Terms of use open from under step 1, without signing in (1.4s)
+  ✓   80 [desktop] › e2e/kit-builder.spec.ts:492:3 › Privacy and Terms of use open from under step 2, without signing in (1.4s)
+  ✓   77 [desktop] › e2e/kit-builder.spec.ts:463:3 › the kit says it is an estimate between the parts list and the checks, in Español @phone (2.7s) [... omitted end of long line]
+  ✓   82 [desktop] › e2e/kit-builder.spec.ts:492:3 › Privacy and Terms of use open from under step 4, without signing in (1.5s)
+  ✓   83 [desktop] › e2e/kit-builder.spec.ts:504:1 › full flow: appliances → window → kit, and the project survives a reload @phone (1.7s)
+  ✓   81 [desktop] › e2e/kit-builder.spec.ts:492:3 › Privacy and Terms of use open from under step 3, without signing in (2.4s)
+  ✓   84 [desktop] › e2e/kit-builder.spec.ts:523:1 › the language switch shows the app in Spanish and remembers it (1.8s)
+  ✓   86 [desktop] › e2e/kit-builder.spec.ts:548:1 › the battery size can be chosen on the kit, is remembered, and Auto brings back the fewest batteri [... omitted end of long line]
+  ✓   87 [desktop] › e2e/kit-builder.spec.ts:576:1 › a cycling appliance's on-time can be changed on the kit, moves the runtime, and is undone (1.5s) [... omitted end of long line]
+  ✓   88 [desktop] › e2e/kit-builder.spec.ts:599:1 › on the narrowest phone the quotes card wraps its long Spanish sign-in label instead of widening t [... omitted end of long line]
+  ✓   92 [desktop] › e2e/migration-check.spec.ts:44:1 › the check fails for a migration this database never ran and never will: one stamped earlier th [... omitted end of long line]
+  ✓   91 [desktop] › e2e/migration-check.spec.ts:36:1 › the check passes the repository's journal on this run's database (722ms)
+  ✓   85 [desktop] › e2e/kit-builder.spec.ts:537:3 › on a device whose preferred languages put Spanish first among the supported ones › opens in Spani [... omitted end of long line]
+  ✓   89 [desktop] › e2e/kit-builder.spec.ts:614:1 › motors starting together and a hot cable run change the inverter, the checks and the assumptions  [... omitted end of long line]
+  ✓   93 [desktop] › e2e/migration-check.spec.ts:54:1 › the check lists a migration stamped later than every row, and does not fail for it (493ms) [... omitted end of long line]
+  -   97 [desktop] › e2e/project-card.spec.ts:61:3 › Rename chosen from the ··· menu by touch lands in the name field, ready to type @phone
+  ✓   90 [desktop] › e2e/kit-builder.spec.ts:635:1 › a load past the largest inverter gets inverters in parallel, each with its own cable runs and fus [... omitted end of long line]
+  ✓   94 [desktop] › e2e/privacy.spec.ts:3:1 › the privacy page says what is stored, how long OpenAI may keep quote files and how to delete it, and si [... omitted end of long line]
+  ✓   95 [desktop] › e2e/privacy.spec.ts:14:1 › the privacy page is translated, the quote file retention included (1.2s)
+  ✓   98 [desktop] › e2e/project-card.spec.ts:61:3 › Rename chosen from the ··· menu by keyboard lands in the name field, ready to type @phone (1.1s) [... omitted end of long line]
+  ✓   96 [desktop] › e2e/project-card.spec.ts:61:3 › Rename chosen from the ··· menu by mouse lands in the name field, ready to type @phone (1.7s) [... omitted end of long line]
+  ✓   99 [desktop] › e2e/project-card.spec.ts:80:3 › Duplicate from the ··· menu puts focus on the title of the project it opens @phone (1.5s) [... omitted end of long line]
+  ✓  100 [desktop] › e2e/project-card.spec.ts:80:3 › Delete from the ··· menu puts focus on the title of the project it opens @phone (1.5s)
+  ✓  101 [desktop] › e2e/project-card.spec.ts:97:1 › a name is saved as it is typed: a reload with the field still open keeps it (1.3s)
+  ✓  102 [desktop] › e2e/project-card.spec.ts:107:1 › a name field left empty is stored as Untitled, even if the field never closes (1.2s)
+  ✓  103 [desktop] › e2e/project-card.spec.ts:117:1 › Escape puts back the name the rename started with, though every keystroke was saved @phone (1.5s [... omitted end of long line]
+  ✓  104 [desktop] › e2e/project-card.spec.ts:140:1 › Enter and Escape that an input method is using leave the name field open with what was typed @ph [... omitted end of long line]
+  ✓  106 [desktop] › e2e/project-card.spec.ts:176:1 › a new project started while a name field still has focus opens its own name field (1.4s)
+  ✓  107 [desktop] › e2e/project-card.spec.ts:188:1 › Enter in a new project's name field closes the phone's sheet @phone (1.4s)
+  -  111 [desktop] › e2e/project-card.spec.ts:235:1 › a card's controls scroll under the sheet's header, never over its Close button @phone
+  ✓  108 [desktop] › e2e/project-card.spec.ts:201:1 › leaving a new project's name field keeps the sheet open @phone (1.1s)
+  ✓  109 [desktop] › e2e/project-card.spec.ts:211:1 › Escape in a new project's name field keeps the sheet open, and so does renaming it afterwards @p [... omitted end of long line]
+  ✓  105 [desktop] › e2e/project-card.spec.ts:159:1 › a rename ends when another project is opened, even if the name field never blurred @phone (2.6s) [... omitted end of long line]
+  ✓  110 [desktop] › e2e/project-card.spec.ts:224:1 › renaming an existing project with Enter keeps the sheet open @phone (1.6s)
+  ✓  112 [desktop] › e2e/project-card.spec.ts:270:1 › another project's card still shows its focus ring around the whole card @phone (1.3s)
+  ✓  114 [desktop] › e2e/project-card.spec.ts:319:1 › while a project is renamed, the name field and its focus ring stay above the line under it @phon [... omitted end of long line]
+  ✓  113 [desktop] › e2e/project-card.spec.ts:292:1 › a card keeps its accessible name while its name is being edited (1.5s)
+  ✓  115 [desktop] › e2e/project-card.spec.ts:329:1 › with a single project the ··· menu offers Rename and Duplicate, and no Delete (1.1s)
+  ✓  117 [desktop] › e2e/quote-budget.spec.ts:25:1 › with the day’s reads spent, an upload is refused with the reason and nothing is stored (5.1s) [... omitted end of long line]
+  ✓  118 [desktop] › e2e/quote-budget.spec.ts:37:1 › with the day’s reads spent, a retry is refused with the reason and the quote stays as it was (5.5 [... omitted end of long line]
+  ✓  119 [desktop] › e2e/quote-budget.spec.ts:84:1 › two retries of the same quote at once take one read and re-queue it once (6.4s)
+  ✓  116 [desktop] › e2e/quote-budget.spec.ts:13:1 › an admitted upload takes one of the day’s reads (7.0s)
+  ✓  120 [desktop] › e2e/quote-evidence.spec.ts:13:1 › a check quotes every line it read and shows its arithmetic, in English and Spanish (AI-18) @pho [... omitted end of long line]
+  ✓  121 [desktop] › e2e/quote-plausibility.spec.ts:11:1 › a reading that cites a page past the end of its file shows the misread card, read again or  [... omitted end of long line]
+  ✓  122 [desktop] › e2e/quote-plausibility.spec.ts:33:1 › a 5,120 kWh battery shows the misread card: a typed total does not rank it, read again or n [... omitted end of long line]
+  ✓  125 [desktop] › e2e/quotes.spec.ts:86:1 › a kit with solar panels asks quotes for them, and panels can be made a nice-to-have (5.4s)
+  ✓  124 [desktop] › e2e/quotes.spec.ts:53:1 › a cheaper quote that leaves a chemistry, a size and a fuse class open is worth asking, not the best fit [... omitted end of long line]
+  ✓  123 [desktop] › e2e/quotes.spec.ts:27:1 › quotes upload, are read in the background, and end in a verdict @phone (6.2s)
+  ✓  127 [desktop] › e2e/quotes.spec.ts:154:1 › a must-have that fails to save goes back, and one saved meanwhile is kept, on screen and on the server [... omitted end of long line]
+  ✓  130 [desktop] › e2e/quotes.spec.ts:307:1 › a verdict that finished while away shows once in the tray (5.7s)
+  ✓  126 [desktop] › e2e/quotes.spec.ts:110:1 › must-haves and confirmations change the winner, and stick (9.2s)
+  ✓  128 [desktop] › e2e/quotes.spec.ts:195:1 › a reload that lands while a must-have is saving keeps the change on screen (7.4s)
+  ✓  132 [desktop] › e2e/quotes.spec.ts:348:1 › a file of the wrong type is refused before upload, with the reason (1.9s)
+  ✓  133 [desktop] › e2e/quotes.spec.ts:355:1 › a password-protected PDF is refused as locked, not as the wrong type, and the reason says how to fix i [... omitted end of long line]
+  ✓  129 [desktop] › e2e/quotes.spec.ts:239:1 › a reload that read the data before a must-have saved, but answers after the save, keeps the change (9. [... omitted end of long line]
+  ✓  134 [desktop] › e2e/quotes.spec.ts:363:1 › the dialog for a password-protected PDF gives the reason and the one-file hint in Spanish (2.8s) [... omitted end of long line]
+  ✓  131 [desktop] › e2e/quotes.spec.ts:321:1 › another project's verdict opened from the tray is read once, not again on the first poll (6.2s)
+  ✓  135 [desktop] › e2e/quotes.spec.ts:374:1 › both upload buttons and the dialog say one file per quote, in English and Spanish (5.9s)
+  ✓  139 [desktop] › e2e/quotes.spec.ts:495:1 › a project that already has 10 quotes refuses an eleventh, with the reason (4.0s)
+  ✓  136 [desktop] › e2e/quotes.spec.ts:398:1 › another account gets 404 for the file and the verdict (7.8s)
+  ✓  140 [desktop] › e2e/quotes.spec.ts:509:1 › an account that used its 20 uploads this month is refused, with the reason (3.9s)
+  ✓  141 [desktop] › e2e/quotes.spec.ts:521:1 › deleting a project removes its quotes and their files (4.8s)
+  ✓  137 [desktop] › e2e/quotes.spec.ts:429:1 › the hand-off dialog shows each file reading, then lets a file that could not be read be retried from t [... omitted end of long line]
+  ✓  144 [desktop] › e2e/quotes.spec.ts:603:1 › on the verdict page, an unverified account gets Connect Google instead of Add another quote, and no Re [... omitted end of long line]
+  ✓  143 [desktop] › e2e/quotes.spec.ts:562:1 › an unverified account sees a note and Connect Google instead of the Upload button, and the server refu [... omitted end of long line]
+  ✓  145 [desktop] › e2e/quotes.spec.ts:627:1 › a password account with a Google account whose token verifies its email can upload, though its email w [... omitted end of long line]
+  ✓  142 [desktop] › e2e/quotes.spec.ts:544:1 › deleting a quote removes its file and leaves nothing in the trash (5.3s)
+  ✓  146 [desktop] › e2e/quotes.spec.ts:637:1 › a Google account whose email Google did not verify does not unlock uploads (1.6s)
+  ✓  147 [desktop] › e2e/quotes.spec.ts:648:1 › a project whose quotes all failed says none could be read, not that a verdict is ready (2.5s)
+  ✓  149 [desktop] › e2e/quotes.spec.ts:718:1 › a quote that offers two systems shows a card for each, priced on its own, and asks for no total (4.7s) [... omitted end of long line]
+  ✓  138 [desktop] › e2e/quotes.spec.ts:453:1 › a quote that could not be read can be retried, until its retries are used up, on the page and on the s [... omitted end of long line]
+  ✓  150 [desktop] › e2e/quotes.spec.ts:739:1 › a quote read before options can be read again, and then shows a card per option (5.3s)
+  ✓  154 [desktop] › e2e/requester.spec.ts:77:1 › a client added in the Download panel prints on the sheet and stays after a reload (1.7s)
+  ✓  153 [desktop] › e2e/requester.spec.ts:36:1 › the spec sheet prints the requester band, and Include takes it off (2.8s)
+  ✓  148 [desktop] › e2e/quotes.spec.ts:681:1 › on a phone, every card keeps its name, total, reason and gauge labels apart @phone (8.8s)
+  ✓  155 [desktop] › e2e/requester.spec.ts:98:1 › the form explains a bad RIF, caps long text, and Escape closes only the form @phone (1.5s)
+  ✓  151 [desktop] › e2e/quotes.spec.ts:760:1 › a total that failed its check is asked for in an empty field; a misread line is read again before its  [... omitted end of long line]
+  ✓  156 [desktop] › e2e/requester.spec.ts:121:1 › a person in the United States is not asked for an ID (1.6s)
+  ✓  152 [desktop] › e2e/quotes.spec.ts:804:1 › a ranked quote whose reading needs a check can be read again from its card (5.6s)
+  ✓  158 [desktop] › e2e/requester.spec.ts:164:1 › a saved client can be edited and deleted from the list, and the project keeps its copy (1.8s) [... omitted end of long line]
+  ✓  157 [desktop] › e2e/requester.spec.ts:143:1 › a saved client is one tap away in a new project (2.9s)
+  ✓  161 [desktop] › e2e/requester.spec.ts:234:1 › Remove takes the client off this project (1.4s)
+  ✓  159 [desktop] › e2e/requester.spec.ts:189:1 › closing the form keeps what was typed, across a reload, until Start over (2.3s)
+  ✓  160 [desktop] › e2e/requester.spec.ts:216:1 › with a long list of saved clients, "Use on the sheet" stays on screen @phone (2.4s)
+  ✓  163 [desktop] › e2e/requester.spec.ts:273:1 › a cédula added later to a client saved without one prints on the sheet (1.4s)
+  ✓  165 [desktop] › e2e/requester.spec.ts:305:1 › a client with every field at its longest still leaves the parts list whole on page one @phone (2.6s [... omitted end of long line]
+  ✓  164 [desktop] › e2e/requester.spec.ts:286:1 › clients saved while signed out are not offered to an account that signs in on the same browser (3.1 [... omitted end of long line]
+  -  169 [desktop] › e2e/requester.spec.ts:399:1 › with the phone keyboard open, the form sheet ends above it and its last field can be reached @phone [... omitted end of long line]
+  -  170 [desktop] › e2e/requester.spec.ts:414:1 › on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is ta [... omitted end of long line]
+  ✓  162 [desktop] › e2e/requester.spec.ts:245:1 › a signed-in client comes back from the account on a fresh browser (4.6s)
+  ✓  167 [desktop] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one: the estimate block prints whole, and th [... omitted end of long line]
+  ✓  166 [desktop] › e2e/requester.spec.ts:351:3 › the longest client in Spanish: the estimate block prints whole, and the load schedule never takes a [... omitted end of long line]
+  ✓  173 [desktop] › e2e/server-errors.spec.ts:60:1 › the root error screen arrives inside the page shell: its HTML links the app's stylesheet (992ms) [... omitted end of long line]
+  ✓  168 [desktop] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one, in Spanish: the estimate block prints w [... omitted end of long line]
+  ✓  172 [desktop] › e2e/server-errors.spec.ts:33:1 › a failure while the server renders the page is a reference too, in the page and in the HTML it a [... omitted end of long line]
+  ✓  171 [desktop] › e2e/server-errors.spec.ts:5:1 › a server failure reaches the page as a reference, with nothing of what went wrong (3.4s)
+  ✓  175 [desktop] › e2e/shared-browser.spec.ts:101:1 › a session that ended without a sign-out leaves nothing either (6.6s)
+  ✓  174 [desktop] › e2e/shared-browser.spec.ts:91:1 › after a sign-out the next account on this browser sees and receives none of the last one's proj [... omitted end of long line]
+  ✓  176 [desktop] › e2e/shared-browser.spec.ts:155:1 › a tab left open for the last account cannot save into the account that signed in after it (8.5 [... omitted end of long line]
+  ✓  177 [desktop] › e2e/shared-browser.spec.ts:165:1 › a tab left open for the last account cannot read the projects of the account that signed in af [... omitted end of long line]
+  ✓  178 [desktop] › e2e/shared-browser.spec.ts:207:1 › a tab left open for the last account cannot upload a quote into the account that signed in aft [... omitted end of long line]
+  ✓  182 [desktop] › e2e/shared-browser.spec.ts:282:1 › a sign-out that never reaches the server says so, and the account stays signed in until one do [... omitted end of long line]
+  ✓  183 [desktop] › e2e/shared-browser.spec.ts:299:1 › a sign-out from a project's quotes page that never reaches the server says so there too (2.8s) [... omitted end of long line]
+  ✓  180 [desktop] › e2e/shared-browser.spec.ts:243:1 › signing out from a project's quotes page, where the kit builder is not open, takes the project [... omitted end of long line]
+  ✓  181 [desktop] › e2e/shared-browser.spec.ts:255:1 › signing back in adds no empty first project beside the one the account already has (4.4s) [... omitted end of long line]
+  ✓  184 [desktop] › e2e/solar.spec.ts:4:1 › a fresh project is battery-only and the step can be skipped (1.1s)
+  ✓  185 [desktop] › e2e/solar.spec.ts:14:1 › the roof area fills the planner with the recommended panels, taps override it, and it survives a reload  [... omitted end of long line]
+  ✓  186 [desktop] › e2e/solar.spec.ts:55:1 › a small roof shows fewer tiles and the kit warns about it (1.6s)
+  ✓  187 [desktop] › e2e/solar.spec.ts:66:1 › sun hours change the recommendation and the flow (1.5s)
+  ✓  179 [desktop] › e2e/shared-browser.spec.ts:223:1 › a tab left open for the last account cannot read the quotes of the account that signed in afte [... omitted end of long line]
+  ✓  188 [desktop] › e2e/solar.spec.ts:81:1 › the kit lists the solar parts (1.1s)
+  ✓  192 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Engl [... omitted end of long line]
+  ✓  191 [desktop] › e2e/spanish-defaults.spec.ts:31:3 › on a page in Spanish › a custom load is tagged "Personalizado", one saved with the English ta [... omitted end of long line]
+  ✓  189 [desktop] › e2e/solar.spec.ts:91:1 › the step reads in Spanish (1.4s)
+  ✓  193 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes b [... omitted end of long line]
+  ✓  194 [desktop] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Espa [... omitted end of long line]
+  ✓  195 [desktop] › e2e/split-phase.spec.ts:69:3 › a 2-ton AC alone gives the 240 V note and the split-phase inverter output, and removing it takes b [... omitted end of long line]
+  ✓  197 [desktop] › e2e/stepper.spec.ts:148:1 › the step an empty project is on is drawn as the current one, never as locked (1.5s)
+  ✓  190 [desktop] › e2e/spanish-defaults.spec.ts:9:3 › on a page in Spanish › the first project is "Casa", a new one "Proyecto 2" and its copy "Proye [... omitted end of long line]
+  ✓  198 [desktop] › e2e/stepper.spec.ts:172:1 › the sign-in page shows the steps but none can be clicked, and none reads as locked (1.0s)
+  ✓  196 [desktop] › e2e/stepper.spec.ts:132:1 › an empty project locks steps 2 to 4 until an appliance is added (2.7s)
+  ✓  199 [desktop] › e2e/stepper.spec.ts:183:1 › in Spanish the four steps and the lock text are translated (1.6s)
+  ✓  200 [desktop] › e2e/stepper.spec.ts:195:3 › English: the stepper fits the header at this device's own width @phone (1.6s)
+  ✓  203 [desktop] › e2e/stepper.spec.ts:195:3 › Español: the stepper fits the header at this device's own width @phone (1.9s)
+  ✓  202 [desktop] › e2e/stepper.spec.ts:208:3 › English: the stepper has its own row beside the rail and shares the brand's row on a wide screen (2.2 [... omitted end of long line]
+  -  207 [desktop] › e2e/stepper.spec.ts:243:1 › a long project name beside the Projects button is cut with an ellipsis instead of widening the page @ [... omitted end of long line]
+  ✓  208 [desktop] › e2e/terms.spec.ts:3:1 › the terms say results are estimates for an electrician to check, and sign-in links to them (1.0s)
+  ✓  206 [desktop] › e2e/stepper.spec.ts:219:1 › without the rail, steps 2 and 3 name the open project beside the Projects button @phone (1.7s)
+  ✓  205 [desktop] › e2e/stepper.spec.ts:208:3 › Español: the stepper has its own row beside the rail and shares the brand's row on a wide screen (2.9 [... omitted end of long line]
+  ✓  209 [desktop] › e2e/terms.spec.ts:12:1 › the terms are translated (999ms)
+  ✓  201 [desktop] › e2e/stepper.spec.ts:200:3 › English: the stepper fits the header from a small phone to a wide desktop (6.4s)
+  ✓  204 [desktop] › e2e/stepper.spec.ts:200:3 › Español: the stepper fits the header from a small phone to a wide desktop (5.7s)
+  ✓  210 [desktop] › e2e/user-cleanup.spec.ts:13:1 › the account cleanup deletes an account and its project only with the fingerprint of its listing ( [... omitted end of long line]
+  ✓  211 [desktop] › e2e/user-cleanup.spec.ts:23:1 › the account cleanup deletes nothing when an upload commits a quote while it runs (4.4s)
+  ✓  213 [desktop] › e2e/zz-qa-evidence-92.spec.ts:90:1 › evidence: AC3 the root error screen (2.9s)
+  ✓  212 [desktop] › e2e/zz-qa-evidence-92.spec.ts:39:1 › evidence: AC1 and AC2 on the server whose database is down (5.6s)
+  ✓  216 [phone] › e2e/download.spec.ts:197:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone (2.5s)
+  ✓  215 [phone] › e2e/download.spec.ts:69:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone (3.3s)
+  ✓  219 [phone] › e2e/duty.spec.ts:77:3 › the duty picker stays inside its appliance card and clear of the quantity buttons at every width, in Englis [... omitted end of long line]
+  ✓  217 [phone] › e2e/download.spec.ts:292:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @ph [... omitted end of long line]
+  ✓  220 [phone] › e2e/duty.spec.ts:90:3 › the duty picker stays inside its quick-edit row and clear of the quantity buttons at every width, in Englis [... omitted end of long line]
+  ✓  214 [phone] › e2e/account.spec.ts:6:1 › sign up, keep a project across reload and sign-out/sign-in @phone (6.0s)
+  ✓  218 [phone] › e2e/download.spec.ts:292:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @ph [... omitted end of long line]
+  ✓  221 [phone] › e2e/duty.spec.ts:77:3 › the duty picker stays inside its appliance card and clear of the quantity buttons at every width, in Españo [... omitted end of long line]
+  ✓  223 [phone] › e2e/duty.spec.ts:104:1 › on a touch screen the duty picker is at least 16 px, so iOS Safari does not zoom in when it is tapped @pho [... omitted end of long line]
+  ✓  224 [phone] › e2e/kit-builder.spec.ts:9:1 › shell renders the stepper, a Home project and step navigation @phone (1.4s)
+  ✓  222 [phone] › e2e/duty.spec.ts:90:3 › the duty picker stays inside its quick-edit row and clear of the quantity buttons at every width, in Españo [... omitted end of long line]
+  ✓  225 [phone] › e2e/kit-builder.spec.ts:128:1 › a new project can be created, renamed and deleted @phone (2.7s)
+  ✓  229 [phone] › e2e/kit-builder.spec.ts:226:1 › with quick edit open, a click between stepper rows opens nothing @phone (2.1s)
+  ✓  226 [phone] › e2e/kit-builder.spec.ts:146:1 › project names can be erased with backspace and replaced @phone (2.4s)
+  ✓  230 [phone] › e2e/kit-builder.spec.ts:463:3 › the kit says it is an estimate between the parts list and the checks, in English @phone (963ms) [... omitted end of long line]
+  ✓  227 [phone] › e2e/kit-builder.spec.ts:203:1 › clicking another project's card away from its name opens that project @phone (3.3s)
+  ✓  228 [phone] › e2e/kit-builder.spec.ts:217:1 › quick edit on another project's card shows its steppers without opening it @phone (3.4s)
+  ✓  232 [phone] › e2e/kit-builder.spec.ts:504:1 › full flow: appliances → window → kit, and the project survives a reload @phone (1.5s)
+  ✓  231 [phone] › e2e/kit-builder.spec.ts:463:3 › the kit says it is an estimate between the parts list and the checks, in Español @phone (1.7s) [... omitted end of long line]
+  ✓  233 [phone] › e2e/kit-builder.spec.ts:599:1 › on the narrowest phone the quotes card wraps its long Spanish sign-in label instead of widening the [... omitted end of long line]
+  ✓  237 [phone] › e2e/project-card.spec.ts:80:3 › Duplicate from the ··· menu puts focus on the title of the project it opens @phone (1.9s)
+  ✓  235 [phone] › e2e/project-card.spec.ts:61:3 › Rename chosen from the ··· menu by touch lands in the name field, ready to type @phone (2.6s) [... omitted end of long line]
+  ✓  238 [phone] › e2e/project-card.spec.ts:80:3 › Delete from the ··· menu puts focus on the title of the project it opens @phone (2.0s)
+  ✓  236 [phone] › e2e/project-card.spec.ts:61:3 › Rename chosen from the ··· menu by keyboard lands in the name field, ready to type @phone (2.4s) [... omitted end of long line]
+  ✓  234 [phone] › e2e/project-card.spec.ts:61:3 › Rename chosen from the ··· menu by mouse lands in the name field, ready to type @phone (3.3s) [... omitted end of long line]
+  ✓  240 [phone] › e2e/project-card.spec.ts:140:1 › Enter and Escape that an input method is using leave the name field open with what was typed @phon [... omitted end of long line]
+  ✓  239 [phone] › e2e/project-card.spec.ts:117:1 › Escape puts back the name the rename started with, though every keystroke was saved @phone (2.1s) [... omitted end of long line]
+  ✓  243 [phone] › e2e/project-card.spec.ts:201:1 › leaving a new project's name field keeps the sheet open @phone (1.7s)
+  ✓  242 [phone] › e2e/project-card.spec.ts:188:1 › Enter in a new project's name field closes the phone's sheet @phone (1.9s)
+  ✓  245 [phone] › e2e/project-card.spec.ts:224:1 › renaming an existing project with Enter keeps the sheet open @phone (1.3s)
+  ✓  241 [phone] › e2e/project-card.spec.ts:159:1 › a rename ends when another project is opened, even if the name field never blurred @phone (3.3s) [... omitted end of long line]
+  ✓  246 [phone] › e2e/project-card.spec.ts:235:1 › a card's controls scroll under the sheet's header, never over its Close button @phone (1.6s) [... omitted end of long line]
+  ✓  244 [phone] › e2e/project-card.spec.ts:211:1 › Escape in a new project's name field keeps the sheet open, and so does renaming it afterwards @pho [... omitted end of long line]
+  ✓  247 [phone] › e2e/project-card.spec.ts:270:1 › another project's card still shows its focus ring around the whole card @phone (2.5s)
+  ✓  248 [phone] › e2e/project-card.spec.ts:319:1 › while a project is renamed, the name field and its focus ring stay above the line under it @phone  [... omitted end of long line]
+  ✓  252 [phone] › e2e/requester.spec.ts:98:1 › the form explains a bad RIF, caps long text, and Escape closes only the form @phone (2.1s)
+  ✓  253 [phone] › e2e/requester.spec.ts:216:1 › with a long list of saved clients, "Use on the sheet" stays on screen @phone (2.6s)
+  ✓  254 [phone] › e2e/requester.spec.ts:305:1 › a client with every field at its longest still leaves the parts list whole on page one @phone (3.3s) [... omitted end of long line]
+  ✓  249 [phone] › e2e/quote-evidence.spec.ts:13:1 › a check quotes every line it read and shows its arithmetic, in English and Spanish (AI-18) @phone [... omitted end of long line]
+  ✓  250 [phone] › e2e/quotes.spec.ts:27:1 › quotes upload, are read in the background, and end in a verdict @phone (7.7s)
+  ✓  255 [phone] › e2e/requester.spec.ts:351:3 › the longest client in Spanish: the estimate block prints whole, and the load schedule never takes a t [... omitted end of long line]
+  ✓  256 [phone] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one: the estimate block prints whole, and the  [... omitted end of long line]
+  ✓  257 [phone] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one, in Spanish: the estimate block prints who [... omitted end of long line]
+  ✓  258 [phone] › e2e/requester.spec.ts:399:1 › with the phone keyboard open, the form sheet ends above it and its last field can be reached @phone ( [... omitted end of long line]
+  ✓  259 [phone] › e2e/requester.spec.ts:414:1 › on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tapp [... omitted end of long line]
+  ✓  251 [phone] › e2e/quotes.spec.ts:681:1 › on a phone, every card keeps its name, total, reason and gauge labels apart @phone (10.7s)
+  ✓  260 [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Englis [... omitted end of long line]
+  ✓  262 [phone] › e2e/stepper.spec.ts:195:3 › English: the stepper fits the header at this device's own width @phone (1.4s)
+  ✓  263 [phone] › e2e/stepper.spec.ts:195:3 › Español: the stepper fits the header at this device's own width @phone (1.5s)
+  ✓  264 [phone] › e2e/stepper.spec.ts:219:1 › without the rail, steps 2 and 3 name the open project beside the Projects button @phone (1.1s)
+  ✓  261 [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Españo [... omitted end of long line]
+  ✓  265 [phone] › e2e/stepper.spec.ts:243:1 › a long project name beside the Projects button is cut with an ellipsis instead of widening the page @ph [... omitted end of long line]
+
+  6 skipped
+  259 passed (2.8m)

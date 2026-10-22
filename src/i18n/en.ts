@@ -94,6 +94,7 @@ export const en: Dictionary = {
     recoverAccess: "Forgot your password? We can't reset it here yet. Write to {email} and we'll help you get back in.",
     quotesNeedGoogle: 'Uploading quotes needs a Google account. An email account still saves your projects.',
     notFound: 'Page not found', backHome: 'Back to the kit builder', errorTitle: 'Something interrupted the kit builder.', serverError: 'Server error. Reference', reload: 'Reload', updating: 'Loading the latest version…',
+    accountUnreachable: 'Could not reach your account. You can keep building the kit; changes stay on this page only.',
     projects: 'Projects', projectsCount: 'Projects · {count}', current: 'Current', quickEdit: 'Quick edit', done: 'Done',
     projectMeta: '{volts} V · {hours} h · {count} appliances', heaviestMore: '{list} and {count} more', bank: 'Bank', inverter: 'Inverter', close: 'Close',
     appliancesCount: 'Appliances · {count}', windowLabel: 'Window', hourLess: 'One hour less', hourMore: 'One hour more', hoursShort: '{hours} h',

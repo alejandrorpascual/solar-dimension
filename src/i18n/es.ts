@@ -94,6 +94,7 @@ export const es: Dictionary = {
     recoverAccess: '¿Olvidaste tu contraseña? Aún no podemos restablecerla aquí. Escribe a {email} y te ayudamos a volver a entrar.',
     quotesNeedGoogle: 'Subir cotizaciones requiere una cuenta de Google. Una cuenta con correo igual guarda tus proyectos.',
     notFound: 'Página no encontrada', backHome: 'Volver al kit', errorTitle: 'Algo interrumpió el armado del kit.', serverError: 'Error del servidor. Referencia', reload: 'Recargar', updating: 'Cargando la versión más reciente…',
+    accountUnreachable: 'No se pudo conectar con tu cuenta. Puedes seguir armando el kit; los cambios quedan solo en esta página.',
     projects: 'Proyectos', projectsCount: 'Proyectos · {count}', current: 'Actual', quickEdit: 'Edición rápida', done: 'Listo',
     projectMeta: '{volts} V · {hours} h · {count} aparatos', heaviestMore: '{list} y {count} más', bank: 'Banco', inverter: 'Inversor', close: 'Cerrar',
     appliancesCount: 'Aparatos · {count}', windowLabel: 'Horas', hourLess: 'Una hora menos', hourMore: 'Una hora más', hoursShort: '{hours} h',

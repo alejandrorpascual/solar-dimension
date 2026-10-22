@@ -66,7 +66,7 @@ function KitBuilderPage() {
   const { step } = Route.useSearch()
   const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
-  const { user } = useRootData()
+  const { user, isAccountUnreachable } = useRootData()
   const appliances = useCatalog()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
   const { signOut, hasFailed: hasSignOutFailed } = useSignOut(user)
@@ -89,6 +89,7 @@ function KitBuilderPage() {
         {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
         {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
         <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
+        {isAccountUnreachable && <div className="warn" role="status">{t.ui.accountUnreachable}</div>}
         {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
         {syncing && <div className="muted">{t.ui.syncing}</div>}
         <section className="stage">

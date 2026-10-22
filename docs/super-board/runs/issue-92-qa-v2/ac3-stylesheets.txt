@@ -1,0 +1,10 @@
+normal page / stylesheet links:
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Figtree:wght@400;500;600;700&amp;display=swap" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/styles-CDC5Tn4eTCmob7vr.css" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/index-CeDCjxfeI9H0zJ5V.css" data-precedence="default"/>
+
+error page / (lang=%) status 500 · starts with <!DOCTYPE html>: true · has <head>: true
+error page stylesheet links:
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Figtree:wght@400;500;600;700&amp;display=swap" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/styles-CDC5Tn4eTCmob7vr.css" data-precedence="default"/>
+<link rel="stylesheet" href="/_build/index-CeDCjxfeI9H0zJ5V.css" data-precedence="default"/>
