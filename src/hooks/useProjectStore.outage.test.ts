@@ -82,3 +82,19 @@ test("a save answered after the account became unreachable leaves the account's 
   expect(answered.store).toEqual(outage.store)
   expect(everythingStored()).toBe(accountCopy)
 })
+
+test('an account that becomes unreachable while its projects load leaves the page not syncing', async () => {
+  session.user = ANA
+  let answer!: () => void
+  net.gate = new Promise<void>((resolve) => { answer = resolve })
+  const loading = await mount()
+  expect(loading.syncing).toBe(true)
+
+  page.isAccountUnreachable = true
+  const outage = await rerender()
+  answer()
+  const answered = await edit(() => undefined)
+
+  expect(outage.syncing).toBe(false)
+  expect(answered.syncing).toBe(false)
+})
