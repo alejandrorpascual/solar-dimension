@@ -172,7 +172,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       <VerdictHeader verdict={verdict} kit={kit} progress={progress} />
       {verdict.ranked.length > 0 && <KitNeedTiles kit={kit} />}
       {verdict.best ? (
-        <div className="qv__grid">
+        <div className={ranked ? 'qv__grid qv__grid--split' : 'qv__grid'}>
           <BestCard best={verdict.best} kit={kit} error={errorFor(entryKey(verdict.best))}
             retry={retryFor(verdict.best.quote.id)} onRetry={run(entryKey(verdict.best), () => retryQuote({ data: { account, quoteId: verdict.best!.quote.id } }))}
             onOverride={onOverride(verdict.best.quote.id, entryKey(verdict.best))} onDelete={remove(verdict.best.quote.id, entryKey(verdict.best))} />
