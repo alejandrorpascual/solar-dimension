@@ -98,6 +98,15 @@ export async function countQuoteRows(email: string, projectId: string): Promise<
   return rows[0].n as number
 }
 
+/** What the user's account holds for the project named `name`, read on the test's own connection. Null when there is none. */
+export async function savedProject(email: string, name: string): Promise<{ hours: number; volts: number; chemistry: string; solar: unknown } | null> {
+  const rows = await testDb()`
+    select p.hours, p.volts, p.chemistry, p.solar from projects p join "user" u on u.id = p.user_id
+    where u.email = ${email} and p.name = ${name}`
+  const row = rows[0]
+  return row ? { hours: row.hours as number, volts: row.volts as number, chemistry: row.chemistry as string, solar: row.solar } : null
+}
+
 /** Adds a copy of the user's first project under a new id, so a test has a project only this account can open. */
 export async function cloneProject(email: string, newId: string): Promise<void> {
   await testDb()`

@@ -30,42 +30,37 @@ beforeEach(async () => {
 afterEach(() => { vi.restoreAllMocks() })
 afterAll(async () => { await unmount() })
 
-/** Another tab of this browser, open on Ana's account, makes `change`: it keeps the result here and saves it to her account. */
-async function otherTabEdits(change: (store: Store) => Store) {
+/**
+ * Another tab of this browser, open on Ana's account, commits `change` as useProjectStore's commit does: it keeps the
+ * result here and marks its save as on its way, and only then does this tab hear of it. `land` is that save reaching
+ * her account, after which that tab clears the marker.
+ */
+async function otherTabCommits(change: (store: Store) => Store) {
   const next = change(storedStore(browser)!)
-  accounts.set(ANA.id, structuredClone(next.projects))
-  return otherTabKeeps(browser, next)
+  markPendingSave(browser)
+  const shown = await otherTabKeeps(browser, next)
+  const land = () => {
+    accounts.set(ANA.id, structuredClone(next.projects))
+    clearPendingSave(browser)
+  }
+  return { shown, land }
 }
 
-test('hours changed in another tab show here, and volts changed here next keep them, in the account and after a reload', async () => {
+test("hours changed in another tab show here, stay when this tab comes back before that tab's save lands, and volts changed here next keep them, in the account and after a reload", async () => {
   session.user = ANA
   await mount()
 
-  const shown = await otherTabEdits((store) => patchCurrent(store, { hours: 20 }))
-  expect(home(shown.store.projects).hours).toBe(20)
-  await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
-
-  expect(home(account(ANA))).toMatchObject({ hours: 20, volts: VOLTS })
-  const reloaded = await mount()
-  expect(home(reloaded.store.projects)).toMatchObject({ hours: 20, volts: VOLTS })
-})
-
-test("hours changed in another tab stay when this tab comes back before that tab's save lands, and volts changed here next keep them", async () => {
-  session.user = ANA
-  await mount()
-  const tabA = patchCurrent(storedStore(browser)!, { hours: 20 })
-  // Tab A's commit keeps its copy and marks its save as on its way, both before this tab hears of it.
-  markPendingSave(browser)
-  await otherTabKeeps(browser, tabA)
-
+  const tabA = await otherTabCommits((store) => patchCurrent(store, { hours: 20 }))
+  expect(home(tabA.shown.store.projects).hours).toBe(20)
+  // Editing volts here takes a focus first; a read made on coming back would answer before tab A's save lands.
   const back = await comeBack()
-  // A's save lands after a read made on coming back would have answered, and A clears the marker.
-  accounts.set(ANA.id, structuredClone(tabA.projects))
-  clearPendingSave(browser)
+  tabA.land()
   await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
 
   expect(home(back.store.projects).hours).toBe(20)
   expect(home(account(ANA))).toMatchObject({ hours: 20, volts: VOLTS })
+  const reloaded = await mount()
+  expect(home(reloaded.store.projects)).toMatchObject({ hours: 20, volts: VOLTS })
 })
 
 test('hours 15 then 20 queued here stay at 20, on screen and in the account, when another tab keeps a copy from before them', async () => {
