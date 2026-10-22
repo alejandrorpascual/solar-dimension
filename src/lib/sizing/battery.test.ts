@@ -84,6 +84,11 @@ describe('batteryCandidates', () => {
     expect(unit?.peakOk).toBe(false)
   })
 
+  test('a 12 V 200 Ah AGM unit is estimated at 3,430 A into a short, the figure on a datasheet for that size', () => {
+    const unit = batteryCandidates(agm, 12, 100, easy).find((c) => c.id === '12-200')!
+    expect(unit.unit.shortCircuitA).toBe(3430)
+  })
+
   test('a stated short-circuit current beats the chemistry estimate', () => {
     const chem = { ...lfp, units: [{ ...lfp.units[0]!, shortCircuitA: 999 }] }
     expect(batteryCandidates(chem, 12, 10, easy)[0]?.bankShortCircuitA).toBe(999)

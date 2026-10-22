@@ -309,6 +309,8 @@ export interface WarningParams {
   canRaiseInsulation?: boolean
   fit?: number
   need?: number
+  /** The kit's chemistry, filled in when the warning is shown: the bank wording names a BMS only where there is one. */
+  chemistry?: ChemistryId
 }
 export interface Warning { code: WarningCode; params: WarningParams }
 

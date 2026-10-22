@@ -1,0 +1,49 @@
+QA v1 · issue #66 · PR #173 · head 7cc2a9a (base staging a1da8c5) · Oct 21, 15:17 -04
+
+What ran
+- npm ci --prefer-offline --no-audit --no-fund: exit 0
+- npm run typecheck (app, e2e, scripts): exit 0
+- npm run test:coverage: 107 files, 1853/1853 tests passed · statements 98.33%, branches 93.92%, lines 98.94%
+- npm run build: exit 0
+- npx vitest run src/lib/kit-checks.test.ts src/lib/kit-parts.test.ts src/lib/sizing/battery.test.ts src/i18n/i18n.test.ts src/components/KitSummary.test.ts src/components/KitSheet.test.ts src/lib/kit-csv.test.ts: 7 files, 203/203 passed
+
+What did not run, and why
+- e2e (npx playwright test): a hook refused linking .env.test.local into the lane clone, and the suite's servers need it
+- the running app: the PR's Vercel preview redirects to Vercel sign-in (302 to vercel.com/sso-api); npm run dev is not allowed in this lane
+
+How the screenshots were made
+- KitSummary, the component that draws the step-4 kit (stats, battery picker, parts table, checks), rendered with react-dom/server from this branch, mocking only useLocale as src/components/KitSummary.test.ts does
+- styled with the CSS npm run build emits (.output/public/_build/styles-*.css), opened in Playwright 1.63 Chromium at 1920x1080, 1024x768 and 375x667
+- not the full page: no header, stepper or side rail. Horizontal overflow: 0 px at every size, before and after
+- before-*.png: the same render on the base commit a1da8c5
+- kits (12 V): strained AGM = Refrigerator + Microwave (1000 W) + Well pump 1/2 HP, 2 h, 12 V 100 Ah AGM picked
+               auto AGM = Refrigerator + Microwave (1000 W), 2 h, AGM, battery on Auto (12 V 200 Ah, 1S4P)
+               auto LiFePO4 = the same two loads, 2 h, LiFePO4, Auto (12 V 200 Ah, 1S1P)
+
+What the render shows
+- strained AGM, EN and ES: continuous, peak and fuse checks warn; 0 "BMS" in the page (base a1da8c5: 3)
+- auto AGM fuse line: "against an estimated 13,720 A short circuit" (4 x 3,430 A); ES "estimada de 13,720 A"; base: no fault figure
+- auto AGM batteries row: "4 in parallel for the continuous current; the energy alone needs 1"; ES "4 en paralelo por la corriente continua; la energía sola pide 1"; wraps inside the row at 375 px
+- auto LiFePO4 batteries row: no limit line (energy sets 1S1P); fuse line "estimated 5,000 A"
+
+AC ledger (unit / component / e2e)
+- AC1 no BMS for AGM, LiFePO4 unchanged: src/lib/kit-checks.test.ts:47 (EN+ES, exact lines), src/i18n/i18n.test.ts:54, src/lib/kit-checks.test.ts:236 / none / none (e2e not run)
+- AC2 12 V 200 Ah AGM = 3,430 A: src/lib/sizing/battery.test.ts:87 / n/a: engine figure / none
+- AC3 "estimated" / "estimada" on the fuse pass line and fuseInterrupt only: src/lib/kit-checks.test.ts:111, :26, :196 / none / none
+- AC4 batteries note names the limit; unchanged when energy sets it: src/lib/kit-parts.test.ts:58, :66, :74, :85 / none / none
+
+Mutations (each applied alone, the four test files above rerun, then restored)
+- kitChecks drops r.chemistry: killed (kit-checks.test.ts:47)
+- hasBms true only for 'lifepo4': killed (i18n.test.ts:54)
+- AGM shortCircuitPerAh 17.15 -> 17.1: killed (battery.test.ts:87)
+- fuse pass line uses the unit's fault, not the bank's: killed (kit-checks.test.ts:196)
+- ES fuseInterrupt drops "estimada": killed (kit-checks.test.ts:111)
+- AGM fuseAboveBank keeps "the BMS": killed (kit-checks.test.ts:47)
+- parallelLimitNote `<=` -> `<`: survived
+- PARALLEL_LIMIT_NOTES order, peak before continuous: survived
+
+Test gaps (not written)
+- Medium · energy tied with another limit: 12 V AGM, 12 V 100 Ah picked, 6 h, Microwave only = 1S2P, parallelFor {energy 2, continuous 5, peak 2, lead 1}. Today the note has no limit line (right); the `<` mutant adds "2 in parallel for the peak current; the energy alone needs 2" and no test fails. Rung: unit, src/lib/kit-parts.test.ts
+- Low · a tie between continuous and peak above the energy names continuous; no test pins the order
+- Low · AGM fuseAboveBank with one fuse ("before the fuse blows") and AGM bankDischarge with inverters in parallel are not asserted; both branches are chemistry-free
+- Low · kit-parts.ts:114, the '' branch when no limit matches, is unreachable with today's battery sizing (coverage reports it)
