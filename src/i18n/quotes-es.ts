@@ -83,7 +83,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   subBest: '{total}, la más barata de tus {count} cotizaciones que cumple con los {musts} imprescindibles.',
   subBestOne: '{total}. Cumple con los {musts} imprescindibles.',
   subNone: '{name} es la más cercana: {gap}.',
-  subUnclear: 'Tus cotizaciones aún no mencionan todo lo que necesitas. Mira abajo qué vale la pena preguntar.',
+  subUnclear: '{name} podría cumplir: {gaps}.',
   bestFit: 'La mejor opción',
   bestFitToConfirm: 'La más barata, por confirmar',
   viewOriginal: 'Ver original',
@@ -276,6 +276,9 @@ export const quotesEs: Record<QuoteKey, string> = {
   mustsDone: 'Listo',
   kitEmptyTitle: 'Agrega aparatos para comparar tus cotizaciones',
   kitEmptyNote: 'Tus cotizaciones están guardadas. Agrega aparatos al kit y las compararemos.',
+  kitMissingTitle: 'A tu kit le faltan aparatos',
+  kitAttentionOne: '1 verificación de tu kit necesita atención. Abre el kit para verla.',
+  kitAttention: '{count} verificaciones de tu kit necesitan atención. Abre el kit para verlas.',
 }
 
 export const quoteItemsEs: Record<ItemId, string> = {
