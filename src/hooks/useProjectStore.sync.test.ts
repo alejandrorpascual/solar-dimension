@@ -1,7 +1,7 @@
 // useProjectStore with the same account open in two tabs of one browser, or on two devices: an edit made in one is
 // not undone by the next edit made in the other.
 import { afterAll, afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { OWNER_KEY } from '../lib/persistence'
+import { clearPendingSave, markPendingSave, OWNER_KEY } from '../lib/persistence'
 import type { Store } from '../lib/schema'
 import { addProject, patchCurrent } from '../lib/store'
 import { account, accounts, clock, net, resetServer, session } from './fake-account-server'
@@ -48,6 +48,40 @@ test('hours changed in another tab show here, and volts changed here next keep t
   expect(home(account(ANA))).toMatchObject({ hours: 20, volts: VOLTS })
   const reloaded = await mount()
   expect(home(reloaded.store.projects)).toMatchObject({ hours: 20, volts: VOLTS })
+})
+
+test("hours changed in another tab stay when this tab comes back before that tab's save lands, and volts changed here next keep them", async () => {
+  session.user = ANA
+  await mount()
+  const tabA = patchCurrent(storedStore(browser)!, { hours: 20 })
+  // Tab A's commit keeps its copy and marks its save as on its way, both before this tab hears of it.
+  markPendingSave(browser)
+  await otherTabKeeps(browser, tabA)
+
+  const back = await comeBack()
+  // A's save lands after a read made on coming back would have answered, and A clears the marker.
+  accounts.set(ANA.id, structuredClone(tabA.projects))
+  clearPendingSave(browser)
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
+
+  expect(home(back.store.projects).hours).toBe(20)
+  expect(home(account(ANA))).toMatchObject({ hours: 20, volts: VOLTS })
+})
+
+test('hours 15 then 20 queued here stay at 20, on screen and in the account, when another tab keeps a copy from before them', async () => {
+  session.user = ANA
+  const loaded = await mount()
+  let answer!: () => void
+  net.gate = new Promise<void>((resolve) => { answer = resolve })
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 15 })))
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 20 })))
+
+  await otherTabKeeps(browser, loaded.store)
+  net.gate = null
+  answer()
+  const after = await edit(() => undefined)
+
+  expect({ screen: home(after.store.projects).hours, account: home(account(ANA)).hours }).toEqual({ screen: 20, account: 20 })
 })
 
 test("a copy another tab keeps for another account is not shown here", async () => {
@@ -128,14 +162,16 @@ test('coming back while an edit has not reached the account reads nothing and ke
   expect(home(back.store.projects).hours).toBe(30)
 })
 
-test('an edit whose save fails while the account is read again stays on screen, and the next save carries it', async () => {
+test('an edit whose save is on its way when this tab comes back, and then fails, stays on screen, and the next save carries it', async () => {
   session.user = ANA
   await mount()
+  net.calls = []
   let answer!: () => void
   net.gate = new Promise<void>((resolve) => { answer = resolve })
-  // The save is in flight when this tab is left and come back to, so the read goes out behind it, and then it fails.
+  // The save is in flight when this tab is left and come back to, so no read goes out, and then the save fails.
   await edit((h) => h.commit(patchCurrent(h.store, { hours: 30 })))
   await comeBack()
+  expect(net.calls).not.toContain('list')
   net.failing = new Set(['save'])
   net.gate = null
   answer()

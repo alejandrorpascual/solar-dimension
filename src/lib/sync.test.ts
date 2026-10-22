@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { addProject, currentProject, initialStore, patchCurrent } from './store'
 import {
-  adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, isForAccount, leftOut, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing,
+  adoptKept, adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, isForAccount, leftOut, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing,
   rebase, unsentOf,
 } from './sync'
 
@@ -75,6 +75,24 @@ test('adoptStale takes the newer copy of a project that was not edited since it 
 
   expect(adopted.map((p) => p.hours)).toEqual([sent[0]!.hours, 20])
   expect(adopted[0]).toBe(sent[0])
+})
+
+test("adoptKept follows another tab's list, with the copy here of a project where it is stamped later", () => {
+  const seed = initialStore().projects[0]!
+  const here = [
+    { ...seed, hours: 20, updatedAt: 30 },
+    { ...seed, id: 'p2', name: 'Office', hours: 4, updatedAt: 10 },
+    { ...seed, id: 'p3', name: 'Shed', updatedAt: 10 },
+  ]
+  const kept = [
+    { ...seed, hours: 12, updatedAt: 20 },
+    { ...seed, id: 'p2', name: 'Office', hours: 6, updatedAt: 40 },
+    { ...seed, id: 'p4', name: 'Barn', hours: 3, updatedAt: 5 },
+  ]
+
+  expect(adoptKept(here, kept).map((p) => [p.name, p.hours])).toEqual([['Home', 20], ['Office', 6], ['Barn', 3]])
+  // A tie goes to the kept copy, as the account takes the incoming copy on a tie.
+  expect(adoptKept([{ ...seed, hours: 20, updatedAt: 30 }], [{ ...seed, hours: 12, updatedAt: 30 }])[0]!.hours).toBe(12)
 })
 
 test('adoptStale leaves a project edited again since it was sent, and one that was not sent', () => {

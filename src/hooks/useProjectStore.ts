@@ -7,7 +7,7 @@ import {
 } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
 import { currentProject, initialStore, nameFirstProject, rekeySeed, withSetAside } from '../lib/store'
-import { adoptStale, applyChanges, diffProjects, hasUnsent, NOTHING_UNSENT, outgoing, rebase, unsentOf, type Unsent } from '../lib/sync'
+import { adoptKept, adoptStale, applyChanges, diffProjects, hasUnsent, NOTHING_UNSENT, outgoing, rebase, unsentOf, type Unsent } from '../lib/sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
 import { useLocale } from './useLocale'
 import { useRootData } from './useRootData'
@@ -142,14 +142,15 @@ export function useProjectStore() {
 
   // Another tab of this browser kept its copy: show it here, so the next edit here starts from it instead of sending
   // this tab's older copy over that tab's edit. Nothing is written or sent: that tab did both. This tab keeps the project
-  // it has open, and a copy kept for another account (another tab signed out, or in as someone else) stays that tab's.
+  // it has open, and its own copy of a project stamped later than that tab's, which a save queued here sends. A copy
+  // kept for another account (another tab signed out, or in as someone else) stays that tab's.
   useEffect(() => {
     if (isAccountUnreachable) return
     const onStorage = (event: StorageEvent) => {
       if (event.key !== STORAGE_KEY || loadOwner() !== account) return
       const kept = loadStore()
       if (!kept) return
-      const next = fromServer(kept.projects, latest.current)
+      const next = fromServer(adoptKept(latest.current.projects, kept.projects), latest.current)
       latest.current = next
       setStore(next)
     }
@@ -160,12 +161,15 @@ export function useProjectStore() {
   // Back on this tab: another device may have saved since. The account's list is read again and shown, with the fields
   // edited here meanwhile laid over it, so the click that brings the tab back may itself be an edit. Only while the
   // account holds everything this device does: a list read past an edit that never reached it would take that edit off
-  // the screen.
+  // the screen. That includes another tab's: its commit marks its save as on its way when it keeps its copy, before
+  // this tab hears of it, and a list read before that save lands would put the account's older copy back over it.
+  // Ceiling: the marker is one per browser, so a save that failed in any tab stops these reads until a save or a page
+  // load gets through.
   useEffect(() => {
     if (!account) return
     let isReading = false
     const reread = () => {
-      if (isReading || document.visibilityState === 'hidden' || !isClean()) return
+      if (isReading || document.visibilityState === 'hidden' || !isClean() || hasPendingSave()) return
       isReading = true
       const readIn = scope.current
       // Edits made from here on are saved after this read, so the list cannot hold them yet.

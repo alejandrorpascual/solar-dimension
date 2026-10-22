@@ -67,6 +67,20 @@ export function adoptStale(projects: readonly Project[], sent: readonly Project[
   return projects.map((p) => (newer.has(p.id) && sentById.get(p.id) === JSON.stringify(p) ? newer.get(p.id)! : p))
 }
 
+/**
+ * What a tab shows once another tab of this browser kept `kept`: that tab's list, with this tab's copy of a project
+ * (`projects`) where it is stamped later. The account's own rule, the later stamp wins and the incoming copy wins a tie,
+ * so a tab never goes back to an older copy of a project, which a save queued here would then send. A project gone
+ * from `kept` was deleted there.
+ */
+export function adoptKept(projects: readonly Project[], kept: readonly Project[]): Project[] {
+  const here = new Map(projects.map((p) => [p.id, p]))
+  return kept.map((p) => {
+    const own = here.get(p.id)
+    return own && own.updatedAt > p.updatedAt ? own : p
+  })
+}
+
 /** Ids of the projects whose save or delete never reached the account. */
 export type Unsent = { upserts: ReadonlySet<string>; deletes: ReadonlySet<string> }
 export const NOTHING_UNSENT: Unsent = { upserts: new Set(), deletes: new Set() }
