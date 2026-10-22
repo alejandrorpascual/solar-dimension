@@ -1,6 +1,6 @@
 import { assertType, describe, expect, test } from 'vitest'
 import type { StepperProps } from '../components/Stepper'
-import { isStepReachable, parseStep, STEPS, stepStates } from './steps'
+import { isStepReachable, parseStep, STEPS, stepStates, toStep } from './steps'
 
 describe('isStepReachable', () => {
   test('the appliances step is always open', () => {
@@ -97,5 +97,13 @@ describe('parseStep', () => {
     expect(parseStep(5)).toBe(1)
     expect(parseStep('x')).toBe(1)
     expect(parseStep(undefined)).toBe(1)
+  })
+})
+
+describe('toStep', () => {
+  test('reads the four steps from numbers and numeric strings, and nothing else', () => {
+    expect(STEPS.map((s) => toStep(String(s)))).toEqual([1, 2, 3, 4])
+    expect(toStep(4)).toBe(4)
+    for (const v of ['0', '5', '2.5', '-1', '', 'x', '/evil', null, undefined, {}]) expect(toStep(v)).toBeUndefined()
   })
 })

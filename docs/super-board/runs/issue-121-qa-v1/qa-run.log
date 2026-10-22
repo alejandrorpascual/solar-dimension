@@ -1,0 +1,32 @@
+issue #121 QA v1 · branch issue-121-download-is-the-primary-action-and-sign-in-keeps-the-step · head 8af296e (base staging ba03d8f, 0 behind)
+servers: E2E_PORT=4242 (+4243), test database via .env.test.local, throwaway BETTER_AUTH_SECRET per run (as ci.yml does)
+
+== config verify_commands: npm ci && npm run typecheck && npm run test:coverage && npm run build
+npm ci            exit 0
+npm run typecheck exit 0 (again after the QA tests were added)
+test:coverage     Test Files 109 passed (109) · Tests 1892 passed (1892) · All files 89.23% stmts, 89.84% branches
+npm run build     exit 0
+
+== builder's unit tests: npx vitest run src/lib/steps.test.ts src/components/WizardFooter.test.ts src/components/BackupWindow.test.ts
+3 files, 22 passed
+
+== full e2e on head + the QA tests: npx playwright test (desktop + phone projects)
+292 passed, 10 skipped, 0 failed (3.6 min) · 288 before QA + 4 QA tests
+
+== issue specs on head: npx playwright test e2e/kit-footer.spec.ts e2e/sign-in-step.spec.ts
+12 passed (desktop 10, phone 2)
+
+== issue specs on the base source (git checkout ba03d8f -- src, then restored; git diff HEAD -- src empty)
+11 failed, 1 passed · every builder spec red · the 1279 px sheet test passes on base too (the sheet branch existed before; it guards the edge, not the fix)
+sign-in from step 4 on base lands on /?step=1 · on head on /?step=4 (evidence capture run, both phases)
+
+== mutation checks on the QA tests (never committed; src restored, git diff -- src empty after each)
+M1 RAIL_SHOWN '(min-width: 1280px)' to 1300px (src/routes/index.tsx)   kit-footer.spec.ts:21 @1280 red: rail tab not focused, the sheet opened
+M2 RAIL_SHOWN to 1200px                                              kit-footer.spec.ts:44 @1279 red: no sheet dialog
+M3 login validateSearch step: toStep(search.step) to search.step     sign-in-step.spec.ts:55 red x2: callbackURL /?step=9 and /?step=//evil.example
+restored                                                             all green (full run above)
+
+== screenshots (throwaway capture spec, not committed) · before = ba03d8f source · after = 8af296e
+kit step footer   1920x1080 · 1440x900 (after: footer Download clicked, rail Download tab selected) · 1024x768 (+ sheet open) · 375x667 · 390x844
+sign-in           1920x1080 after email sign-in from the account menu on /?step=4
+cable run         1920x1080 · 1024x768 (closed and open crops) · 375x667

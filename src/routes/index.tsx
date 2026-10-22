@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { LayoutGrid } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { AccountMenu } from '../components/AccountMenu'
 import { ApplianceGrid } from '../components/ApplianceGrid'
 import { BackupWindow } from '../components/BackupWindow'
@@ -27,6 +28,9 @@ import type { SizingResult } from '../lib/sizing'
 import { parseStep, type Step } from '../lib/steps'
 
 interface Search { step: Step }
+
+/** From this width the rail sits beside the page (rail.css); narrower screens open its content in a sheet. */
+const RAIL_SHOWN = '(min-width: 1280px)'
 
 export const Route = createFileRoute('/')({
   validateSearch: (search: Record<string, unknown>): Search => ({ step: parseStep(search.step) }),
@@ -104,12 +108,19 @@ function KitBuilderPage() {
     setRailTab(tab)
     setSheetOpen(true)
   }
+  const railRef = useRef<HTMLElement>(null)
+  // Where the rail shows, Download selects its tab and moves focus there, so a keyboard or screen reader user lands on it.
+  const showDownload = () => {
+    if (!window.matchMedia(RAIL_SHOWN).matches) return openSheet('download')
+    flushSync(() => setRailTab('download'))
+    railRef.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus()
+  }
   const rail = { store, commit, tab: railTab, onTab: setRailTab, download: <DownloadPanel project={project} result={result} onRequesterChange={(requester) => commit(patchCurrent(store, { requester }))} /> }
 
   return (
     <div className="workspace">
       <main className="page">
-        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} onSignOut={signOut} google={google} />} />
+        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} onSignOut={signOut} google={google} step={step} />} />
         {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
         {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
         <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
@@ -136,10 +147,10 @@ function KitBuilderPage() {
           onBack={() => go((step - 1) as Step)}
           onNext={() => go((step + 1) as Step)}
           onStartOver={() => go(1)}
-          onDownload={() => openSheet('download')}
+          onDownload={showDownload}
         />
       </main>
-      <aside className="rail" aria-label={t.ui.projects}>
+      <aside ref={railRef} className="rail" aria-label={t.ui.projects}>
         <SideRail {...rail} />
       </aside>
       <RailSheet {...rail} isOpen={isSheetOpen} onOpenChange={setSheetOpen} />

@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react'
 import { useId } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
@@ -47,6 +48,7 @@ export function CableConditions({ electrical: e, onChange, bundleFactor }: Props
       <summary className="elec__summary">
         <span>{t.ui.cableRun}</span>
         <span className="num elec__values">{summary}</span>
+        <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
       </summary>
       <div className="elec__grid">
         <div className="elec__field">
