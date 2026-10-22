@@ -4,6 +4,7 @@ import { db } from '../db/client'
 import { products } from '../db/schema'
 import { mergeProduct, summarize, type MergeResult, type ProductChange, type UpsertSummary } from '../lib/product-merge'
 import { ProductConflictSchema, ProductInputSchema, productKey, type ProductInput, type ProductOrigin, type ProductRecord } from '../lib/product-schema'
+import { warnProducts, type ProductWarnings } from '../lib/product-warnings'
 
 type Row = typeof products.$inferSelect
 const Conflicts = z.array(ProductConflictSchema)
@@ -48,8 +49,15 @@ async function plan(items: readonly ProductInput[], replace: boolean): Promise<M
   return items.map((item) => mergeProduct(byKey.get(productKey(item)) ?? null, item, { replace, now }))
 }
 
-export async function previewProducts(items: readonly ProductInput[], replace: boolean): Promise<ProductChange[]> {
-  return (await plan(items, replace)).map((m) => m.change)
+/**
+ * What a dry run answers: each product's change, and the soft checks worth a second look. Duplicates are looked for
+ * across every stored product, since one stored under another spelling has another key; the library is tens of rows.
+ */
+export async function previewProducts(
+  items: readonly ProductInput[], replace: boolean,
+): Promise<{ changes: ProductChange[]; warnings: ProductWarnings[] }> {
+  const [merged, stored] = await Promise.all([plan(items, replace), listProducts()])
+  return { changes: merged.map((m) => m.change), warnings: warnProducts(stored, items) }
 }
 
 /** New and changed products in one insert; a product that exists is updated in place. */

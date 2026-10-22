@@ -1,0 +1,15 @@
+ ✓ src/lib/product-warnings.test.ts > warnProducts on the fixtures > the inverter() and battery() fixtures give no warning, alone or together 2ms
+ ✓ src/lib/product-warnings.test.ts > warnProducts on odd specs > warns when kWh is more than 10% off volts × Ah, and not at 9% 0ms
+ ✓ src/lib/product-warnings.test.ts > warnProducts on odd specs > warns on a surge level below the continuous watts, and not on one equal to it 0ms
+ ✓ src/lib/product-warnings.test.ts > warnProducts on odd specs > warns on peak amps below the continuous amps, and not on a higher peak 0ms
+ ✓ src/lib/product-warnings.test.ts > warnProducts on odd specs > warns on nominal volts more than 15% from 12, 24, 36 or 48 V, counting 51.2 V as 48  [... omitted end of long line]
+ ✓ src/lib/product-warnings.test.ts > warnProducts on odd specs > warns on a peak efficiency under 50%, and not at 50% 0ms
+ ✓ src/lib/product-warnings.test.ts > warnProducts on odd specs > warns on continuous watts under 100, and not at 100 0ms
+ ✓ src/lib/product-warnings.test.ts > warnProducts on odd specs > warns on a stated value whose digits are not in its words as written, whatever the s [... omitted end of long line]
+ ✓ src/lib/product-warnings.test.ts > warnProducts on odd specs > warns once per foreign host on spec sources that are neither the maker page’s nor th [... omitted end of long line]
+ ✓ src/lib/product-warnings.test.ts > warnProducts on possible duplicates > names a stored product of the same maker with the same datasheet, maker pa [... omitted end of long line]
+ ✓ src/lib/product-warnings.test.ts > warnProducts on possible duplicates > does not name the product itself, another maker, a model sharing only 5 ch [... omitted end of long line]
+ ✓ src/lib/product-warnings.test.ts > warnProducts on possible duplicates > names another product in the same request, each one the other 0ms
+ ✓ src/lib/product-warnings.test.ts > warnProducts on possible duplicates > in the seed leads, only the two LuxpowerTek SNA-US and the two Pytes V5 wa [... omitted end of long line]
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
