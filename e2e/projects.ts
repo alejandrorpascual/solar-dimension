@@ -65,6 +65,13 @@ export async function openProjectAction(page: Page, action: 'Rename' | 'Duplicat
   await menu.getByRole('menuitem', { name: action }).click()
 }
 
+/** What the open project's card asks, in place, after Delete is chosen from its ··· menu. */
+export const deleteAsk = (page: Page) => openProjectCard(page).getByRole('alert')
+
+/** Answers that question on the open project's card: `Delete project` deletes it, `Cancel` keeps it. */
+export const answerDelete = (page: Page, answer: 'Delete project' | 'Cancel') =>
+  openProjectCard(page).getByRole('button', { name: answer, exact: true }).click()
+
 /** Adds a project from the cards and returns its name field: the new project opens on top, already renaming. Call it with no name field open. */
 export async function startNewProject(page: Page): Promise<Locator> {
   await showProjects(page)

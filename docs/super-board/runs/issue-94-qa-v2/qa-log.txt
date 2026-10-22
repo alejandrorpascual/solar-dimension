@@ -1,0 +1,30 @@
+QA v2 for #94 (PR #172), against ba3be40 (rebuild 1, R1 fix), merge-base 3ca1535. Run 2026-10-21.
+
+Verify (config verify_commands, after npm ci):
+  npm run typecheck                          exit 0
+  npm run test:coverage                      exit 0 · 105 files, 1830 tests · lines 98.93 %
+  npm run build                              exit 0
+  after the QA tests below were added:       typecheck exit 0 · 106 files, 1832 tests
+
+e2e (E2E_PORT=4188, a throwaway BETTER_AUTH_SECRET from openssl rand -hex 32, the Neon e2e test branch):
+  npx playwright test e2e/project-card.spec.ts e2e/kit-builder.spec.ts e2e/quotes.spec.ts   118 passed, 2 skipped
+  npx playwright test (whole suite)                                                          265 passed, 6 skipped
+
+AC1 · the confirm shows the quote count
+  e2e/quotes.spec.ts:535  1 quote: "Delete “Project 2” and its 1 quote? Its file goes too. This can't be undone."
+  e2e/quotes.spec.ts:551  jobs read held: "… and any quotes it has? Their files go too …", then the count once read
+  src/i18n/i18n.test.ts:149-164  0 / 1 / 3 / unknown, English and Spanish
+  src/hooks/useQuoteJobs.test.ts (new)  failed first read keeps the count unknown; a new account's count is unknown until read
+  Seen on the page, 2 quotes: loading text then "its 2 quotes", desktop 1920x1080, tablet 1024x768, mobile 375x667, Spanish mobile
+AC2 · Cancel keeps the project and its quotes
+  e2e/project-card.spec.ts:99  question gone, focus on the title, both projects after a reload
+  e2e/quotes.spec.ts:535  quote row and file kept
+  Seen on the page: 2 quote rows and 2 files kept after Cancel (ac2-cancel-desktop-crop.png)
+AC3 · Confirm deletes them
+  e2e/quotes.spec.ts:569  rows 0, file gone, nothing in the trash
+  e2e/project-card.spec.ts:81, e2e/kit-builder.spec.ts:139  project gone
+  Seen on the page: 2 rows to 0, 2 files gone (ac3-deleted-desktop.png)
+
+Seen, not in the AC, not caused by this PR (the delete call is unchanged):
+  after a project with a ready verdict is deleted, the tray still says "Verdict ready for Project 2" 3 s later,
+  and See verdict links to the deleted project's quotes page. The jobs list is not read again after a delete.

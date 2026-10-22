@@ -1,0 +1,8 @@
+# e2e mutants on the Builder's specs (desktop + phone), one source line changed in src/components/ProjectCards.tsx, restored after each (git status clean after)
+E1 menu Delete goes straight to the delete (onDelete={current.onDelete}, no question)
+   -> 4 failed: project-card.spec.ts:99 (desktop + phone), project-card.spec.ts:125, quotes.spec.ts:535
+E2 quote count always 0 (quoteCount={0})
+   -> 1 failed: quotes.spec.ts:535 Expected "Delete “Project 2” and its 1 quote? Its file goes too. This can't be undone." Received "Delete “Project 2”? This can't be undone."
+E3 Cancel deletes (onCancel={current.onDelete})
+   -> 3 failed: project-card.spec.ts:99 (desktop + phone), quotes.spec.ts:535: Expected "Project 2", Received "Home"
+Restored source -> full run of the three specs: 117 passed, 2 skipped

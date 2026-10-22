@@ -4,7 +4,7 @@ import { FileText, Pencil } from 'lucide-react'
 import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectRename, type CurrentActions } from '../hooks/useProjectRename'
-import { useProjectJobs } from '../hooks/useQuoteJobs'
+import { useProjectJobs, useProjectQuoteCount } from '../hooks/useQuoteJobs'
 import { applianceName, batteryCount, tr, type Dictionary } from '../i18n'
 import { fmtHours, fmtInverter, fmtKwh, fmtW } from '../i18n/format'
 import { projectLine } from '../lib/quote-text'
@@ -12,6 +12,7 @@ import { currentFirst, summarizeProjects, type ProjectSummary } from '../lib/pro
 import type { Store } from '../lib/schema'
 import type { SelectedItem } from '../lib/sizing'
 import { selectProject, setQtyIn } from '../lib/store'
+import { ProjectDeleteConfirm } from './ProjectDeleteConfirm'
 import { ProjectMenu } from './ProjectMenu'
 import { ProjectNameField } from './ProjectNameField'
 import { QtyStepper } from './QtyStepper'
@@ -102,6 +103,7 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
   const editId = useId()
   const { project: p, result: r } = s
   const jobs = useProjectJobs(p.id)
+  const quoteCount = useProjectQuoteCount(p.id)
   // The open project is edited in the main area (grid or kit quick edit, which owns Undo); one path, not two.
   const canQuickEdit = !isCurrent && r.items.length > 0
   return (
@@ -111,11 +113,14 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
       <div className="pcard__head">
         <CardTitle name={p.name} titleId={titleId} current={current} onOpen={onOpen} />
         {current && <span className="pcard__badge">{t.ui.current}</span>}
-        {current && !current.isRenaming && (
-          <ProjectMenu name={p.name} canDelete={current.canDelete} onRename={current.onRename} onDuplicate={current.onDuplicate} onDelete={current.onDelete} />
+        {current && !current.isRenaming && !current.isConfirmingDelete && (
+          <ProjectMenu name={p.name} canDelete={current.canDelete} onRename={current.onRename} onDuplicate={current.onDuplicate} onDelete={current.onAskDelete} />
         )}
       </div>
       <p className="pcard__meta num">{tr(t, 'projectMeta', { volts: p.volts, hours: p.hours, count: r.items.length })}</p>
+      {current?.isConfirmingDelete && (
+        <ProjectDeleteConfirm name={p.name} quoteCount={quoteCount} onDelete={current.onDelete} onCancel={current.onCancelDelete} />
+      )}
       <CardKit summary={s} />
       {jobs && (
         <Link className="pcard__quotes" to="/projects/$projectId/quotes" params={{ projectId: p.id }}>
