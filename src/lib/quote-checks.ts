@@ -47,10 +47,10 @@ export function optionPrices(x: QuoteExtraction): { id: string; total: number | 
 }
 
 /**
- * Words a tax line is written with ("IVA", "I.V.A.", "ITBIS", the Dominican sales tax, "VAT", "sales tax", "impuesto"),
- * once accents and dots are dropped.
+ * Words a tax line is written with ("IVA", "I.V.A.", "ITBIS", the Dominican sales tax, "ITBMS", Panama's, "IGV", Peru's,
+ * "IVU", Puerto Rico's, "VAT", "GST", "sales tax", "impuesto"), once accents and dots are dropped.
  */
-const TAX_WORDS = /\b(iva|itbis|vat|tax(es)?|impuestos?)\b/
+const TAX_WORDS = /\b(iva|itbis|itbms|igv|ivu|vat|gst|tax(es)?|impuestos?)\b/
 const DIACRITICS = /\p{Diacritic}/gu
 const namesTax = (text: string): boolean => TAX_WORDS.test(text.normalize('NFD').replace(DIACRITICS, '').replace(/\./g, '').toLowerCase())
 

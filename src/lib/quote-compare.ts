@@ -34,12 +34,14 @@ export interface RankedQuote extends EntryOption {
  * was read but states no total. Both wait for the user's total. misread: a single-system reading whose line amounts,
  * quantities or currency don't hold, that has no lines, or that states an implausible number, which a typed total
  * wouldn't fix: it waits to be read again (takesTypedTotal). no_price: an option of a quote that offers several states no
- * price for it.
+ * price for it. duplicate: it reads exactly like an earlier upload, which ranks in its place.
  */
-export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'misread' | 'no_price' | 'failed' | 'other_currency'
+export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'misread' | 'no_price' | 'failed' | 'other_currency' | 'duplicate'
 export interface UnrankedQuote extends EntryOption { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
 export interface Verdict {
   currency: string | null
+  /** Currencies with as many quotes as `currency`, which took the tie as the first quote's: said on screen, not ranked. */
+  tiedCurrencies: string[]
   ranked: RankedQuote[]
   unranked: UnrankedQuote[]
   best: RankedQuote | null
@@ -88,9 +90,12 @@ const totalOf = (q: QuoteView): number | null => q.totalOverride ?? q.extraction
  * the document itself (a discount taken off a line, a quote with no lines): it reads the same every time, and without a
  * total to type it could never be compared. One read again is the test, since each can cost up to 4 model calls. An
  * implausible reading (a 5,120 kWh battery) never takes one: no document is written that way, and its sizes would rank.
+ * Nor does one with no currency read: a typed total would rank it in a currency nobody stated.
  */
 export function takesTypedTotal(q: QuoteView): boolean {
-  if (q.extraction === null || checkExtraction(q.extraction, q.pages).includes('implausible')) return false
+  if (q.extraction === null) return false
+  const failures = checkExtraction(q.extraction, q.pages)
+  if (failures.includes('implausible') || failures.includes('bad_currency')) return false
   return q.retries > 0 || isFixedByTotal(q.extraction)
 }
 
@@ -122,24 +127,40 @@ const isRankable = (e: Entry): boolean =>
   e.extraction !== null && hasTotal(e.total) &&
   (e.quote.status === 'ready' || (e.quote.status === 'needs_review' && e.quote.totalOverride !== null && takesTypedTotal(e.quote)))
 
-/** The currency most rankable quotes use, counting each file once; a tie goes to the earliest quote's currency. */
-function mainCurrency(entries: readonly Entry[]): string | null {
-  const quotes = [...new Map(entries.map((e) => [e.quote.id, e.quote])).values()]
-  const counts = new Map<string, number>()
-  for (const q of quotes) counts.set(q.extraction!.currency, (counts.get(q.extraction!.currency) ?? 0) + 1)
-  let best: string | null = null
-  let most = 0
-  for (const q of [...quotes].sort((a, b) => a.createdAt - b.createdAt)) {
-    const n = counts.get(q.extraction!.currency) ?? 0
-    if (n > most) { best = q.extraction!.currency; most = n }
+const byUpload = (a: { quote: QuoteView }, b: { quote: QuoteView }) => a.quote.createdAt - b.quote.createdAt
+
+/**
+ * The entries left once a file uploaded twice counts once: an entry whose quote reads exactly like an earlier upload's
+ * (the same reading, and the same option of it) is that upload's duplicate. Kept in the order given.
+ */
+function withoutDuplicates(entries: readonly Entry[]): Entry[] {
+  const first = new Map<string, Entry>()
+  for (const e of [...entries].sort(byUpload)) {
+    const key = `${JSON.stringify(e.quote.extraction)}|${e.optionId}`
+    if (!first.has(key)) first.set(key, e)
   }
-  return best
+  const kept = new Set(first.values())
+  return entries.filter((e) => kept.has(e))
 }
 
-/** Why an entry is not ranked. A rankable entry that got here can only be in another currency, whatever its status. */
-function unrankedReason(e: Entry): UnrankedReason {
+/**
+ * The currency most rankable quotes use, counting each file once; a tie goes to the earliest quote's currency, and the
+ * other currencies in the tie are returned to be said on screen.
+ */
+function mainCurrency(entries: readonly Entry[]): { currency: string | null; tied: string[] } {
+  // In upload order, so the counts are keyed in the order each currency first appears.
+  const quotes = [...new Map([...entries].sort(byUpload).map((e) => [e.quote.id, e.quote])).values()]
+  const counts = new Map<string, number>()
+  for (const q of quotes) counts.set(q.extraction!.currency, (counts.get(q.extraction!.currency) ?? 0) + 1)
+  const most = Math.max(0, ...counts.values())
+  const [currency = null, ...tied] = [...counts.keys()].filter((c) => counts.get(c) === most)
+  return { currency, tied }
+}
+
+/** Why an entry is not ranked. A rankable entry that got here is a duplicate, or in another currency, whatever its status. */
+function unrankedReason(e: Entry, unique: readonly Entry[]): UnrankedReason {
   if (isPending(e.quote.status)) return 'reading'
-  if (isRankable(e)) return 'other_currency'
+  if (isRankable(e)) return unique.includes(e) ? 'other_currency' : 'duplicate'
   if (e.optionId !== null) return 'no_price'
   if (e.extraction === null || (e.quote.status !== 'needs_review' && e.quote.status !== 'ready')) return 'failed'
   // A quote with options has no total form either way: it is read again.
@@ -172,12 +193,12 @@ const byFitsOrder = (a: Scored, b: Scored) =>
 /** Ranks the read quotes against the kit. Pure; recomputed on every render. */
 export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly QuoteView[]): Verdict {
   const entries = quotes.flatMap(entriesOf)
-  const rankable = entries.filter(isRankable)
-  const currency = mainCurrency(rankable)
+  const rankable = withoutDuplicates(entries.filter(isRankable))
+  const { currency, tied } = mainCurrency(rankable)
   const inCurrency = rankable.filter((e) => e.extraction!.currency === currency)
   const unranked: UnrankedQuote[] = entries
     .filter((e) => !inCurrency.includes(e))
-    .map((e) => ({ quote: e.quote, name: quoteName(e.quote), ...optionOf(e), reason: unrankedReason(e), currency: e.extraction?.currency ?? null }))
+    .map((e) => ({ quote: e.quote, name: quoteName(e.quote), ...optionOf(e), reason: unrankedReason(e, rankable), currency: e.extraction?.currency ?? null }))
 
   // Whether another entry ranked beside one states tax, another quote or another option of its own: then one that
   // states none may be priced without it.
@@ -202,7 +223,7 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
   const cleanFit = best !== null && best.caveats.length > 0 ? ranked.find((r) => r.fit === 'fits' && r.caveats.length === 0) ?? null : null
 
   return {
-    currency, ranked, unranked, best, nextFit, worthAsking, closest, cleanFit,
+    currency, tiedCurrencies: tied, ranked, unranked, best, nextFit, worthAsking, closest, cleanFit,
     mustCount: itemsFor(kit).filter((id) => musts[id]).length,
     readCount: quotes.filter((q) => !isPending(q.status) && q.status !== 'failed').length,
     failedCount: quotes.filter((q) => q.status === 'failed').length,

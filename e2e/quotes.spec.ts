@@ -107,6 +107,28 @@ test('a kit with solar panels asks quotes for them, and panels can be made a nic
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
 })
 
+test('the same quote uploaded twice ranks once with a warning, and inverter and battery stay must-haves (AI-28)', async ({ page }) => {
+  await signUp(page)
+  // The stub reads both files as SolarTec's quote: one file sent twice under two names.
+  await uploadQuotes(page, await Promise.all(['solartec', 'solartec-copy', 'voltia'].map(quotePdf)))
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  await expect(page.getByText('$6,480, the cheapest of your 2 quotes that meets all 6 must-haves.')).toBeVisible()
+  const copy = page.getByRole('article').filter({ hasText: quotesEn.duplicate })
+  await expect(copy).toHaveCount(1)
+  await expect(copy).toContainText(quotesEn.duplicateHelp)
+
+  await page.getByRole('button', { name: 'Change must-haves', exact: true }).click()
+  const sheet = page.getByRole('dialog', { name: 'What matters for this project' })
+  for (const name of ['Inverter', 'Battery bank']) {
+    const fixed = sheet.getByRole('switch', { name, exact: true })
+    await expect(fixed).toHaveAttribute('aria-checked', 'true')
+    await expect(fixed).toBeDisabled()
+  }
+})
+
 test('must-haves and confirmations change the winner, and stick', async ({ page }) => {
   await signUp(page)
   await uploadQuotes(page, await Promise.all(ALL.map(quotePdf)))

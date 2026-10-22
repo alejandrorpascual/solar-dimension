@@ -12,7 +12,7 @@ import type { QuoteLine } from './quote-schema'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import { compute, type SizingInput } from './sizing'
 import {
-  askText, coverageLines, evidenceLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, kitAttentionText, kitHold, markLabel, misreadText, money, oversizeTip,
+  askText, coverageLines, currencyTieText, evidenceLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, kitAttentionText, kitHold, markLabel, misreadText, money, oversizeTip,
   projectLine, questionText, ratioLabel, readTotalText, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
@@ -697,5 +697,18 @@ describe('unrankedTitle', () => {
   })
   test('a quote with options to check gets no total form, so it does not count as waiting for a total', () => {
     expect(unrankedTitle(en, [{ ...u('needs_review'), optionCount: 2 }])).toBe('Not compared yet')
+  })
+})
+
+describe('currencyTieText (AI-28)', () => {
+  const eur = { ...view('voltia', 0), extraction: { ...SAMPLE_QUOTES.voltia, currency: 'EUR' } }
+  test("names the currency that was ranked when as many quotes are in another, in both languages", () => {
+    const tie = compareQuotes(KIT, DEFAULT_MUSTS, [eur, view('solartec', 1)])
+    expect(currencyTieText(en, tie)).toBe('Your quotes are split evenly between EUR and USD. Only the ones in EUR, the currency of your first quote, are compared.')
+    expect(currencyTieText(es, tie)).toBe('Tus cotizaciones se reparten por igual entre EUR y USD. Solo se comparan las que están en EUR, la moneda de tu primera cotización.')
+  })
+  test('is null without a tie', () => {
+    expect(currencyTieText(en, v)).toBeNull()
+    expect(currencyTieText(en, compareQuotes(KIT, DEFAULT_MUSTS, [eur, view('solartec', 1), view('grupoluz', 2)]))).toBeNull()
   })
 })

@@ -270,6 +270,8 @@
 .qmusts__name { font-size: 15px; font-weight: 600; }
 .qmust { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 13px; font-weight: 700; color: var(--muted); }
 .qmust[aria-checked='true'] { border-color: var(--ink); background: var(--ink); color: #FFFFFF; }
+/* Inverter and battery: always on. Lighter, still 6.8:1 for its white text, so it reads as fixed rather than broken. */
+.qmust:disabled { opacity: 0.7; cursor: default; }
 .qfoot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
 .qfoot__actions { display: flex; flex-wrap: wrap; gap: 10px; }
 /* The one-file-per-quote hint, on its own line under both buttons. */
