@@ -49,3 +49,16 @@ test('Continue with Google from the kit step asks to come back to the kit step',
   ])
   expect(social.postDataJSON()).toMatchObject({ provider: 'google', callbackURL: '/?step=4', errorCallbackURL: '/login?step=4' })
 })
+
+// The sign-in page puts its step into the addresses it returns to, so only 1-4 may get through: anything else is step 1.
+for (const step of ['9', '//evil.example']) {
+  test(`with step=${step} the sign-in page sends Google back to step 1`, async ({ page }) => {
+    await captureGoogleRedirect(page)
+    await page.goto(`/login?step=${encodeURIComponent(step)}`)
+    const [social] = await Promise.all([
+      page.waitForRequest('**/api/auth/sign-in/social'),
+      page.getByRole('button', { name: 'Continue with Google' }).click(),
+    ])
+    expect(social.postDataJSON()).toMatchObject({ callbackURL: '/?step=1', errorCallbackURL: '/login?step=1' })
+  })
+}

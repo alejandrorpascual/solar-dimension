@@ -13,8 +13,10 @@ test('on the kit step Download is the footer\'s primary button and Start over a 
   await expect(footerButton(page, 'Start over')).not.toHaveClass(PRIMARY)
 })
 
-test.describe('at 1440 px, where the rail shows beside the page', () => {
-  test.use({ viewport: { width: 1440, height: 900 } })
+// 1440 px is the width the ticket names. 1280 px is where the rail starts to show (rail.css), and Download checks the
+// same width (RAIL_SHOWN in src/routes/index.tsx) to pick the rail over the sheet; the 1279 px test below is its other side.
+for (const width of [1440, 1280]) test.describe(`at ${width} px, where the rail shows beside the page`, () => {
+  test.use({ viewport: { width, height: 900 } })
 
   test('the footer\'s primary Download opens the rail\'s Download tab, and Start over is secondary', async ({ page }) => {
     await page.goto('/?step=4')
@@ -33,6 +35,22 @@ test.describe('at 1440 px, where the rail shows beside the page', () => {
     await expect(tab).toBeFocused()
     await expect(rail.getByRole('button', { name: 'Download PDF' })).toBeVisible()
     await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+})
+
+test.describe('at 1279 px, one below where the rail shows', () => {
+  test.use({ viewport: { width: 1279, height: 900 } })
+
+  test('the footer\'s Download opens the download sheet on its Download tab', async ({ page }) => {
+    await page.goto('/?step=4')
+    await expect(page.getByRole('complementary', { name: 'Projects' })).toBeHidden()
+    const sheet = page.getByRole('dialog', { name: 'Download' })
+    // A click before the page hydrates does nothing: click until the sheet opens. Once open, it covers the button.
+    await expect(async () => {
+      if (!(await sheet.isVisible())) await footerButton(page, 'Download').click()
+      await expect(sheet).toBeVisible({ timeout: RETRY_AFTER_MS })
+    }).toPass()
+    await expect(sheet.getByRole('tab', { name: 'Download' })).toHaveAttribute('aria-selected', 'true')
   })
 })
 
