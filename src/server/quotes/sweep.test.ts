@@ -19,7 +19,7 @@ let errors: ReturnType<typeof vi.spyOn>
 beforeEach(() => {
   vi.stubEnv('CRON_SECRET', SECRET)
   vi.mocked(emptyQuoteTrash).mockResolvedValue({ removed: [], kept: [] })
-  vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: [], gaveUp: 0 })
+  vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: [], stuck: 0, failed: 0 })
   errors = vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 afterEach(() => {
@@ -43,7 +43,7 @@ describe('the sweep and the function time limit', () => {
 
   test('starts no job that could end past the limit; the rest wait for a poll or the next sweep', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: 0 })
-    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a', 'b', 'c', 'd', 'e'], gaveUp: 0 })
+    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a', 'b', 'c', 'd', 'e'], stuck: 5, failed: 0 })
     const startedAt = readsTaking(20_000)
 
     const response = await sweep(SECRET)
@@ -59,7 +59,7 @@ describe('the sweep and the function time limit', () => {
       vi.setSystemTime(Date.now() + 60_000)
       return { removed: [], kept: [] }
     })
-    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a'], gaveUp: 0 })
+    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a'], stuck: 1, failed: 0 })
     const startedAt = readsTaking(20_000)
 
     const response = await sweep(SECRET)
@@ -71,7 +71,7 @@ describe('the sweep and the function time limit', () => {
 
 describe("the sweep's counts", () => {
   test('a run that gives up on one stuck job reports stuck 1 and failed 1', async () => {
-    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: [], gaveUp: 1 })
+    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: [], stuck: 1, failed: 1 })
 
     const response = await sweep(SECRET)
 
@@ -79,7 +79,7 @@ describe("the sweep's counts", () => {
   })
 
   test('a stuck job started again counts as stuck, and as failed only when its read ends failed', async () => {
-    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a', 'b', 'c'], gaveUp: 0 })
+    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a', 'b', 'c'], stuck: 3, failed: 0 })
     const outcomes = { a: 'failed', b: 'ready', c: 'needs_review' } as const
     vi.mocked(processQuote).mockImplementation(async (id) => outcomes[id as keyof typeof outcomes])
 
@@ -95,11 +95,20 @@ describe("the sweep's counts", () => {
       vi.setSystemTime(Date.now() + FUNCTION_LIMIT_MS)
       return { removed: [], kept: [] }
     })
-    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a'], gaveUp: 1 })
+    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a'], stuck: 2, failed: 1 })
 
     const response = await sweep(SECRET)
 
     expect(await response.json()).toMatchObject({ stuck: 2, failed: 1, processed: 0, left: 1 })
+  })
+
+  test('stuck counts every stuck job the scan found, past the ones this sweep starts again', async () => {
+    vi.mocked(recoverStaleQuotes).mockResolvedValue({ kick: ['a'], stuck: 25, failed: 0 })
+    vi.mocked(processQuote).mockResolvedValue('ready')
+
+    const response = await sweep(SECRET)
+
+    expect(await response.json()).toMatchObject({ stuck: 25, failed: 0, processed: 1, left: 0 })
   })
 
   test('trashed counts the files removed; the ones storage refused are kept apart', async () => {

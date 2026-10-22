@@ -48,8 +48,8 @@ export const dbJobRepo: QuoteJobRepo = {
           status: f.status, extraction: f.extraction, modelUsed: f.modelUsed, error: null, usage, processedAt: new Date(),
           ...(f.status === 'ready' ? { totalOverride: null } : {}),
         }
-    const rows = await db.update(quotes).set(set).where(underClaim).returning({ id: quotes.id })
-    return rows.length > 0
+    const rows = await db.update(quotes).set(set).where(underClaim).returning({ status: quotes.status })
+    return rows[0]?.status ?? null
   },
 }
 
@@ -57,8 +57,10 @@ export const dbJobRepo: QuoteJobRepo = {
 export interface StaleQuotes {
   /** The stuck jobs to start again, oldest first, at most the pass's limit. */
   kick: string[]
-  /** How many stuck jobs, out of attempts, it gave up on: their reads end failed. */
-  gaveUp: number
+  /** How many stuck jobs it found: the ones to start again, past the limit too, and the ones it gave up on. */
+  stuck: number
+  /** How many of the jobs it gave up on ended failed. One that already has a reading goes back to needs_review. */
+  failed: number
 }
 
 /**
@@ -74,12 +76,21 @@ export async function recoverStaleQuotes(userId?: string, limit = 10): Promise<S
     .orderBy(asc(quotes.createdAt))
     .limit(IN_FLIGHT_SCAN_LIMIT)
   const { kick, fail } = planStale(rows, new Date())
-  if (fail.length > 0) {
-    await db.update(quotes).set({ status: failedStatus, error: GAVE_UP, processedAt: new Date() }).where(and(inArray(quotes.id, fail), inFlight))
-    // Logged like a failed read: otherwise a worker that keeps dying shows only in the database.
-    console.error('[quotes] gave up on a stuck quote', { ids: fail })
-  }
-  return { kick: kick.slice(0, limit), gaveUp: fail.length }
+  const ended = fail.length > 0 ? await giveUp(fail, inFlight) : []
+  return { kick: kick.slice(0, limit), stuck: kick.length + fail.length, failed: ended.filter((r) => r.status === 'failed').length }
+}
+
+/**
+ * Ends the reads of stuck jobs with no attempts left. Returns the rows it changed, with the status each now has: a job
+ * that finished since the scan is no longer in flight, so it is left as it is.
+ */
+async function giveUp(ids: string[], inFlight: SQL) {
+  const ended = await db.update(quotes).set({ status: failedStatus, error: GAVE_UP, processedAt: new Date() })
+    .where(and(inArray(quotes.id, ids), inFlight))
+    .returning({ status: quotes.status })
+  // Logged like a failed read: otherwise a worker that keeps dying shows only in the database.
+  console.error('[quotes] gave up on a stuck quote', { ids })
+  return ended
 }
 
 /**

@@ -40,17 +40,34 @@ describe('recoverStaleQuotes', () => {
   test('a stuck quote with no attempts left is failed, logged and counted; one with attempts left is started again', async () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.mocked(db.select).mockReturnValue(chain([stuck('spent', MAX_ATTEMPTS), stuck('again', 1)]) as never)
-    vi.mocked(db.update).mockReturnValue(chain(undefined) as never)
-    expect(await recoverStaleQuotes('u1')).toEqual({ kick: ['again'], gaveUp: 1 })
+    vi.mocked(db.update).mockReturnValue(chain([{ status: 'failed' }]) as never)
+    expect(await recoverStaleQuotes('u1')).toEqual({ kick: ['again'], stuck: 2, failed: 1 })
     expect(db.update).toHaveBeenCalledTimes(1)
     expect(errors).toHaveBeenCalledWith('[quotes] gave up on a stuck quote', { ids: ['spent'] })
+  })
+
+  // The update's returned rows are the ones it changed, with the status each now has.
+  test.each<[string, { status: string }[], number]>([
+    ['ends failed', [{ status: 'failed' }], 1],
+    ['already has a reading, so it ends needs_review', [{ status: 'needs_review' }], 0],
+    ['finished before the give-up, so its row is left as it is', [], 0],
+  ])('a stuck quote given up on that %s counts as stuck, and as failed only when it ended failed', async (_case, ended, failed) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(db.select).mockReturnValue(chain([stuck('spent', MAX_ATTEMPTS)]) as never)
+    vi.mocked(db.update).mockReturnValue(chain(ended) as never)
+    expect(await recoverStaleQuotes(undefined, 20)).toEqual({ kick: [], stuck: 1, failed })
+  })
+
+  test('stuck counts every stuck quote found, past the limit of the ones started again', async () => {
+    vi.mocked(db.select).mockReturnValue(chain([stuck('a', 1), stuck('b', 1), stuck('c', 1)]) as never)
+    expect(await recoverStaleQuotes(undefined, 2)).toEqual({ kick: ['a', 'b'], stuck: 3, failed: 0 })
   })
 
   test('giving up on a stuck quote that already has a reading leaves it to check, not failed', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const seen: { set?: Record<string, unknown> } = {}
     vi.mocked(db.select).mockReturnValue(chain([stuck('spent', MAX_ATTEMPTS)]) as never)
-    vi.mocked(db.update).mockReturnValue(chain(undefined, seen) as never)
+    vi.mocked(db.update).mockReturnValue(chain([{ status: 'needs_review' }], seen) as never)
     await recoverStaleQuotes('u1')
     expect(statusSql(seen.set)).toBe(FAILED_STATUS)
   })
@@ -58,7 +75,7 @@ describe('recoverStaleQuotes', () => {
   test('nothing is failed or logged when no stuck quote is out of attempts', async () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.mocked(db.select).mockReturnValue(chain([stuck('again', 1)]) as never)
-    expect(await recoverStaleQuotes('u1')).toEqual({ kick: ['again'], gaveUp: 0 })
+    expect(await recoverStaleQuotes('u1')).toEqual({ kick: ['again'], stuck: 1, failed: 0 })
     expect(db.update).not.toHaveBeenCalled()
     expect(errors).not.toHaveBeenCalled()
   })
@@ -74,8 +91,8 @@ describe('dbJobRepo.finish', () => {
 
   test.each([['a result', ready], ['a re-queue', requeue]])('writes %s only under the claim that read it', async (_name, f) => {
     const seen: { where?: SQL } = {}
-    vi.mocked(db.update).mockReturnValue(chain([{ id: 'q1' }], seen) as never)
-    expect(await dbJobRepo.finish(job, f)).toBe(true)
+    vi.mocked(db.update).mockReturnValue(chain([{ status: f.status }], seen) as never)
+    expect(await dbJobRepo.finish(job, f)).toBe(f.status)
     const { sql: text, params } = new PgDialect().sqlToQuery(seen.where!)
     expect(text).toContain('"quotes"."status" = $')
     expect(text).toContain('"quotes"."attempts" = $')
@@ -102,9 +119,15 @@ describe('dbJobRepo.finish', () => {
     expect(seen.set).not.toHaveProperty('totalOverride')
   })
 
+  // The update's returned row has the status the case expression chose, not the one the read asked for.
+  test('reports the status the row was stored with: a failed re-read of a quote with a reading is needs_review', async () => {
+    vi.mocked(db.update).mockReturnValue(chain([{ status: 'needs_review' }]) as never)
+    expect(await dbJobRepo.finish(job, { status: 'failed', error: 'invalid', usage: [] })).toBe('needs_review')
+  })
+
   test('reports a lost claim when no row matched', async () => {
     vi.mocked(db.update).mockReturnValue(chain([]) as never)
-    expect(await dbJobRepo.finish(job, ready)).toBe(false)
-    expect(await dbJobRepo.finish(job, requeue)).toBe(false)
+    expect(await dbJobRepo.finish(job, ready)).toBeNull()
+    expect(await dbJobRepo.finish(job, requeue)).toBeNull()
   })
 })

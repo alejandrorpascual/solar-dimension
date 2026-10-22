@@ -25,7 +25,7 @@ export async function sweepHandler({ request }: { request: Request }): Promise<R
   }
   // First, and quick: the jobs below can take minutes each. It never throws; failures are logged and kept.
   const trash = await emptyQuoteTrash()
-  const { kick: ids, gaveUp } = await recoverStaleQuotes(undefined, SWEEP_LIMIT)
+  const { kick: ids, ...stale } = await recoverStaleQuotes(undefined, SWEEP_LIMIT)
   const outcomes = []
   // One at a time, each only while it could still end inside the limit: a read cut off mid-way would hold its claim
   // until the claim goes stale. A job not started stays as it is, for a poll or the next sweep.
@@ -36,10 +36,10 @@ export async function sweepHandler({ request }: { request: Request }): Promise<R
       return 'error' as const
     }))
   }
-  // stuck: the stale jobs this pass took up (to start again, up to SWEEP_LIMIT, or given up on), started or left for
-  // later; failed: those whose read ended failed. An 'error' outcome keeps its claim, so it is not failed yet.
+  // stuck: every stale job the scan found, started again (up to SWEEP_LIMIT) or given up on; failed: those whose read
+  // ended failed, as stored. An 'error' outcome keeps its claim, so it is not failed yet.
   return Response.json({
-    stuck: ids.length + gaveUp, failed: gaveUp + outcomes.filter((o) => o === 'failed').length, trashed: trash.removed.length,
+    stuck: stale.stuck, failed: stale.failed + outcomes.filter((o) => o === 'failed').length, trashed: trash.removed.length,
     processed: outcomes.length, left: ids.length - outcomes.length, outcomes, trashKept: trash.kept.length,
   })
 }
