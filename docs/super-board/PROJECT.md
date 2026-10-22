@@ -19,6 +19,7 @@ Solar Dimension is a web app that sizes an off-grid solar/battery backup kit. A 
 | Sign in / up | `/login` | Email+password, or Google where configured; first sign-in merges local projects into the account; redirects to `/` when already signed in |
 | Quote verdict | `/projects/$projectId/quotes` | Signed-in only (else `/login`). Upload progress, ranked quotes, best pick, must-have checks, "worth asking" questions, per-item overrides, totals |
 | Admin catalog | `/admin/appliances` | Admin-only (404 otherwise): create, edit, retire/restore appliances |
+| Admin failed reads | `/admin/quotes` | Admin-only (404 otherwise): the 50 newest failed quote reads, with file, account, project, error and time |
 | Legal | `/terms`, `/privacy` | Static pages |
 
 ## 3. Stack and where things live
@@ -90,6 +91,6 @@ CI (`.github/workflows/ci.yml`, job `verify`, Node read from `engines.node` in `
 - No grid-tied or hybrid-export sizing; bus bars are not sized or listed; conductor sizes are advice to verify against local code.
 - Product library is data and API only: no UI, and the sizing engine does not read it (it uses typed constants in `src/lib/catalog.ts`).
 - Quote ranking is deterministic code; the model only extracts. It does not negotiate, contact vendors or accept quotes.
-- Only two languages (EN, ES-LATAM); only the admin role exists (`ADMIN_EMAILS`), and the admin UI covers appliances only.
+- Only two languages (EN, ES-LATAM); only the admin role exists (`ADMIN_EMAILS`), and the admin UI covers appliances and failed quote reads only.
 - Analytics, error-tracking SDKs and multi-tenant teams are not present. No native mobile app.
 - Currency conversion is not done: quotes in another currency than the verdict's are listed unranked.

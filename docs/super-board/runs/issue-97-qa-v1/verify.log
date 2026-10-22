@@ -1,0 +1,38 @@
+issue #97 QA v1 · branch issue-97-admin-failed-quote-reads · head c7e3fed (Builder) plus src/server/admin-quotes.test.ts (QA)
+Run in a local clone on macOS, node v24.15.0. config.verify_commands, step by step:
+
+== npm ci --prefer-offline --no-audit --no-fund
+exit 0 · added 395 packages
+
+== npm run typecheck   (tsc app, e2e, scripts; the new test file included)
+exit 0
+
+== npm run test:coverage   (before the QA test, head c7e3fed)
+ Test Files  118 passed (118)
+      Tests  1992 passed (1992)
+exit 0
+
+== npm run test:coverage   (with src/server/admin-quotes.test.ts)
+ Test Files  119 passed (119)
+      Tests  1997 passed (1997)
+All files          |   89.72 |    90.17 |   90.35 |   89.79 |                   
+exit 0
+
+== npm run build
+exit 0 · .output/nitro.json generated · git status clean afterwards (routeTree.gen.ts unchanged)
+
+== npx vitest run src/server/admin-quotes.test.ts --reporter=verbose
+ ✓ adminListFailedQuotes refuses anyone but the admin > a signed-out caller gets "Not found" and no quote is read 26 [... omitted end of long line]
+ ✓ adminListFailedQuotes refuses anyone but the admin > an account not in ADMIN_EMAILS gets "Not found" and no quote [... omitted end of long line]
+ ✓ adminListFailedQuotes refuses anyone but the admin > the admin's address, not verified gets "Not found" and no qu [... omitted end of long line]
+ ✓ adminListFailedQuotes for the admin > asks for the 50 newest failed reads only 1ms
+ ✓ adminListFailedQuotes for the admin > each read carries its file, account, project and error, at the time it fail [... omitted end of long line]
+      Tests  5 passed (5)
+
+== npx vitest run src/server/quotes/sweep.test.ts src/server/quotes/repo.test.ts
+ Test Files  2 passed (2)
+      Tests  23 passed (23)
+
+== e2e (npx playwright test e2e/admin.spec.ts)
+not run in this lane: the guard-secrets hook refused linking .env.test.local into the clone, and
+the lane may not start the app any other way. CI ran it on this head: see ci-e2e-admin.log.

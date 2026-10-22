@@ -12,7 +12,11 @@ import type { QuoteStorage } from './storage'
 type Step = QuoteExtraction | ModelError
 const BAD = extraction([line('inverter', 1000)], { tax: 0, total: 5000 }) // lines + tax don't add up to the total
 
-function setup(steps: Record<string, Step[]>, opts: { attempts?: number; claimed?: boolean; file?: boolean; pages?: number | null } = {}) {
+/** `stored`: the status the repo stores, when it differs from the one asked for (a failed re-read keeps its reading). */
+function setup(
+  steps: Record<string, Step[]>,
+  opts: { attempts?: number; claimed?: boolean; file?: boolean; pages?: number | null; stored?: QuoteStatus } = {},
+) {
   const finished: Finish[] = []
   const calls: string[] = []
   const job: ClaimedQuote = { id: 'q1', blobPathname: 'quotes/u/x.pdf', mime: 'application/pdf', fileName: 'x.pdf', attempts: opts.attempts ?? 1,
@@ -29,7 +33,7 @@ function setup(steps: Record<string, Step[]>, opts: { attempts?: number; claimed
   }
   const storage: QuoteStorage = { put: async () => {}, get: async () => (opts.file === false ? null : new Uint8Array([1])), remove: async () => {} }
   const deps: ProcessDeps = {
-    repo: { claim: async () => (opts.claimed === false ? null : job), finish: async (_job, f) => { finished.push(f); return true } },
+    repo: { claim: async () => (opts.claimed === false ? null : job), finish: async (_job, f) => { finished.push(f); return opts.stored ?? f.status } },
     storage, model, models: { primary: 'luna', fallback: 'sol' },
   }
   return { deps, finished, calls }
@@ -105,6 +109,11 @@ describe('processQuote', () => {
     expect(await processQuote('q1', s.deps)).toBe('failed')
     expect(s.finished[0]).toMatchObject({ status: 'failed' })
   })
+  test('a failed re-read of a quote that already has a reading reports needs_review, the status the repo stored', async () => {
+    const s = setup({ luna: [invalid()], sol: [invalid()] }, { stored: 'needs_review' })
+    expect(await processQuote('q1', s.deps)).toBe('needs_review')
+    expect(s.finished[0]).toMatchObject({ status: 'failed' })
+  })
   test('a failed quote is logged with its error, so a revoked key or an outage shows in the logs', async () => {
     const s = setup({ luna: [invalid()], sol: [invalid()] })
     expect(await processQuote('q1', s.deps)).toBe('failed')
@@ -161,10 +170,10 @@ function fencedRepo() {
       return { id, blobPathname: 'quotes/u/x.pdf', mime: 'application/pdf', fileName: 'x.pdf', attempts: row.attempts, claimedAt: row.claimedAt, pages: null }
     },
     async finish(job, f) {
-      if (row.status !== 'processing' || row.attempts !== job.attempts || row.claimedAt !== job.claimedAt) return false
+      if (row.status !== 'processing' || row.attempts !== job.attempts || row.claimedAt !== job.claimedAt) return null
       row.status = f.status
       row.stored = f
-      return true
+      return row.status
     },
   }
   return { repo, row }

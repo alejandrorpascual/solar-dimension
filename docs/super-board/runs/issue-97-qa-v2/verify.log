@@ -1,0 +1,32 @@
+issue #97 QA v2 · branch issue-97-admin-failed-quote-reads · head 9449e44 (Builder rebuild 1) plus QA's test changes
+Run in a local clone on macOS, node v24.15.0. config.verify_commands, step by step.
+
+== npm ci --prefer-offline --no-audit --no-fund
+exit 0 · added 395 packages
+
+== npm run typecheck   (head 9449e44, before QA's changes)
+exit 0
+== npm run test:coverage   (head 9449e44, before QA's changes)
+ Test Files  119 passed (119)
+      Tests  2004 passed (2004)
+All files          |   89.72 |    90.21 |   90.36 |    89.8 |
+  sweep.ts         |      90 |      100 |      75 |   88.88 | 35-36      <- the catch for a read that throws (R3)
+exit 0
+== npm run build   (head 9449e44)
+exit 0
+
+== npm ci --silent && npm run typecheck && npm run test:coverage && npm run build   (with QA's changes)
+npm ci exit 0 · typecheck exit 0 (app, e2e, scripts) · build exit 0
+ Test Files  119 passed (119)
+      Tests  2005 passed (2005)
+All files          |   89.77 |    90.21 |   90.43 |   89.86 |
+  sweep.ts no longer listed: every line covered (35-36 now run by sweep.test.ts:91)
+test:coverage exit 0
+
+== npx vitest run src/server/quotes/ src/server/admin-quotes.test.ts
+ Test Files  11 passed (11)
+      Tests  106 passed (106)
+
+== e2e (npx playwright test e2e/admin.spec.ts)
+not run in this lane: the guard-secrets hook refused linking .env.test.local into the clone, so
+playwright.config.ts cannot load. The e2e result is CI's run on the pushed head (named in the QA report).
