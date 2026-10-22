@@ -113,9 +113,10 @@ export function useProjectStore() {
     setStore(local)
     loaded.current = false
     unsent.current = NOTHING_UNSENT
+    // A load this run cancelled leaves the flag to it: with no account there is nothing to sync.
+    setSyncing(account !== null)
     if (!account) return
     let cancelled = false
-    setSyncing(true)
     // Unless something here still has to reach the account, the server copy is the source of truth.
     enqueue(() => (mustPush ? importProjects({ data: { account, projects: local.projects } }) : listProjects({ data: { account } })))
       .then((list) => {
