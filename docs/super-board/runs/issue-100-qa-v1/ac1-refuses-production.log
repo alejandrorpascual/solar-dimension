@@ -1,0 +1,31 @@
+
+> test:db
+> vitest run --config vitest.db.config.ts
+
+
+ RUN  v5.0.1 /private/tmp/claude-501/-Users-alejandrorpascual-projects-solar-dimension--claude-worktrees-determined-jang-9e5404/c87e5d60-b453-4afb-b843-2788a75c6999/scratchpad/lanes/issue-100-qa
+
+ ❯ src/server/projects-repo.db.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/projects-repo.db.test.ts [ src/server/projects-repo.db.test.ts ]
+Error: e2e refuses to run: DATABASE_URL is the production database (ep-round-sea-auutoq9o). Point it at a Neon branch for tests.
+ ❯ assertTestDatabase e2e/test-env.ts:21:11
+     19|   if (!endpoint) throw new Error('e2e refuses to run: DATABASE_URL is …
+     20|   if (endpoint === PRODUCTION_DB_ENDPOINT) {
+     21|     throw new Error(`e2e refuses to run: DATABASE_URL is the productio…
+       |           ^
+     22|   }
+     23|   return endpoint
+ ❯ loadTestEnv e2e/test-env.ts:47:20
+ ❯ vitest.db.setup.ts:6:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  17:35:54
+   Duration  95ms (worker 96%, environment 4%)
+

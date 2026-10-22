@@ -1,0 +1,46 @@
+QA v2 · issue #66 · PR #173 · head 900335b (base staging a1da8c5) · Oct 21, 15:56 -04
+Rebuild pass for the reviewer's [qa] thread R2: AC4's tie case had no test.
+
+R2 fix
+- src/lib/kit-parts.test.ts:66 pins the 1S2P kit from qa-v1 (12 V AGM, 12 V 100 Ah picked, 6 h, Microwave only)
+- it asserts the tie: parallelFor { energy 2, continuous 5, peak 2, lead 1 }, 1S2P (continuous needs 5, past AGM's 4 in parallel, so the bank keeps the energy's 2)
+- it asserts the whole batteries note, EN and ES, with no limit line
+- expected figures come from the ratings, not the code: 12 V x 100 Ah x 2 = 2.4 kWh, half usable (AGM dod 0.5) = 1.2 kWh, 0.3C x 100 Ah x 2 = 60 A continuous, 1C x 100 Ah x 2 = 200 A peak
+
+Red, then green (the mutation never reached a commit)
+- unmutated: npx vitest run src/lib/kit-parts.test.ts -t 'ties another limit': 2 passed (en, es)
+- kit-parts.ts:112 `b.parallel <= b.parallelFor.energy` -> `<` (diff against a pristine copy showed the one-line change): 2 failed, 51 passed
+  received EN "... 1.2 kWh usable · 2 in parallel for the peak current; the energy alone needs 2 · 60 A continuous ..."
+  received ES "... 1.2 kWh utilizables · 2 en paralelo por la corriente pico; la energía sola pide 2 · 60 A continuos ..."
+- restored (git diff on kit-parts.ts empty): 53/53 passed
+- in qa-v1 the same mutant survived every test
+
+What ran on 900335b + the new test
+- npm ci --silent: exit 0
+- npm run typecheck (app, e2e, scripts): exit 0
+- npm run test:coverage: 107 files, 1855/1855 tests passed · statements 98.33%, branches 93.92%, lines 98.94%
+- npm run build: exit 0
+- npx vitest run src/lib/kit-checks.test.ts src/lib/kit-parts.test.ts src/lib/sizing/battery.test.ts src/i18n/i18n.test.ts src/components/KitSummary.test.ts src/components/KitSheet.test.ts src/lib/kit-csv.test.ts: 7 files, 205/205 passed
+
+What did not run, and why
+- e2e (npx playwright test): a hook refused linking .env.test.local into the lane clone; the suite's servers need it
+- the running app: npm run dev is not allowed in this lane
+
+How the screenshots were made
+- KitSummary rendered with react-dom/server from this branch, mocking only useLocale as src/components/KitSummary.test.ts does, inside workspace > page > stage
+- styled with the CSS npm run build emits (.output/public/_build/index-*.css and styles-*.css), opened in Playwright Chromium at 1920x1080, 1024x768 and 375x667
+- kit: 12 V AGM, 12 V 100 Ah picked, 6 h, Microwave (1000 W) only
+- the batteries row reads "1 in series × 2 in parallel (1S2P) · 2.4 kWh bank, 1.2 kWh usable · 60 A continuous, 200 A peak from the bank (assumed ratings) · ..." with no limit line; ES the same with no "la energía sola pide"
+- horizontal overflow 0 px at every size; 0 console or page errors
+- not the full page: no header, stepper or side rail
+
+AC ledger (unit / component / e2e)
+- AC1 no BMS for AGM, LiFePO4 unchanged: src/lib/kit-checks.test.ts:47, src/i18n/i18n.test.ts:54 / none / none (e2e not run)
+- AC2 12 V 200 Ah AGM = 3,430 A: src/lib/sizing/battery.test.ts:87 / n/a: engine figure / none
+- AC3 "estimated" / "estimada" on the fuse pass line and fuseInterrupt only: src/lib/kit-checks.test.ts:111 / none / none
+- AC4 batteries note names the limit; unchanged when energy sets it: src/lib/kit-parts.test.ts:58 (energy alone), :66 (energy ties peak, new), :76, :84, :95 (continuous, peak, lead) / none / none
+
+Test gaps (not written)
+- Low · a tie between continuous and peak above the energy names continuous; no test pins the order (PARALLEL_LIMIT_NOTES order mutant survives, as in qa-v1)
+- Low · AGM fuseAboveBank with one fuse and AGM bankDischarge with inverters in parallel are not asserted; both branches are chemistry-free
+- Low · kit-parts.ts:114, the '' branch when no limit matches, is unreachable with today's battery sizing

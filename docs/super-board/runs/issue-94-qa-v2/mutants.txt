@@ -1,0 +1,9 @@
+Each mutant was applied to a pristine copy, run, and the file restored (diff against the copy: empty).
+
+M1  src/hooks/useQuoteJobs.tsx:35  `if (ok) setLoaded(true)` -> `setLoaded(true)` (a failed read counts as read)
+    before QA: no test failed. After: useQuoteJobs.test.ts "when the first read of the quotes fails" red: expected +0 to be null
+M2  src/hooks/useQuoteJobs.tsx:44  drop `setLoaded(false)` (a new account keeps the last account's read)
+    before QA: no test failed. After: useQuoteJobs.test.ts "after one account signs out and another signs in" red: expected +0 to be null
+M3  src/hooks/useQuoteJobs.tsx:78  `return loaded ? (jobs?.total ?? 0) : null` -> `return jobs?.total ?? 0`
+    e2e/quotes.spec.ts:551 red: expected "… and any quotes it has? …", received "Delete “Project 2”? This can't be undone."
+All three restored: the two unit tests and the e2e green again.

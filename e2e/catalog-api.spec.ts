@@ -44,7 +44,7 @@ test('writes only when the POST names this database, and writes to the database 
     expect(await testApplianceExists(id)).toBe(false)
 
     const here = await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [cooktop(id)] })
-    expect(await here.json()).toEqual({ created: [id], updated: [] })
+    expect(await here.json()).toEqual({ created: [id], updated: [], warnings: [] })
     // Read on the test's own connection: the row is in the database the server named, not somewhere else.
     expect(await testApplianceExists(id)).toBe(true)
   } finally {
@@ -67,20 +67,51 @@ test('a mistyped flag answers 400 naming it, and nothing is written', async ({ r
   }
 })
 
+test('the dry run and the write both carry plausibility warnings, and a warning never stops the write', async ({ request }) => {
+  const id = `e2e-warn-${Date.now()}`
+  const pump = { ...cooktop(id), category: 'Utility', watts: 100, surge: 3000, duty: 0.1 }
+  const surgeWarning = [{ id, messages: [expect.stringMatching(/^Surge is 30× the running watts/)] }]
+  const raised = { ...pump, watts: 160, surge: 480 }
+  const changeWarning = [{
+    id,
+    messages: [
+      'Running watts from the stored 100 to 160 is a change of 60%: check the digits and the unit.',
+      'Surge from the stored 3000 to 480 is a change of 84%: check the digits and the unit.',
+    ],
+  }]
+  try {
+    const dry = await request.post('/api/catalog/appliances?dryRun=true', { headers: writeHeaders(), data: [pump] })
+    expect(await dry.json()).toEqual({ changes: [{ id, kind: 'new' }], warnings: surgeWarning })
+    const created = await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [pump] })
+    expect(await created.json()).toEqual({ created: [id], updated: [], warnings: surgeWarning })
+    expect(await testApplianceExists(id)).toBe(true)
+
+    const dryUpdate = await request.post('/api/catalog/appliances?dryRun=true', { headers: writeHeaders(), data: [raised] })
+    expect(await dryUpdate.json()).toEqual({
+      changes: [{ id, kind: 'changed', fields: [{ field: 'watts', from: 100, to: 160 }, { field: 'surge', from: 3000, to: 480 }] }],
+      warnings: changeWarning,
+    })
+    const updated = await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [raised] })
+    expect(await updated.json()).toEqual({ created: [], updated: [id], warnings: changeWarning })
+  } finally {
+    await deleteTestAppliance(id)
+  }
+})
+
 test('dry run, create, show in the picker in both languages, then retire', async ({ request, page }) => {
   const id = `e2e-${Date.now()}`
   const item = cooktop(id)
   try {
     const dry = await request.post('/api/catalog/appliances?dryRun=true', { headers: writeHeaders(), data: item })
     expect(dry.status()).toBe(200)
-    expect(await dry.json()).toEqual({ changes: [{ id, kind: 'new' }] })
+    expect(await dry.json()).toEqual({ changes: [{ id, kind: 'new' }], warnings: [] })
     expect((await request.get('/api/catalog/appliances', { headers: auth })).ok()).toBe(true)
 
     const bad = await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: { ...item, surge: 1 } })
     expect(bad.status()).toBe(422)
 
     const created = await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [item] })
-    expect(await created.json()).toEqual({ created: [id], updated: [] })
+    expect(await created.json()).toEqual({ created: [id], updated: [], warnings: [] })
 
     await page.goto('/?step=1')
     await expect(page.getByText(`E2E cooktop ${id}`)).toBeVisible()

@@ -1,0 +1,21 @@
+2026-10-21T21:26:12.5147837Z ##[group]Run npm run test:db
+2026-10-21T21:26:12.5148098Z npm run test:db
+2026-10-21T21:26:12.5204884Z shell: /usr/bin/bash -e {0}
+2026-10-21T21:26:12.5205108Z env:
+2026-10-21T21:26:12.5205859Z   DATABASE_URL: ***
+2026-10-21T21:26:12.5206060Z ##[endgroup]
+2026-10-21T21:26:12.6008315Z 
+2026-10-21T21:26:12.6008858Z > test:db
+2026-10-21T21:26:12.6009341Z > vitest run --config vitest.db.config.ts
+2026-10-21T21:26:12.6009619Z 
+2026-10-21T21:26:12.8377885Z 
+2026-10-21T21:26:12.8380835Z  RUN  v5.0.1 /home/runner/work/solar-dimension/solar-dimension
+2026-10-21T21:26:12.8405428Z 
+2026-10-21T21:26:14.1593746Z  ✓ src/server/projects-repo.db.test.ts (2 tests) 639ms
+2026-10-21T21:26:14.1594427Z    ✓ saveForUser on the test database (2)
+2026-10-21T21:26:14.1595332Z      ✓ keeps the newer edit when an older copy arrives, and answers with it in stale 436ms
+2026-10-21T21:26:14.1621642Z 
+2026-10-21T21:26:14.1645861Z  Test Files  1 passed (1)
+2026-10-21T21:26:14.1655535Z       Tests  2 passed (2)
+2026-10-21T21:26:14.1656069Z    Start at  21:26:12
+2026-10-21T21:26:14.1656711Z    Duration  1.32s (tests 52%, import 33%, transform 15%, setup 1%)

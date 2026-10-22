@@ -49,6 +49,8 @@ export interface ProtectionContext {
   surgeSeconds: number
   bankContinuousA: number | null
   bankShortCircuitA: number | null
+  /** The cable these fuses protect, named on each of their warnings; the main run unless it says otherwise. */
+  conductor?: ConductorKind
 }
 
 /**
@@ -104,9 +106,10 @@ export function sizeMainCable(
   }
   const { runs, conductors, perRun, ampacityAt, sized } = attempt
   const g = gauges[sized.gaugeIndex]!
-  const warnings = [...sized.warnings]
+  const conductor = protection.conductor ?? 'mainCable'
+  const warnings: Warning[] = sized.warnings.map((w) => ({ ...w, params: { ...w.params, conductor } }))
   if (sized.fuse.a > ampacityAt(sized.gaugeIndex)) {
-    warnings.push({ code: 'fuseAboveCable', params: { fuseA: sized.fuse.a, maxA: Math.round(ampacityAt(sized.gaugeIndex)), count: runs } })
+    warnings.push({ code: 'fuseAboveCable', params: { fuseA: sized.fuse.a, maxA: Math.round(ampacityAt(sized.gaugeIndex)), count: runs, conductor } })
   }
   const runDropPct = dropPct(g, perRun, cond.runLengthM, volts)
   // Judged to a tenth, as it prints: a drop the sheet shows as 3.0% is not called over 3%.
@@ -195,7 +198,7 @@ export function maxStringAmps(volts: Voltage, cond: CableConditions, gauges: rea
 const sizeStringRun = (ctx: BankWiringContext, battery: BankLayout): MainCableSizing =>
   sizeMainCable(
     ctx.bankAmps / battery.parallel, ctx.bankSurgeAmps / battery.parallel, ctx.volts, jumperConditions(ctx.cond), ctx.gauges, ctx.fuses,
-    { surgeSeconds: ctx.surgeSeconds, bankContinuousA: battery.unit.maxContinuousA, bankShortCircuitA: battery.unit.shortCircuitA }, { fixedRuns: 1 },
+    { surgeSeconds: ctx.surgeSeconds, bankContinuousA: battery.unit.maxContinuousA, bankShortCircuitA: battery.unit.shortCircuitA, conductor: 'stringLeads' }, { fixedRuns: 1 },
   )
 
 const toStringCable = (sized: MainCableSizing, parallel: number, site: RowSite): StringCable => ({

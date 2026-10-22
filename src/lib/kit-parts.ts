@@ -1,7 +1,7 @@
 import { panelCount, tr, type Dictionary, type Locale, type UiKey } from '../i18n'
 import { fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { needsSplitPhase } from './catalog'
-import { hasPanels, type CablePick, type ConductorKind, type InverterPick, type SizingResult } from './sizing'
+import { hasPanels, type BatteryPick, type CablePick, type ConductorKind, type InverterPick, type SizingResult } from './sizing'
 import { headroomPct } from './sizing/inverter'
 import { SOLAR } from './solar'
 
@@ -102,6 +102,18 @@ function bankWiringParts(c: CablePick, t: Dictionary, locale: Locale): Part[] {
   ]
 }
 
+/** What each limit other than the energy says when it set how many strings are in parallel, in the order a tie is named. */
+const PARALLEL_LIMIT_NOTES = [
+  ['continuous', 'batteriesForContinuous'], ['peak', 'batteriesForPeak'], ['lead', 'batteriesForLead'],
+] as const satisfies readonly (readonly [keyof BatteryPick['parallelFor'], UiKey])[]
+
+/** The batteries row's note on what set the parallel count: the continuous, peak or lead current; empty when the energy did. */
+function parallelLimitNote(b: BatteryPick, t: Dictionary): string {
+  if (b.parallel <= b.parallelFor.energy) return ''
+  const named = PARALLEL_LIMIT_NOTES.find(([limit]) => b.parallelFor[limit] === b.parallel)
+  return named ? tr(t, named[1], { parallel: b.parallel, energy: b.parallelFor.energy }) : ''
+}
+
 /** The parts list the screen, the sheet, the image and the CSV all share. Rows with nothing to buy are left out; solar rows come last. */
 export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part[] {
   const b = r.battery
@@ -110,6 +122,7 @@ export function buildParts(r: SizingResult, t: Dictionary, locale: Locale): Part
   const perRun = shareLabel(r, t)
   const batteriesNote = joinNotes([
     tr(t, 'batteriesNote', { series: b.series, parallel: b.parallel, config: b.config, bank: fmtKwh(b.bankWh, locale), usable: fmtKwh(b.usableWh, locale) }),
+    parallelLimitNote(b, t),
     tr(t, 'batteriesCurrentNote', { cont: fmtInt(b.bankContinuousA, locale), peak: fmtInt(b.bankPeakA, locale) }),
     ...r.parallelNotes.map((n) => t.parallelNotes[n]),
   ])

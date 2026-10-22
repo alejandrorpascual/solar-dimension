@@ -1,0 +1,62 @@
+issue #120 QA v1 · branch issue-120-phone-16px-quantity-input-borders-tray-clearance · head 88873dc (base staging 98ad929, 0 behind)
+
+== npm run typecheck
+exit 0 (also after the QA test was added)
+
+== npm run test:coverage
+Test Files  107 passed (107)
+Tests  1846 passed (1846)
+Statements 98.34%  Branches 93.96%  Functions 99.3%  Lines 98.94%
+
+== E2E_PORT=4240 npx playwright test e2e/duty.spec.ts e2e/field-borders.spec.ts e2e/quote-tray.spec.ts
+  builder's specs, head 88873dc: 18 passed, 4 skipped
+  with the QA test added: 19 passed, 5 skipped (the skips are @phone tests on the desktop project and desktop-only tests on phone)
+
+== neighbours + the three specs above, 13 files, --workers=2
+  kit-builder stepper project-card quotes kit-attention requester login-notes account shared-browser spanish-defaults duty field-borders quote-tray
+  199 passed, 10 skipped, 0 failed
+
+== computed values on the phone project (iPhone 13 emulation, pointer: coarse), head vs base
+  quantity field, appliance card and kit row   head 16 px   base 15 px
+  quantity field, project card quick edit (small variant)   head 16 px   base 14 px   (see the QA test below)
+  .in fields (search, custom appliance, login), duty select   16 px on both
+  text field and select edge   head rgb(127,136,150)   3.58 vs white, 3.25 vs ground (#F2F4F7)
+                               base rgb(221,226,233)   1.30 vs white, 1.18 vs ground
+  independent check of the ratios (python, WCAG 2 luminance): #7F8896 -> 3.581 / 3.250 · #DDE2E9 -> 1.302 / 1.182
+  mouse pointer at 1920 and 1024: quantity 15 px, search 14 px, duty select 13 px (the 16 px rule is coarse pointers only)
+  visualViewport.scale after tapping a quantity field: 1 (Chromium does not zoom; the zoom itself is not checked, see below)
+
+== tray against the quotes card buttons at full scroll, phone project, 390 / 375 / 320 px wide
+  state                          head: tray height, page bottom padding, buttons covered      base: page bottom padding, buttons covered
+  reading                        92 px, 240 px, none                                           120 px, See verdict + Add quotes
+  reading, file list open        231 px, 379 px, none                                          120 px, See verdict + Add quotes
+  verdict ready                  74 px (117 px at 320), 222 px (265), none                     120 px, See verdict + Add quotes
+  verdict ready, 60-char name    139 px (248 px at 320), 287 px (396), none                    120 px, See verdict + Add quotes
+  tray dismissed                 none, 120 px (room variable removed), none                    120 px, none
+  no sideways scroll in any state (scrollWidth - innerWidth = 0)
+  (the per-state numbers above come from a throwaway probe spec; the raw json is not committed, to keep the PR under the size cap)
+
+== mutation checks on the Builder's specs (never committed; src restored, git diff -- src empty after each)
+  A1 remove the coarse rule on .stepper-qty__n (components.css)   duty.spec.ts:119 red, 15 vs 16 (phone)
+  A2 --field-line set to #DDE2E9                                  field-borders.spec.ts:49, :56, :63 red, 1.30 / 1.18 vs 3
+  A3 remove the .page padding-bottom rule (quotes.css)            quote-tray.spec.ts:38, :50 red at 390 px, See verdict + Add quotes covered
+  B1 remove the coarse rule on .qstep--sm .stepper-qty__n (rail.css)   duty.spec.ts:119 stayed GREEN: the small variant is not in the quick-edit rows
+     (rows use QtyStepper size md); it is the stepper on another project's card (ProjectCards.tsx:91). SURVIVED: gap, written below.
+  B2 QuoteTray publishes a fixed 92px instead of its height      quote-tray.spec.ts:50 red at 320 px (long name); :38 stayed green, as the Builder reported
+
+== test written for the survivor (red first)
+  e2e/duty.spec.ts "...quantity field in another project's quick edit is at least 16 px too"
+  with B1 applied: 14 received, expected >= 16 (red)   restored: green, 19 passed in the three specs
+
+== exploratory probes (throwaway spec, not committed)
+  every visible text field on step 1, 2, 3, 4 with quick edit open, and /login, on the phone project: font size and edge
+  no text field or select a person can tap is under 16 px, and none has an edge under 3:1; the quantity field has no edge at rest (between the - and + buttons)
+  one stray native select at 13.3 px with the browser's own edge on the kit step: react-aria's hidden select of the battery picker (BatteryPicker.tsx), not tappable
+  not probed: a touch screen 1024 px or wider (iPad): by the CSS, .in is 14 px there (components.css, min-width 1024 block after the coarse rule), the quantity field is 16 px
+  at 1920 and 1024 wide the tray (fixed bottom right) sits over the footer's Download and Start over buttons while a quote is read:
+     the same on base, outside the ticket (it says under 1024 px) -> reported, not a fail
+
+== Simulator Safari: NOT RUN
+  the iOS Simulator control tool was not granted for the throwaway device (access request unanswered, twice),
+  so no tap could be sent. A throwaway iPhone 17 (iOS 26.4) was booted, then shut down and deleted.
+  The held e2e server and the QA account were released; no production database was touched.

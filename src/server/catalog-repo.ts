@@ -2,7 +2,7 @@ import { asc, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client'
 import { appliances } from '../db/schema'
 import type { CatalogItem } from '../lib/catalog'
-import { assignSortOrders, diffAppliances } from '../lib/catalog-diff'
+import { assignSortOrders, diffAppliances, warnAppliances, type ApplianceWarnings } from '../lib/catalog-diff'
 import { ApplianceSchema, toCatalogItem, type ApplianceInput, type ApplianceRecord } from '../lib/catalog-schema'
 import { ttlCache } from '../lib/ttl-cache'
 
@@ -40,8 +40,8 @@ export async function queryCatalog(): Promise<CatalogItem[]> {
   return (await listRecords()).map(toCatalogItem)
 }
 
-/** The only way appliances are written. Unchanged items are skipped; one statement, so it is all or nothing. */
-export async function upsertAppliances(items: readonly ApplianceInput[], actor: string): Promise<{ created: string[]; updated: string[] }> {
+/** The only way appliances are written. Unchanged items are skipped; one statement, so it is all or nothing. Warnings never stop it. */
+export async function upsertAppliances(items: readonly ApplianceInput[], actor: string): Promise<{ created: string[]; updated: string[]; warnings: ApplianceWarnings[] }> {
   const existing = await listRecords()
   const changes = diffAppliances(existing, items)
   const toWrite = assignSortOrders(existing, items).filter((_, i) => changes[i]!.kind !== 'unchanged')
@@ -67,6 +67,8 @@ export async function upsertAppliances(items: readonly ApplianceInput[], actor: 
   return {
     created: changes.filter((c) => c.kind === 'new').map((c) => c.id),
     updated: changes.filter((c) => c.kind === 'changed').map((c) => c.id),
+    // Against the rows this write replaced, so they match the dry run that showed the same items.
+    warnings: warnAppliances(existing, items),
   }
 }
 

@@ -4,7 +4,7 @@ import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
 import { CUSTOM_DUTY_MIN_PCT, EMPTY_FORM, parseCustom } from '../lib/custom'
 import { en } from './en'
 import { es } from './es'
-import { applianceName, applianceNote, batteryCount, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
+import { applianceName, applianceNote, batteryCount, deleteProjectText, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
 import { ITEM_IDS } from '../lib/quote-items'
 
 describe('dictionaries', () => {
@@ -49,6 +49,45 @@ describe('dictionaries', () => {
       expect(d.warnings.fuseInterrupt(p)).toContain('21,600')
       expect(d.warnings.startupDrop(p)).toContain('12.5%')
       expect(d.warnings.cableAmbient(p)).toContain('90 °C')
+    }
+  })
+  test('the fuse and cable warnings claim nothing the engine does not check, and Spanish says clasificado, not certificado', () => {
+    const p = { fuseA: 100, surgeA: 309, seconds: 3, maxA: 173, count: 2, maxVdc: 32, needVdc: 60, volts: 48, ambientC: 90 }
+    expect(en.warnings.fuseSurge(p)).toBe('Start-up pushes 309 A through a 100 A fuse for 3 s; it may blow on a normal start.')
+    expect(es.warnings.fuseSurge(p)).toBe('El arranque pasa 309 A por un fusible de 100 A durante 3 s; puede quemarse en un arranque normal.')
+    expect(es.warnings.fuseVoltage(p)).toBe('El fusible de 100 A solo está clasificado para 32 V CC, y un banco de 48 V necesita 60 V CC o más: podría no cortar una falla. Usa un fusible clasificado para al menos 60 V CC.')
+    expect(es.warnings.cableAmbient(p)).toBe('Ningún cable de la tabla está clasificado para aire a 90 °C. Lleva el tramo a un lugar más fresco.')
+  })
+  test('a fuse warning on a single run says so in the singular, and several runs keep the plural', () => {
+    const p = { fuseA: 175, maxA: 173 }
+    expect(en.warnings.fuseAboveCable({ ...p, count: 2 })).toBe('Even 2 runs of the largest cable carry only 173 A each, under the 175 A fuse they need. Raise the voltage or trim the load.')
+    expect(en.warnings.fuseAboveCable({ ...p, count: 1 })).toBe('The largest cable carries only 173 A, under the 175 A fuse it needs. Raise the voltage or trim the load.')
+    expect(es.warnings.fuseAboveCable({ ...p, count: 2 })).toBe('Ni 2 tramos del cable más grueso soportan más de 173 A cada uno, menos que el fusible de 175 A que necesitan. Sube el voltaje o reduce la carga.')
+    expect(es.warnings.fuseAboveCable({ ...p, count: 1 })).toBe('El cable más grueso solo soporta 173 A, menos que el fusible de 175 A que necesita. Sube el voltaje o reduce la carga.')
+  })
+  test('every fuse warning on a string lead says string lead, in both languages, and the main run never does', () => {
+    const p = { fuseA: 100, surgeA: 309, seconds: 3, maxA: 173, count: 1, maxVdc: 32, needVdc: 60, volts: 48, shortCircuitA: 21600, aicA: 20000 }
+    const codes = ['fuseVoltage', 'fuseAboveBank', 'fuseAboveCable', 'fuseSurge', 'fuseInterrupt'] as const
+    for (const code of codes) {
+      expect(en.warnings[code]({ ...p, conductor: 'stringLeads' }), `en ${code}`).toContain('string lead')
+      expect(es.warnings[code]({ ...p, conductor: 'stringLeads' }), `es ${code}`).toContain('cable de rama')
+      for (const conductor of [undefined, 'mainCable' as const]) {
+        expect(en.warnings[code]({ ...p, conductor }), `en ${code} main`).not.toContain('string lead')
+        expect(es.warnings[code]({ ...p, conductor }), `es ${code} main`).not.toContain('cable de rama')
+      }
+    }
+    expect(en.warnings.fuseAboveCable({ ...p, conductor: 'stringLeads' })).toBe('Even the largest cable carries only 173 A, under the 100 A fuse on the string lead. Raise the voltage or trim the load.')
+    expect(es.warnings.fuseAboveCable({ ...p, conductor: 'stringLeads' })).toBe('Ni el cable más grueso soporta más de 173 A, menos que el fusible de 100 A del cable de rama. Sube el voltaje o reduce la carga.')
+  })
+  test('a LiFePO₄ bank keeps its BMS wording, whether the chemistry is named or not', () => {
+    const p = { needA: 278, maxA: 100, strings: 1, unitLabel: '12 V 100 Ah LiFePO₄', seconds: 1, fuseA: 175, count: 2 }
+    for (const q of [p, { ...p, chemistry: 'lifepo4' as const }]) {
+      expect(en.warnings.bankDischarge(q)).toBe('The inverter draws up to 278 A at full load; 1 × 12 V 100 Ah LiFePO₄ allows 100 A continuous and its BMS would cut out. Pick a larger unit or a higher voltage.')
+      expect(en.warnings.bankPeak(q)).toBe("Start-up pulls 278 A for 1 s; the bank's BMS allows 100 A peak and may shut off. Let fewer motors start at once or add a string.")
+      expect(en.warnings.fuseAboveBank(q)).toBe('The 2 × 175 A fuses are sized for more than the 100 A the bank can deliver, so the BMS, not a fuse, would trip on an overload. Pick a bank that delivers more.')
+      expect(es.warnings.bankDischarge(q)).toBe('El inversor toma hasta 278 A a plena carga; 1 × 12 V 100 Ah LiFePO₄ permite 100 A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.')
+      expect(es.warnings.bankPeak(q)).toBe('El arranque exige 278 A durante 1 s; el BMS del banco permite 100 A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.')
+      expect(es.warnings.fuseAboveBank(q)).toBe('Los 2 fusibles de 175 A están dimensionados para más de los 100 A que el banco puede entregar, así que cortaría el BMS y no un fusible en una sobrecarga. Elige un banco que entregue más.')
     }
   })
   test('es has every kind and parallel note that en has', () => {
@@ -143,6 +182,23 @@ describe('batteryCount', () => {
     expect(batteryCount(en, 5)).toBe('5 batteries')
     expect(batteryCount(es, 1)).toBe('1 batería')
     expect(batteryCount(es, 2)).toBe('2 baterías')
+  })
+})
+
+describe('deleteProjectText', () => {
+  test('asks about the project alone when it has no quotes, in both languages', () => {
+    expect(deleteProjectText(en, 'Home', 0)).toBe("Delete “Home”? This can't be undone.")
+    expect(deleteProjectText(es, 'Casa', 0)).toBe('¿Eliminar “Casa”? No se puede deshacer.')
+  })
+  test('names how many quotes go with the project, singular for one, in both languages', () => {
+    expect(deleteProjectText(en, 'Home', 1)).toBe("Delete “Home” and its 1 quote? Its file goes too. This can't be undone.")
+    expect(deleteProjectText(en, 'Home', 3)).toBe("Delete “Home” and its 3 quotes? Their files go too. This can't be undone.")
+    expect(deleteProjectText(es, 'Casa', 1)).toBe('¿Eliminar “Casa” y 1 cotización? Su archivo también se elimina. No se puede deshacer.')
+    expect(deleteProjectText(es, 'Casa', 3)).toBe('¿Eliminar “Casa” y sus 3 cotizaciones? Sus archivos también se eliminan. No se puede deshacer.')
+  })
+  test('while the quotes are not known yet, says any quotes go too and never that there are none, in both languages', () => {
+    expect(deleteProjectText(en, 'Home', null)).toBe("Delete “Home” and any quotes it has? Their files go too. This can't be undone.")
+    expect(deleteProjectText(es, 'Casa', null)).toBe('¿Eliminar “Casa” y las cotizaciones que tenga? Sus archivos también se eliminan. No se puede deshacer.')
   })
 })
 

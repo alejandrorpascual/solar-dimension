@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { parseWriteFlags } from '../../../lib/api-flags'
-import { diffAppliances } from '../../../lib/catalog-diff'
+import { diffAppliances, warnAppliances } from '../../../lib/catalog-diff'
 import type { ApplianceRecord } from '../../../lib/catalog-schema'
 import { parseItems } from '../../../lib/catalog-schema'
 import { API_ACTOR, authorize, json } from '../../../server/catalog-api'
@@ -37,7 +37,8 @@ export const Route = createFileRoute('/api/catalog/appliances')({
         const ids = parsed.items.map((i) => i.id)
         if (query.flags.dryRun) {
           const records = await readCatalog({ ids })
-          return records instanceof Response ? records : json({ changes: diffAppliances(records, parsed.items) })
+          if (records instanceof Response) return records
+          return json({ changes: diffAppliances(records, parsed.items), warnings: warnAppliances(records, parsed.items) })
         }
         try {
           return json(await upsertAppliances(parsed.items, API_ACTOR))

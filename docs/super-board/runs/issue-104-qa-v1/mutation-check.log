@@ -1,0 +1,7 @@
+M1 | `const MODEL_PREFIX = 6` -> `const MODEL_PREFIX = 4` | Tests 1 failed | 12 passed (13)
+M2 | `if (brandKey(a.brand) !== brandKey(b.brand)) return false` -> `if (false) return false` | Tests 2 failed | 11 passed (13)
+M3 | `const VOLTAGE_TOLERANCE = 0.15` -> `const VOLTAGE_TOLERANCE = 0.05` | Tests 5 failed | 8 passed (13)
+M4 | `const KWH_TOLERANCE = 0.1` -> `const KWH_TOLERANCE = 0.15` | Tests 13 passed (13)
+M5 | `peak !== null && continuous !== null && peak < continuous` -> `peak !== null && continuous !== null && peak <= continuous` | Tests 13 passed (13)
+M6 | `.filter((c) => !keys.has(c.key))` -> `` | Tests 13 passed (13)
+M7 | `(a.makerUrl !== null && a.makerUrl === b.makerUrl)` -> `(a.makerUrl === b.makerUrl)` | Tests 1 failed | 12 passed (13)

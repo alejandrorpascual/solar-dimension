@@ -125,6 +125,13 @@ export async function stripQuoteOptions(email: string, projectId: string): Promi
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/** Renames the vendor on every quote of a project, as a reading of a quote with a longer vendor name would have it. */
+export async function renameQuoteVendor(email: string, projectId: string, name: string): Promise<void> {
+  await testDb()`
+    update quotes q set extraction = jsonb_set(q.extraction, '{vendor,name}', to_jsonb(${name}::text))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
 /** Sets the total the user typed on every quote of a project, as if they had saved it on the card. */
 export async function setQuoteTotalOverride(email: string, projectId: string, total: number | null): Promise<void> {
   await testDb()`

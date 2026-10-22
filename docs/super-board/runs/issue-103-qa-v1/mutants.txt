@@ -1,0 +1,17 @@
+Mutation check of the Builder's unit tests, head ffde65e.
+Each mutant was applied in a clone, the two catalog test files were run
+(npx vitest run src/lib/catalog-schema.test.ts src/lib/catalog-diff.test.ts),
+then the file was restored with git checkout. No mutant was committed.
+
+M1  catalog-schema.ts  surge check removed (if (false))                  KILLED  2 failed
+M2  catalog-schema.ts  stored-row change check dropped (return out)      KILLED  2 failed
+M3  catalog-schema.ts  share > MAX_CHANGE_SHARE  ->  share >= ...        SURVIVED
+M4  catalog-schema.ts  AC watts warning not pushed                       KILLED  1 failed
+M5  catalog-schema.ts  AC_WATTS_HIGH 2 -> 1                              KILLED  1 failed
+M6  catalog-diff.ts    items with no message not filtered out            KILLED  1 failed
+M7  catalog-diff.ts    stored row not passed to applianceWarnings        KILLED  2 failed
+M8  catalog-schema.ts  surge > 10x  ->  surge >= 10x                     KILLED  1 failed
+
+M3 survives: no test sends a change of exactly 50%. Witness: fridge watts
+150 -> 225 (or 150 -> 75) must warn nothing, since the rule is "over 50%".
+Ranked Medium (surviving mutant), not written: see test-gaps.md.

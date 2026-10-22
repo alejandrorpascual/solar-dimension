@@ -145,8 +145,9 @@ export const CHEMISTRIES: Record<ChemistryId, Chemistry> = {
       lfp(48, 100, 100, 16, 'can'), lfp(48, 200, 200, 16, 'can'), lfp(48, 280, 200, 16, 'can'), lfp(48, 300, 200, 16, 'can'), lfp(48, 314, 200, 16, 'can'),
     ],
   },
+  // AGM's shortCircuitPerAh is interim, until each unit carries its maker's figure: 3,430 A on a 12 V 200 Ah datasheet.
   agm: {
-    id: 'agm', label: 'AGM lead-acid', short: 'AGM', dod: 0.5, chargeEff: 0.8, peukertK: 1.15, ratedHours: 20, shortCircuitPerAh: 12,
+    id: 'agm', label: 'AGM lead-acid', short: 'AGM', dod: 0.5, chargeEff: 0.8, peukertK: 1.15, ratedHours: 20, shortCircuitPerAh: 17.15,
     units: [agm(6, 225), agm(12, 100), agm(12, 200)],
   },
 }

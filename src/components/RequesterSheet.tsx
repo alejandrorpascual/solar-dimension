@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { useLocale } from '../hooks/useLocale'
 import { useRootData } from '../hooks/useRootData'
-import { clearRequesterDraft, loadRequesterDraft, loadSavedClients, saveSavedClients } from '../lib/persistence'
+import {
+  clearRequesterDraft, loadRequesterDraft, loadSavedClients, requesterStorage, saveSavedClients, type RequesterStorage,
+} from '../lib/persistence'
 import { defaultCountry, emptyRequester, type Requester } from '../lib/requester'
 import { resumableDraft, type DraftTarget } from '../lib/requester-draft'
 import { byRecent, matchingClient, removeClient, touchClient, upsertClient, type SavedClient } from '../lib/saved-clients'
@@ -43,9 +45,11 @@ const newClientId = (): string => crypto.randomUUID()
 function RequesterFlow({ projectId, requester, onSave, onRemove, close }: Omit<Props, 'isOpen' | 'onOpenChange'> & { close: () => void }) {
   const { t, locale } = useLocale()
   // Saved clients and the draft belong to whoever is signed in, or to nobody signed out.
-  const owner = useRootData().user?.id ?? null
-  const [clients, setClients] = useState<SavedClient[]>(() => loadSavedClients(owner))
-  const [view, setView] = useState<View>(() => firstView(clients, requester, owner, projectId))
+  const { user, isAccountUnreachable } = useRootData()
+  const owner = user?.id ?? null
+  const storage = requesterStorage(isAccountUnreachable)
+  const [clients, setClients] = useState<SavedClient[]>(() => loadSavedClients(owner, storage))
+  const [view, setView] = useState<View>(() => firstView(clients, requester, owner, projectId, storage))
   const titleRef = useRef<HTMLHeadingElement>(null)
   const viewKey = view.kind === 'form' ? `form:${JSON.stringify(view.target)}` : 'list'
   const isFirstView = useRef(true)
@@ -58,7 +62,7 @@ function RequesterFlow({ projectId, requester, onSave, onRemove, close }: Omit<P
 
   const storeClients = (next: SavedClient[]) => {
     setClients(next)
-    saveSavedClients(owner, next)
+    saveSavedClients(owner, next, storage)
   }
   const blank = () => emptyRequester(defaultCountry(locale))
   const clientById = (id: string) => clients.find((c) => c.id === id) ?? null
@@ -120,7 +124,7 @@ function RequesterFlow({ projectId, requester, onSave, onRemove, close }: Omit<P
       <CloseButton label={t.requester.close} onPress={close} />
       {hasList && (
         // Going back is deliberate, so the draft goes with it.
-        <button type="button" className="rq-back" onClick={() => { clearRequesterDraft({ owner, projectId, target }); setView(listView()) }}>
+        <button type="button" className="rq-back" onClick={() => { clearRequesterDraft({ owner, projectId, target }, storage); setView(listView()) }}>
           <ChevronLeft size={18} aria-hidden="true" />{t.requester.backToClients}
         </button>
       )}
@@ -157,8 +161,10 @@ function choiceFor(clients: readonly SavedClient[], requester: Requester | null)
 }
 
 /** A draft kept for this project opens the form; saved clients open the list; otherwise the form, blank or the project's. */
-function firstView(clients: readonly SavedClient[], requester: Requester | null, owner: string | null, projectId: string): View {
-  const kept = resumableDraft(loadRequesterDraft(), owner, projectId)
+function firstView(
+  clients: readonly SavedClient[], requester: Requester | null, owner: string | null, projectId: string, storage: RequesterStorage | null,
+): View {
+  const kept = resumableDraft(loadRequesterDraft(storage), owner, projectId)
   if (kept) {
     // A draft for a client deleted since, or for a requester since removed, carries on as a new client.
     const clientId = typeof kept.target === 'object' ? kept.target.client : null

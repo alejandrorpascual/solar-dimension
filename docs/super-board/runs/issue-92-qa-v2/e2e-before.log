@@ -1,0 +1,12 @@
+# src/ app files reset to 07c6e71 (pre-fix), e2e from 60ea20a: E2E_PORT=4184 npx playwright test e2e/database-down.spec.ts e2e/server-errors.spec.ts --project=desktop
+
+Running 6 tests using 5 workers
+
+  ✘  4 [desktop] › e2e/server-errors.spec.ts:60:1 › the root error screen arrives inside the page shell: its HTML links the app's stylesheet (1.5s) [. [... omitted end of long line]
+  ✓  2 [desktop] › e2e/server-errors.spec.ts:33:1 › a failure while the server renders the page is a reference too, in the page and in the HTML it arr [... omitted end of long line]
+  ✓  1 [desktop] › e2e/server-errors.spec.ts:5:1 › a server failure reaches the page as a reference, with nothing of what went wrong (4.4s)
+  ✘  3 [desktop] › e2e/database-down.spec.ts:30:1 › with the database down, a signed-in browser keeps sizing and leaves the account copy it holds as i [... omitted end of long line]
+
+
+  1) [desktop] › e2e/database-down.spec.ts:30:1 › with the database down, a signed-in browser keeps sizing and leaves the account copy it holds as it  [... omitted end of long line]
+  2 of the 4 tests above failed: the two new ones (database-down.spec.ts:30, server-errors.spec.ts:60). The run also held 2 QA-only evidence tests, not listed.

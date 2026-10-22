@@ -78,6 +78,31 @@ test('a stored product that no longer passes the schema is never overwritten', a
   }
 })
 
+test('a dry run warns on an odd spec and names a stored possible duplicate, and writes nothing', async ({ request }) => {
+  const first = `W${Date.now()}`
+  const second = `${first}b`
+  const [firstKey, secondKey] = [first, second].map((model) => productKey({ kind: 'inverter', brand: 'E2E Power', model }))
+  try {
+    await post(request, '', [inverter(first)])
+
+    const dry = await post(request, '?dryRun=true', [inverter(second, 50)])
+
+    expect(dry.status()).toBe(200)
+    // Every e2e product shares a maker and a datasheet, so rows of a parallel run may be named too.
+    expect((await dry.json()).warnings).toEqual([{
+      key: secondKey,
+      messages: expect.arrayContaining([
+        '50 W continuous is under 100 W: check the power is in watts.',
+        `Possible duplicate of the stored E2E Power ${first} (${firstKey}).`,
+      ]),
+    }])
+    expect(await stored(request, secondKey)).toBeUndefined()
+  } finally {
+    await deleteTestProduct(firstKey)
+    await deleteTestProduct(secondKey)
+  }
+})
+
 test('a write that fills one spec and finds another differing is in updated and in conflicts', async ({ request }) => {
   const model = `M${Date.now()}`
   const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
