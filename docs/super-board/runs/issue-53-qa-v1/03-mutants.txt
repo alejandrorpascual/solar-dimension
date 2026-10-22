@@ -1,0 +1,22 @@
+# Mutant 1: OFF_BATTERY loses its i flag (capital letters stop matching)
+Builder's tests alone (qa-builder-copy):
+ Test Files  1 passed (1)
+      Tests  77 passed (77)
+With the QA tests:
+       × capital letters set a line aside too: quotes print their wiring lines in capitals 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 81 passed (82)
+
+# Mutant 2: checkFuse counts runs on every wiring line, solar leads included
+Builder's tests alone (qa-builder-copy):
+ Test Files  1 passed (1)
+      Tests  77 passed (77)
+With the QA tests:
+       × the runs a fuse needs are counted in battery cable leads, not in the solar leads beside them 6ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 81 passed (82)
+
+# Test that cannot fail: the Builder's AC3 test passes on the code before the fix
+see 01-red-on-base-code.txt: 'a solar line beside a sized battery cable is judged on the battery cable' stays green on base code

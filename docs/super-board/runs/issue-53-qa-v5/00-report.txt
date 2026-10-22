@@ -1,0 +1,65 @@
+QA v5 for #53 · PR #169 · tested head 78c66fc ("give each wiring line one role from an ordered table")
+Against the ticket's new acceptance criteria (the role rule, the battery-cable rule and the wording table).
+Kit in every test and probe: SAMPLE_KIT, which needs 2/0 AWG and a 175 A fuse.
+
+Result: pass. AC1, AC2 and AC3 hold. One test added (the ground-before-battery order of AC1, see 02).
+
+Files
+  01-table-rows-head-r3-base.txt   every table wording, read as the page shows it, en and es, on head, round 3 and staging
+  01-table-rows-probe.test.ts.txt  the throwaway Vitest probe that printed it (not committed as a test)
+  02-new-test-red-green.txt        the QA v5 test: green on head, red with the role rules reordered, green again
+  03-mutants.txt                   34 named breaks of quote-items.ts / quote-text.ts and whether a test caught each
+  03-mutants.py.txt                the script that made them (restores each file after its run)
+  04-gate.txt                      npm ci, typecheck, test:coverage, build on head plus the QA v5 test
+
+Table rows, page words (01)
+  head 78c66fc       26 of 26 wordings read as the table says, in English; Spanish shown beside each
+  round 3 d9c1790    6 differ: row 8 (3 wordings, read "Battery cable not stated"), row 10 "Zapatas 2/0 para baterías"
+                     (read "Meets it · 2/0 AWG"), row 11 (read "Too small · 8 AWG"), and the fuse beside
+                     "Cable 6 AWG con terminales" (read "Meets it · 250 A")
+  staging 3ca1535    16 differ: rows 1-5, 7, 10, 11 and three of the five fuse witnesses
+  Page words come from markLabel and itemText in src/lib/quote-text.ts, the functions the quote page renders.
+
+Ledger: each AC to the test that asserts it (src/lib/quote-items.test.ts unless named; component and e2e: n/a, the
+verdict is a pure function of the reading, and no page could load this round, see "Not done")
+  AC1 role from the line's own description, first match wins
+    ground word is ground            :452 (beside solar or AC), :466 (alone), :485 (split, thicker), :491 (before a battery word, QA v5)
+    lug/connector/conduit, no cable  :452 (Terminal de ojo, Zapatas para baterías), :466; a cable word keeps it a cable :471
+    battery word is the battery      :367, :370, :386
+    PV/solar/panel/AC set aside      :324, :329, :332, :360, :430, :437, :448
+    anything else is a plain cable   :509
+    source text only when the description names nothing and no other line shares it   :416-:421; split lines :390-:407, :500
+  AC2 Main cables and the fuse judged on battery and plain-cable lines only
+    cables                           :324-:347
+    fuse                             :394, :426, :527, :533
+    none left: "Battery cable not stated"   :332, :398, :452, :466, :485; page words quote-text.test.ts:342 (en, es), :418 (reason, question)
+  AC3 the table
+    row 1 :324 · row 2 :356 · row 3 :394 · row 4 :448 · row 5 :332 (own), :398 (split) · row 6 :337, :370
+    row 7 :347 · row 8 :471 · row 9 :342 · row 10 :452 · row 11 :485 · row 12 :437
+
+Test-gap check (diff 3ca1535...78c66fc, app code src/lib/quote-items.ts, src/lib/quote-text.ts, src/i18n/quotes-*.ts)
+  boundaries       the order of the four role rules: every order that changes a verdict is caught (03); letter bounds :437, :448
+  input            accents and unaccented "bateria" :370, capitals :360, Spanish and English :430, dotted "C.A." :448
+  volume           one line :332, three lines :506, split from one quote line :390-:407
+  UI states        the item left to confirm, en and es: quote-text.test.ts:342, :418
+  auth, money, data loss, idempotency, error paths: n/a, a verdict wording of a pure function
+  High gap found and written: AC1 says a ground word comes first, but no line named both a ground and a battery word,
+    so the rules ordered fitting, battery, ground passed all 182 tests. Pinned at :491, red under that order (02).
+
+Breaks (03): 29 of 34 caught. Survivors:
+  equivalent  fitting tried before ground: both roles are set aside and nothing else reads the role
+  Low         GROUND without its left letter bound: "Cable 2/0 AWG underground" would be set aside; no test has it
+  Low         PARTS without "tubo": a line "Tubo PVC 1 pulgada" alone would read as an open cable; no test has it
+  Low         BATTERY without "batteries": "4/0 AWG cable, batteries to AC inverter" would be set aside; no test has it
+  Low         a split check that ignores the page: needs two lines with one source text on two pages
+  All four are wordings outside the table: per the ticket, a wording that reads wrong is a new ticket, not a bounce.
+
+Not done
+  No e2e and no screenshots: the session's secret guard refused linking .env.test.local into the clone, so no quote
+  page could load. The page words above are the strings those pages print.
+
+Other checks
+  Review threads: no [qa] thread on the PR. The R6 [builder] thread is still unresolved on GitHub; 78c66fc fixes it
+  (rows 8 and 11 read as listed on head, differ on d9c1790).
+  Merge: git merge-tree with staging c93784c is clean; staging changed no quote file since 3ca1535.
+  Local tests: npx vitest run src/lib/quote-items.test.ts src/lib/quote-text.test.ts (183 passed)

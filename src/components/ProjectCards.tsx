@@ -5,14 +5,14 @@ import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { useProjectRename, type CurrentActions } from '../hooks/useProjectRename'
 import { useProjectJobs, useProjectQuoteCount } from '../hooks/useQuoteJobs'
-import { applianceName, batteryCount, tr, type Dictionary } from '../i18n'
+import { applianceName, batteryCount, deleteProjectText, tr, type Dictionary } from '../i18n'
 import { fmtHours, fmtInverter, fmtKwh, fmtW } from '../i18n/format'
 import { projectLine } from '../lib/quote-text'
 import { currentFirst, summarizeProjects, type ProjectSummary } from '../lib/project-summary'
 import type { Store } from '../lib/schema'
 import type { SelectedItem } from '../lib/sizing'
 import { selectProject, setQtyIn } from '../lib/store'
-import { ProjectDeleteConfirm } from './ProjectDeleteConfirm'
+import { InlineConfirm } from './InlineConfirm'
 import { ProjectMenu } from './ProjectMenu'
 import { ProjectNameField } from './ProjectNameField'
 import { QtyStepper } from './QtyStepper'
@@ -118,8 +118,9 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
         )}
       </div>
       <p className="pcard__meta num">{tr(t, 'projectMeta', { volts: p.volts, hours: p.hours, count: r.items.length })}</p>
+      {/* Deleting also removes the project's quotes and their files for good, so the question says how many go. */}
       {current?.isConfirmingDelete && (
-        <ProjectDeleteConfirm name={p.name} quoteCount={quoteCount} onDelete={current.onDelete} onCancel={current.onCancelDelete} />
+        <InlineConfirm look="card" question={deleteProjectText(t, p.name, quoteCount)} yes={t.ui.deleteProjectYes} onYes={current.onDelete} onCancel={current.onCancelDelete} />
       )}
       <CardKit summary={s} />
       {jobs && (

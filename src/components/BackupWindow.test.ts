@@ -27,6 +27,14 @@ test('step 2 says every appliance counts in every hour of the window, in English
   expect(stepTwo('es')).toContain('Cada aparato cuenta en todas las horas del respaldo.')
 })
 
+test('a 60 h project sets the hours slider to 60 within a range that reaches it', () => {
+  const html = stepTwo('en', (store) => patchCurrent(store, { hours: 60 }))
+  const slider = /<input id="hours"[^>]*>/.exec(html)?.[0] ?? ''
+  expect(slider).toContain('value="60"')
+  expect(slider).toContain('min="1"')
+  expect(slider).toContain('max="72"')
+})
+
 /** Step 2 for a 48 V kit of `qty`: the line under the "share a conduit" box, tags out, or '' when the box shows none. */
 function bundlingHelp(locale: Locale, qty: Record<string, number>, bundled = true): string {
   const html = stepTwo(locale, (store) => setElectricalIn(patchCurrent(store, { qty, volts: 48 }), store.currentId, { bundled }))
@@ -46,4 +54,10 @@ test('the bundling help gives the factor the engine applied to this kit\'s main 
 test('with the box unticked there is no bundling factor to show, in either language', () => {
   // An unbundled run always gets factor 1: printing it would read 100% on a kit that drops to 80% once ticked.
   for (const locale of ['en', 'es'] as const) expect(bundlingHelp(locale, { wheater: 2 }, false)).toBe('')
+})
+
+test('the Cable run summary shows a chevron, so it reads as something that opens', () => {
+  const summary = /<summary class="elec__summary">([\s\S]*?)<\/summary>/.exec(stepTwo('en'))?.[1] ?? ''
+  expect(summary).toContain('Cable run')
+  expect(summary).toMatch(/<svg[^>]*class="[^"]*lucide-chevron-down/)
 })

@@ -1,22 +1,18 @@
-import { useState } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { deleteConfirmText } from '../../lib/quote-text'
+import { InlineConfirm, useAskFirst } from '../InlineConfirm'
 
 /** View original, and Delete behind a confirmation, since deleting also removes the file, and every option's card, for good. */
 export function QuoteActions({ quoteId, optionCount, onDelete }: { quoteId: string; optionCount: number; onDelete: () => void }) {
   const { t } = useLocale()
-  const [isConfirming, setConfirming] = useState(false)
+  const { isAsking, askerRef, ask, cancel } = useAskFirst()
   return (
     <div className="qrow__actions">
       <a className="qbtn" href={`/api/quotes/${quoteId}/file`} target="_blank" rel="noopener noreferrer">{t.quotes.viewOriginal}</a>
-      {isConfirming ? (
-        <>
-          <span className="qrow__confirm" role="alert">{deleteConfirmText(t, optionCount)}</span>
-          <button type="button" className="qbtn qbtn--danger" onClick={onDelete}>{t.quotes.deleteYes}</button>
-          <button type="button" className="qbtn" onClick={() => setConfirming(false)}>{t.quotes.cancel}</button>
-        </>
+      {isAsking ? (
+        <InlineConfirm look="row" question={deleteConfirmText(t, optionCount)} yes={t.quotes.deleteYes} onYes={onDelete} onCancel={cancel} />
       ) : (
-        <button type="button" className="qbtn" onClick={() => setConfirming(true)}>{t.quotes.deleteQuote}</button>
+        <button ref={askerRef} type="button" className="qbtn" onClick={ask}>{t.quotes.deleteQuote}</button>
       )}
     </div>
   )

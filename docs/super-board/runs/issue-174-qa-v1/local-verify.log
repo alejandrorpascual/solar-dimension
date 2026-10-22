@@ -1,0 +1,17 @@
+# QA clone · branch issue-174-one-inline-delete-confirm · app code a854c88 + src/components/InlineConfirm.test.ts
+
+## npm run typecheck
+typecheck exit 0
+
+## npm run test:coverage
+test:coverage exit 0
+ Test Files  116 passed (116)
+      Tests  1949 passed (1949)
+
+## npm run build
+build exit 0
+
+## npx vitest run src/components/InlineConfirm.test.ts
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+exit 0

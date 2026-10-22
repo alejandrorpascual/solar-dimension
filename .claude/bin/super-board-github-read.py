@@ -10,7 +10,9 @@ outage: a payload that fails its shape on every attempt, or gh refusing its own
 arguments (never retried), fails only that call with exit 64 and the run keeps
 going. Scripts whose commands are fixed set SB_GITHUB_READ_STRICT=1 to keep
 halting on both. `pr view --json files` stops at 100 files, so `--kind metadata`
-takes the file list from REST pages.
+takes the file list from REST pages. A board read with no cards (--kind items or
+board) is incomplete evidence and is retried; zero is believed only when GitHub
+search finds no open issue on the board, since GitHub once read 117 cards as 0.
 """
 from __future__ import annotations
 
@@ -32,6 +34,13 @@ class ReadHalted(Exception):
 
 class GitHubErrors(ValueError):
     """GitHub's own error payload: an outage, never the caller's shape."""
+
+
+class EmptyBoard(ValueError):
+    """A board read with no cards: retried, then checked against search before it is believed."""
+
+
+SEARCH_COUNT = 'query($q:String!){search(query:$q,type:ISSUE,first:1){issueCount}}'
 
 
 # Valid read per --kind, quoted back when a payload fails its shape.
@@ -209,6 +218,14 @@ def validate(text, kind, meta=None):
             require(content.get('type') in ('Issue', 'PullRequest', 'DraftIssue') and isinstance(content.get('title'), str), 'board content identity missing')
             if content['type'] != 'DraftIssue':
                 require(type(content.get('number')) is int and content['number'] > 0, 'board issue number missing')
+        if not value['items']:
+            raise EmptyBoard('board read returned no items')
+    elif kind == 'board':
+        # super-board-card.sh's own pages: the script assembles and counts them, so only zero is judged here.
+        if isinstance(value, list) and value and all(board_count(page) == 0 for page in value):
+            raise EmptyBoard('board read returned no items')
+    elif kind == 'search-count':
+        require(type(value['data']['search']['issueCount']) is int, 'search count missing')
     elif kind == 'issues':
         require(isinstance(value, list) and bool(value), 'dependency pages missing')
         seen = set()
@@ -323,6 +340,41 @@ def repo_of(args):
     return '{owner}/{repo}'
 
 
+def board_count(page):
+    """totalCount of one super-board-card.sh board page, or None when the page is another shape."""
+    try:
+        return page['data']['repositoryOwner']['projectV2']['items']['totalCount']
+    except (KeyError, TypeError):
+        return None
+
+
+def board_of(args):
+    """owner/number of the board a read names: `project item-list N --owner O` or GraphQL owner=/number=."""
+    owner = number = ''
+    for i, arg in enumerate(args):
+        if arg == '--owner' and i + 1 < len(args):
+            owner = args[i + 1]
+        elif arg.startswith(('--owner=', 'owner=')):
+            owner = arg.split('=', 1)[1]
+        elif arg.startswith('number='):
+            number = arg[7:]
+    if args[:2] == ['project', 'item-list'] and len(args) > 2:
+        number = args[2]
+    named = re.fullmatch(r'[A-Za-z0-9_-]+', owner) and re.fullmatch(r'[1-9][0-9]*', number)
+    return f'{owner}/{number}' if named else None
+
+
+def empty_board_doubt(args, recovering):
+    """Why a board read of no cards cannot be believed, or None once search finds no open issue on it."""
+    board = board_of(args)
+    if board is None:
+        return 'board read came back empty, and it names no board owner and number to check that against'
+    _, found = read(['api', 'graphql', '-f', 'query=' + SEARCH_COUNT, '-f', f'q=project:{board} is:open'],
+                    'search-count', recovering=recovering)
+    count = found['data']['search']['issueCount']
+    return f'project {board} read back no cards, but search finds {count} open issues on it' if count else None
+
+
 def read_metadata(args, recovering=False):
     operation = {'args': args, 'kind': 'metadata', 'meta': None}
     if args[:2] != ['pr', 'view'] or len(args) < 3 or not re.fullmatch(r'[1-9][0-9]*', args[2]):
@@ -356,6 +408,7 @@ def read(args, kind='json', meta=None, recovering=False):
     operation = {'args': args, 'kind': kind, 'meta': meta}
     last = 'GitHub read failed'
     shape_only = True  # every attempt reached GitHub and got a payload of the wrong shape
+    empty = None  # GitHub's latest answer when it was a board of no cards; search decides whether to believe it
     delay = float(os.environ.get('SB_GITHUB_RETRY_DELAY', '1'))
     for attempt in range(1, 4):
         if not recovering:
@@ -385,7 +438,11 @@ def read(args, kind='json', meta=None, recovering=False):
                     if not recovering:
                         check_halt()
                     return result.stdout, value
+                except EmptyBoard as error:
+                    empty = result.stdout
+                    last = f'GitHub required read returned incomplete evidence: {error}'
                 except (ValueError, KeyError, TypeError, AttributeError, IndexError) as error:
+                    empty = None
                     last = f'GitHub required read returned incomplete evidence: {error}'
                     shape_only = shape_only and not isinstance(error, GitHubErrors)
         except (OSError, subprocess.SubprocessError):
@@ -394,6 +451,13 @@ def read(args, kind='json', meta=None, recovering=False):
         if attempt < 3:
             print(f'[github-read] {last}; retry {attempt + 1}/3', file=sys.stderr)
             time.sleep(max(0, delay) * attempt)
+    if empty is not None:
+        doubt = empty_board_doubt(args, recovering)
+        if doubt is None:
+            return empty, json.loads(empty)
+        if shape_only:
+            misread(doubt, kind, operation, 3)
+        halt(f'{doubt}; stopped after 3 attempts', 3, operation)
     if shape_only:
         misread(f'{last} on all 3 attempts', kind, operation, 3)
     halt(f'{last}; stopped after 3 failed attempts', 3, operation)
@@ -401,7 +465,7 @@ def read(args, kind='json', meta=None, recovering=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--kind', choices=('json','scalar','issue-number','head','state','diff','metadata','pr-view','pr-files','items','issues','issue-history','quota','projects','project','fields','status-field','permission','comments','approval','merge-state','body','dedupe','prs-open','prs-merged','issues-closed','issue','object','array'))
+    parser.add_argument('--kind', choices=('json','scalar','issue-number','head','state','diff','metadata','pr-view','pr-files','items','board','search-count','issues','issue-history','quota','projects','project','fields','status-field','permission','comments','approval','merge-state','body','dedupe','prs-open','prs-merged','issues-closed','issue','object','array'))
     parser.add_argument('--issue-history', help='complete paginated all-state issue history for owner/name')
     parser.add_argument('--meta')
     parser.add_argument('--check', action='store_true')

@@ -1,0 +1,82 @@
+QA v5 for #53: each row breaks quote-items.ts or quote-text.ts in one named way on head 78c66fc plus the QA v5 test, reruns
+npx vitest run src/lib/quote-items.test.ts src/lib/quote-text.test.ts, then restores the file. CAUGHT = a test went red. Script: 03-mutants.py.txt
+
+CAUGHT   |  2 red | AC1 order: battery before ground
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground wire or a lug left beside solar or AC wiring is no batter
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground word comes before a battery word: a ground wire for the b
+CAUGHT   |  1 red | AC1 order: battery before fitting
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground wire or a lug left beside solar or AC wiring is no batter
+CAUGHT   |  1 red | AC1 order: fitting, battery, then ground
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground word comes before a battery word: a ground wire for the b
+CAUGHT   |  3 red | AC1 order: solar/AC before battery
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a description that names neither the battery nor the array leaves 
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a line that names the battery is the battery cable, whatever solar
+CAUGHT   |  3 red | AC1 order: solar/AC first of all
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a description that names neither the battery nor the array leaves 
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a line that names the battery is the battery cable, whatever solar
+SURVIVES |  0 red | AC1 order: fitting before ground
+CAUGHT   |  6 red | AC1 ground rule dropped
+           - cables and fuse > a thinner size beside a cable with no size settles nothing: that cable could be the main one
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a fitting or a ground wire alone is no battery cable either: the q
+CAUGHT   |  4 red | AC1 fitting rule dropped
+           - cables and fuse > a thinner size beside a cable with no size settles nothing: that cable could be the main one
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a fitting or a ground wire alone is no battery cable either: the q
+CAUGHT   |  3 red | AC1 fitting ignores the cable word (R6 back)
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a cable that mentions its lugs or its conduit is still a cable, an
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a line that names the battery is the battery cable, whatever solar
+CAUGHT   |  4 red | AC1 battery rule dropped
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a description that names neither the battery nor the array leaves 
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a line split from a bundle that names the solar controller is the 
+CAUGHT   | 21 red | AC1 solar/AC rule dropped
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a description that names neither the battery nor the array leaves 
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a dot or a digit is no letter: "C.A.", "A.C." and "PV1-F" name the
+CAUGHT   |  1 red | AC1 source text never read
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a description that names neither the battery nor the array leaves 
+CAUGHT   |  1 red | AC1 source text read even for split lines
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a line split from a kit line reads its own words, though its sibli
+CAUGHT   |  3 red | AC1 source text read first
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a line split from a kit line reads its own words, though its sibli
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > lines split from one quote line share its words, so each is read b
+SURVIVES |  0 red | AC1 split ignores the page
+CAUGHT   |  1 red | AC1 a line counts as its own sibling
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a description that names neither the battery nor the array leaves 
+SURVIVES |  0 red | GROUND loses its letter bound
+SURVIVES |  0 red | PARTS loses tubo
+CAUGHT   |  1 red | PARTS loses zapata
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground wire or a lug left beside solar or AC wiring is no batter
+CAUGHT   |  1 red | CABLE loses conductor
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a cable that mentions its lugs or its conduit is still a cable, an
+CAUGHT   |  1 red | BATTERY loses the unaccented i
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a line that names the battery is the battery cable, whatever solar
+CAUGHT   |  1 red | BATTERY loses English
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a line that names the battery is the battery cable, whatever solar
+SURVIVES |  0 red | BATTERY loses "batteries"
+CAUGHT   |  1 red | OFF_BATTERY loses dotted C.A./A.C.
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a dot or a digit is no letter: "C.A.", "A.C." and "PV1-F" name the
+CAUGHT   |  4 red | OFF_BATTERY loses PV/FV
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a dot or a digit is no letter: "C.A.", "A.C." and "PV1-F" name the
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > capital letters set a line aside too: quotes print their wiring li
+CAUGHT   |  1 red | OFF_BATTERY loses the letter bounds
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a line that names neither is a battery cable: the inverter, the DC
+CAUGHT   | 21 red | AC2 battery wiring keeps solar/AC lines
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a description that names neither the battery nor the array leaves 
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a dot or a digit is no letter: "C.A.", "A.C." and "PV1-F" name the
+CAUGHT   |  7 red | AC2 battery wiring keeps ground and fittings
+           - cables and fuse > a thinner size beside a cable with no size settles nothing: that cable could be the main one
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a fitting or a ground wire alone is no battery cable either: the q
+CAUGHT   | 35 red | AC2 battery wiring drops plain cables
+           - a quote that offers two systems > a single-system quote keeps the file name as its subtitle
+           - a quote that offers two systems > the subline counts quotes, not options
+CAUGHT   |  4 red | AC2 fuse reads every wiring line
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground wire left beside solar or AC wiring is no cable for the f
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > lines split from one quote line share its words, so each is read b
+CAUGHT   |  8 red | AC2 none left reads absent
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a fitting or a ground wire alone is no battery cable either: the q
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground wire is never the battery cable: not split from a line th
+CAUGHT   |  8 red | AC2 none left reads size not stated
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a fitting or a ground wire alone is no battery cable either: the q
+           - cables and fuse > the battery cable, not the solar or AC wiring (AI-19) > a ground wire is never the battery cable: not split from a line th
+CAUGHT   |  1 red | AC2 page says "Size not stated" for no battery cable
+           - items a quote mentions without enough to judge them > wiring that is all solar or AC says the quote names no battery cable, not that a size 
+CAUGHT   |  1 red | AC2 question asks for the main cables
+           - items a quote mentions without enough to judge them > reason, ask and question > a quote whose wiring is all solar or AC asks for the batter

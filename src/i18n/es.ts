@@ -29,7 +29,7 @@ export const es: Dictionary = {
   locale: 'es',
   ui: {
     siteDescription: 'Dimensiona un kit solar de respaldo: elige los aparatos que deben seguir encendidos, indica las horas y obtén inversor, baterías, cables y lista de piezas.',
-    step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Paneles solares', step4: 'Tu kit', stepOf: 'Paso {n} de 4',
+    steps: 'Pasos', step1: 'Electrodomésticos', step2: 'Horas de respaldo', step3: 'Paneles solares', step4: 'Tu kit', stepOf: 'Paso {n} de 4',
     project: 'Proyecto', projectName: 'Nombre del proyecto', newProject: '+ Nuevo proyecto', duplicate: 'Duplicar', delete: 'Eliminar', untitled: 'Sin nombre',
     firstProject: 'Casa', projectNumbered: 'Proyecto {n}', copySuffix: ' (copia)', customTag: 'Personalizado',
     deleteProject: '¿Eliminar “{name}”? No se puede deshacer.',

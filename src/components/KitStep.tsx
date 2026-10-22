@@ -1,7 +1,5 @@
 import { useCatalog } from '../hooks/useCatalog'
-import { useLocale } from '../hooks/useLocale'
 import { useUndoSnapshot } from '../hooks/useUndoSnapshot'
-import { tr } from '../i18n'
 import { oversizeNote } from '../lib/oversize'
 import { computeProject } from '../lib/project-summary'
 import type { Project, Store } from '../lib/schema'
@@ -22,7 +20,6 @@ interface Props {
 
 /** Step 3: the kit, edited in place. Quick edits remember the project as it was before them, for the deltas and Undo. */
 export function KitStep({ store, commit, project, result, isSaving, onAllAppliances }: Props) {
-  const { t } = useLocale()
   const appliances = useCatalog()
   const undo = useUndoSnapshot(project, project.id)
   const isDirty = undo.snapshot !== null && !hasSameLoads(undo.snapshot, project)
@@ -37,7 +34,6 @@ export function KitStep({ store, commit, project, result, isSaving, onAllApplian
 
   return (
     <>
-      <h2>{tr(t, 'kitFor', { name: project.name })}</h2>
       <KitSummary
         result={result}
         baseline={isDirty && undo.snapshot ? computeProject(undo.snapshot, appliances) : null}

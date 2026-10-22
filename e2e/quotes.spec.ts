@@ -602,6 +602,32 @@ test('deleting a quote removes its file and leaves nothing in the trash', async 
   expect(await trashedPaths([quote!.path])).toEqual([])
 })
 
+test('Delete on a quote asks with focus on Cancel, and Cancel gives focus back to Delete, on the verdict and progress rows', async ({ page }) => {
+  // Sign-up, an upload and database seeding over Neon's HTTP driver can pass 30 s on a slow CI runner.
+  test.slow()
+  const email = await signUp(page)
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+  // A quote that could not be read sits beside the verdict as a progress card, with its own Delete.
+  await seedFailedQuote(email, await firstProjectId(email), 'unreadable.pdf')
+  await page.reload()
+
+  const best = page.getByRole('region').filter({ has: page.getByText('Best fit', { exact: true }) })
+  const failed = page.getByRole('article').filter({ hasText: 'unreadable.pdf' })
+  for (const [row, deleteName] of [[best, 'Delete'], [failed, 'Delete unreadable.pdf']] as const) {
+    const remove = row.getByRole('button', { name: deleteName, exact: true })
+    await remove.focus()
+    await page.keyboard.press('Enter')
+    await expect(row.getByRole('alert')).toHaveText('Delete this quote and its file?')
+    await expect(row.getByRole('button', { name: 'Delete it', exact: true })).toBeVisible()
+    await expect(row.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(row.getByRole('alert')).toHaveCount(0)
+    await expect(remove).toBeFocused()
+  }
+})
+
 test('an unverified account sees a note and Connect Google instead of the Upload button, and the server refuses its upload', async ({ page, browser, baseURL }) => {
   // Two sign-ups and database reads over Neon's HTTP driver can pass 30 s on a slow CI runner.
   test.slow()

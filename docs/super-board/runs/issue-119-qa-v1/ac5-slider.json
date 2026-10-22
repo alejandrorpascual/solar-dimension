@@ -1,0 +1,10 @@
+{
+  "afterReloadAt60h": {
+    "value": "60",
+    "max": "72"
+  },
+  "afterEndKey": {
+    "value": "72",
+    "max": "72"
+  }
+}

@@ -1,0 +1,94 @@
+import { writeFileSync } from 'node:fs'
+import { neon } from '@neondatabase/serverless'
+import { expect, test, type Locator, type Page } from '@playwright/test'
+import { firstProjectId } from './db'
+import { switchLanguage } from './header'
+import { quotePdf, signUp, uploadQuotes } from './quotes'
+
+// QA probe for issue 53, not a committed spec: it rewrites the wiring line of a read quote to the ticket's examples and
+// records what the Main cables check shows on the page.
+const OUT = 'docs/super-board/runs/issue-53-qa-v2'
+const SIDE = process.env.QA_SIDE ?? 'after'
+
+interface Wire { text: string; awg: string | null; total: number }
+
+const originals = new Map<string, string>()
+
+async function setWiring(email: string, projectId: string, lines: Wire[]): Promise<void> {
+  const sql = neon(process.env.DATABASE_URL!)
+  // Every scenario starts from the quote as it was read, so earlier scenarios leave no wiring lines behind.
+  const key = `${email}:${projectId}`
+  if (!originals.has(key)) {
+    const rows = await sql`select q.extraction from quotes q join "user" u on u.id = q.user_id where u.email = ${email} and q.project_id = ${projectId}`
+    originals.set(key, JSON.stringify(rows[0]!.extraction))
+  }
+  await sql`update quotes q set extraction = ${originals.get(key)!}::jsonb from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+  await sql`
+    update quotes q set extraction = jsonb_set(q.extraction, '{lines}', (
+      select jsonb_agg(part.l order by e.n, part.k)
+      from jsonb_array_elements(q.extraction -> 'lines') with ordinality as e(l, n)
+      cross join lateral (
+        select 0 as k, e.l as l where e.l ->> 'kind' <> 'wiring'
+        union all
+        select w.k::int, e.l || jsonb_build_object(
+          'description', w.x ->> 'text', 'lineTotal', (w.x ->> 'total')::numeric,
+          'source', jsonb_build_object('page', 1, 'text', w.x ->> 'text'),
+          'specs', (e.l -> 'specs') || jsonb_build_object('awg', w.x -> 'awg'))
+        from jsonb_array_elements(${JSON.stringify(lines)}::jsonb) with ordinality as w(x, k)
+        where e.l ->> 'kind' = 'wiring'
+      ) part
+    ))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
+const SCENARIOS: { slug: string; lines: Wire[] }[] = [
+  { slug: 'ac1-ac-feeder-beside-thin-battery', lines: [{ text: 'Cable 4/0 AWG AC feeder', awg: '4/0', total: 80 }, { text: 'Cable 6 AWG battery', awg: '6', total: 80 }] },
+  { slug: 'ac2-pv-cable-alone', lines: [{ text: 'Cable solar 6 mm² (10 AWG), 20 m', awg: '10', total: 160 }] },
+  { slug: 'ac3-pv-beside-sized-battery', lines: [{ text: 'Cable solar 6 mm² (10 AWG), 20 m', awg: '10', total: 80 }, { text: 'Cable 4/0 AWG baterías', awg: '4/0', total: 80 }] },
+  { slug: 'ac4-pv-beside-unsized-battery', lines: [{ text: 'Cable solar 6 mm² (10 AWG), 20 m', awg: '10', total: 80 }, { text: 'Cableado de baterías', awg: null, total: 80 }] },
+  { slug: 'r1-solar-beside-ground-wire', lines: [{ text: 'Cable solar 4/0 AWG', awg: '4/0', total: 80 }, { text: 'Cable de tierra física 6 AWG', awg: '6', total: 80 }] },
+]
+
+async function openChecks(page: Page): Promise<{ card: Locator; item: Locator }> {
+  const card = page.getByRole('region', { name: 'SolarTec Caribe' }).or(page.getByRole('article', { name: 'SolarTec Caribe' }))
+  await expect(card).toBeVisible({ timeout: 30_000 })
+  const show = card.getByRole('button', { name: /^(Show checks for|Mostrar comprobaciones de) SolarTec Caribe$/ })
+  if (await show.count()) await show.click()
+  return { card, item: card.getByRole('listitem').filter({ hasText: /Main cables|Cables principales/ }) }
+}
+
+test('issue 53: the Main cables check on the page', async ({ browser, page }, testInfo) => {
+  test.setTimeout(240_000)
+  const email = await signUp(page)
+  await uploadQuotes(page, [await quotePdf('solartec')])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+  const report: Record<string, unknown> = {}
+
+  for (const { slug, lines } of SCENARIOS) {
+    await setWiring(email, projectId, lines)
+    for (const [label, size] of [['desktop', { width: 1920, height: 1080 }], ['tablet', { width: 1024, height: 768 }], ['mobile', { width: 375, height: 667 }]] as const) {
+      await page.setViewportSize(size)
+      await page.goto(`/projects/${projectId}/quotes`)
+      const { card, item } = await openChecks(page)
+      await expect(item).toBeVisible()
+      if (label === 'desktop') {
+        report[slug] = { heading: (await page.getByRole('heading', { level: 1 }).innerText()).trim(), card: (await card.innerText()).replace(/\s+/g, ' ').trim(), en: (await item.innerText()).replace(/\s+/g, ' ').trim() }
+      }
+      await item.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: `${OUT}/${SIDE}-${slug}-${label}.png` })
+      if (label !== 'mobile') await item.screenshot({ path: `${OUT}/${SIDE}-${slug}-${label}-crop.png` })
+      if (label === 'desktop' && slug === 'ac2-pv-cable-alone') {
+        await switchLanguage(page, 'Español')
+        const es = page.getByRole('region', { name: 'SolarTec Caribe' }).or(page.getByRole('article', { name: 'SolarTec Caribe' })).getByRole('listitem').filter({ hasText: /Cables principales/ })
+        await expect(es).toBeVisible()
+        ;(report[slug] as Record<string, string>).es = (await es.innerText()).replace(/\s+/g, ' ').trim()
+        await es.screenshot({ path: `${OUT}/${SIDE}-${slug}-desktop-es-crop.png` })
+        await switchLanguage(page, 'English')
+      }
+    }
+  }
+  writeFileSync(`${OUT}/ui-main-cables-text-${SIDE}.json`, JSON.stringify(report, null, 2))
+  void browser
+  void testInfo
+})

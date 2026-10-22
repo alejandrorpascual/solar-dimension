@@ -38,7 +38,8 @@ export function QuotesCard({ project, isSaving }: Props) {
           <h3 className="qcard__title" id={titleId}>{t.quotes.cardTitle}</h3>
           <p className="qcard__meta">{t.quotes.cardBody}</p>
         </div>
-        <div className="qcard__actions"><Link className="qbtn" to="/login">{t.quotes.cardSignIn}</Link></div>
+        {/* The card lives on the kit step, so signing in comes back to step 4. */}
+        <div className="qcard__actions"><Link className="qbtn" to="/login" search={{ step: 4 }}>{t.quotes.cardSignIn}</Link></div>
       </section>
     )
   }
