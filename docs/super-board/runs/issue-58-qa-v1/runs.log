@@ -1,0 +1,12 @@
+# QA v1 on 8529c8f plus the QA test. Summary lines only, to keep the PR under the 400-line merge cap.
+$ npm ci --silent && npm run typecheck && npm run test:coverage && npm run build      # config verify_commands
+  typecheck: app, e2e and scripts clean
+  Test Files  108 passed (108) · Tests  1856 passed (1856)
+  Coverage   All files 98.32 stmts · 93.92 branch · 99.3 funcs · 98.94 lines
+  build      client, ssr and nitro built · exit 0
+$ npx vitest run src/server/quotes/process.test.ts src/server/quotes/model.test.ts src/server/quotes/sweep.test.ts
+  Test Files  3 passed (3) · Tests  54 passed (54)
+$ NITRO_PRESET=vercel npx vite build && cat .vercel/output/functions/__server.func/.vc-config.json
+  exit 0 · {"handler":"index.mjs","launcherType":"Nodejs","supportsResponseStreaming":true,"maxDuration":300,"runtime":"nodejs24.x"}
+$ npm run e2e
+  not run: a guard hook refused linking the test env file into the QA clone; no UI or e2e path changed

@@ -40,7 +40,7 @@ Signed-in users upload installer quotes (PDF, JPG, PNG or WebP, up to 4 MB, PDFs
 | `OPENAI_API_KEY` | extraction |
 | `QUOTES_MODEL_PRIMARY`, `QUOTES_MODEL_FALLBACK` | models; default `gpt-6-luna` then `gpt-6-sol` |
 | `BLOB_READ_WRITE_TOKEN` | private Vercel Blob store for the files |
-| `CRON_SECRET` | authenticates the daily `/api/quotes/sweep` cron |
+| `CRON_SECRET` | authenticates the daily `/api/quotes/sweep` cron; at least 32 characters, or the sweep refuses every call and logs an error |
 | `QUOTES_DAILY_READS` | model reads admitted per UTC day across every account (uploads and retries); default `100`; set `0` to pause reading. Anything but a whole number falls back to the default, with one warning in the logs |
 | `QUOTES_TRUSTED_EMAILS` | comma-separated emails that may upload without a verified email. For previews and tests only: ignored when `VERCEL_ENV` is `production` |
 | `QUOTES_POLL_MS` | how often, in milliseconds, the page asks about quotes being read; default `3000`. Leave it unset in production; the e2e servers, whose stubbed reads take a moment, set it lower. Anything but a whole number from `100` falls back to the default, with one warning in the logs |

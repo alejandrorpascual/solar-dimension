@@ -1,10 +1,11 @@
+import OpenAI from 'openai'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { extraction, line, SAMPLE_QUOTES } from '../../lib/quote-fixtures'
 import type { QuoteExtraction, QuoteStatus } from '../../lib/quote-schema'
-import { ModelError, type QuoteModel } from './model'
+import { classifyError, ModelError, REQUEST_TIMEOUT_MS, type QuoteModel } from './model'
 import {
-  MAX_ATTEMPTS, planStale, processQuote, STALE_CLAIM_MS, STALE_QUEUE_MS, type ClaimedQuote, type Finish, type JobClock,
-  type ProcessDeps, type QuoteJobRepo,
+  JOB_WORST_CASE_MS, MAX_ATTEMPTS, planStale, processQuote, STALE_CLAIM_MS, STALE_QUEUE_MS, type ClaimedQuote, type Finish,
+  type JobClock, type ProcessDeps, type QuoteJobRepo,
 } from './process'
 import type { QuoteStorage } from './storage'
 
@@ -35,6 +36,10 @@ function setup(steps: Record<string, Step[]>, opts: { attempts?: number; claimed
 }
 const transient = () => new ModelError('transient', '503')
 const invalid = () => new ModelError('invalid', 'zod')
+/** What the OpenAI model reports when a call ran out its request timeout. */
+const timedOut = () => classifyError(new OpenAI.APIConnectionTimeoutError())
+/** The quote functions' time limit: 300 s, the default on every Vercel plan with fluid compute. */
+const FUNCTION_LIMIT_MS = 300_000
 
 describe('processQuote', () => {
   // A failed quote is logged on purpose (see the test below); the other failure tests don't need the noise.
@@ -79,6 +84,17 @@ describe('processQuote', () => {
     expect(await processQuote('q1', s.deps)).toBe('ready')
     expect(s.calls).toEqual(['luna', 'luna'])
   })
+  test('a timeout is not retried on the same model: the fallback gets the file', async () => {
+    const s = setup({ luna: [timedOut(), SAMPLE_QUOTES.solartec], sol: [SAMPLE_QUOTES.solartec] })
+    expect(await processQuote('q1', s.deps)).toBe('ready')
+    expect(s.calls).toEqual(['luna', 'sol'])
+    expect(s.finished[0]).toMatchObject({ modelUsed: 'sol' })
+  })
+  test('timeouts on both models: back to queued while attempts remain, like any transient error, then failed', async () => {
+    const answers = () => ({ luna: [timedOut()], sol: [timedOut()] })
+    expect(await processQuote('q1', setup(answers(), { attempts: 1 }).deps)).toBe('queued')
+    expect(await processQuote('q1', setup(answers(), { attempts: MAX_ATTEMPTS }).deps)).toBe('failed')
+  })
   test('only transient errors: back to queued while attempts remain, then failed', async () => {
     const answers = () => ({ luna: [transient(), transient()], sol: [transient(), transient()] })
     expect(await processQuote('q1', setup(answers(), { attempts: 1 }).deps)).toBe('queued')
@@ -108,6 +124,24 @@ describe('processQuote', () => {
     const s = setup({}, { file: false })
     expect(await processQuote('q1', s.deps)).toBe('failed')
     expect(s.calls).toEqual([])
+  })
+})
+
+describe('one job against the function time limit', () => {
+  let errors: ReturnType<typeof vi.spyOn>
+  beforeEach(() => { errors = vi.spyOn(console, 'error').mockImplementation(() => {}) })
+  afterEach(() => { errors.mockRestore() })
+
+  test('the worst case, both models and every retry each running to the request timeout, ends inside the 300 s limit', async () => {
+    // A transient error that arrives just as the request timeout runs out: the slowest a call can fail and still be retried.
+    const s = setup({ luna: [transient(), transient()], sol: [transient(), transient()] })
+    await processQuote('q1', s.deps)
+    const worstModelTimeMs = s.calls.length * REQUEST_TIMEOUT_MS
+    expect(s.calls).toEqual(['luna', 'luna', 'sol', 'sol'])
+    expect(worstModelTimeMs).toBeLessThan(FUNCTION_LIMIT_MS)
+    // The bound the sweep plans with covers those calls and still ends inside the limit.
+    expect(JOB_WORST_CASE_MS).toBeGreaterThanOrEqual(worstModelTimeMs)
+    expect(JOB_WORST_CASE_MS).toBeLessThan(FUNCTION_LIMIT_MS)
   })
 })
 
@@ -197,6 +231,11 @@ describe('planStale', () => {
 
   test('a claim younger than the worst-case run is left alone', () => {
     expect(planStale([job({ claimedAt: ago(STALE_CLAIM_MS - 1000) })], now)).toEqual({ kick: [], fail: [] })
+  })
+  test('the stale-claim window follows the function limit: a claim the platform has stopped by now is started again', () => {
+    // A live worker can hold its claim up to the 300 s limit; at 7 min the platform has stopped it, so the job waits no longer.
+    expect(planStale([job({ claimedAt: ago(FUNCTION_LIMIT_MS) })], now)).toEqual({ kick: [], fail: [] })
+    expect(planStale([job({ claimedAt: ago(7 * 60_000) })], now)).toEqual({ kick: ['q'], fail: [] })
   })
   test('a dead claim with attempts left is started again', () => {
     expect(planStale([job({ claimedAt: ago(STALE_CLAIM_MS + 1000), attempts: MAX_ATTEMPTS - 1 })], now)).toEqual({ kick: ['q'], fail: [] })
