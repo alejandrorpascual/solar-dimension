@@ -74,6 +74,13 @@ export async function firstProjectId(email: string): Promise<string> {
   return rows[0].id as string
 }
 
+/** The name of the user's first saved project, as stored: the browser names it in the page's language. */
+export async function firstProjectName(email: string): Promise<string> {
+  const rows = await testDb()`select p.name from projects p join "user" u on u.id = p.user_id where u.email = ${email} order by p.created_at limit 1`
+  if (!rows[0]) throw new Error(`no saved project for ${email}`)
+  return rows[0].name as string
+}
+
 /**
  * Fills a project with `count` finished-with-failure quote rows (no file behind them), so the per-project limit can be
  * hit without uploading. "failed" rows are never picked up by the reader, and they count as live rows like any other.

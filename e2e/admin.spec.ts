@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { slugify } from '../src/lib/catalog-schema'
-import { deleteTestAppliance, markEmailVerified } from './db'
+import { deleteTestAppliance, firstProjectName, markEmailVerified } from './db'
 import { quotePdf, signUp, uploadQuotes } from './quotes'
 import { E2E_ADMIN as ADMIN } from './servers'
 
@@ -42,7 +42,7 @@ for (const path of ['/admin/appliances', '/admin/quotes']) {
   })
 }
 
-test('a quote the model could not read shows on /admin/quotes with its file name, account and error', async ({ page }) => {
+test('a quote the model could not read shows on /admin/quotes with its file name, account, project, error and time', async ({ page }) => {
   // Sign-up, an upload and its read, then the admin's sign-in: more than 30 s on a slow CI runner.
   test.slow()
   const owner = await signUp(page)
@@ -53,12 +53,20 @@ test('a quote the model could not read shows on /admin/quotes with its file name
   await expect(dialog.getByRole('listitem').filter({ hasText: unreadable.name }).getByText("Couldn't read it", { exact: true }))
     .toBeVisible({ timeout: 30_000 })
 
+  const project = await firstProjectName(owner)
+
   await page.context().clearCookies()
   await signInAsAdmin(page)
   await page.goto('/admin/quotes')
   const row = page.getByRole('row').filter({ hasText: unreadable.name })
-  await expect(row).toContainText(owner)
-  await expect(row).toContainText(`No stub fixture matches ${unreadable.name}`)
+  // One cell per column, in the header's order: File, Account, Project, Error, Time. The error joins both models' errors.
+  const cells = row.getByRole('cell')
+  await expect(cells).toHaveCount(5)
+  await expect(cells.nth(0)).toHaveText(unreadable.name)
+  await expect(cells.nth(1)).toHaveText(owner)
+  await expect(cells.nth(2)).toHaveText(project)
+  await expect(cells.nth(3)).toContainText(`No stub fixture matches ${unreadable.name}`)
+  await expect(cells.nth(4)).toHaveText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/)
 })
 
 test('an admin adds an appliance, sees it in the picker, and retires it', async ({ page }) => {
