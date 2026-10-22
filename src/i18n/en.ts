@@ -28,6 +28,7 @@ function cableRemedy(p: WarningParams): string {
 export const en: Dictionary = {
   locale: 'en',
   ui: {
+    siteDescription: 'Size an off-grid solar backup kit: pick the appliances to keep on, set the hours, and get the inverter, batteries, cables and parts list.',
     step1: 'Appliances', step2: 'Backup window', step3: 'Solar panels', step4: 'Your kit', stepOf: 'Step {n} of 4',
     project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
     firstProject: 'Home', projectNumbered: 'Project {n}', copySuffix: ' copy', customTag: 'Custom',
