@@ -159,6 +159,45 @@ test('sources sent with a token write read back, show in the admin row, and surv
   }
 })
 
+test('a momentary row shows each figure\'s sources in that figure\'s own cell', async ({ page, request }) => {
+  const id = `e2e-sourced-gate-${Date.now()}`
+  const name = `E2E gate motor ${id}`
+  const sourceFor = (figure: string) => ({ source: `https://example.com/e2e-gate-${figure}.pdf`, asWritten: `Gate motor ${figure} as written` })
+  // Surge has two, as the research skill asks for when there is no datasheet: every one of a figure's sources shows.
+  const sources = {
+    watts: [sourceFor('watts')], surge: [sourceFor('surge'), sourceFor('surge-shop')], duty: [sourceFor('duty')],
+    burstSeconds: [sourceFor('burst')], cyclesPerHour: [sourceFor('cycles')],
+  }
+  // The seed's sliding gate motor figures, so the row is a valid momentary load with a burst and cycles to show.
+  const motor = {
+    id, category: 'Security', watts: 550, surge: 1650, duty: 0.033, tons: null, acType: null,
+    kind: 'momentary', surgeClass: 'motor', burstSeconds: 20, cyclesPerHour: 6,
+    labels: { en: { name, note: 'Test item' }, es: { name: `Motor ${id}`, note: 'Ítem de prueba' } },
+    sources,
+  }
+  try {
+    expect((await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [motor] })).status()).toBe(200)
+
+    await signInAsAdmin(page)
+    await page.goto('/admin/appliances')
+    const cells = page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name: new RegExp(name) }).getByRole('cell')
+    // Exactly the figure's own links in its cell: a source dropped from a cell, or shown in another, fails here.
+    const expectLinks = async (cell: number, list: ReadonlyArray<{ source: string; asWritten: string }>) => {
+      await expect(cells.nth(cell).getByRole('link')).toHaveCount(list.length)
+      for (const s of list) await expect(cells.nth(cell).getByRole('link', { name: `“${s.asWritten}”`, exact: true })).toHaveAttribute('href', s.source)
+    }
+    await expectLinks(1, sources.watts)
+    await expectLinks(2, sources.surge)
+    await expectLinks(3, sources.duty)
+    await expectLinks(4, [...sources.burstSeconds, ...sources.cyclesPerHour])
+    // Burst and cycles share the Kind cell, so each one is named.
+    await expect(cells.nth(4)).toContainText(`Burst: “${sources.burstSeconds[0]!.asWritten}”`)
+    await expect(cells.nth(4)).toContainText(`Cycles: “${sources.cyclesPerHour[0]!.asWritten}”`)
+  } finally {
+    await deleteTestAppliance(id)
+  }
+})
+
 test('"New appliance" refuses an id that already belongs to another appliance', async ({ page }) => {
   await signInAsAdmin(page)
 
