@@ -135,13 +135,13 @@ test('a tie between currencies says on screen which one was compared (AI-28)', a
   await page.getByRole('button', { name: 'Ok, got it' }).click()
   await openVerdictFromTray(page)
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
-  await expect(page.getByText(/split evenly/)).toHaveCount(0)
+  await expect(page.getByText(/same number of quotes to compare/)).toHaveCount(0)
 
   // Voltia's quote read in euros: one quote in each currency, and SolarTec's was uploaded first.
   await setQuoteCurrency(email, await firstProjectId(email), 'voltia.pdf', 'EUR')
   await page.reload()
-  await expect(page.getByRole('note').filter({ hasText: 'split evenly' }))
-    .toHaveText('Your quotes are split evenly between USD and EUR. Only the ones in USD, the currency of your first quote, are compared.')
+  await expect(page.getByRole('note').filter({ hasText: 'same number of quotes to compare' }))
+    .toHaveText('USD and EUR have the same number of quotes to compare. Only the ones in USD are compared, as the earliest of those quotes is in USD.')
   await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toContainText('In EUR, so not compared')
 })
 

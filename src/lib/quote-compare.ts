@@ -40,7 +40,7 @@ export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'misread'
 export interface UnrankedQuote extends EntryOption { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
 export interface Verdict {
   currency: string | null
-  /** Currencies with as many quotes as `currency`, which took the tie as the first quote's: said on screen, not ranked. */
+  /** Currencies with as many quotes as `currency`, which took the tie as the one with the earliest quote: said on screen, not ranked. */
   tiedCurrencies: string[]
   ranked: RankedQuote[]
   unranked: UnrankedQuote[]
@@ -131,12 +131,14 @@ const byUpload = (a: { quote: QuoteView }, b: { quote: QuoteView }) => a.quote.c
 
 /**
  * The entries left once a file uploaded twice counts once: an entry whose quote reads exactly like an earlier upload's
- * (the same reading, and the same option of it) is that upload's duplicate. Kept in the order given.
+ * (the same reading, the same option of it, and nothing the user typed or confirmed that differs) is that upload's
+ * duplicate. A copy the user changed is its own quote, so what they entered is never hidden. Kept in the order given.
  */
 function withoutDuplicates(entries: readonly Entry[]): Entry[] {
   const first = new Map<string, Entry>()
   for (const e of [...entries].sort(byUpload)) {
-    const key = `${JSON.stringify(e.quote.extraction)}|${e.optionId}`
+    const { extraction, totalOverride, overrides } = e.quote
+    const key = `${JSON.stringify([extraction, totalOverride, overrides])}|${e.optionId}`
     if (!first.has(key)) first.set(key, e)
   }
   const kept = new Set(first.values())

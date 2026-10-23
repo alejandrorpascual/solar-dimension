@@ -214,6 +214,21 @@ describe('the same quote uploaded twice (AI-28)', () => {
     expect(v.ranked.map(entryKey).sort()).toEqual(['first:o1', 'first:o2'])
     expect(v.unranked.map((u) => [entryKey(u), u.reason])).toEqual([['again:o1', 'duplicate'], ['again:o2', 'duplicate']])
   })
+  test('a copy the user changed is not a duplicate: its own typed total or confirmation is kept', () => {
+    // A total of 0 is what the model writes when the quote states none, so each copy waits for the user's own.
+    const noTotal = { ...SAMPLE_QUOTES.voltia, total: 0 }
+    const typed = (id: string, totalOverride: number, createdAt: number) => view(id, { extraction: noTotal, totalOverride, createdAt })
+    const differentTotals = compareQuotes(KIT, DEFAULT_MUSTS, [typed('first', 6000, 1), typed('again', 5000, 2)])
+    expect(ids(differentTotals.ranked).sort()).toEqual(['again', 'first'])
+    expect(differentTotals.unranked).toEqual([])
+    const sameTotal = compareQuotes(KIT, DEFAULT_MUSTS, [typed('first', 6000, 1), typed('again', 6000, 2)])
+    expect(ids(sameTotal.ranked)).toEqual(['first'])
+    expect(sameTotal.unranked).toMatchObject([{ quote: { id: 'again' }, reason: 'duplicate' }])
+
+    const confirmed = { ...copy('again', 'grupoluz', 2), overrides: { charger: 'included' as const } }
+    const withConfirmation = compareQuotes(KIT, DEFAULT_MUSTS, [copy('first', 'grupoluz', 1), confirmed])
+    expect(ids(withConfirmation.ranked).sort()).toEqual(['again', 'first'])
+  })
   test('a copy does not sway the currency: one quote in each is a tie, which goes to the first', () => {
     const eur = (id: string, createdAt: number) => view(id, { extraction: { ...SAMPLE_QUOTES.voltia, currency: 'EUR' }, createdAt })
     const v = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { createdAt: 1 }), eur('eur', 2), eur('eur-again', 3)])
@@ -229,6 +244,14 @@ describe('a tie between currencies (AI-28)', () => {
     expect(v.currency).toBe('EUR')
     expect(v.tiedCurrencies).toEqual(['USD'])
     expect(ids(v.ranked)).toEqual(['voltia'])
+  })
+  test('a currency with fewer quotes is not named, even when its quote came first', () => {
+    const inCurrency = (id: string, currency: string, createdAt: number) =>
+      view(id, { extraction: { ...SAMPLE_QUOTES.solartec, currency, vendor: { name: id, contact: null } }, createdAt })
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [inCurrency('gbp', 'GBP', 0), inCurrency('usd-1', 'USD', 1), inCurrency('eur-1', 'EUR', 2), inCurrency('usd-2', 'USD', 3), inCurrency('eur-2', 'EUR', 4)])
+    expect(v.currency).toBe('USD')
+    expect(v.tiedCurrencies).toEqual(['EUR'])
+    expect(v.unranked.map((u) => [u.quote.id, u.reason])).toEqual([['gbp', 'other_currency'], ['eur-1', 'other_currency'], ['eur-2', 'other_currency']])
   })
   test('names none when one currency has more quotes', () => {
     expect(compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', { createdAt: 1 }), view('grupoluz', { createdAt: 2 }), eur]).tiedCurrencies).toEqual([])
