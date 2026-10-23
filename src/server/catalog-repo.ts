@@ -3,7 +3,7 @@ import { db } from '../db/client'
 import { applianceChanges, appliances, user } from '../db/schema'
 import type { CatalogItem } from '../lib/catalog'
 import { keepStoredSources, planUpsert, retireWrite, warnAppliances, type ApplianceWarnings, type ApplianceWrite } from '../lib/catalog-diff'
-import { ApplianceSchema, toCatalogItem, type ApplianceInput, type ApplianceRecord } from '../lib/catalog-schema'
+import { ApplianceSchema, FigureSourcesSchema, toCatalogItem, type ApplianceInput, type ApplianceRecord } from '../lib/catalog-schema'
 import { ttlCache } from '../lib/ttl-cache'
 
 export const CATALOG_TTL_MS = 60_000
@@ -56,7 +56,8 @@ export async function queryCatalog(): Promise<CatalogItem[]> {
 /**
  * A write whose row is not in the valid list but is in the table replaces a row that fails the schema (listRecords skips
  * it). Its entry keeps that row as "before", not null ("Created"). An upsert never touches `retired_at`, so the row's
- * retired state carries over into "after"; so do its sources when the write sends none, as for any other row.
+ * retired state carries over into "after"; so do its sources when the write sends none, as for any other row, unless
+ * they are what fails the schema: sent back unchecked, they would keep the row failing it, so they are dropped.
  */
 function keepReplacedRows(writes: readonly ApplianceWrite[], rows: readonly Row[]): ApplianceWrite[] {
   const stored = new Map(rows.map((row) => [row.id, row]))
@@ -64,7 +65,8 @@ function keepReplacedRows(writes: readonly ApplianceWrite[], rows: readonly Row[
     const row = write.before === null ? stored.get(write.after.id) : undefined
     if (!row) return write
     const before = storedRecord(row)
-    return { before, after: { ...keepStoredSources(write.after, before), retired: before.retired } }
+    const validSources = FigureSourcesSchema.safeParse(row.sources).data
+    return { before, after: { ...keepStoredSources(write.after, { ...before, sources: validSources }), retired: before.retired } }
   })
 }
 

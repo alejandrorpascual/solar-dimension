@@ -65,12 +65,9 @@ function AdminAppliances() {
                 <td>{r.duty}<Sources list={r.sources?.duty} /></td>
                 <td>
                   {r.kind ?? 'auto'}{r.surgeClass ? ` · ${r.surgeClass}` : ''}{r.kind === 'momentary' ? ` · ${r.burstSeconds} s × ${r.cyclesPerHour}/h` : ''}
-                  {r.kind === 'momentary' && (
-                    <>
-                      <Sources label="Burst" list={r.sources?.burstSeconds} />
-                      <Sources label="Cycles" list={r.sources?.cyclesPerHour} />
-                    </>
-                  )}
+                  {/* Whatever the kind: a source kept after the item stopped being momentary still shows, so it can be cleared. */}
+                  <Sources label="Burst" list={r.sources?.burstSeconds} />
+                  <Sources label="Cycles" list={r.sources?.cyclesPerHour} />
                 </td>
                 <td>{r.retired ? 'Retired' : 'Active'}</td>
                 <td>

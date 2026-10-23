@@ -122,23 +122,30 @@ test('sources sent with a token write read back, show in the admin row, and surv
     labels: { en: { name, note: 'Test item' }, es: { name: `Hervidor ${id}`, note: 'Ítem de prueba' } },
   }
   const nameplate = { source: 'https://example.com/e2e-kettle-nameplate.jpg', asWritten: '220-240V~ 50/60Hz 1500W' }
+  // A kettle is not momentary, so its cycles per hour is null; a source sent for it anyway is stored all the same.
+  const strayCycles = { source: 'https://example.com/e2e-kettle-manual.pdf', asWritten: 'Boils about 4 times an hour' }
+  const sources = { watts: [nameplate], cyclesPerHour: [strayCycles] }
   const post = async (item: object) => expect((await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [item] })).status()).toBe(200)
   const storedSources = async () => {
     const { items } = await (await request.get('/api/catalog/appliances', { headers: catalogAuthHeader })).json() as { items: Array<{ id: string; sources: unknown }> }
     return items.find((i) => i.id === id)?.sources
   }
   try {
-    await post({ ...kettle, sources: { watts: [nameplate] } })
-    expect(await storedSources()).toEqual({ watts: [nameplate] })
+    await post({ ...kettle, sources })
+    expect(await storedSources()).toEqual(sources)
 
     await post({ ...kettle, duty: 0.12 })
-    expect(await storedSources()).toEqual({ watts: [nameplate] })
+    expect(await storedSources()).toEqual(sources)
 
     await signInAsAdmin(page)
     await page.goto('/admin/appliances')
     const row = page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name: new RegExp(name) })
     const source = row.getByRole('link', { name: `“${nameplate.asWritten}”` })
     await expect(source).toHaveAttribute('href', nameplate.source)
+    // Shown whatever the kind, so a source stored against a figure the item does not use can be seen and cleared.
+    const kindCell = row.getByRole('cell').nth(4)
+    await expect(kindCell).toContainText(`Cycles: “${strayCycles.asWritten}”`)
+    await expect(kindCell.getByRole('link', { name: `“${strayCycles.asWritten}”` })).toHaveAttribute('href', strayCycles.source)
 
     // The form has no sources field: its save sends none, so the stored ones stay.
     await row.getByRole('button', { name: 'Edit' }).click()
@@ -146,7 +153,7 @@ test('sources sent with a token write read back, show in the admin row, and surv
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(row.getByRole('cell').nth(3)).toContainText('0.15')
     await expect(source).toBeVisible()
-    expect(await storedSources()).toEqual({ watts: [nameplate] })
+    expect(await storedSources()).toEqual(sources)
   } finally {
     await deleteTestAppliance(id)
   }

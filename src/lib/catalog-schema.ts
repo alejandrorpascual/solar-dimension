@@ -37,7 +37,7 @@ const MAX_AS_WRITTEN = 200
 /** Where a figure came from: the page, and its words as written there, so the figure can be checked against them. */
 const FigureSourceSchema = z.object({ source: httpsUrl, asWritten: z.string().trim().min(1).max(MAX_AS_WRITTEN) }).strict()
 const FigureSourceListSchema = z.array(FigureSourceSchema).min(1).max(MAX_SOURCES_PER_FIGURE)
-const FigureSourcesSchema = z
+export const FigureSourcesSchema = z
   .object({
     watts: FigureSourceListSchema.optional(),
     surge: FigureSourceListSchema.optional(),

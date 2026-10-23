@@ -151,6 +151,19 @@ describe('sources', () => {
     expect(writtenParams()).toContainEqual({ watts: [nameplate] })
   })
 
+  test('a write without sources over a row whose stored sources fail the schema drops them, so the row reads back', async () => {
+    const insecure = { source: 'http://example.com/fridge-nameplate.jpg', asWritten: '1.2 A 115 V' }
+    store(fridgeRow({ sources: { watts: [insecure] } }))
+    expect(await listRecords()).toEqual([])
+
+    await upsertAppliances([fridgeInput], 'api-token')
+
+    expect(writtenParams()).not.toContainEqual({ watts: [insecure] })
+    expect(writtenParams()).toContainEqual({})
+    store(fridgeRow({ sources: {} }))
+    expect((await listRecords()).map((r) => r.id)).toEqual(['fridge'])
+  })
+
   test('a new appliance without sources is written with none', async () => {
     store()
 
