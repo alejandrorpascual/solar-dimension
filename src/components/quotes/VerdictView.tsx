@@ -15,7 +15,7 @@ import {
   addPendingMust, addPendingOverride, NO_PENDING, overlayPending, prunePending, settlePendingMust, settlePendingOverride,
   type PendingEdits,
 } from '../../lib/quote-pending'
-import { kitAttentionText, kitHold, rejectionText, unrankedTitle } from '../../lib/quote-text'
+import { currencyTieText, kitAttentionText, kitHold, rejectionText, unrankedTitle } from '../../lib/quote-text'
 import { deleteQuote, retryQuote, setQuoteMust, setQuoteOverride, setQuoteTotal, type ProjectQuotes } from '../../server/quotes/api'
 import { BestCard } from './BestCard'
 import { KitNeedTiles } from './KitNeedTiles'
@@ -88,6 +88,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   const kit = kitNeeds(result)
   const attention = kitAttentionText(t, result)
   const verdict = compareQuotes(kit, musts, data.quotes.map((q) => ({ ...q, overrides: overrides[q.id] ?? q.overrides })))
+  const currencyTie = currencyTieText(t, verdict)
   const failed = (key: string) => setError({ key, text: t.quotes.saveFailed })
   const errorFor = (key: string) => (error?.key === key ? error.text : null)
 
@@ -175,6 +176,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
       <VerdictHeader verdict={verdict} kit={kit} progress={progress} />
       {verdict.ranked.length > 0 && <KitNeedTiles kit={kit} />}
       {verdict.ranked.length > 0 && attention && <p className="qmeta" role="note">{attention}</p>}
+      {currencyTie && <p className="qmeta" role="note">{currencyTie}</p>}
       {verdict.best ? (
         <div className={ranked ? 'qv__grid qv__grid--split' : 'qv__grid'}>
           <BestCard best={verdict.best} kit={kit} error={errorFor(entryKey(verdict.best))}

@@ -24,8 +24,12 @@ export const DEFAULT_MUSTS: Musts = {
   inverter: true, battery: true, panels: true, charger: true, wifi: false, cables: true, fuse: true, installation: true, warranty: false,
 }
 
+/** A backup kit is an inverter and a battery bank: they are must-haves for every project, and the sheet can't switch them off. */
+export const FIXED_MUSTS: readonly ItemId[] = ['inverter', 'battery']
+
+/** The stored must-haves over the defaults. A fixed one stays on, whatever was saved before it was fixed. */
 export function resolveMusts(stored: Partial<Musts> | null | undefined): Musts {
-  return { ...DEFAULT_MUSTS, ...(stored ?? {}) }
+  return { ...DEFAULT_MUSTS, ...(stored ?? {}), ...Object.fromEntries(FIXED_MUSTS.map((id) => [id, true])) }
 }
 
 /** A new overrides object with `item` set to `value`, or removed when `value` is null. */

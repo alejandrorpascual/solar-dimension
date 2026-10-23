@@ -176,6 +176,13 @@ export async function misreadQuoteCurrency(email: string, projectId: string, cur
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/** Sets the currency read on one quote of a project, picked by its file name, as a quote priced in another currency is read. */
+export async function setQuoteCurrency(email: string, projectId: string, fileName: string, currency: string): Promise<void> {
+  await testDb()`
+    update quotes q set extraction = jsonb_set(q.extraction, '{currency}', to_jsonb(${currency}::text))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${fileName}`
+}
+
 /** Same, because line `line`'s spec `spec` was read as `value` (a 5,120 kWh battery: Wh read as kWh). */
 export async function misreadQuoteSpec(email: string, projectId: string, line: number, spec: string, value: number): Promise<void> {
   await testDb()`
