@@ -426,6 +426,17 @@ export function etaText(t: Dictionary, seconds: number): string {
   return seconds < SECONDS_PER_MINUTE ? trq(t, 'etaSeconds', { n: seconds }) : trq(t, 'etaMinutes', { n: Math.ceil(seconds / SECONDS_PER_MINUTE) })
 }
 
+const SECONDS_DIGITS = 2
+
+/**
+ * How long a read has taken so far, as minutes and two-digit seconds ("0:12 so far"). It changes every second, so a
+ * reading screen never looks frozen, even with Reduce Motion on, when its spinner stands still (issue #144).
+ */
+export function elapsedText(t: Dictionary, seconds: number): string {
+  const rest = String(seconds % SECONDS_PER_MINUTE).padStart(SECONDS_DIGITS, '0')
+  return trq(t, 'elapsed', { time: `${Math.floor(seconds / SECONDS_PER_MINUTE)}:${rest}` })
+}
+
 const PERCENT = 100
 const ZONE_KEY: Record<SizingZone, QuoteKey> = { short: 'zoneShort', just: 'zoneJust', roomy: 'zoneRoomy', over: 'zoneOver' }
 /** Short percents round down, so a quote just under the need never reads as 100 %. */

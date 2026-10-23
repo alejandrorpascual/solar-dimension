@@ -1,5 +1,6 @@
 import { Check, ExternalLink, RotateCw, X } from 'lucide-react'
 import { useId } from 'react'
+import { useElapsedSeconds } from '../../hooks/useElapsedSeconds'
 import { useLocale } from '../../hooks/useLocale'
 import type { UnrankedQuote } from '../../lib/quote-compare'
 import { readSteps, readyInText, stepLabel, triesLeftText, type ReadStep } from '../../lib/quote-progress'
@@ -28,7 +29,8 @@ export function ProgressCard({ u, retries, retry, error, onRetry, onDelete }: Pr
   const { t } = useLocale()
   const nameId = useId()
   const isFailed = u.reason === 'failed'
-  const sub = !isFailed ? readyInText(t) : retry === 'retry' ? triesLeftText(t, retries) : retry === 'used_up' ? t.quotes.retryLimit : null
+  const elapsed = useElapsedSeconds(!isFailed)
+  const sub = !isFailed ? readyInText(t, elapsed) : retry === 'retry' ? triesLeftText(t, retries) : retry === 'used_up' ? t.quotes.retryLimit : null
   return (
     <article className={isFailed ? 'qrow qrow--failed' : 'qrow'} aria-labelledby={nameId}>
       <div className="qhead__id">

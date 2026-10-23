@@ -1,4 +1,5 @@
 import { Check, FileText, RotateCw, TriangleAlert } from 'lucide-react'
+import { useElapsedSeconds } from '../../hooks/useElapsedSeconds'
 import { useLocale } from '../../hooks/useLocale'
 import type { UploadItem } from '../../hooks/useQuoteUpload'
 import { useRootData } from '../../hooks/useRootData'
@@ -26,10 +27,11 @@ export function HandoffRow({ item, file, error, onRetry, onDelete }: Props) {
   const { user } = useRootData()
   const status = file?.status ?? null
   const state = handoffRowState(item, status)
+  const elapsed = useElapsedSeconds(state === 'working')
   const offer = file ? retryOffer(file, user?.canUseQuotes === true) : 'none'
   const meta = state === 'failed' && offer === 'used_up'
     ? t.quotes.retryLimit
-    : handoffRowMeta(t, state, item.state === 'uploading' ? 'uploading' : status ?? 'queued', item.rejection)
+    : handoffRowMeta(t, state, item.state === 'uploading' ? 'uploading' : status ?? 'queued', item.rejection, elapsed)
   const Icon = state === 'done' ? Check : state === 'working' ? FileText : TriangleAlert
   return (
     <li className={`qhand__row qhand__row--${state}`}>

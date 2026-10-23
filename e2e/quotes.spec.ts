@@ -435,14 +435,14 @@ test('the hand-off dialog shows each file reading, then lets a file that could n
   await uploadQuotes(page, [unreadable])
   const dialog = page.getByRole('dialog', { name: "We've got it from here" })
   const row = dialog.getByRole('listitem').filter({ hasText: unreadable.name })
-  await expect(row.getByText(/^(Uploading|Waiting|Reading) · about 30 s$/)).toBeVisible()
+  await expect(row.getByText(/^(Uploading|Waiting|Reading) · about 30 s · \d+:\d{2} so far$/)).toBeVisible()
   await expect(dialog.getByText('1 reading')).toBeVisible()
 
   await expect(row.getByText("Couldn't read it", { exact: true })).toBeVisible({ timeout: 30_000 })
   await expect(dialog.getByText('1 needs your attention')).toBeVisible()
   await expect(dialog.getByRole('button', { name: `Delete ${unreadable.name}` })).toBeVisible()
   await row.getByRole('button', { name: 'Retry', exact: true }).click()
-  await expect(row.getByText(/^(Waiting|Reading) · about 30 s$/)).toBeVisible()
+  await expect(row.getByText(/^(Waiting|Reading) · about 30 s · \d+:\d{2} so far$/)).toBeVisible()
 
   const watch = dialog.getByRole('link', { name: 'Watch progress' })
   await expect(watch).toHaveCSS('text-decoration-line', 'none')
