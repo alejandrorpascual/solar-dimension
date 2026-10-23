@@ -12,6 +12,7 @@ import { hasPanels, type SizingResult } from '../lib/sizing'
 import { BatteryPicker } from './BatteryPicker'
 import { ChecksAttention } from './ChecksAttention'
 import { ChecksList } from './ChecksList'
+import { Glossary } from './Glossary'
 import { RuntimeRange } from './RuntimeRange'
 
 /**
@@ -128,6 +129,7 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
         </div>
       )}
       <p className="fine muted">{finePrint(t, r, dod, locale)}</p>
+      <Glossary />
     </div>
   )
 }
