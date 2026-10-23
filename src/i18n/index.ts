@@ -1,11 +1,11 @@
 import { en } from './en'
 import { es } from './es'
 import { fmtW } from './format'
-import type { Dictionary, GlossaryEntry, Locale, QuoteKey, UiKey } from './types'
-import { SIZING, type ApplianceLabels } from '../lib/catalog'
+import type { Dictionary, Locale, QuoteKey, UiKey } from './types'
+import type { ApplianceLabels } from '../lib/catalog'
 import { customNote } from '../lib/custom'
 
-export type { Dictionary, GlossaryEntry, LegalPage, Locale, QuoteKey, RequesterKey, UiKey } from './types'
+export type { Dictionary, LegalPage, Locale, QuoteKey, RequesterKey, UiKey } from './types'
 export const LOCALES: readonly Locale[] = ['en', 'es']
 export const DEFAULT_LOCALE: Locale = 'en'
 export const LOCALE_COOKIE = 'lang'
@@ -81,14 +81,6 @@ export function deleteProjectText(t: Dictionary, name: string, quoteCount: numbe
 /** "8,000 W inverter" / "2 × 8,000 W inverters" in the active language: one unit's size, and how many work in parallel. */
 export function inverterSize(t: Dictionary, inverter: { count: number; unitW: number }, locale: Locale): string {
   return tr(t, inverter.count > 1 ? 'inverterSizeMany' : 'inverterSizeOne', { count: inverter.count, w: fmtW(inverter.unitW, locale) })
-}
-
-/** The kit glossary, with the hard and light day figures filled in from the runtime scenarios the engine sizes with. */
-export function glossaryEntries(t: Dictionary): GlossaryEntry[] {
-  const { optimistic, worst } = SIZING.SCENARIO
-  const pct = (share: number) => Math.round(share * 100)
-  const figures = { lightDuty: pct(optimistic.duty), lightEff: pct(optimistic.eff), hardDuty: pct(worst.duty), hardAc: pct(worst.acDuty), hardEff: pct(worst.eff) }
-  return t.glossary.entries.map((e) => ({ term: e.term, body: fill(e.body, figures) }))
 }
 
 /** "1 panel" / "5 panels" in the active language. */

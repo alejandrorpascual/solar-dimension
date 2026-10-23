@@ -21,8 +21,6 @@ export interface Dictionary {
   inverterNotes: Record<InverterNote, string>
   privacy: LegalPage
   terms: LegalPage
-  /** The kit step's glossary, in order. `{lightDuty}` and the other scenario figures in a body are filled in from the sizing scenarios. */
-  glossary: { title: string; entries: readonly GlossaryEntry[] }
   quotes: Record<QuoteKey, string>
   quoteItems: Record<ItemId, string>
   /** Item names as they read inside a sentence: "does your quote include a battery charger?" */
@@ -32,8 +30,6 @@ export interface Dictionary {
   quoteItemsList: Record<ItemId, string>
   requester: Record<RequesterKey, string>
 }
-
-export interface GlossaryEntry { term: string; body: string }
 
 /** `{email}` in a body is replaced with the contact address as a mailto link; `{date}` in `updated` with the date. */
 export interface LegalPage { title: string; updated: string; sections: readonly { heading: string; body: string }[] }
