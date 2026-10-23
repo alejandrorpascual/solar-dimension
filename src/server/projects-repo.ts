@@ -2,7 +2,7 @@ import { and, eq, inArray, sql, type SQL } from 'drizzle-orm'
 import { db } from '../db/client'
 import { projects } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { clampStamp, type LeftOut, type Nameable, type NamedEdits, type StartedFrom } from '../lib/sync'
+import { clampStamp, isNameable, NAMEABLE, type LeftOut, type Nameable, type NamedEdits } from '../lib/sync'
 
 export function toProject(row: typeof projects.$inferSelect): Project {
   return ProjectSchema.parse({
@@ -37,11 +37,29 @@ const INCOMING = {
   updatedAt: sql`excluded.updated_at`,
 } satisfies Record<Exclude<keyof Project, 'id'>, SQL>
 
+/** The stamp (ms) of the stored row's last write: the latest of its fields'. */
+const ROW_STAMP = sql`(extract(epoch from ${projects.updatedAt}) * 1000)::bigint`
+
+/** The stamp (ms) of the edit that last wrote `field` in the stored row: its own when recorded, the row's otherwise. */
+function stampOf(field: Nameable): SQL {
+  return sql`coalesce((${projects.fieldStamps} ->> ${field}::text)::bigint, ${ROW_STAMP})`
+}
+
+/**
+ * The `fieldStamps` a write leaves: each field's stamp from `stamps`, left out where it equals the row's new stamp
+ * (`rowStamp`), which a field missing from the map reads as.
+ */
+function stampsAfter(stamps: readonly (readonly [Nameable, SQL])[], rowStamp: SQL): SQL {
+  const pairs = stamps.map(([field, stamp]) => sql`${field}::text, nullif(${stamp}, ${rowStamp})`)
+  return sql`jsonb_strip_nulls(jsonb_build_object(${sql.join(pairs, sql`, `)}))`
+}
+
 /**
  * Last edit wins by the client's `updatedAt`, not by arrival order: a save that a reload cut off can still reach the
  * database after a newer write, so the update only applies when the incoming stamp is not older than the stored one.
  * A stamp from a clock far ahead is stored as the server's time (clampStamp), or it would refuse every edit after it.
- * A field the save left out (`leftOut`) keeps its stored value: a build older than the field must not clear it.
+ * A field the save left out (`leftOut`) keeps its stored value and the stamp of its last write: a build older than the
+ * field must not clear it, nor make an edit of it made since its last write look older.
  * Returns the ids it wrote: a project that is missing from them was refused as older than the stored copy.
  */
 export async function upsertAll(userId: string, list: Project[], leftOut: LeftOut = new Map()): Promise<Set<string>> {
@@ -63,56 +81,53 @@ async function upsertGroup(userId: string, list: Project[], skipped: readonly (k
     .values(list.map((p) => ({ ...p, userId, updatedAt: new Date(clampStamp(p.updatedAt, now)) })))
     .onConflictDoUpdate({
       target: [projects.userId, projects.id],
-      set: Object.fromEntries(Object.entries(INCOMING).filter(([field]) => !skipped.includes(field as keyof Project))),
+      set: {
+        ...Object.fromEntries(Object.entries(INCOMING).filter(([field]) => !skipped.includes(field as keyof Project))),
+        fieldStamps: stampsAfter(skipped.filter(isNameable).map((field) => [field, stampOf(field)]), sql`(extract(epoch from excluded.updated_at) * 1000)::bigint`),
+      },
       setWhere: sql`excluded.updated_at >= ${projects.updatedAt}`,
     })
     .returning({ id: projects.id })
   return written.map((row) => row.id)
 }
 
-const JSONB = new Set<Nameable>(['qty', 'custom', 'requester', 'dutyOverrides', 'electrical', 'solar'])
-
 /**
- * A named field's new value: the save's when the account still holds the value the edit started from (no other tab or
- * device changed it since), or when the save is not older than the stored copy; the stored one otherwise, as someone
- * else changed that field later than this edit. Edits to different fields of one project so all reach the account,
- * whatever order their saves arrive in, and of two edits to one field the later stays.
- */
-function guarded(field: Nameable, start: unknown): SQL {
-  const column = projects[field]
-  const startedFrom = start === null ? sql`null` : JSONB.has(field) ? sql`${JSON.stringify(start)}::jsonb` : sql`${start}`
-  return sql`case when ${column} is not distinct from ${startedFrom} or excluded.updated_at >= ${projects.updatedAt} then ${INCOMING[field]} else ${column} end`
-}
-
-/**
- * Writes the fields each project names (`named`), each guarded by the value it started from, and keeps the later of the
- * two stamps. A project the account does not hold is inserted whole: the save carries all of it. One statement per
- * project, as each one's starting values differ, sent as one batch. Returns the ids whose named fields all hold the
- * save's values: one where the account kept a newer value is answered as refused, with its copy.
+ * Writes the fields each project names (`named`), each unless the account holds a later edit of it, by that field's own
+ * stamp (`fieldStamps`): edits to different fields of one project so all reach the account, whatever order their saves
+ * arrive in, and of two edits to one field the later stays, though it set the field back to where the other started. A
+ * project the account does not hold is inserted whole: the save carries all of it. One statement per project, as each
+ * one's fields differ, sent as one batch. Returns the ids whose named fields were all written: one where the account
+ * kept a later edit is answered as refused, with its copy.
  */
 async function upsertNamed(userId: string, list: Project[], named: NamedEdits): Promise<string[]> {
   const now = Date.now()
+  const stamps = new Map(list.map((p) => [p.id, clampStamp(p.updatedAt, now)]))
   const [first, ...rest] = list.map((p) => {
-    const starts: StartedFrom = named[p.id] ?? {}
+    const fields = named[p.id] ?? []
+    const stamp = sql`${stamps.get(p.id)}::bigint`
+    const isLater = (field: Nameable) => sql`${stamp} >= ${stampOf(field)}`
     return db
       .insert(projects)
-      .values({ ...p, userId, updatedAt: new Date(clampStamp(p.updatedAt, now)) })
+      .values({ ...p, userId, updatedAt: new Date(stamps.get(p.id)!) })
       .onConflictDoUpdate({
         target: [projects.userId, projects.id],
         set: {
-          ...Object.fromEntries(Object.entries(starts).map(([field, start]) => [field, guarded(field as Nameable, start)])),
+          ...Object.fromEntries(fields.map((field) => [field, sql`case when ${isLater(field)} then ${INCOMING[field]} else ${projects[field]} end`])),
+          fieldStamps: stampsAfter(
+            NAMEABLE.map((field) => [field, fields.includes(field) ? sql`greatest(${stamp}, ${stampOf(field)})` : stampOf(field)]),
+            sql`greatest(${ROW_STAMP}, ${stamp})`,
+          ),
           updatedAt: sql`greatest(${projects.updatedAt}, excluded.updated_at)`,
         },
       })
-      .returning()
+      .returning({ id: projects.id, fieldStamps: projects.fieldStamps, updatedAt: projects.updatedAt })
   })
   if (!first) return []
   const rows = await db.batch([first, ...rest])
-  const sent = new Map(list.map((p) => [p.id, p]))
-  return rows.flat().map(toProject).filter((row) => {
-    const copy = sent.get(row.id)!
-    return Object.keys(named[row.id] ?? {}).every((field) => JSON.stringify(row[field as Nameable]) === JSON.stringify(copy[field as Nameable]))
-  }).map((row) => row.id)
+  // A field written by this save carries its stamp; one the account kept carries the later stamp of its own write.
+  const isWritten = (row: { id: string; fieldStamps: Record<string, number>; updatedAt: Date }) =>
+    (named[row.id] ?? []).every((field) => (row.fieldStamps[field] ?? row.updatedAt.getTime()) <= stamps.get(row.id)!)
+  return rows.flat().filter(isWritten).map((row) => row.id)
 }
 
 /**

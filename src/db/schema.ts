@@ -33,6 +33,11 @@ export const projects = pgTable(
     electrical: jsonb('electrical').$type<Partial<Electrical>>().notNull().default({}),
     /** Panels on the roof (step 3); null for a battery-only kit. Validated by SolarSchema on read. */
     solar: jsonb('solar').$type<Solar>(),
+    /**
+     * By field, the stamp (ms) of the edit that last wrote it, set when a save names fields; a field missing here was
+     * last written at `updatedAt`, by a save of the whole project. A named field is written only by an edit not older.
+     */
+    fieldStamps: jsonb('field_stamps').$type<Record<string, number>>().notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

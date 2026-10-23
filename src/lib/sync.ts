@@ -22,20 +22,24 @@ export function applyChanges(base: readonly Project[], changes: { upserts: reado
 /**
  * The account's list `base` with what was edited here between `before` and `after` laid over it field by field: a field
  * edited here takes the value edited here, and every other field keeps the account's, so an edit here does not undo
- * another device's edit to another field of the same project. A project added here, or gone from the account, is
- * taken whole. Ceiling: a field is the unit, so edits on two devices to one field (two appliances in `qty`) keep this one.
+ * another device's edit to another field of the same project. A field is edited here when it changed, or when an edit
+ * named it (`edited`): one set back to where it was is still the later edit. A project added here, or gone from the
+ * account, is taken whole. Ceiling: a field is the unit, so edits on two devices to one field (two appliances in `qty`)
+ * keep this one.
  */
-export function rebase(base: readonly Project[], before: readonly Project[], after: readonly Project[]): Project[] {
+export function rebase(base: readonly Project[], before: readonly Project[], after: readonly Project[], edited: Edits = new Map()): Project[] {
   const beforeById = new Map(before.map((p) => [p.id, p]))
   const accountCopies = new Map(base.map((p) => [p.id, p]))
   const { upserts, deletes } = diffProjects(before, after)
-  const edits = upserts.map((edited) => {
-    const unedited = beforeById.get(edited.id)
-    const accountCopy = accountCopies.get(edited.id)
-    if (!unedited || !accountCopy) return edited
-    const fields = new Set([...Object.keys(unedited), ...Object.keys(edited)]) as Set<keyof Project>
-    const changed = [...fields].filter((field) => JSON.stringify(unedited[field]) !== JSON.stringify(edited[field]))
-    return { ...accountCopy, ...Object.fromEntries(changed.map((field) => [field, edited[field]])) }
+  const edits = upserts.map((copy) => {
+    const unedited = beforeById.get(copy.id)
+    const accountCopy = accountCopies.get(copy.id)
+    if (!unedited || !accountCopy) return copy
+    const named = edited.get(copy.id) ?? []
+    const isNamed = (field: keyof Project) => named === 'all' || (isNameable(field) && named.includes(field))
+    const fields = new Set([...Object.keys(unedited), ...Object.keys(copy)]) as Set<keyof Project>
+    const changed = [...fields].filter((field) => !isSame(unedited[field], copy[field]) || isNamed(field))
+    return { ...accountCopy, ...Object.fromEntries(changed.map((field) => [field, copy[field]])) }
   })
   return applyChanges(base, { upserts: edits, deletes })
 }
@@ -61,8 +65,8 @@ export function clampStamp(stamp: number, now: number): number {
  * After a save the account refused for some projects because it holds a newer copy (`stale`): those copies replace
  * the local ones, except where the project was edited again since it was sent (`sent`); that edit is on its way in a
  * later save and stays on screen until the account answers it. A project the save named fields of (`named`) takes back
- * only the named fields the account kept at its own value, each where the screen still shows what was sent: the rest of
- * it may hold edits a later save carries.
+ * only the named fields the account holds at another value, each where the screen still shows what was sent: the rest
+ * of it may hold edits a later save carries.
  */
 export function adoptStale(projects: readonly Project[], sent: readonly Project[], stale: readonly Project[], named: NamedEdits = {}): Project[] {
   const sentById = new Map(sent.map((p) => [p.id, p]))
@@ -73,7 +77,7 @@ export function adoptStale(projects: readonly Project[], sent: readonly Project[
     if (!account || !copy) return p
     const fields = named[p.id]
     if (!fields) return isSame(p, copy) ? account : p
-    const refused = nameable(fields).filter((field) => !isSame(account[field], copy[field]) && isSame(p[field], copy[field]))
+    const refused = fields.filter((field) => !isSame(account[field], copy[field]) && isSame(p[field], copy[field]))
     return refused.length ? { ...p, ...Object.fromEntries(refused.map((field) => [field, account[field]])) } : p
   })
 }
@@ -98,11 +102,11 @@ export function adoptKept(projects: readonly Project[], kept: readonly Project[]
  * What a tab shows of the account's list read again (`list`), before the edits made during the read are laid over it:
  * adoptKept's rule, so a copy this browser stamped later (another tab's edit whose save has not landed) stays. A project
  * the account lacks leaves the screen, as another device deleted it, unless a save from this browser is on its way
- * (`isSaving`): it may be the one that save adds.
+ * (`isSaving`) and the account never held it as far as this tab knows (`held`): it may be the one that save adds.
  */
-export function readBack(projects: readonly Project[], list: readonly Project[], isSaving: boolean): Project[] {
+export function readBack(projects: readonly Project[], list: readonly Project[], isSaving: boolean, held: ReadonlySet<string>): Project[] {
   const listed = new Set(list.map((p) => p.id))
-  return [...adoptKept(projects, list), ...(isSaving ? projects.filter((p) => !listed.has(p.id)) : [])]
+  return [...adoptKept(projects, list), ...(isSaving ? projects.filter((p) => !listed.has(p.id) && !held.has(p.id)) : [])]
 }
 
 /** Ids of the projects whose save or delete never reached the account. */
@@ -152,36 +156,35 @@ export function leftOut(sent: readonly unknown[]): LeftOut {
 
 /** The fields a save can name: every field but the key and the stamp, which every save carries. */
 export type Nameable = Exclude<Field, 'id' | 'updatedAt'>
-const NAMEABLE = (Object.keys(ProjectSchema.shape) as Field[]).filter((field): field is Nameable => field !== 'id' && field !== 'updatedAt')
+export const NAMEABLE = (Object.keys(ProjectSchema.shape) as Field[]).filter((field): field is Nameable => field !== 'id' && field !== 'updatedAt')
 export const isNameable = (field: string): field is Nameable => (NAMEABLE as string[]).includes(field)
-const nameable = (starts: StartedFrom): Nameable[] => Object.keys(starts).filter(isNameable)
 
-/** The fields an edit changed, each with the value it had before the edit. */
-export type StartedFrom = Readonly<Partial<Record<Nameable, unknown>>>
-/** By project id, what a save names: the account writes only those fields, each over the value it started from. */
-export type NamedEdits = Readonly<Record<string, StartedFrom>>
+/**
+ * By project id, the fields a save names: the account writes only those, each unless it holds a later edit of that
+ * field, whatever the value either edit started from (an edit made back to that value is still the later one).
+ */
+export type NamedEdits = Readonly<Record<string, readonly Nameable[]>>
 /** By project id, the fields edits changed, or `all` for a project an edit added, which a save sends whole. */
-export type Edits = ReadonlyMap<string, StartedFrom | 'all'>
+export type Edits = ReadonlyMap<string, readonly Nameable[] | 'all'>
 
 /** What each project in `upserts` changed from its copy in `prev`. One that `prev` lacks is new: all of it. */
 export function editsOf(prev: readonly Project[], upserts: readonly Project[]): Edits {
   const before = new Map(prev.map((p) => [p.id, p]))
-  return new Map(upserts.map((p): [string, StartedFrom | 'all'] => {
+  return new Map(upserts.map((p): [string, readonly Nameable[] | 'all'] => {
     const old = before.get(p.id)
-    if (!old) return [p.id, 'all']
-    return [p.id, Object.fromEntries(NAMEABLE.filter((field) => !isSame(old[field], p[field])).map((field) => [field, old[field]]))]
+    return [p.id, old ? NAMEABLE.filter((field) => !isSame(old[field], p[field])) : 'all']
   }))
 }
 
 /**
- * Edits that did not reach the account (`earlier`) and the ones made since (`later`), as one save carries them. A field
- * in both keeps its earlier start, the value the account last held; a project added in either goes whole.
+ * Edits that did not reach the account (`earlier`) and the ones made since (`later`), as one save carries them: the
+ * fields of both, and a project added in either goes whole.
  */
 export function mergeEdits(earlier: Edits, later: Edits): Edits {
   const merged = new Map(earlier)
-  for (const [id, starts] of later) {
+  for (const [id, fields] of later) {
     const had = merged.get(id)
-    merged.set(id, had === 'all' || starts === 'all' ? 'all' : { ...starts, ...had })
+    merged.set(id, had === 'all' || fields === 'all' ? 'all' : [...new Set([...(had ?? []), ...fields])])
   }
   return merged
 }
@@ -189,22 +192,18 @@ export function mergeEdits(earlier: Edits, later: Edits): Edits {
 /** What a save sending `sending` names. A project edited `all`, or one no edit names, is left out and goes whole. */
 export function namedEdits(sending: readonly Project[], edits: Edits): NamedEdits {
   return Object.fromEntries(sending.flatMap((p) => {
-    const starts = edits.get(p.id)
-    return starts && starts !== 'all' ? [[p.id, starts]] : []
+    const fields = edits.get(p.id)
+    return fields && fields !== 'all' ? [[p.id, fields]] : []
   }))
 }
 
-/**
- * The fields a save names as the request carried them, each starting value checked against that field's own schema. A
- * field a save cannot name, or a starting value its field would not hold, refuses the save, as a project that does
- * not parse does.
- */
+/** The fields a save names, as the request carried them. A field a save cannot name refuses the save, as a project that does not parse does. */
 export function parseNamed(raw: unknown): NamedEdits {
-  const edits = z.record(z.string(), z.record(z.string(), z.unknown())).optional().parse(raw) ?? {}
-  return Object.fromEntries(Object.entries(edits).map(([id, starts]) => [id, Object.fromEntries(Object.entries(starts).map(([field, value]) => {
+  const edits = z.record(z.string(), z.array(z.string())).optional().parse(raw) ?? {}
+  return Object.fromEntries(Object.entries(edits).map(([id, fields]) => [id, [...new Set(fields)].map((field) => {
     if (!isNameable(field)) throw new Error(`A save cannot name the field ${field}`)
-    return [field, ProjectSchema.shape[field].parse(value)]
-  }))]))
+    return field
+  })]))
 }
 
 /** One copy per project id, the one stamped latest (the later in the list on a tie), in the order ids first appear. */

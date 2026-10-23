@@ -1,12 +1,12 @@
 // Test double for src/server/projects.ts: accounts held in memory, under the server's rules. The same input schema,
 // the same stamp clamp, an update only when the incoming stamp is not older than the stored one (the upsert's
-// setWhere), a named field written only over the value it started from or by a later save (upsertNamed's guard), a
+// setWhere), a named field written only by an edit not older than that field's last write (upsertNamed's fieldStamps), a
 // batch that names a project twice is refused, as Postgres refuses an upsert that would touch a row
 // twice, and an import stores a never-edited first project only for an account with no project yet. A call without a
 // session throws as requireUserId does, and one from a page loaded for another account as requireAccount does.
 import { z } from 'zod'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { clampStamp, importable, isForAccount, parseNamed, type Nameable, type NamedEdits } from '../lib/sync'
+import { clampStamp, importable, isForAccount, NAMEABLE, parseNamed, type Nameable, type NamedEdits } from '../lib/sync'
 
 const ProjectsInput = z.object({ account: z.string().min(1).optional(), projects: z.array(ProjectSchema).max(200) })
 type Call = 'list' | 'save' | 'import' | 'delete'
@@ -21,6 +21,9 @@ export const session: { user: User | null } = { user: null }
 export const tab: { user?: User | null } = {}
 export const pageUser = (): User | null => ('user' in tab ? tab.user ?? null : session.user)
 export const accounts = new Map<string, Project[]>()
+type Stamps = Readonly<Record<Nameable, number>>
+/** By account, then project id: the copy this server last wrote, and the stamp of the edit that last wrote each field. */
+const lastWrites = new Map<string, ReadonlyMap<string, { copy: Project; stamps: Stamps }>>()
 /** What `user`'s account holds. */
 export const account = (user: User): Project[] => accounts.get(user.id) ?? []
 /** A call waiting in `net.held`: `by` is the tab that made it, and `land` lets it reach the server and answer. */
@@ -40,6 +43,7 @@ export const clock = { now: realNow }
 
 export function resetServer(): void {
   accounts.clear()
+  lastWrites.clear()
   net.offline = false
   net.failing = new Set()
   net.gate = null
@@ -69,6 +73,23 @@ function requireAccount(claimed: string | undefined): void {
   if (!isForAccount(claimed, accountId())) throw new Error('This page was loaded for another account')
 }
 const rows = (): Project[] => accounts.get(accountId()) ?? []
+const isSame = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
+
+/**
+ * The stamp of the edit that last wrote each field of the stored `row`, as the column `fieldStamps` gives it. A field
+ * that differs from the copy this server last wrote was written since by a test standing in for another device, as a
+ * save naming the fields it changed: at the row's stamp. With no write of its own recorded, every field is at the row's.
+ */
+function stampsOf(row: Project): Stamps {
+  const last = lastWrites.get(accountId())?.get(row.id)
+  return Object.fromEntries(NAMEABLE.map((field) => [field, last && isSame(last.copy[field], row[field]) ? last.stamps[field] : row.updatedAt])) as Stamps
+}
+function recordWrite(id: string, write: { copy: Project; stamps: Stamps } | null): void {
+  const writes = new Map(lastWrites.get(accountId()))
+  if (write) writes.set(id, write)
+  else writes.delete(id)
+  lastWrites.set(accountId(), writes)
+}
 
 /** Writes what is not older than the stored copy and returns the ids it wrote. */
 function upsertAll(list: Project[]): Set<string> {
@@ -80,6 +101,8 @@ function upsertAll(list: Project[]): Set<string> {
     .filter((p) => p.updatedAt >= (stored.get(p.id)?.updatedAt ?? -Infinity))
   const replaced = new Map(accepted.map((p) => [p.id, p]))
   accounts.set(accountId(), [...rows().map((row) => replaced.get(row.id) ?? row), ...accepted.filter((p) => !stored.has(p.id))])
+  // A whole save wrote every field at its own stamp.
+  for (const p of accepted) recordWrite(p.id, { copy: p, stamps: Object.fromEntries(NAMEABLE.map((field) => [field, p.updatedAt])) as Stamps })
   return new Set(accepted.map((p) => p.id))
 }
 
@@ -89,21 +112,24 @@ export async function listProjects(input?: { data?: { account?: string } }): Pro
   return structuredClone(rows())
 }
 
-const isSame = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
-
-/** Writes the named fields of each stored project as upsertNamed does, and returns the ids whose fields all took the save's values. */
+/** Writes the named fields of each stored project as upsertNamed does, and returns the ids whose named fields were all written. */
 function upsertNamed(list: Project[], named: NamedEdits): Set<string> {
   const stored = new Map(rows().map((row) => [row.id, row]))
   const now = clock.now()
+  const written = new Set<string>()
   const next = new Map(list.map((p) => {
     const row = stored.get(p.id)!
     const updatedAt = clampStamp(p.updatedAt, now)
-    const starts = Object.entries(named[p.id]!) as [Nameable, unknown][]
-    const taken = starts.filter(([field, start]) => isSame(row[field], start) || updatedAt >= row.updatedAt).map(([field]) => [field, structuredClone(p[field])])
-    return [p.id, { ...row, ...Object.fromEntries(taken), updatedAt: Math.max(row.updatedAt, updatedAt) } as Project]
+    const stamps = stampsOf(row)
+    const fields = named[p.id]!
+    const taken = fields.filter((field) => updatedAt >= stamps[field])
+    const copy = { ...row, ...Object.fromEntries(taken.map((field) => [field, structuredClone(p[field])])), updatedAt: Math.max(row.updatedAt, updatedAt) } as Project
+    recordWrite(p.id, { copy, stamps: { ...stamps, ...Object.fromEntries(taken.map((field) => [field, updatedAt])) } })
+    if (taken.length === fields.length) written.add(p.id)
+    return [p.id, copy]
   }))
   accounts.set(accountId(), rows().map((row) => next.get(row.id) ?? row))
-  return new Set(list.filter((p) => Object.keys(named[p.id]!).every((field) => isSame(next.get(p.id)![field as Nameable], p[field as Nameable]))).map((p) => p.id))
+  return written
 }
 
 export async function saveProjects({ data }: { data: { account?: string; projects: Project[]; named?: NamedEdits } }): Promise<{ ok: true; stale: Project[] }> {
@@ -130,5 +156,6 @@ export async function deleteProjects({ data }: { data: { account?: string; ids: 
   await reach('delete')
   requireAccount(data.account)
   accounts.set(accountId(), rows().filter((row) => !data.ids.includes(row.id)))
+  for (const id of data.ids) recordWrite(id, null)
   return { ok: true }
 }

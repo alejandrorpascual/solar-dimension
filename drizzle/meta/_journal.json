@@ -113,6 +113,13 @@
       "when": 1792683124499,
       "tag": "0015_appliance_changes",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792788841291,
+      "tag": "0016_project_field_stamps",
+      "breakpoints": true
     }
   ]
 }

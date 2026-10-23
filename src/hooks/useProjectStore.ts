@@ -91,8 +91,12 @@ export function useProjectStore() {
   const loaded = useRef(false)
   /** What failed to reach the account since the last save that worked. The next save carries it again. */
   const unsent = useRef<Unsent>(NOTHING_UNSENT)
-  /** The fields of `unsent`'s projects that edits changed, with the values they started from, for that next save to name. */
+  /** The fields of `unsent`'s projects that edits changed, for that next save to name. */
   const unsentEdits = useRef<Edits>(new Map())
+  /** While the account is read again on coming back: the fields edited here since that read went out. */
+  const editedInRead = useRef<Edits | null>(null)
+  /** Ids of the projects the account has held as far as this tab knows: in a list it read, or in a save it answered. */
+  const held = useRef<ReadonlySet<string>>(new Set())
   /** Whether the account holds everything this device does, as far as the requests answered so far can tell. */
   const isClean = useCallback(() => loaded.current && !hasUnsent(unsent.current), [])
   /**
@@ -119,6 +123,7 @@ export function useProjectStore() {
     setStore(local)
     loaded.current = false
     unsent.current = NOTHING_UNSENT
+    held.current = new Set()
     // A load this run cancelled leaves the flag to it: with no account there is nothing to sync.
     setSyncing(account !== null)
     if (!account) return
@@ -128,6 +133,7 @@ export function useProjectStore() {
       .then((list) => {
         if (cancelled) return
         loaded.current = true
+        held.current = new Set(list.map((p) => p.id))
         clearUnsent(account)
         if (inFlight.current === 0) clearPendingSave()
         // Edits made while the load was in flight are already queued behind it; keep them visible. A first project
@@ -177,13 +183,20 @@ export function useProjectStore() {
       const readIn = scope.current
       // Edits made from here on are saved after this read, so the list cannot hold them yet.
       const before = latest.current
+      editedInRead.current = new Map()
       enqueue(() => listProjects({ data: { account } }))
         .then((list) => {
           if (scope.current !== readIn || !isClean()) return
-          show(fromServer(rebase(readBack(before.projects, list, hasPendingSave()), before.projects, latest.current.projects), latest.current))
+          const edited = editedInRead.current ?? new Map()
+          const shown = readBack(before.projects, list, hasPendingSave(), held.current)
+          held.current = new Set(list.map((p) => p.id))
+          show(fromServer(rebase(shown, before.projects, latest.current.projects, edited), latest.current))
         })
         .catch((error: unknown) => console.error('[projects] reload failed', { error }))
-        .finally(() => { isReading = false })
+        .finally(() => {
+          isReading = false
+          editedInRead.current = null
+        })
     }
     window.addEventListener('focus', reread)
     document.addEventListener('visibilitychange', reread)
@@ -211,6 +224,7 @@ export function useProjectStore() {
     if (upserts.length === 0 && deletes.length === 0) return
     const sentIn = scope.current
     const edits = editsOf(prev.projects, upserts)
+    if (editedInRead.current) editedInRead.current = mergeEdits(editedInRead.current, edits)
     inFlight.current += 1
     markPendingSave()
     setSaving(true)
@@ -218,8 +232,8 @@ export function useProjectStore() {
       // What failed before goes again with this save. If either request fails both count as unsent: sending a
       // project or a delete twice changes nothing. Each project goes as the screen shows it now: a read of the account
       // answered since this edit has laid it over the account's copy, which the copy made at the edit would overwrite.
-      // The save names the fields edits here changed and the values they started from, and the account writes only
-      // those: a copy here that missed another tab's or device's edit to another field does not undo it.
+      // The save names the fields edits here changed, and the account writes only those, each unless it holds a later
+      // edit of it: a copy here that missed another tab's or device's edit to another field does not undo it.
       const sending = outgoing(scope.current === sentIn ? latest.current.projects : next.projects, { upserts, deletes }, unsent.current)
       const carried = mergeEdits(unsentEdits.current, edits)
       const named = namedEdits(sending.upserts, carried)
@@ -239,6 +253,7 @@ export function useProjectStore() {
     })
       .then(({ sent, stale, named }) => {
         if (scope.current !== sentIn) return
+        held.current = new Set([...held.current, ...sent.map((p) => p.id)])
         if (stale.length) {
           // The account holds a newer copy of these: show it, unless the project was edited again meanwhile.
           show({ ...latest.current, projects: adoptStale(latest.current.projects, sent, stale, named) })

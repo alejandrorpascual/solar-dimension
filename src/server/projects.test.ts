@@ -66,10 +66,10 @@ test('an import that carries a project without solar asks the write to keep the 
   expect(listForUser).toHaveBeenCalledWith(ANA)
 })
 
-test('a save that names fields passes each one with the value it started from, and a field no save can name is refused', async () => {
-  await saveProjects({ data: { account: ANA, projects: [home], named: { [home.id]: { hours: 10, requester: null } } } })
+test('a save that names fields passes them to the write, and a field no save can name is refused', async () => {
+  await saveProjects({ data: { account: ANA, projects: [home], named: { [home.id]: ['hours', 'requester'] } } })
 
   const [, , , named] = vi.mocked(saveForUser).mock.calls[0]!
-  expect(named).toEqual({ [home.id]: { hours: 10, requester: null } })
-  await expect(saveProjects({ data: { account: ANA, projects: [home], named: { [home.id]: { id: 'x' } } } })).rejects.toThrow('cannot name the field id')
+  expect(named).toEqual({ [home.id]: ['hours', 'requester'] })
+  await expect(saveProjects({ data: { account: ANA, projects: [home], named: { [home.id]: ['id'] } } })).rejects.toThrow('cannot name the field id')
 })

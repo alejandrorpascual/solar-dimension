@@ -237,6 +237,34 @@ test('a project another device deleted leaves the screen when this tab comes bac
   expect(names(back.store.projects)).toEqual(['Home'])
 })
 
+test("a project another device deleted leaves the screen when this tab comes back, though another tab's save failed and left its marker", async () => {
+  session.user = ANA
+  await mount()
+  await edit((h) => h.commit(addProject(h.store, 'Second')))
+  markPendingSave(browser)
+  accounts.set(ANA.id, account(ANA).filter((p) => p.name === 'Home'))
+
+  const back = await comeBack()
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
+
+  expect(names(back.store.projects)).toEqual(['Home'])
+  expect(names(account(ANA))).toEqual(['Home'])
+})
+
+test("a project another tab added, which this tab then read from the account, leaves the screen once deleted elsewhere, marker or not", async () => {
+  session.user = ANA
+  await mount()
+  const tabA = await otherTabCommits((store) => addProject(store, 'Cabin'))
+  tabA.land()
+  await comeBack()
+  markPendingSave(browser)
+  accounts.set(ANA.id, account(ANA).filter((p) => p.name === 'Home'))
+
+  const back = await comeBack()
+
+  expect(names(back.store.projects)).toEqual(['Home'])
+})
+
 test("another device's saved hours show when this tab comes back, though another tab's save failed and left its marker", async () => {
   session.user = ANA
   await mount()

@@ -112,6 +112,8 @@ test.each([
   ['two devices with no focus between: hours on C, volts in B', ['B', 'C'], [edit('C', { hours: 24 }), edit('B', { volts: 12 })]],
   ['one field in two tabs: 24 h in A, then 12 h in B, which is the later edit', ['A', 'B'], switching([edit('A', { hours: 24 }), edit('B', { hours: 12 })])],
   ['one field on two devices: 24 h on C, then 12 h in B, which is the later edit', ['B', 'C'], switching([edit('C', { hours: 24 }), edit('B', { hours: 12 })])],
+  ['one field set back (QA-W4): 5 h in A, then 12 h and back to 10 h on C, which is the later edit', ['A', 'C'],
+    switching([edit('A', { hours: 5 }), edit('C', { hours: 12 }), edit('C', { hours: 10 })])],
 ] as const)('%s: no order loses an edit, and each tab shows the account once back', async (_what, names, steps) => {
   const { orders, lost, stale } = await everyOrder(names, steps)
 
