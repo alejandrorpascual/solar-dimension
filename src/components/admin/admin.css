@@ -10,6 +10,8 @@
 .admin__table th, .admin__table td { padding: 8px; border-bottom: 1px solid var(--line, #e4e4e7); text-align: left; vertical-align: top; }
 .admin__table tbody th { padding-top: 20px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted, #71717a); }
 .admin__table .is-retired td { opacity: 0.5; }
+.admin__changes { margin-top: 40px; }
+.admin__fields { margin: 0; padding: 0; list-style: none; overflow-wrap: anywhere; }
 @media (max-width: 640px) {
   .admin__form { grid-template-columns: 1fr; }
   .admin__table { display: block; overflow-x: auto; }

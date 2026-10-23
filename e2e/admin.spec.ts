@@ -88,7 +88,7 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
     await page.getByLabel('Surge watts').fill('1500')
     await page.getByLabel('Duty').fill('0.2')
     await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('row', { name: new RegExp(name) })).toBeVisible()
+    await expect(page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name: new RegExp(name) })).toBeVisible()
 
     await page.goto('/?step=1')
     await expect(page.getByText(name)).toBeVisible()
@@ -99,6 +99,12 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
     // "Restore" (confirming the mutation and the client-side refresh both completed) before checking the picker,
     // otherwise this navigation can race the write and read the cache before it clears.
     await expect(page.getByRole('row', { name: new RegExp(name) }).getByRole('button', { name: 'Restore' })).toBeVisible()
+    // Both writes are in the change log, newest first, under the admin's email.
+    const logged = page.getByRole('table', { name: 'Recent changes' }).getByRole('row', { name: new RegExp(name) })
+    await expect(logged).toHaveCount(2)
+    await expect(logged.nth(0)).toContainText('retired: false → true')
+    await expect(logged.nth(1)).toContainText('Created')
+    await expect(logged.nth(1)).toContainText(ADMIN.email)
     await page.goto('/?step=1')
     await expect(page.getByText(name)).toHaveCount(0)
   } finally {
@@ -124,12 +130,14 @@ test('"New appliance" refuses an id that already belongs to another appliance', 
   await expect(page.getByText('The id "toaster" is already used by another appliance. Change the English name.')).toBeVisible()
 
   await page.getByRole('button', { name: 'Cancel' }).click()
-  await expect(page.getByRole('row', { name: /Toaster/ })).toContainText('1000')
+  // The catalog table's rows only: the change log below may list the same appliances.
+  const catalogRow = (name: RegExp) => page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name })
+  await expect(catalogRow(/Toaster/)).toContainText('1000')
 
   // Switching the edit target without closing the form must show the new target's values, not keep the old draft.
-  await page.getByRole('row', { name: /Toaster/ }).getByRole('button', { name: 'Edit' }).click()
+  await catalogRow(/Toaster/).getByRole('button', { name: 'Edit' }).click()
   await expect(page.getByLabel('Name (EN)')).toHaveValue('Toaster')
-  await page.getByRole('row', { name: /Coffee maker/ }).getByRole('button', { name: 'Edit' }).click()
+  await catalogRow(/Coffee maker/).getByRole('button', { name: 'Edit' }).click()
   await expect(page.getByLabel('Name (EN)')).toHaveValue('Coffee maker')
   await expect(page.getByLabel('Running watts')).toHaveValue('900')
   await page.getByRole('button', { name: 'Cancel' }).click()

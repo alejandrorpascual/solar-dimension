@@ -6,7 +6,8 @@
 // <fingerprint> is printed by the listing and covers the exact set of listed ids. The delete is one statement that
 // removes nothing when the matching ids no longer have that fingerprint (a row appeared or disappeared since the
 // listing), or when any saved project uses one of them: project quantities keep ids without a foreign key, so
-// deleting a used appliance would silently drop its load from that project's sizing.
+// deleting a used appliance would silently drop its load from that project's sizing. The same statement deletes the
+// deleted rows' change-log entries (no foreign key either), which would otherwise stay in the admin's "Recent changes".
 import { createHash } from 'node:crypto'
 import { neon } from '@neondatabase/serverless'
 
@@ -58,17 +59,20 @@ async function main() {
     if (rows.length > 0 && used.length === 0) console.log(`\nList only. To delete exactly these rows: add --yes=${fingerprint}`)
     return
   }
-  const deleted = await sql`
-    with doomed as (select id from appliances where starts_with(id, ${E2E_PREFIX}))
-    delete from appliances
-    where id in (select id from doomed)
-      and (select left(md5(coalesce(string_agg(id, ',' order by id collate "C"), '')), ${FINGERPRINT_LENGTH}) from doomed) = ${confirmed}
-      and not exists (select 1 from projects p, jsonb_object_keys(p.qty) k where starts_with(k, ${E2E_PREFIX}))
-    returning id`
-  if (deleted.length === 0) {
+  const [{ appliances: deleted, entries }] = await sql`
+    with doomed as (select id from appliances where starts_with(id, ${E2E_PREFIX})),
+    removed as (
+      delete from appliances
+      where id in (select id from doomed)
+        and (select left(md5(coalesce(string_agg(id, ',' order by id collate "C"), '')), ${FINGERPRINT_LENGTH}) from doomed) = ${confirmed}
+        and not exists (select 1 from projects p, jsonb_object_keys(p.qty) k where starts_with(k, ${E2E_PREFIX}))
+      returning id),
+    forgotten as (delete from appliance_changes where appliance_id in (select id from removed) returning id)
+    select (select count(*)::int from removed) as appliances, (select count(*)::int from forgotten) as entries`
+  if (deleted === 0) {
     throw new Error('Nothing deleted: the matching rows changed since that listing, or a saved project uses one. List again.')
   }
-  console.log(`\nDeleted ${deleted.length} rows.`)
+  console.log(`\nDeleted ${deleted} rows and ${entries} change-log entries.`)
 }
 
 main().catch((err) => {

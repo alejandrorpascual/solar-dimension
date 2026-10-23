@@ -44,3 +44,30 @@ export function assignSortOrders(existing: readonly ApplianceRecord[], incoming:
     return { ...item, sortOrder: order, retired: current?.retired ?? false }
   })
 }
+
+/** One write as the change log keeps it: the row as it was (null for a new row) and the row as written. */
+export interface ApplianceWrite { before: ApplianceRecord | null; after: ApplianceRecord }
+
+/** What an upsert does: the change for each item, and the rows it writes. Unchanged items write nothing. */
+export function planUpsert(existing: readonly ApplianceRecord[], incoming: readonly ApplianceInput[]): { changes: ApplianceChange[]; writes: ApplianceWrite[] } {
+  const byId = new Map(existing.map((r) => [r.id, r]))
+  const changes = diffAppliances(existing, incoming)
+  const writes = assignSortOrders(existing, incoming)
+    .filter((_, i) => changes[i]!.kind !== 'unchanged')
+    .map((after) => ({ before: byId.get(after.id) ?? null, after }))
+  return { changes, writes }
+}
+
+/** A retire or restore as one write, or null when the row is already in that state (nothing to write). */
+export function retireWrite(current: ApplianceRecord, retired: boolean): ApplianceWrite | null {
+  return current.retired === retired ? null : { before: current, after: { ...current, retired } }
+}
+
+const LOGGED = [...COMPARED, 'sortOrder', 'retired'] as const
+export interface WrittenField { field: (typeof LOGGED)[number]; from: unknown; to: unknown }
+
+/** The fields a logged write changed, from and to. Empty for a new row: there is nothing before it to compare. */
+export function writtenFields({ before, after }: ApplianceWrite): WrittenField[] {
+  if (!before) return []
+  return LOGGED.filter((f) => stable(before[f]) !== stable(after[f])).map((field) => ({ field, from: before[field], to: after[field] }))
+}

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { assignSortOrders, diffAppliances, warnAppliances } from './catalog-diff'
+import { assignSortOrders, diffAppliances, planUpsert, retireWrite, warnAppliances, writtenFields } from './catalog-diff'
 import { ApplianceSchema } from './catalog-schema'
 import { APPLIANCE_SEED } from './catalog-snapshot'
 
@@ -75,4 +75,32 @@ test('a new item is checked on its own, with no stored row to compare against', 
   const pump = { ...fridgeInput, id: 'pump', category: 'Utility' as const, watts: 100, surge: 3000 }
 
   expect(warnAppliances(APPLIANCE_SEED, [pump])).toEqual([{ id: 'pump', messages: [expect.stringMatching(/^Surge is 30× the running watts/)] }])
+})
+
+test('a changed upsert writes one entry with the row before and after', () => {
+  const { writes } = planUpsert(APPLIANCE_SEED, [{ ...fridgeInput, watts: 180 }])
+
+  expect(writes).toEqual([{ before: fridge, after: { ...fridgeInput, watts: 180, sortOrder: fridge.sortOrder, retired: false } }])
+  expect(writtenFields(writes[0]!)).toEqual([{ field: 'watts', from: 150, to: 180 }])
+})
+
+test('an unchanged item writes nothing, and a new one is written with no row before it', () => {
+  const stove = { ...fridgeInput, id: 'stove' }
+
+  const { changes, writes } = planUpsert(APPLIANCE_SEED, [fridgeInput, stove])
+
+  expect(changes.map((c) => c.kind)).toEqual(['unchanged', 'new'])
+  expect(writes.map((w) => [w.after.id, w.before])).toEqual([['stove', null]])
+  expect(writtenFields(writes[0]!)).toEqual([])
+})
+
+test('a retire and a restore are each one write that flips only the retired flag; repeating one writes nothing', () => {
+  const retired = retireWrite(fridge, true)
+  expect(retired).toEqual({ before: fridge, after: { ...fridge, retired: true } })
+  expect(writtenFields(retired!)).toEqual([{ field: 'retired', from: false, to: true }])
+
+  const restored = retireWrite({ ...fridge, retired: true }, false)
+  expect(writtenFields(restored!)).toEqual([{ field: 'retired', from: true, to: false }])
+
+  expect(retireWrite(fridge, false)).toBeNull()
 })

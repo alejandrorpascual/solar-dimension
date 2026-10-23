@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { check, date, doublePrecision, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import type { ApplianceLabels } from '../lib/catalog'
-import { APPLIANCE_CATEGORIES } from '../lib/catalog-schema'
+import { APPLIANCE_CATEGORIES, type ApplianceRecord } from '../lib/catalog-schema'
 import { LOAD_KINDS, SURGE_CLASSES } from '../lib/catalog'
 import type { Musts, Overrides } from '../lib/quote-items'
 import type { Requester } from '../lib/requester'
@@ -76,6 +76,20 @@ export const appliances = pgTable(
     check('appliances_momentary_check', sql`(${t.kind} is not distinct from 'momentary') = (${t.burstSeconds} is not null and ${t.cyclesPerHour} is not null)`),
   ],
 )
+
+/**
+ * Every write to an appliance, append-only: who (`updated_by` of the write), when, and the row before and after; before
+ * is null for a new row. Added in the same `db.batch` as the write. No foreign key: an entry outlives its row.
+ */
+export const applianceChanges = pgTable('appliance_changes', {
+  /** Grows with each entry, so the newest entries come first in descending id order. */
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  applianceId: text('appliance_id').notNull(),
+  actor: text('actor').notNull(),
+  changedAt: timestamp('changed_at', { withTimezone: true }).notNull().defaultNow(),
+  before: jsonb('before').$type<ApplianceRecord>(),
+  after: jsonb('after').$type<ApplianceRecord>().notNull(),
+})
 
 const productKindList = sql.raw(PRODUCT_KINDS.map((k) => `'${k}'`).join(', '))
 const productOriginList = sql.raw(PRODUCT_ORIGINS.map((o) => `'${o}'`).join(', '))
