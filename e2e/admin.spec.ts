@@ -142,6 +142,11 @@ test('sources sent with a token write read back, show in the admin row, and surv
     const row = page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name: new RegExp(name) })
     const source = row.getByRole('link', { name: `“${nameplate.asWritten}”` })
     await expect(source).toHaveAttribute('href', nameplate.source)
+    // The quote takes the list's muted color, not the global link accent, at rest and on hover.
+    const sourcesColor = await source.evaluate((a) => getComputedStyle(a.closest('.admin__sources')!).color)
+    await expect(source).toHaveCSS('color', sourcesColor)
+    await source.hover()
+    await expect(source).toHaveCSS('color', sourcesColor)
     // Shown whatever the kind, so a source stored against a figure the item does not use can be seen and cleared.
     const kindCell = row.getByRole('cell').nth(4)
     await expect(kindCell).toContainText(`Cycles: “${strayCycles.asWritten}”`)
