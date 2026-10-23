@@ -190,3 +190,60 @@ test('a read that fails when this tab is back is logged and changes nothing on s
   expect(back.syncError).toBe(false)
   expect(vi.mocked(console.error).mock.calls.filter((call) => call[0] === '[projects] reload failed')).toHaveLength(1)
 })
+
+test("this tab's own save lands while another tab's hours save is on its way; coming back here shows those hours, and volts here keep them", async () => {
+  const realNow = Date.now.bind(Date)
+  let t = realNow()
+  vi.spyOn(Date, 'now').mockImplementation(() => (t += 10))
+  session.user = ANA
+  await mount()
+  let answer!: () => void
+  net.gate = new Promise<void>((resolve) => { answer = resolve })
+  await edit((h) => h.commit(patchCurrent(h.store, { chemistry: 'agm' })))
+  const tabA = await otherTabCommits((store) => patchCurrent(store, { hours: 20 }))
+  net.gate = null
+  answer()
+  await edit(() => undefined)
+
+  const back = await comeBack()
+  tabA.land()
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
+
+  expect({ screen: home(back.store.projects).hours, account: home(account(ANA)) }).toMatchObject({
+    screen: 20,
+    account: { hours: 20, volts: VOLTS, chemistry: 'agm' },
+  })
+})
+
+test("a project another tab added stays here when this tab comes back before that tab's save lands", async () => {
+  session.user = ANA
+  await mount()
+  const tabA = await otherTabCommits((store) => addProject(store, 'Cabin'))
+
+  const back = await comeBack()
+  tabA.land()
+
+  expect(names(back.store.projects)).toEqual(['Home', 'Cabin'])
+})
+
+test('a project another device deleted leaves the screen when this tab comes back', async () => {
+  session.user = ANA
+  await mount()
+  await edit((h) => h.commit(addProject(h.store, 'Second')))
+  accounts.set(ANA.id, account(ANA).filter((p) => p.name === 'Home'))
+
+  const back = await comeBack()
+
+  expect(names(back.store.projects)).toEqual(['Home'])
+})
+
+test("another device's saved hours show when this tab comes back, though another tab's save failed and left its marker", async () => {
+  session.user = ANA
+  await mount()
+  markPendingSave(browser)
+  accounts.set(ANA.id, account(ANA).map((p) => ({ ...p, hours: 20, updatedAt: clock.now() })))
+
+  const back = await comeBack()
+
+  expect(home(back.store.projects).hours).toBe(20)
+})

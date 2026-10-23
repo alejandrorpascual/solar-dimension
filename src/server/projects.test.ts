@@ -65,3 +65,11 @@ test('an import that carries a project without solar asks the write to keep the 
   expect(leftOut).toEqual(new Map([['p-older', ['solar']]]))
   expect(listForUser).toHaveBeenCalledWith(ANA)
 })
+
+test('a save that names fields passes each one with the value it started from, and a field no save can name is refused', async () => {
+  await saveProjects({ data: { account: ANA, projects: [home], named: { [home.id]: { hours: 10, requester: null } } } })
+
+  const [, , , named] = vi.mocked(saveForUser).mock.calls[0]!
+  expect(named).toEqual({ [home.id]: { hours: 10, requester: null } })
+  await expect(saveProjects({ data: { account: ANA, projects: [home], named: { [home.id]: { id: 'x' } } } })).rejects.toThrow('cannot name the field id')
+})

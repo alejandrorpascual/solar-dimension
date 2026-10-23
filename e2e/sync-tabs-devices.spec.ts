@@ -103,18 +103,21 @@ test("two browsers: B shows A's saved hours once it is back, and volts set in B 
 /** A seroval object node of the request body: its keys and their values side by side. */
 type Node = { t?: number; p?: { k: string[]; v: unknown[] }; a?: unknown[] }
 
-/** Takes `field` out of every project in a save's body, as a build older than that field sends it. Returns how many it took out of. */
-function stripField(node: unknown, field: string): number {
+/**
+ * Takes `field` out of every object in a save's body that has it beside `besideKey`: by default every project (they
+ * carry `hours`), as a build older than that field sends it. Returns how many it took out of.
+ */
+function stripField(node: unknown, field: string, besideKey: string | null = 'hours'): number {
   if (!node || typeof node !== 'object') return 0
   const n = node as Node
   let stripped = 0
-  if (n.p && Array.isArray(n.p.k) && n.p.k.includes('hours') && n.p.k.includes(field)) {
+  if (n.p && Array.isArray(n.p.k) && (besideKey === null || n.p.k.includes(besideKey)) && n.p.k.includes(field)) {
     const at = n.p.k.indexOf(field)
     n.p.k.splice(at, 1)
     n.p.v.splice(at, 1)
     stripped += 1
   }
-  for (const child of Object.values(n)) stripped += stripField(child, field)
+  for (const child of Object.values(n)) stripped += stripField(child, field, besideKey)
   return stripped
 }
 
@@ -128,11 +131,14 @@ test('a save whose project has no solar field leaves the stored solar settings u
   const solarBefore = (await savedProject(email, 'Home'))!.solar
 
   let strippedProjects = 0
+  let strippedNames = 0
   await page.route('**/_serverFn/**', async (route: Route) => {
     const request = route.request()
     if (!isSave(request)) return route.continue()
     const body = JSON.parse(request.postData() ?? 'null') as unknown
     strippedProjects += stripField(body, 'solar')
+    // A build older than solar also names no fields, so the account writes whole projects, as it did then.
+    strippedNames += stripField(body, 'named', null)
     return route.continue({ postData: JSON.stringify(body) })
   })
   await page.goto('/?step=2')
@@ -140,6 +146,7 @@ test('a save whose project has no solar field leaves the stored solar settings u
   await clickAndSave(page, page.getByRole('button', { name: '24 h', exact: true }))
 
   expect(strippedProjects).toBeGreaterThan(0)
+  expect(strippedNames).toBeGreaterThan(0)
   await expect.poll(async () => {
     const saved = await savedProject(email, 'Home')
     return { hours: saved?.hours, solar: saved?.solar }

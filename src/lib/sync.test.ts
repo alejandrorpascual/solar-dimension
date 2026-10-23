@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest'
 import { addProject, currentProject, initialStore, patchCurrent } from './store'
 import {
-  adoptKept, adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, isForAccount, leftOut, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing,
-  rebase, unsentOf,
+  adoptKept, adoptStale, applyChanges, clampStamp, diffProjects, editsOf, hasUnsent, importable, isForAccount, leftOut, MAX_CLOCK_LEAD_MS, mergeEdits, namedEdits,
+  newestById, NOTHING_UNSENT, outgoing, parseNamed, readBack, rebase, unsentOf, type Edits, type StartedFrom,
 } from './sync'
 
 test('reports new and changed projects as upserts and missing ones as deletes', () => {
@@ -187,4 +187,47 @@ test('a save leaves out the fields its build does not know, by project; a batter
     ['p-whole', []],
     ['p-battery-only', []],
   ]))
+})
+
+test('an edit names the fields it changed with the values they had before it, and a project it added as all of it', () => {
+  const before = addProject(initialStore(), 'Office').projects
+  const after = [{ ...before[0]!, hours: 24, volts: 12 as const, updatedAt: 99 }, before[1]!, project('p-new')]
+
+  expect(editsOf(before, diffProjects(before, after).upserts)).toEqual(new Map<string, unknown>([
+    [before[0]!.id, { hours: before[0]!.hours, volts: before[0]!.volts }],
+    ['p-new', 'all'],
+  ]))
+})
+
+test('edits carried from a failed save keep the start of a field edited again, and a save names only those it sends', () => {
+  const earlier: Edits = new Map<string, StartedFrom | 'all'>([['p1', { hours: 10 }], ['p2', 'all']])
+  const later: Edits = new Map<string, StartedFrom | 'all'>([['p1', { hours: 15, volts: 48 }], ['p2', { name: 'Home' }], ['p3', { qty: {} }]])
+  const merged = mergeEdits(earlier, later)
+
+  expect(merged).toEqual(new Map<string, unknown>([['p1', { hours: 10, volts: 48 }], ['p2', 'all'], ['p3', { qty: {} }]]))
+  expect(namedEdits([project('p1'), project('p2')], merged)).toEqual({ p1: { hours: 10, volts: 48 } })
+})
+
+test('a save names only fields a save can write, each starting value as its field holds it', () => {
+  expect(parseNamed({ p1: { hours: 10, requester: null, qty: { fan: 2 } } })).toEqual({ p1: { hours: 10, requester: null, qty: { fan: 2 } } })
+  expect(parseNamed(undefined)).toEqual({})
+  expect(() => parseNamed({ p1: { updatedAt: 0 } })).toThrow('cannot name the field updatedAt')
+  expect(() => parseNamed({ p1: { hours: 'ten' } })).toThrow()
+})
+
+test('a named save takes back only the fields the account kept at its own value, where the screen still shows what was sent', () => {
+  const sent = { ...seed!, hours: 5, name: 'Renamed' }
+  const account = { ...seed!, hours: 20, name: 'Renamed', volts: 12 as const }
+  const named = { [seed!.id]: { hours: 10, name: seed!.name } }
+
+  expect(adoptStale([sent], [sent], [account], named)).toEqual([{ ...sent, hours: 20 }])
+  expect(adoptStale([{ ...sent, hours: 6 }], [sent], [account], named)).toEqual([{ ...sent, hours: 6 }])
+})
+
+test('a list read again keeps a copy this browser stamped later, and drops a project the account lacks unless a save is on its way', () => {
+  const here = [{ ...project('p1', 24), updatedAt: 30 }, { ...project('p2'), updatedAt: 5 }, { ...project('p-added'), updatedAt: 40 }]
+  const list = [{ ...project('p1', 10), updatedAt: 20 }, { ...project('p2', 6), updatedAt: 25 }]
+
+  expect(readBack(here, list, false).map((p) => [p.id, p.hours])).toEqual([['p1', 24], ['p2', 6]])
+  expect(readBack(here, list, true).map((p) => [p.id, p.hours])).toEqual([['p1', 24], ['p2', 6], ['p-added', 10]])
 })

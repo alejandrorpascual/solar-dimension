@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db } from '../db/client'
 import { projects, quoteFileTrash, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { importable, leftOut } from '../lib/sync'
+import { importable, leftOut, parseNamed } from '../lib/sync'
 import { listForUser, saveForUser, upsertAll } from './projects-repo'
 import { emptyQuoteTrash } from './quotes/deps'
 import { lockUserQuotes } from './quotes/limits'
@@ -17,10 +17,13 @@ const ProjectsInput = z.object({ account: AccountClaim, projects: z.array(Projec
 const IdsInput = z.object({ account: AccountClaim, ids: z.array(z.string().min(1)).max(MAX_BATCH) })
 const ListInput = z.object({ account: AccountClaim }).optional()
 
-/** A save as parsed, with the fields each project left out (leftOut): the account keeps its own value of those. */
+/**
+ * A save as parsed, with the fields each project left out (leftOut), whose stored value the account keeps, and the
+ * fields it names (parseNamed), the only ones the account writes. A build that names none sends whole projects.
+ */
 function parseSave(d: unknown) {
   const input = ProjectsInput.parse(d)
-  return { ...input, leftOut: leftOut((d as { projects: unknown[] }).projects) }
+  return { ...input, leftOut: leftOut((d as { projects: unknown[] }).projects), named: parseNamed((d as { named?: unknown }).named) }
 }
 
 export const listProjects = createServerFn({ method: 'GET' })
@@ -30,7 +33,7 @@ export const listProjects = createServerFn({ method: 'GET' })
 /** saveForUser for the account the page was loaded for: `stale` holds the account's copy of each project it refused. */
 export const saveProjects = createServerFn({ method: 'POST' })
   .validator(parseSave)
-  .handler(async ({ data }): Promise<{ ok: true; stale: Project[] }> => saveForUser(await requireAccount(data.account), data.projects, data.leftOut))
+  .handler(async ({ data }): Promise<{ ok: true; stale: Project[] }> => saveForUser(await requireAccount(data.account), data.projects, data.leftOut, data.named))
 
 export const deleteProjects = createServerFn({ method: 'POST' })
   .validator((d: unknown) => IdsInput.parse(d))

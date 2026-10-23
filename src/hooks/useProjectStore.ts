@@ -7,7 +7,10 @@ import {
 } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
 import { currentProject, initialStore, nameFirstProject, rekeySeed, withSetAside } from '../lib/store'
-import { adoptKept, adoptStale, applyChanges, diffProjects, hasUnsent, NOTHING_UNSENT, outgoing, rebase, unsentOf, type Unsent } from '../lib/sync'
+import {
+  adoptKept, adoptStale, applyChanges, diffProjects, editsOf, hasUnsent, mergeEdits, namedEdits, NOTHING_UNSENT, outgoing, readBack, rebase, unsentOf,
+  type Edits, type Unsent,
+} from '../lib/sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
 import { useLocale } from './useLocale'
 import { useRootData } from './useRootData'
@@ -88,6 +91,8 @@ export function useProjectStore() {
   const loaded = useRef(false)
   /** What failed to reach the account since the last save that worked. The next save carries it again. */
   const unsent = useRef<Unsent>(NOTHING_UNSENT)
+  /** The fields of `unsent`'s projects that edits changed, with the values they started from, for that next save to name. */
+  const unsentEdits = useRef<Edits>(new Map())
   /** Whether the account holds everything this device does, as far as the requests answered so far can tell. */
   const isClean = useCallback(() => loaded.current && !hasUnsent(unsent.current), [])
   /**
@@ -159,17 +164,15 @@ export function useProjectStore() {
   }, [account, isAccountUnreachable])
 
   // Back on this tab: another device may have saved since. The account's list is read again and shown, with the fields
-  // edited here meanwhile laid over it, so the click that brings the tab back may itself be an edit. Only while the
-  // account holds everything this device does: a list read past an edit that never reached it would take that edit off
-  // the screen. That includes another tab's: its commit marks its save as on its way when it keeps its copy, before
-  // this tab hears of it, and a list read before that save lands would put the account's older copy back over it.
-  // Ceiling: the marker is one per browser, so a save that failed in any tab stops these reads until a save or a page
-  // load gets through.
+  // edited here meanwhile laid over it, so the click that brings the tab back may itself be an edit. A copy another tab
+  // of this browser stamped later stays (readBack), as its save may not have landed yet. What is shown here never undoes
+  // another tab's or device's edit in the account: a save names only the fields it changed. Only while this tab has
+  // nothing unsent: a list read past an edit that never reached the account would take that edit off the screen.
   useEffect(() => {
     if (!account) return
     let isReading = false
     const reread = () => {
-      if (isReading || document.visibilityState === 'hidden' || !isClean() || hasPendingSave()) return
+      if (isReading || document.visibilityState === 'hidden' || !isClean()) return
       isReading = true
       const readIn = scope.current
       // Edits made from here on are saved after this read, so the list cannot hold them yet.
@@ -177,7 +180,7 @@ export function useProjectStore() {
       enqueue(() => listProjects({ data: { account } }))
         .then((list) => {
           if (scope.current !== readIn || !isClean()) return
-          show(fromServer(rebase(list, before.projects, latest.current.projects), latest.current))
+          show(fromServer(rebase(readBack(before.projects, list, hasPendingSave()), before.projects, latest.current.projects), latest.current))
         })
         .catch((error: unknown) => console.error('[projects] reload failed', { error }))
         .finally(() => { isReading = false })
@@ -207,6 +210,7 @@ export function useProjectStore() {
     const { upserts, deletes } = diffProjects(prev.projects, next.projects)
     if (upserts.length === 0 && deletes.length === 0) return
     const sentIn = scope.current
+    const edits = editsOf(prev.projects, upserts)
     inFlight.current += 1
     markPendingSave()
     setSaving(true)
@@ -214,24 +218,30 @@ export function useProjectStore() {
       // What failed before goes again with this save. If either request fails both count as unsent: sending a
       // project or a delete twice changes nothing. Each project goes as the screen shows it now: a read of the account
       // answered since this edit has laid it over the account's copy, which the copy made at the edit would overwrite.
+      // The save names the fields edits here changed and the values they started from, and the account writes only
+      // those: a copy here that missed another tab's or device's edit to another field does not undo it.
       const sending = outgoing(scope.current === sentIn ? latest.current.projects : next.projects, { upserts, deletes }, unsent.current)
+      const carried = mergeEdits(unsentEdits.current, edits)
+      const named = namedEdits(sending.upserts, carried)
       try {
         const [saved] = await Promise.all([
-          sending.upserts.length ? saveProjects({ data: { account, projects: sending.upserts } }) : null,
+          sending.upserts.length ? saveProjects({ data: { account, projects: sending.upserts, named } }) : null,
           sending.deletes.length ? deleteProjects({ data: { account, ids: sending.deletes } }) : null,
         ])
         unsent.current = NOTHING_UNSENT
-        return { sent: sending.upserts, stale: saved?.stale ?? [] }
+        unsentEdits.current = new Map()
+        return { sent: sending.upserts, stale: saved?.stale ?? [], named }
       } catch (error) {
         unsent.current = unsentOf(sending)
+        unsentEdits.current = carried
         throw error
       }
     })
-      .then(({ sent, stale }) => {
+      .then(({ sent, stale, named }) => {
         if (scope.current !== sentIn) return
         if (stale.length) {
           // The account holds a newer copy of these: show it, unless the project was edited again meanwhile.
-          show({ ...latest.current, projects: adoptStale(latest.current.projects, sent, stale) })
+          show({ ...latest.current, projects: adoptStale(latest.current.projects, sent, stale, named) })
         }
         if (isClean()) setSyncError(false)
       })

@@ -7,6 +7,7 @@ import { db } from '../db/client'
 import { projects } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
 import { currentProject, initialStore } from '../lib/store'
+import { emptyRequester } from '../lib/requester'
 import { leftOut } from '../lib/sync'
 import { listForUser, saveForUser } from './projects-repo'
 
@@ -71,4 +72,43 @@ describe('saveForUser on the test database', () => {
     expect(answer).toEqual({ ok: true, stale: [] })
     expect((await listForUser(userId)).find((p) => p.id === withPanels.id)).toEqual({ ...withPanels, hours: 12, updatedAt: LATER })
   })
+
+  it('keeps both edits when two saves name different fields and the older one arrives last', async () => {
+    const start = project('Home', EARLIER - 1)
+    await saveForUser(userId, [start])
+    const volts = { ...start, volts: 12 as const, updatedAt: LATER }
+    const hours = { ...start, hours: 24, updatedAt: EARLIER }
+
+    await saveForUser(userId, [volts], new Map(), { [start.id]: { volts: start.volts } })
+    const answer = await saveForUser(userId, [hours], new Map(), { [start.id]: { hours: start.hours } })
+
+    expect(answer).toEqual({ ok: true, stale: [] })
+    expect((await listForUser(userId)).find((p) => p.id === start.id)).toEqual({ ...start, volts: 12, hours: 24, updatedAt: LATER })
+  })
+
+  it('keeps the later edit of one field and answers the older one with the account copy', async () => {
+    const start = project('Home', EARLIER - 1)
+    await saveForUser(userId, [start])
+    const later = { ...start, qty: { fridge: 2 }, updatedAt: LATER }
+    const earlier = { ...start, qty: { fan: 1 }, updatedAt: EARLIER }
+
+    await saveForUser(userId, [later], new Map(), { [start.id]: { qty: start.qty } })
+    const answer = await saveForUser(userId, [earlier], new Map(), { [start.id]: { qty: start.qty } })
+
+    expect(answer).toEqual({ ok: true, stale: [later] })
+    expect((await listForUser(userId)).find((p) => p.id === start.id)).toEqual(later)
+  })
+
+  it('writes a named field that started from null, and inserts whole a named project the account lacks', async () => {
+    const start = project('Home', EARLIER)
+    const requester = { ...emptyRequester('US'), name: 'Ana Lopez', docPrefix: '', doc: '' }
+    const added = { ...start, requester, updatedAt: LATER }
+
+    const answer = await saveForUser(userId, [added], new Map(), { [start.id]: { requester: null } })
+    await saveForUser(userId, [{ ...added, hours: 7 }], new Map(), { [start.id]: { hours: start.hours } })
+
+    expect(answer).toEqual({ ok: true, stale: [] })
+    expect((await listForUser(userId)).find((p) => p.id === start.id)).toMatchObject({ requester, hours: 7 })
+  })
 })
+
