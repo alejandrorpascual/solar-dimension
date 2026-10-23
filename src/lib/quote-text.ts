@@ -64,6 +64,12 @@ export function verdictStatus(t: Dictionary, v: Verdict): { tone: 'ok' | 'warn';
   return { tone: 'warn', label: v.failedCount === 1 ? t.quotes.unreadOne : trq(t, 'unreadCount', { count: v.failedCount }), meta: null }
 }
 
+/** When as many quotes are in another currency as in the one ranked: which one was ranked, and why. Null without a tie. */
+export function currencyTieText(t: Dictionary, v: Verdict): string | null {
+  if (v.currency === null || v.tiedCurrencies.length === 0) return null
+  return trq(t, 'currencyTie', { currencies: fmtList([v.currency, ...v.tiedCurrencies], t.locale), currency: v.currency })
+}
+
 /**
  * Why the verdict compares nothing: the kit leaves out appliances the catalog could not load, so a quote could fit it and
  * not the real one, or it has no appliances at all. Null when quotes can be judged against it.

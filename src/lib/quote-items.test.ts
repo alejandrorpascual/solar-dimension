@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { CHEMISTRIES } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
-import { checkItems, DEFAULT_MUSTS, itemsFor, kitNeeds, resolveMusts, setOverride, type ItemCheck, type ItemId, type KitNeeds } from './quote-items'
+import { checkItems, DEFAULT_MUSTS, FIXED_MUSTS, itemsFor, kitNeeds, resolveMusts, setOverride, type ItemCheck, type ItemId, type KitNeeds } from './quote-items'
 import type { QuoteExtraction, QuoteLine } from './quote-schema'
 import { compute } from './sizing'
 
@@ -15,6 +15,10 @@ describe('must-haves and overrides', () => {
   test('stored must-haves win over the defaults', () => {
     expect(resolveMusts({ charger: false }).charger).toBe(false)
     expect(resolveMusts(null)).toEqual(DEFAULT_MUSTS)
+  })
+  test('inverter and battery stay must-haves whatever was saved, so a verdict never meets "all 0 must-haves" (AI-28)', () => {
+    expect(resolveMusts({ inverter: false, battery: false, charger: false })).toMatchObject({ inverter: true, battery: true, charger: false })
+    expect(FIXED_MUSTS).toEqual(['inverter', 'battery'])
   })
   test('setOverride adds, replaces and removes without mutating', () => {
     const a = {}

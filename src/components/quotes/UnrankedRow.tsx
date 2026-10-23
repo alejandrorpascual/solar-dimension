@@ -48,7 +48,9 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
     ? { cls: 'qpill qpill--unk', text: trq(t, 'otherCurrency', { currency: u.currency ?? '' }) }
     : u.reason === 'no_price'
       ? { cls: 'qpill qpill--warn', text: t.quotes.noPrice }
-      : { cls: 'qpill qpill--warn', text: fileStatusText(t, u.quote.status) }
+      : u.reason === 'duplicate'
+        ? { cls: 'qpill qpill--warn', text: t.quotes.duplicate }
+        : { cls: 'qpill qpill--warn', text: fileStatusText(t, u.quote.status) }
   const subtitle = entrySubtitle(t, u)
   const hasLines = extraction !== null && lineRows(t, extraction, u.optionId).length > 0
   return (
@@ -78,6 +80,7 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
       )}
       {waitsForTotal && u.optionCount > 0 && <p className="qmeta">{trq(t, canReadAgain ? 'optionsReviewHelp' : 'optionsReviewHelpNoRetry', { count: u.optionCount })}</p>}
       {u.reason === 'misread' && extraction !== null && <p className="qmeta">{misreadText(t, extraction, u.quote.pages, canReadAgain)}</p>}
+      {u.reason === 'duplicate' && <p className="qmeta">{t.quotes.duplicateHelp}</p>}
       <div className="qrow__actions">
         {canReadAgain && <button type="button" className="qbtn" onClick={onRetry}>{t.quotes.readAgain}</button>}
         <QuoteActions quoteId={u.quote.id} optionCount={u.optionCount} onDelete={onDelete} />
