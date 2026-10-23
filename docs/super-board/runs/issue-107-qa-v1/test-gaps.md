@@ -44,6 +44,9 @@ Chromium at 1920×1080, 1024×768 and 375×667. No server or database: the hook 
 was a throwaway and is not committed. Each page shows 7 source links, the count the fixture holds. The browser run on a
 real database is the CI e2e above.
 
+`before-ac4-admin-*.png` are the same rows through the staging page (`appliances.tsx` and `admin.css` at 9d72f6d),
+shot the same way, for the Before | After table: no source lines under any figure.
+
 ## Test gaps (written)
 
 - Medium: three schema limits had no test at their edge, so changing them passed every test (mutants K9, K10, K11 on
