@@ -12,6 +12,7 @@
 .admin__table .is-retired td { opacity: 0.5; }
 .admin__changes { margin-top: 40px; }
 .admin__fields { margin: 0; padding: 0; list-style: none; overflow-wrap: anywhere; }
+.admin__sources { margin: 4px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted, #71717a); overflow-wrap: anywhere; }
 @media (max-width: 640px) {
   .admin__form { grid-template-columns: 1fr; }
   .admin__table { display: block; overflow-x: auto; }

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { ApplianceForm } from '../../components/admin/ApplianceForm'
 import '../../components/admin/admin.css'
 import { writtenFields } from '../../lib/catalog-diff'
-import { APPLIANCE_CATEGORIES, type ApplianceRecord } from '../../lib/catalog-schema'
+import { APPLIANCE_CATEGORIES, type ApplianceRecord, type FigureSource } from '../../lib/catalog-schema'
 import { adminListAppliances, adminRecentChanges, adminSetRetired, checkAdmin } from '../../server/admin-catalog'
 import type { ApplianceChangeEntry } from '../../server/catalog-repo'
 
@@ -60,8 +60,18 @@ function AdminAppliances() {
             {items.filter((r) => r.category === cat).map((r) => (
               <tr key={r.id} className={r.retired ? 'is-retired' : undefined}>
                 <td>{r.labels.en.name}<br /><small>{r.labels.es.name} · {r.id}</small></td>
-                <td>{r.watts}</td><td>{r.surge}</td><td>{r.duty}</td>
-                <td>{r.kind ?? 'auto'}{r.surgeClass ? ` · ${r.surgeClass}` : ''}{r.kind === 'momentary' ? ` · ${r.burstSeconds} s × ${r.cyclesPerHour}/h` : ''}</td>
+                <td>{r.watts}<Sources list={r.sources?.watts} /></td>
+                <td>{r.surge}<Sources list={r.sources?.surge} /></td>
+                <td>{r.duty}<Sources list={r.sources?.duty} /></td>
+                <td>
+                  {r.kind ?? 'auto'}{r.surgeClass ? ` · ${r.surgeClass}` : ''}{r.kind === 'momentary' ? ` · ${r.burstSeconds} s × ${r.cyclesPerHour}/h` : ''}
+                  {r.kind === 'momentary' && (
+                    <>
+                      <Sources label="Burst" list={r.sources?.burstSeconds} />
+                      <Sources label="Cycles" list={r.sources?.cyclesPerHour} />
+                    </>
+                  )}
+                </td>
                 <td>{r.retired ? 'Retired' : 'Active'}</td>
                 <td>
                   <button type="button" onClick={() => setEditing(r)}>Edit</button>
@@ -74,6 +84,20 @@ function AdminAppliances() {
       </table>
       <RecentChanges changes={changes} />
     </main>
+  )
+}
+
+/** A figure's sources under it: each one's words as written, linking to the page they are on. Nothing when it has none. */
+function Sources({ list, label }: { list: readonly FigureSource[] | undefined; label?: string }) {
+  if (!list?.length) return null
+  return (
+    <ul className="admin__sources">
+      {list.map((s, i) => (
+        <li key={i}>
+          {label && `${label}: `}<a href={s.source} target="_blank" rel="noopener noreferrer">“{s.asWritten}”</a>
+        </li>
+      ))}
+    </ul>
   )
 }
 

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { slugify } from '../src/lib/catalog-schema'
+import { catalogAuthHeader, writeHeaders } from './catalog-token'
 import { deleteTestAppliance, firstProjectName, markEmailVerified } from './db'
 import { quotePdf, signUp, uploadQuotes } from './quotes'
 import { E2E_ADMIN as ADMIN } from './servers'
@@ -109,6 +110,44 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
     await expect(page.getByText(name)).toHaveCount(0)
   } finally {
     // Runs even if an assertion above throws midway, so no run leaves its e2e appliance behind.
+    await deleteTestAppliance(id)
+  }
+})
+
+test('sources sent with a token write read back, show in the admin row, and survive later writes that send none', async ({ page, request }) => {
+  const id = `e2e-sourced-${Date.now()}`
+  const name = `E2E kettle ${id}`
+  const kettle = {
+    id, category: 'Kitchen', watts: 1500, surge: 1500, duty: 0.1, tons: null, acType: null,
+    labels: { en: { name, note: 'Test item' }, es: { name: `Hervidor ${id}`, note: 'Ítem de prueba' } },
+  }
+  const nameplate = { source: 'https://example.com/e2e-kettle-nameplate.jpg', asWritten: '220-240V~ 50/60Hz 1500W' }
+  const post = async (item: object) => expect((await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [item] })).status()).toBe(200)
+  const storedSources = async () => {
+    const { items } = await (await request.get('/api/catalog/appliances', { headers: catalogAuthHeader })).json() as { items: Array<{ id: string; sources: unknown }> }
+    return items.find((i) => i.id === id)?.sources
+  }
+  try {
+    await post({ ...kettle, sources: { watts: [nameplate] } })
+    expect(await storedSources()).toEqual({ watts: [nameplate] })
+
+    await post({ ...kettle, duty: 0.12 })
+    expect(await storedSources()).toEqual({ watts: [nameplate] })
+
+    await signInAsAdmin(page)
+    await page.goto('/admin/appliances')
+    const row = page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name: new RegExp(name) })
+    const source = row.getByRole('link', { name: `“${nameplate.asWritten}”` })
+    await expect(source).toHaveAttribute('href', nameplate.source)
+
+    // The form has no sources field: its save sends none, so the stored ones stay.
+    await row.getByRole('button', { name: 'Edit' }).click()
+    await page.getByLabel('Duty').fill('0.15')
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(row.getByRole('cell').nth(3)).toContainText('0.15')
+    await expect(source).toBeVisible()
+    expect(await storedSources()).toEqual({ watts: [nameplate] })
+  } finally {
     await deleteTestAppliance(id)
   }
 })

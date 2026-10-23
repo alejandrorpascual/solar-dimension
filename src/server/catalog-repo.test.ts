@@ -1,9 +1,9 @@
 import { getTableColumns } from 'drizzle-orm'
-import { beforeEach, expect, test, vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { appliances } from '../db/schema'
 import type { ApplianceInput, ApplianceRecord } from '../lib/catalog-schema'
 import { APPLIANCE_SEED } from '../lib/catalog-snapshot'
-import { recentChanges, setRetired, upsertAppliances } from './catalog-repo'
+import { listRecords, recentChanges, setRetired, upsertAppliances } from './catalog-repo'
 
 /** One statement as it reaches the database driver. */
 interface Sent { sql: string; params: unknown[] }
@@ -114,6 +114,50 @@ test('a write over a stored row that fails the schema logs that row as the "befo
     { ...storedFridge, watts: 0, retired: true },
     { ...storedFridge, sortOrder: 10, retired: true },
   ])
+})
+
+describe('sources', () => {
+  const nameplate = { source: 'https://example.com/fridge-nameplate.jpg', asWritten: '1.2 A 115 V' }
+  const datasheet = { source: 'https://example.com/fridge.pdf', asWritten: 'Rated input: 140 W' }
+  /** The write's params with the jsonb ones parsed: the sources sent are one of them. */
+  const writtenParams = () => decoded(wire.batches[0]![0]!.params)
+
+  test('a write with sources sends them on insert and on update, and a read of the row returns them', async () => {
+    store(fridgeRow({ sources: { watts: [nameplate] } }))
+
+    await upsertAppliances([{ ...fridgeInput, sources: { watts: [datasheet] } }], 'api-token')
+
+    expect(wire.batches[0]![0]!.sql).toContain('"sources" = excluded.sources')
+    expect(writtenParams()).toContainEqual({ watts: [datasheet] })
+    store(fridgeRow({ sources: { watts: [datasheet] } }))
+    expect((await listRecords()).map((r) => r.sources)).toEqual([{ watts: [datasheet] }])
+  })
+
+  test('a write without sources sends the stored ones back, and logs them as kept', async () => {
+    store(fridgeRow({ sources: { watts: [nameplate] } }))
+
+    await upsertAppliances([{ ...fridgeInput, watts: 180 }], 'admin-1')
+
+    expect(writtenParams()).toContainEqual({ watts: [nameplate] })
+    const [, , before, after] = decoded(wire.batches[0]![1]!.params) as [string, string, ApplianceRecord, ApplianceRecord]
+    expect([before.sources, after.sources, after.watts]).toEqual([{ watts: [nameplate] }, { watts: [nameplate] }, 180])
+  })
+
+  test('a write over a stored row that fails the schema keeps that row\'s sources too', async () => {
+    store(fridgeRow({ watts: 0, sources: { watts: [nameplate] } }))
+
+    await upsertAppliances([fridgeInput], 'api-token')
+
+    expect(writtenParams()).toContainEqual({ watts: [nameplate] })
+  })
+
+  test('a new appliance without sources is written with none', async () => {
+    store()
+
+    await upsertAppliances([fridgeInput], 'api-token')
+
+    expect(writtenParams()).toContainEqual({})
+  })
 })
 
 test('an unchanged write sends nothing to write and logs nothing', async () => {

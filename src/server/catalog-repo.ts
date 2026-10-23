@@ -2,7 +2,7 @@ import { asc, desc, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client'
 import { applianceChanges, appliances, user } from '../db/schema'
 import type { CatalogItem } from '../lib/catalog'
-import { planUpsert, retireWrite, warnAppliances, type ApplianceWarnings, type ApplianceWrite } from '../lib/catalog-diff'
+import { keepStoredSources, planUpsert, retireWrite, warnAppliances, type ApplianceWarnings, type ApplianceWrite } from '../lib/catalog-diff'
 import { ApplianceSchema, toCatalogItem, type ApplianceInput, type ApplianceRecord } from '../lib/catalog-schema'
 import { ttlCache } from '../lib/ttl-cache'
 
@@ -16,7 +16,7 @@ function toRecord(row: Row): ApplianceRecord | null {
   const parsed = ApplianceSchema.safeParse({
     id: row.id, category: row.category, watts: row.watts, surge: row.surge, duty: row.duty,
     tons: row.tons, acType: row.acType, labels: row.labels, sortOrder: row.sortOrder,
-    kind: row.kind, surgeClass: row.surgeClass, burstSeconds: row.burstSeconds, cyclesPerHour: row.cyclesPerHour,
+    kind: row.kind, surgeClass: row.surgeClass, burstSeconds: row.burstSeconds, cyclesPerHour: row.cyclesPerHour, sources: row.sources,
   })
   if (!parsed.success) {
     console.error('[catalog] skipping invalid appliance row', { id: row.id, issues: parsed.error.issues })
@@ -30,7 +30,7 @@ function storedRecord(row: Row): ApplianceRecord {
   return {
     id: row.id, category: row.category, watts: row.watts, surge: row.surge, duty: row.duty,
     tons: row.tons, acType: row.acType, labels: row.labels, sortOrder: row.sortOrder,
-    kind: row.kind, surgeClass: row.surgeClass, burstSeconds: row.burstSeconds, cyclesPerHour: row.cyclesPerHour,
+    kind: row.kind, surgeClass: row.surgeClass, burstSeconds: row.burstSeconds, cyclesPerHour: row.cyclesPerHour, sources: row.sources,
     retired: row.retiredAt !== null,
   } as ApplianceRecord
 }
@@ -56,7 +56,7 @@ export async function queryCatalog(): Promise<CatalogItem[]> {
 /**
  * A write whose row is not in the valid list but is in the table replaces a row that fails the schema (listRecords skips
  * it). Its entry keeps that row as "before", not null ("Created"). An upsert never touches `retired_at`, so the row's
- * retired state carries over into "after".
+ * retired state carries over into "after"; so do its sources when the write sends none, as for any other row.
  */
 function keepReplacedRows(writes: readonly ApplianceWrite[], rows: readonly Row[]): ApplianceWrite[] {
   const stored = new Map(rows.map((row) => [row.id, row]))
@@ -64,7 +64,7 @@ function keepReplacedRows(writes: readonly ApplianceWrite[], rows: readonly Row[
     const row = write.before === null ? stored.get(write.after.id) : undefined
     if (!row) return write
     const before = storedRecord(row)
-    return { before, after: { ...write.after, retired: before.retired } }
+    return { before, after: { ...keepStoredSources(write.after, before), retired: before.retired } }
   })
 }
 
@@ -89,7 +89,7 @@ export async function upsertAppliances(items: readonly ApplianceInput[], actor: 
         .values(writes.map(({ after: r }) => ({
           id: r.id, category: r.category, watts: r.watts, surge: r.surge, duty: r.duty, tons: r.tons, acType: r.acType,
           kind: r.kind ?? null, surgeClass: r.surgeClass ?? null, burstSeconds: r.burstSeconds ?? null, cyclesPerHour: r.cyclesPerHour ?? null,
-          labels: r.labels, sortOrder: r.sortOrder, updatedBy: actor,
+          sources: r.sources ?? {}, labels: r.labels, sortOrder: r.sortOrder, updatedBy: actor,
         })))
         .onConflictDoUpdate({
           target: appliances.id,
@@ -97,7 +97,7 @@ export async function upsertAppliances(items: readonly ApplianceInput[], actor: 
             category: sql`excluded.category`, watts: sql`excluded.watts`, surge: sql`excluded.surge`, duty: sql`excluded.duty`,
             tons: sql`excluded.tons`, acType: sql`excluded.ac_type`, labels: sql`excluded.labels`, sortOrder: sql`excluded.sort_order`,
             kind: sql`excluded.kind`, surgeClass: sql`excluded.surge_class`, burstSeconds: sql`excluded.burst_seconds`, cyclesPerHour: sql`excluded.cycles_per_hour`,
-            updatedAt: sql`now()`, updatedBy: sql`excluded.updated_by`,
+            sources: sql`excluded.sources`, updatedAt: sql`now()`, updatedBy: sql`excluded.updated_by`,
           },
         }),
       logStatement(writes, actor),
