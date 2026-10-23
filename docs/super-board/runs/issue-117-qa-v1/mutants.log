@@ -1,0 +1,12 @@
+QA mutation check for #117, head 0c37e4e. Each mutant was applied to src, run against e2e/share-preview.spec.ts and the
+unit tests, then reverted with git checkout; none reached a commit.
+
+M1  src/routes/__root.tsx: description and og:description take the step 1 help (t.ui.q1Help) again
+    e2e AC1 test RED  "Expected pattern: /solar/i, Received: 'Add each one and set how many. Running watts drive the battery...'"
+M2  src/server/site-origin.ts: getSiteOrigin returns '' (og:image becomes a relative path)
+    e2e AC2 test RED  "Expected pattern: /^https?:\/\/[^/]+\/og\.png$/, Received: '/og.png'"
+M3  src/lib/site-head.ts: the /favicon.ico icon link is dropped
+    e2e AC3 test RED  "Expected pattern: /<link[^>]*rel=\"icon\"[^>]*href=\"\/favicon\.ico\"/"
+    unit site-head.test.ts RED  "expected [ '/icon.svg' ] to deeply equal [ '/favicon.ico', '/icon.svg' ]"
+
+3 of 3 mutants killed, each by the test that guards its AC.
