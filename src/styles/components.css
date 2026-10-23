@@ -203,7 +203,10 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .elec__summary { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; font-size: 14px; font-weight: 600; }
 .elec__summary::-webkit-details-marker { display: none; }
 .elec__summary:hover { color: var(--accent); }
-.elec__values { font-size: 13px; font-weight: 500; color: var(--muted); text-align: right; }
+.elec__values { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--muted); text-align: right; }
+/* Points down while closed and up while open, like the other disclosures. */
+.elec__chev { flex-shrink: 0; align-self: center; color: var(--muted); }
+.elec[open] .elec__chev { transform: rotate(180deg); }
 .elec__grid { display: grid; grid-template-columns: 1fr; gap: 18px; padding: 2px 16px 16px; }
 .elec__field { display: flex; flex-direction: column; gap: 8px; }
 .elec__head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 600; }

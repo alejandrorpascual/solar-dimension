@@ -1,0 +1,18 @@
+CI run 39856614223, job 120096353765 (workflow CI, job verify) on PR #201
+Head c7e3feda6bd862a5f4f3624bc5a5d06f6849b39b, checked out as the PR merge commit into staging e80cdbb (the merge base, so the same tree).
+Conclusion: success. Lines kept: checkout, unit totals, the quote test files, e2e start, every e2e/admin.spec.ts result, e2e totals.
+The NeonDbError lines elsewhere in the log come from the e2e server started on DOWN_DATABASE_URL on purpose; none is from admin.spec.ts.
+
+2026-10-22T21:21:50.1044968Z HEAD is now at 6847e6f Merge c7e3feda6bd862a5f4f3624bc5a5d06f6849b39b into e80cdbbc07f2150f760c89a297dab4cc87dd0f46
+2026-10-22T21:22:28.8983315Z  ✓ src/server/quotes/sweep.test.ts (15 tests) 51ms
+2026-10-22T21:22:31.6409339Z  ✓ src/server/quotes/repo.test.ts (8 tests) 17ms
+2026-10-22T21:22:42.6640827Z  Test Files  118 passed (118)
+2026-10-22T21:22:42.6650430Z       Tests  1992 passed (1992)
+2026-10-22T21:23:15.9317739Z Running 313 tests using 2 workers
+2026-10-22T21:23:25.0961413Z   ✓   11 [desktop] › e2e/admin.spec.ts:36:3 › non-admins get a 404 at /admin/appliances (1.5s)
+2026-10-22T21:23:26.4689244Z   ✓   12 [desktop] › e2e/admin.spec.ts:36:3 › non-admins get a 404 at /admin/quotes (1.4s)
+2026-10-22T21:23:30.7319138Z   ✓   14 [desktop] › e2e/admin.spec.ts:45:1 › a quote the model could not read shows on /admin/quotes with its file name, account and error (4.3s)
+2026-10-22T21:23:34.0618329Z   ✓   17 [desktop] › e2e/admin.spec.ts:64:1 › an admin adds an appliance, sees it in the picker, and retires it (3.3s)
+2026-10-22T21:23:36.3836420Z   ✓   31 [desktop] › e2e/admin.spec.ts:102:1 › "New appliance" refuses an id that already belongs to another appliance (2.3s)
+2026-10-22T21:27:53.0924453Z   10 skipped
+2026-10-22T21:27:53.0924714Z   303 passed (4.8m)

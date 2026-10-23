@@ -128,7 +128,9 @@ describe('ranking', () => {
     const typed = view('typed', clean(), { status: 'needs_review', totalOverride: 6330 })
     const v = compareQuotes(KIT, DEFAULT_MUSTS, [typed, view('plain', clean({}, { total: 6330 }))])
     expect(v.ranked.map((r) => r.quote.id)).toEqual(['plain', 'typed'])
-    const cheaper = compareQuotes(KIT, DEFAULT_MUSTS, [view('typed', clean(), { status: 'needs_review', totalOverride: 6000 }), view('plain', clean())])
+    // Another installer's quote: the same reading twice would be one file uploaded twice, which ranks once.
+    const other = clean({}, { vendor: { name: 'Other installer', contact: null } })
+    const cheaper = compareQuotes(KIT, DEFAULT_MUSTS, [view('typed', other, { status: 'needs_review', totalOverride: 6000 }), view('plain', clean())])
     expect(cheaper.best?.quote.id).toBe('typed')
     expect(cheaper.cleanFit?.quote.id).toBe('plain')
   })

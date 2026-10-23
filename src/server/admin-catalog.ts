@@ -5,7 +5,7 @@ import { isAdmin } from '../lib/admin'
 import { auth } from '../lib/auth'
 import { ApplianceSchema, type ApplianceRecord } from '../lib/catalog-schema'
 import { PublicError } from '../lib/server-error'
-import { applianceExists, listRecords, setRetired, upsertAppliances } from './catalog-repo'
+import { applianceExists, listRecords, recentChanges, setRetired, upsertAppliances, type ApplianceChangeEntry } from './catalog-repo'
 
 async function adminUser() {
   const session = await auth.api.getSession({ headers: getRequestHeaders() })
@@ -13,7 +13,7 @@ async function adminUser() {
 }
 
 /** Throws a plain "Not found" so a non-admin cannot tell the admin tools exist. */
-const requireAdmin = createServerOnlyFn(async () => {
+export const requireAdmin = createServerOnlyFn(async () => {
   const user = await adminUser()
   if (!user) throw new PublicError('Not found')
   return user
@@ -24,6 +24,11 @@ export const checkAdmin = createServerFn({ method: 'GET' }).handler(async (): Pr
 export const adminListAppliances = createServerFn({ method: 'GET' }).handler(async (): Promise<ApplianceRecord[]> => {
   await requireAdmin()
   return listRecords()
+})
+
+export const adminRecentChanges = createServerFn({ method: 'GET' }).handler(async (): Promise<ApplianceChangeEntry[]> => {
+  await requireAdmin()
+  return recentChanges()
 })
 
 const SaveApplianceInput = z.object({ mode: z.enum(['create', 'update']), item: ApplianceSchema }).strict()

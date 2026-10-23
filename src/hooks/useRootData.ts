@@ -11,6 +11,8 @@ import type { SessionUser } from '../server/session'
  */
 export interface RootData {
   locale: Locale; user: SessionUser | null; isAccountUnreachable: boolean; googleEnabled: boolean; catalog: CatalogItem[]; quotePollMs: number
+  /** Where the app is served from, no trailing slash: the head names its preview image by it. */
+  siteOrigin: string
 }
 
 /**
@@ -27,5 +29,6 @@ export function useRootData(): RootData {
     googleEnabled: data?.googleEnabled ?? false,
     catalog: data?.catalog ?? [...CATALOG_SNAPSHOT],
     quotePollMs: data?.quotePollMs ?? DEFAULT_POLL_MS,
+    siteOrigin: data?.siteOrigin ?? '',
   }
 }

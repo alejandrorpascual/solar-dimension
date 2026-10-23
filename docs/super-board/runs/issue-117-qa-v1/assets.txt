@@ -1,0 +1,24 @@
+og:image http://localhost:4234/og.png -> 200 image/png 164618 bytes, 1200x630, cache-control: (none)
+HEAD og:image -> 200
+/favicon.ico -> 200 image/vnd.microsoft.icon 15086 bytes, 3 images, cache-control: (none)
+/icon.svg -> 200 image/svg+xml
+
+icons the browser decoded from the hrefs in the page head (Image.decode):
+[
+  {
+    "url": "http://localhost:4234/favicon.ico",
+    "ok": true,
+    "w": 48,
+    "h": 48
+  },
+  {
+    "url": "http://localhost:4234/icon.svg",
+    "ok": true,
+    "w": 150,
+    "h": 150
+  }
+]
+
+descriptions:
+en (137 chars): Size an off-grid solar backup kit: pick the appliances to keep on, set the hours, and get the inverter, batteries, cables and parts list.
+es (155 chars): Dimensiona un kit solar de respaldo: elige los aparatos que deben seguir encendidos, indica las horas y obtén inversor, baterías, cables y lista de piezas.

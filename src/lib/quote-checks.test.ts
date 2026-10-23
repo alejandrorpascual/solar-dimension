@@ -150,6 +150,13 @@ describe('isFixedByTotal and linesWithTax', () => {
     expect(linesWithTax(vat)).toBe(1160)
     expect(checkExtraction(vat)).toEqual([])
   })
+  test('an ITBMS, IGV, GST or IVU line is a tax line too, so it is counted once (AI-22)', () => {
+    for (const text of ['ITBMS 7%', 'I.G.V. 18%', 'GST 5%', 'IVU 11.5%']) {
+      const x = extraction([line('battery', 1000), line('other', 70, { description: text, source: { page: 1, text } })], { tax: 70, total: 1070 })
+      expect(linesWithTax(x), text).toBe(1070)
+      expect(checkExtraction(x), text).toEqual([])
+    }
+  })
 })
 
 describe('optionPrices', () => {

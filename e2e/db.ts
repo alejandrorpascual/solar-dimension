@@ -19,11 +19,20 @@ export async function markEmailVerified(email: string): Promise<void> {
 /**
  * Deletes an appliance a test created. The API only retires (the row stays, so saved projects keep their numbers),
  * which left every run's rows behind; tests delete theirs outright. Only `e2e-` ids, so a wrong id never removes a
- * real item. Deleting nothing (never created) is fine.
+ * real item. Its change-log entries go too. Deleting nothing (never created) is fine.
  */
 export async function deleteTestAppliance(id: string): Promise<void> {
   if (!id.startsWith(TEST_APPLIANCE_PREFIX)) throw new Error(`refusing to delete "${id}": not an e2e appliance id`)
   await testDb()`delete from appliances where id = ${id}`
+  await testDb()`delete from appliance_changes where appliance_id = ${id}`
+}
+
+export interface TestApplianceChange { actor: string; before: Record<string, unknown> | null; after: Record<string, unknown> }
+
+/** The change-log entries of an e2e appliance, oldest first, read on the test's own connection. */
+export async function testApplianceChanges(id: string): Promise<TestApplianceChange[]> {
+  const rows = await testDb()`select actor, before, after from appliance_changes where appliance_id = ${id} order by id`
+  return rows as TestApplianceChange[]
 }
 
 /** Whether the appliance is in this run's database, read on the test's own connection: where the server really wrote. */
@@ -72,6 +81,13 @@ export async function firstProjectId(email: string): Promise<string> {
   const rows = await testDb()`select p.id from projects p join "user" u on u.id = p.user_id where u.email = ${email} order by p.created_at limit 1`
   if (!rows[0]) throw new Error(`no saved project for ${email}`)
   return rows[0].id as string
+}
+
+/** The name of the user's first saved project, as stored: the browser names it in the page's language. */
+export async function firstProjectName(email: string): Promise<string> {
+  const rows = await testDb()`select p.name from projects p join "user" u on u.id = p.user_id where u.email = ${email} order by p.created_at limit 1`
+  if (!rows[0]) throw new Error(`no saved project for ${email}`)
+  return rows[0].name as string
 }
 
 /**
@@ -167,6 +183,13 @@ export async function misreadQuoteCurrency(email: string, projectId: string, cur
   await testDb()`
     update quotes q set status = 'needs_review', extraction = jsonb_set(q.extraction, '{currency}', to_jsonb(${currency}::text))
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
+/** Sets the currency read on one quote of a project, picked by its file name, as a quote priced in another currency is read. */
+export async function setQuoteCurrency(email: string, projectId: string, fileName: string, currency: string): Promise<void> {
+  await testDb()`
+    update quotes q set extraction = jsonb_set(q.extraction, '{currency}', to_jsonb(${currency}::text))
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${fileName}`
 }
 
 /** Same, because line `line`'s spec `spec` was read as `value` (a 5,120 kWh battery: Wh read as kWh). */

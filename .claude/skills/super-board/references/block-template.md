@@ -39,7 +39,7 @@ Why I (bot) cannot decide:
 To unblock:  <concrete action the human can take, in their own checklist form>
              [ ] <step 1>
              [ ] <step 2>
-Owner:       <who acts next — "Eric", "repo admin", "design" — never "someone">
+Owner:       <who acts next — "@<human_identity>", "repo admin", "design" — never "someone">
 Move back:   drag this card to Ready after the steps above are done
 blocked-by:  <comma-separated issue numbers, or "-" if nothing on this board clears it>
 ```
@@ -48,8 +48,9 @@ One line per field. The header is the comment header of writing-standard.md § 4
 the lane that writes it (`builder` · `qa` · `reviewer` · `collect` · `orchestrator`). The Block
 template is the one comment allowed past 8 lines — its fields are what the human and the sweep
 need. The reader is a human deciding in ten seconds whether this is theirs: lead with the fact,
-show the evidence, name the owner. No narration of what the bot tried in what order. Run the
-prose through `humanizer` when installed.
+show the evidence, name the owner. `<human_identity>` is the GitHub login in config
+`notifications.human_identity` (absent: `project.owner`), never a name from an example. No
+narration of what the bot tried in what order. Run the prose through `humanizer` when installed.
 
 ### The `blocked-by:` line is mandatory
 
@@ -116,7 +117,7 @@ After a trusted human confirms this version, the next wave returns it to Review 
 PR #<P> <one line — e.g. "adds prisma/migrations/0042_add_plan">. <env> isn't in the databases the robot may migrate.
 Tests green on <base>@<sha>; migrated <test, staging>.
 Evidence: <the gate's `needs-you:` lines, verbatim>
-Reason tag: 🙋 needs you · Owner: <Eric | repo admin>
+Reason tag: 🙋 needs you · Owner: <@<human_identity> | repo admin>
 approval-request: <copy the gate's exact JSON here>
 blocked-by: -
 </details>

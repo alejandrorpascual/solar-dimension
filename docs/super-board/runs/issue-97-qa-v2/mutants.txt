@@ -1,0 +1,20 @@
+Mutation check, QA v2. Each mutant was applied in the clone with sed, the named tests were run, then the
+file was copied back from a pristine copy and diffed (no difference). No mutant was committed.
+
+R3 · QA's new test sweep.test.ts:91 (npx vitest run src/server/quotes/sweep.test.ts), first run green:
+
+S6  sweep.ts  `o === 'failed').length` -> `o === 'failed' || o === 'error').length`  KILLED  1 failed | 16 passed (17)
+    message: expected { stuck: 1, failed: 1, ... } to match object { stuck: 1, failed: 0, ... }
+S7  sweep.ts  catch `return 'error' as const` -> `return 'failed' as const`          KILLED  1 failed | 16 passed (17)
+
+S6 survived all 23 tests in QA v1; it is the gap the Reviewer filed as R3.
+
+The Builder's rebuild 1 tests (npx vitest run src/server/quotes/), checked independently:
+
+M1  repo.ts     `failed: ended.filter((r) => r.status === 'failed').length` -> `failed: ended.length`        KILLED  1 failed | 100 passed (101)
+M2  repo.ts     `stuck: kick.length + fail.length` -> `stuck: kick.slice(0, limit).length + fail.length`   KILLED  1 failed | 100 passed (101)
+M3  process.ts  finish's `return stored` -> `return f.status`                                            KILLED  1 failed | 100 passed (101)
+M4  sweep.ts    `failed: stale.failed + outcomes...` -> `failed: outcomes...`                             KILLED  2 failed | 99 passed (101)
+
+R4 · e2e/admin.spec.ts:45 now checks each of the row's five cells. Not mutated: e2e cannot run in this
+lane (see verify.log). The project column's mapping is also pinned by src/server/admin-quotes.test.ts:80.

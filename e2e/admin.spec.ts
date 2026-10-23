@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { slugify } from '../src/lib/catalog-schema'
-import { deleteTestAppliance, markEmailVerified } from './db'
+import { deleteTestAppliance, firstProjectName, markEmailVerified } from './db'
+import { quotePdf, signUp, uploadQuotes } from './quotes'
 import { E2E_ADMIN as ADMIN } from './servers'
 
 // The admin tests share the run's one admin account, which the first of them to sign in creates: one at a time, in order.
@@ -22,20 +23,54 @@ async function signInOrUp(page: Page, email: string, password: string) {
   await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
 }
 
-test('non-admins get a 404 at /admin/appliances', async ({ page }) => {
-  await page.goto('/admin/appliances')
-  await expect(page.getByText('Page not found')).toBeVisible()
-  await signInOrUp(page, `e2e-${Date.now()}@example.com`, 'correct-horse-battery')
-  await page.goto('/admin/appliances')
-  await expect(page.getByText('Page not found')).toBeVisible()
-})
-
-test('an admin adds an appliance, sees it in the picker, and retires it', async ({ page }) => {
+/** Signs in as the run's admin, verified: sign-up never verifies, and the admin check requires it. */
+async function signInAsAdmin(page: Page) {
   await signInOrUp(page, ADMIN.email, ADMIN.password)
   await markEmailVerified(ADMIN.email)
   // The session cookie caches the user for 5 minutes; a fresh sign-in picks up email_verified.
   await page.context().clearCookies()
   await signInOrUp(page, ADMIN.email, ADMIN.password)
+}
+
+for (const path of ['/admin/appliances', '/admin/quotes']) {
+  test(`non-admins get a 404 at ${path}`, async ({ page }) => {
+    await page.goto(path)
+    await expect(page.getByText('Page not found')).toBeVisible()
+    await signInOrUp(page, `e2e-${Date.now()}@example.com`, 'correct-horse-battery')
+    await page.goto(path)
+    await expect(page.getByText('Page not found')).toBeVisible()
+  })
+}
+
+test('a quote the model could not read shows on /admin/quotes with its file name, account, project, error and time', async ({ page }) => {
+  // Sign-up, an upload and its read, then the admin's sign-in: more than 30 s on a slow CI runner.
+  test.slow()
+  const owner = await signUp(page)
+  // The stub reads only the sample quotes; any other file name fails on both models.
+  const unreadable = await quotePdf(`unreadable-${Date.now()}`)
+  await uploadQuotes(page, [unreadable])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: unreadable.name }).getByText("Couldn't read it", { exact: true }))
+    .toBeVisible({ timeout: 30_000 })
+
+  const project = await firstProjectName(owner)
+
+  await page.context().clearCookies()
+  await signInAsAdmin(page)
+  await page.goto('/admin/quotes')
+  const row = page.getByRole('row').filter({ hasText: unreadable.name })
+  // One cell per column, in the header's order: File, Account, Project, Error, Time. The error joins both models' errors.
+  const cells = row.getByRole('cell')
+  await expect(cells).toHaveCount(5)
+  await expect(cells.nth(0)).toHaveText(unreadable.name)
+  await expect(cells.nth(1)).toHaveText(owner)
+  await expect(cells.nth(2)).toHaveText(project)
+  await expect(cells.nth(3)).toContainText(`No stub fixture matches ${unreadable.name}`)
+  await expect(cells.nth(4)).toHaveText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/)
+})
+
+test('an admin adds an appliance, sees it in the picker, and retires it', async ({ page }) => {
+  await signInAsAdmin(page)
   const name = `E2E hot plate ${Date.now()}`
   const id = slugify(name)
   try {
@@ -53,7 +88,7 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
     await page.getByLabel('Surge watts').fill('1500')
     await page.getByLabel('Duty').fill('0.2')
     await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('row', { name: new RegExp(name) })).toBeVisible()
+    await expect(page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name: new RegExp(name) })).toBeVisible()
 
     await page.goto('/?step=1')
     await expect(page.getByText(name)).toBeVisible()
@@ -64,6 +99,12 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
     // "Restore" (confirming the mutation and the client-side refresh both completed) before checking the picker,
     // otherwise this navigation can race the write and read the cache before it clears.
     await expect(page.getByRole('row', { name: new RegExp(name) }).getByRole('button', { name: 'Restore' })).toBeVisible()
+    // Both writes are in the change log, newest first, under the admin's email.
+    const logged = page.getByRole('table', { name: 'Recent changes' }).getByRole('row', { name: new RegExp(name) })
+    await expect(logged).toHaveCount(2)
+    await expect(logged.nth(0)).toContainText('retired: false → true')
+    await expect(logged.nth(1)).toContainText('Created')
+    await expect(logged.nth(1)).toContainText(ADMIN.email)
     await page.goto('/?step=1')
     await expect(page.getByText(name)).toHaveCount(0)
   } finally {
@@ -73,10 +114,7 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
 })
 
 test('"New appliance" refuses an id that already belongs to another appliance', async ({ page }) => {
-  await signInOrUp(page, ADMIN.email, ADMIN.password)
-  await markEmailVerified(ADMIN.email)
-  await page.context().clearCookies()
-  await signInOrUp(page, ADMIN.email, ADMIN.password)
+  await signInAsAdmin(page)
 
   await page.goto('/admin/appliances')
   await page.getByRole('button', { name: 'New appliance' }).click()
@@ -92,12 +130,14 @@ test('"New appliance" refuses an id that already belongs to another appliance', 
   await expect(page.getByText('The id "toaster" is already used by another appliance. Change the English name.')).toBeVisible()
 
   await page.getByRole('button', { name: 'Cancel' }).click()
-  await expect(page.getByRole('row', { name: /Toaster/ })).toContainText('1000')
+  // The catalog table's rows only: the change log below may list the same appliances.
+  const catalogRow = (name: RegExp) => page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name })
+  await expect(catalogRow(/Toaster/)).toContainText('1000')
 
   // Switching the edit target without closing the form must show the new target's values, not keep the old draft.
-  await page.getByRole('row', { name: /Toaster/ }).getByRole('button', { name: 'Edit' }).click()
+  await catalogRow(/Toaster/).getByRole('button', { name: 'Edit' }).click()
   await expect(page.getByLabel('Name (EN)')).toHaveValue('Toaster')
-  await page.getByRole('row', { name: /Coffee maker/ }).getByRole('button', { name: 'Edit' }).click()
+  await catalogRow(/Coffee maker/).getByRole('button', { name: 'Edit' }).click()
   await expect(page.getByLabel('Name (EN)')).toHaveValue('Coffee maker')
   await expect(page.getByLabel('Running watts')).toHaveValue('900')
   await page.getByRole('button', { name: 'Cancel' }).click()
