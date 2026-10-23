@@ -1,0 +1,102 @@
+// QA v5 witnesses for issue 93 (not committed as a test: copied to the evidence folder as .txt). One field edited in tab
+// A and on device C within one round trip of A's save: the account must keep the later edit (AC3), whatever else A
+// edits before its save is sent.
+import { afterAll, beforeEach, expect, test, vi } from 'vitest'
+import { ProjectSchema } from '../lib/schema'
+import { accounts, net, resetServer, session } from './fake-account-server'
+import { closeAll, editIn, focusTab, land, landAll, mountTab, openTabs, screenOf } from './project-store-tabs'
+
+/** Every save the tabs send, as the request carries it: the project's fields, its stamp and the fields it names. */
+const sent = vi.hoisted(() => [] as { by: string; hours: number; volts: number; updatedAt: number; named: unknown }[])
+vi.mock('../server/projects', async () => {
+  const server = await import('./fake-account-server')
+  return {
+    ...server,
+    saveProjects: (input: Parameters<typeof server.saveProjects>[0]) => {
+      for (const p of input.data.projects) sent.push({ by: server.net.caller(), hours: p.hours, volts: p.volts, updatedAt: p.updatedAt, named: input.data.named?.[p.id] })
+      return server.saveProjects(input)
+    },
+  }
+})
+vi.mock('./useRootData', async () => {
+  const server = await import('./fake-account-server')
+  return { useRootData: () => ({ user: server.pageUser(), locale: 'en' }) }
+})
+
+const ANA = { id: 'user-ana' }
+const HOME = ProjectSchema.parse({ id: 'acct-home', name: 'Home', qty: {}, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4', updatedAt: 1000 })
+
+const accountHome = () => accounts.get(ANA.id)!.find((p) => p.id === HOME.id)!
+const heldCalls = () => net.held!.map((h) => `${h.by}:${h.call}`)
+
+beforeEach(async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  await closeAll()
+  resetServer()
+  session.user = ANA
+  accounts.set(ANA.id, [structuredClone(HOME)])
+  openTabs({ A: 'laptop', C: 'phone' })
+  let now = 1_000_000
+  vi.spyOn(Date, 'now').mockImplementation(() => (now += 10))
+  net.held = []
+  sent.length = 0
+  await mountTab('A')
+  await landAll()
+  await mountTab('C')
+  await landAll()
+})
+afterAll(async () => {
+  await closeAll()
+  vi.restoreAllMocks()
+})
+
+test('QA-W5: 5 h in A as the click that brings A back, 12 h on C (the later edit, saved first), then 12 V in A before its read answers: the account keeps 12 h', async () => {
+  await focusTab('A')
+  await editIn('A', { hours: 5 })
+  await editIn('C', { hours: 12 })
+  expect(heldCalls()).toEqual(['A:list', 'C:save'])
+  expect(await land(1)).toBe('C:save')
+  await editIn('A', { volts: 12 })
+  await landAll()
+
+  expect({ hours: accountHome().hours, volts: accountHome().volts }).toEqual({ hours: 12, volts: 12 })
+})
+
+test("QA-W5b: 5 h in A queued behind A's own AGM save, 12 h on C (the later edit, saved first), then 12 V in A: the account keeps 12 h", async () => {
+  await editIn('A', { chemistry: 'agm' })
+  await editIn('A', { hours: 5 })
+  await editIn('C', { hours: 12 })
+  expect(heldCalls()).toEqual(['A:save', 'C:save'])
+  expect(await land(1)).toBe('C:save')
+  await editIn('A', { volts: 12 })
+  await landAll()
+
+  // A's save of 5 h names hours with the stamp of the 12 V edit made after C's 12 h, so it outranks C's later edit.
+  for (const s of sent) console.log('[qa93-v5] W5b sent', JSON.stringify(s))
+  expect({ hours: accountHome().hours, volts: accountHome().volts, chemistry: accountHome().chemistry }).toEqual({ hours: 12, volts: 12, chemistry: 'agm' })
+})
+
+test('QA-W5 control: the same edits with A saving 5 h before its 12 V edit keep 12 h (C is later)', async () => {
+  await editIn('A', { hours: 5 })
+  await editIn('C', { hours: 12 })
+  expect(heldCalls()).toEqual(['A:save', 'C:save'])
+  expect(await land(1)).toBe('C:save')
+  await editIn('A', { volts: 12 })
+  await landAll()
+
+  expect({ hours: accountHome().hours, volts: accountHome().volts }).toEqual({ hours: 12, volts: 12 })
+})
+
+test('QA-W6: 5 h in A whose save fails, 12 h on C (the later edit, saved), then 12 V in A carries the 5 h: the account keeps 12 h', async () => {
+  await editIn('A', { hours: 5 })
+  net.failing = new Set(['save'])
+  expect(await land(0)).toBe('A:save')
+  net.failing = new Set()
+  await editIn('C', { hours: 12 })
+  expect(await land(0)).toBe('C:save')
+  await editIn('A', { volts: 12 })
+  await landAll()
+
+  expect({ hours: accountHome().hours, volts: accountHome().volts }).toEqual({ hours: 12, volts: 12 })
+  expect(screenOf('A').projects[0]!.volts).toBe(12)
+})

@@ -1,0 +1,29 @@
+// QA v5 witness for issue 93 on a local Postgres with every drizzle/ migration (not committed: copied to the evidence
+// folder as .txt). It replays, through the real saveForUser, the four saves the tabs sent in the hook witness QA-W5b
+// (`[qa93-v5] W5b sent` lines in qa-run.log), in the order they landed.
+import { randomUUID } from 'node:crypto'
+import { inArray } from 'drizzle-orm'
+import { afterAll, expect, it } from 'vitest'
+import { db } from './pg-client'
+import { projects } from '../src/db/schema'
+import { ProjectSchema } from '../src/lib/schema'
+import type { Nameable } from '../src/lib/sync'
+import { listForUser, saveForUser } from '../src/server/projects-repo'
+
+const userId = `qa93-v5-${randomUUID()}`
+afterAll(async () => { await db.delete(projects).where(inArray(projects.userId, [userId])) })
+
+const HOME = ProjectSchema.parse({ id: 'acct-home', name: 'Home', qty: {}, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4', updatedAt: 1000 })
+const save = (fields: Partial<typeof HOME>, named: Nameable[]) =>
+  saveForUser(userId, [{ ...HOME, ...fields }], new Map(), { [HOME.id]: named })
+
+it("QA-W5b on the real SQL: tab A's 5 h edit (made at 1000020) saved with the stamp of its later 12 V edit outranks device C's later 12 h (1000030)", async () => {
+  await saveForUser(userId, [HOME])
+  await save({ hours: 12, updatedAt: 1000030 }, ['hours' as Nameable]) // C, lands first
+  await save({ chemistry: 'agm', updatedAt: 1000010 }, ['chemistry' as Nameable]) // A's AGM save
+  await save({ chemistry: 'agm', hours: 5, volts: 12, updatedAt: 1000040 }, ['hours' as Nameable]) // A's 5 h save, sent after the 12 V edit
+  await save({ chemistry: 'agm', hours: 5, volts: 12, updatedAt: 1000040 }, ['volts' as Nameable])
+
+  const home = (await listForUser(userId)).find((p) => p.id === HOME.id)!
+  expect({ hours: home.hours, volts: home.volts, chemistry: home.chemistry }).toEqual({ hours: 12, volts: 12, chemistry: 'agm' })
+})
