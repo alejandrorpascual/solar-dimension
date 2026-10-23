@@ -1,0 +1,51 @@
+# QA v2 for #144 · PR #213 · head under test ad98346 (staging cf86c0b merged into 626d992) · 2026-10-23T21:05Z
+
+Why v2: QA v1 passed on 626d992. The merge gate went red on src/lib/solar.test.ts:282 (a 5 s timeout this PR does
+not touch), and the Builder's rebase pass merged staging cf86c0b (#205) into the branch. This run checks the
+merged head.
+
+## What the merge changed in the code under test
+git diff --stat 626d992 ad98346 -- src/components/quotes/HandoffRow.tsx src/components/quotes/ProgressCard.tsx \
+  src/components/quotes/QuoteTray.tsx src/components/quotes/QuotesCard.tsx src/hooks/useElapsedSeconds.ts \
+  src/lib/quote-progress.ts e2e/quote-reading-progress.spec.ts src/components/quotes/QuoteTray.test.ts \
+  src/components/quotes/QuotesCard.test.ts src/hooks/useElapsedSeconds.test.ts src/lib/quote-progress.test.ts
+-> empty: every file that draws or tests a reading screen is the same as on 626d992.
+Shared files the merge did touch: quote-text.ts (adds currencyTieText), quotes-en.ts / quotes-es.ts (adds duplicate,
+duplicateHelp, currencyTie; rewords mustsHelp), quotes.css (adds .qmust:disabled). None of them is a reading-progress
+key, function or rule; elapsedText, etaText and the .qspin / .qtray reduce-motion rules are unchanged.
+
+## Local verify on ad98346 (clone of the branch, npm ci)
+npm run typecheck                -> exit 0
+npm run test:coverage            -> exit 0 · 127 files · 2062/2062 passed
+  Statements 90.49% · Branches 90.81% · Functions 91.31% · Lines 90.61%
+npm run build                    -> exit 0
+npx vitest run src/hooks/useElapsedSeconds.test.ts src/components/quotes src/lib/quote-progress.test.ts src/lib/quote-text.test.ts
+                                 -> 6 files · 113/113 passed
+
+## Mutation checks on ad98346 (each restored with git checkout; tree clean after)
+M1 useElapsedSeconds tick sets 0 (frozen clock)     -> red: useElapsedSeconds.test.ts, 2 failed
+M2 QuotesCard keeps the file icon while reading     -> red: QuotesCard.test.ts, 1 failed
+M3 QuoteTray drops the time-so-far span             -> red: QuoteTray.test.ts, 2 failed
+restored                                            -> 4 files · 10/10 passed
+
+## e2e on ad98346: CI run 40022500609, job 120650314378 (verify), success, 20:52-20:58 UTC
+npm run e2e (whole suite, test database, CI=true) -> 325 passed · 10 skipped · 1 flaky
+  ✓ [desktop] e2e/quote-reading-progress.spec.ts:69  tray changes within 2 s at 1440 and 390 px; card spinner, not the file icon (AC1, AC2)
+  ✓ [desktop] e2e/quote-reading-progress.spec.ts:93  Reduce Motion: upload dialog and tray change within 2 s, nothing animates (AC3)
+  ✓ [desktop] e2e/quote-reading-progress.spec.ts:106 Reduce Motion: Watch progress changes within 2 s, nothing animates (AC3)
+  ✓ [phone]   e2e/quote-reading-progress.spec.ts:93  same, 390 px phone (AC3)
+  ✓ [phone]   e2e/quote-reading-progress.spec.ts:106 same, 390 px phone (AC3)
+  ✓ [phone]   e2e/quote-tray.spec.ts:38, :50 (tray leaves the card buttons clear; wrapped tray)
+  flaky: [desktop] e2e/shared-browser.spec.ts:223, "Upload quotes" not found in 15 s on /?step=4 before any upload;
+         passed on its CI retry. Neither this PR nor the staging merge touches that file.
+Same job also ran test:db, typecheck, test:coverage and build: all success.
+
+## Not run here
+Local e2e and fresh screenshots: a hook refused linking .env.test.local into the QA clone, and e2e/test-env.ts refuses
+to start without it, so no local test server could start. The CI run above is the browser evidence on this exact head.
+The screenshots in the QA report are QA v1's (runs/issue-144-qa-v1/, pinned to 626d992); the files that draw those
+screens are unchanged since (see the diff check above).
+
+## Test gaps (not written), unchanged from v1
+Medium: Watch progress restarting at 0:00 after Retry has no component test (ProgressCard.tsx:32).
+Low: the tray's count carries on when a second project starts reading before the tray leaves reading mode.
