@@ -15,7 +15,7 @@ const ESTIMATE_EN = '"An estimate for requesting quotes, not an installation des
 const ESTIMATE_ES = '"Una estimación para pedir cotizaciones, no un diseño de instalación. Pide a un electricista matriculado que la verifique con los equipos reales y la normativa eléctrica local antes de comprar o instalar nada."'
 
 /** What the solar side does not size, as the file writes it: one cell, quoted for its commas. */
-const NOT_SIZED_EN = `"This kit does not size the solar side's ground-fault and surge protection, grounding, the controller's voltage window or the roof structure; a qualified installer designs them."`
+const NOT_SIZED_EN = `"This kit does not size the solar side's ground-fault and overvoltage protection, grounding, the controller's voltage window or the roof structure; a qualified installer designs them."`
 const NOT_SIZED_ES = '"De la parte solar, este kit no dimensiona la protección contra fallas a tierra y sobretensiones, la puesta a tierra, la ventana de voltaje del controlador ni la estructura del techo; las diseña un instalador calificado."'
 
 const FILE: KitCsvFile = { projectName: 'Home', date: 'Oct 19, 2026', delimiter: ',' }

@@ -27,7 +27,7 @@ test('a check quotes every line it read and shows its arithmetic, in English and
   await best.getByRole('button', { name: 'Show checks for SolarTec Caribe', exact: true }).click()
   await expect(check('Battery bank')).toContainText('8 × 5.12 kWh × 85% depth of discharge')
   await expect(quoted('Battery bank')).toHaveText(['“Batería LiFePO4 5.12 kWh × 8” · Page 1'])
-  await expect(best.getByText('12.0 kW running · 24.0 kW surge', { exact: true })).toBeVisible()
+  await expect(best.getByText('12.0 kW running · 24.0 kW surge rating', { exact: true })).toBeVisible()
   // The cable check quotes the one line that decides it, the thickest.
   await expect(quoted('Main cables')).toHaveText(['“Cable 4/0 AWG, 2 tramos” · Page 1'])
 
@@ -45,6 +45,6 @@ test('a check quotes every line it read and shows its arithmetic, in English and
   await expect(best.getByRole('button', { name: 'Ocultar comprobaciones de SolarTec Caribe', exact: true })).toBeVisible()
   await expect(best.getByText('(4 × 5.12 kWh + 2 × 2.4 kWh) × 85 % de descarga', { exact: true })).toBeVisible()
   await expect(best.getByText('“Batería LiFePO4 2.4 kWh × 2” · Página 2', { exact: true })).toBeVisible()
-  await expect(best.getByText('12.0 kW en marcha · 24.0 kW de arranque', { exact: true })).toBeVisible()
+  await expect(best.getByText('12.0 kW en marcha · 24.0 kW de potencia pico', { exact: true })).toBeVisible()
   await best.screenshot({ path: testInfo.outputPath(`evidence-${testInfo.project.name}-es.png`) })
 })

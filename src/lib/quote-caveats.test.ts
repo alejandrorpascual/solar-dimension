@@ -26,7 +26,7 @@ describe('caveats of a quote that meets every must-have', () => {
   test('none for a quote that states everything the kit needs', () => {
     expect(only(clean()).best).toMatchObject({ fit: 'fits', caveats: [] })
   })
-  test('an inverter that passes on its running power alone, with no start-up power stated', () => {
+  test('an inverter that passes on its running power alone, with no surge rating stated', () => {
     expect(caveatIds(clean({ inverter: inverter({ watts: 10000, surgeWatts: null }) }))).toEqual(['surge_unstated'])
   })
   test('an inverter under the running load plus the 25% the kit sheet sizes with (AI-13, probe H1)', () => {

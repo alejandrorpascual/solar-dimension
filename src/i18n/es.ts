@@ -37,13 +37,13 @@ export const es: Dictionary = {
     deleteProjectAny: '¿Eliminar “{name}” y las cotizaciones que tenga? Sus archivos también se eliminan. No se puede deshacer.',
     deleteProjectYes: 'Eliminar proyecto',
     acInverter: 'Aire acondicionado inverter', acInverterHelp: 'Arranque suave. Cuida el inversor.', acConventional: 'Aire acondicionado convencional', acConventionalHelp: 'Arranca con ~3× su potencia en marcha. Necesita un inversor más grande.', acSizeOne: '{tons} tonelada · {btu}k BTU', acSizeMany: '{tons} toneladas · {btu}k BTU',
-    q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; los de arranque, el inversor.',
+    q1: '¿Qué aparatos deben seguir encendidos?', q1Help: 'Agrega cada uno e indica cuántos. Los vatios en marcha dimensionan la batería; la potencia de arranque, el inversor.',
     search: 'Buscar aparatos', nothingMatches: 'Nada coincide. Prueba otra palabra o agrégalo abajo.', sectionAdded: 'Agregados: {count}',
     add: 'Agregar', addOne: 'Agregar {name}', qtyOf: 'Cantidad de {name}', removeOne: 'Quitar un {name}', remove: 'Quitar {name}',
-    running: 'en marcha', surge: 'arranque', runningSurgeLine: '{watts} W en marcha · {surge} de arranque', splitPhase: 'Requiere un inversor de 240 V / fase partida', checkNameplate240: 'Revisa en la placa si es de 240 V',
+    running: 'en marcha', surge: 'potencia de arranque', runningSurgeLine: '{watts} W en marcha · {surge} de potencia de arranque', splitPhase: 'Requiere un inversor de 240 V / fase partida', checkNameplate240: 'Revisa en la placa si es de 240 V',
     customTitle: '¿No está en la lista?', customHelp: 'Escribe los vatios de la etiqueta, o los voltios y amperios y nosotros los multiplicamos.',
-    watts: 'Vatios', voltsAmps: 'Voltios × amperios', name: 'Nombre', runningW: 'W en marcha', volts: 'Voltios', amps: 'Amperios', surgeOptional: 'W de arranque (opcional)', sameAsRunning: 'igual que en marcha', dutyPctLabel: '% de cada hora que funciona', addAppliance: 'Agregar aparato',
-    errName: 'Ponle un nombre al aparato.', errNameLong: 'El nombre puede tener hasta {max} caracteres.', errVa: 'Ingresa voltios y amperios que den de 1 a {maxW} vatios.', errWatts: 'Ingresa de 1 a {maxW} vatios en marcha.', errSurge: 'El arranque debe ir de los vatios en marcha hasta {maxSurge} W.',
+    watts: 'Vatios', voltsAmps: 'Voltios × amperios', name: 'Nombre', runningW: 'W en marcha', volts: 'Voltios', amps: 'Amperios', surgeOptional: 'Potencia de arranque, W (opcional)', sameAsRunning: 'igual que en marcha', dutyPctLabel: '% de cada hora que funciona', addAppliance: 'Agregar aparato',
+    errName: 'Ponle un nombre al aparato.', errNameLong: 'El nombre puede tener hasta {max} caracteres.', errVa: 'Ingresa voltios y amperios que den de 1 a {maxW} vatios.', errWatts: 'Ingresa de 1 a {maxW} vatios en marcha.', errSurge: 'La potencia de arranque debe ir de los vatios en marcha hasta {maxSurge} W.',
     errThousands: 'Escribe los vatios como número entero sin separador: 1500, no 1.500 ni 1,500.',
     errDuty: 'Escribe qué parte de cada hora funciona, de {min} a 100%. Déjalo vacío si no se apaga nunca.',
     customUnreadOne: 'No se pudo cargar 1 aparato personalizado de este proyecto, así que el kit lo deja fuera. Agrégalo de nuevo abajo y luego quita el que no cargó.',
@@ -56,13 +56,13 @@ export const es: Dictionary = {
     fewInvertersNote: 'Se venden pocos inversores para {volts} V, así que la mayoría de los kits salen sobredimensionados: un inversor más grande de lo que pide la carga y un banco capaz de darle toda su corriente.',
     kitFor: 'Kit para {name}', kitEmpty: 'Primero agrega aparatos.', kitSummary: 'Respalda {count} aparatos durante {hours} horas con un banco de {volts} V {chemistry}.',
     editAppliances: 'Editar aparatos', editWindow: 'Editar horas',
-    runningLoad: 'Carga en marcha', averageDraw: '~{w} de promedio', startupPeak: 'Pico de arranque', batteryNeeded: 'Batería necesaria', runtime: 'Autonomía',
+    runningLoad: 'Carga en marcha', averageDraw: '~{w} de promedio', startupPeak: 'Potencia de arranque', batteryNeeded: 'Batería necesaria', runtime: 'Autonomía',
     part: 'Parte', specification: 'Especificación', quantity: 'Cantidad', nothingSelected: '{name} aún no tiene nada seleccionado.',
-    inverterSpec: '{w} continuos, no VA, onda pura, entrada {volts} V CC{output}', splitPhaseOutput: ', salida de fase partida 120/240 V', inverterNote: '{surge} · cubre {running} en marcha, {peak} pico',
-    inverterNoteTight: '{surge} · {running} en marcha dejan {pct}% de margen, {peak} pico', inverterNoteUnder: '{surge} · menor que la carga en marcha de {running}',
-    inverterNotePeak: '{surge} · cubre {running} en marcha, no el pico de {peak}',
-    inverterNoteTightPeak: '{surge} · {running} en marcha dejan {pct}% de margen, pico de {peak} no cubierto',
-    inverterSurge: '{surge} de arranque', inverterSurgeSet: '{surge} de arranque en total',
+    inverterSpec: '{w} continuos, no VA, onda pura, entrada {volts} V CC{output}', splitPhaseOutput: ', salida de fase partida 120/240 V', inverterNote: '{surge} · cubre {running} en marcha y {peak} de potencia de arranque',
+    inverterNoteTight: '{surge} · {running} en marcha dejan {pct}% de margen, {peak} de potencia de arranque', inverterNoteUnder: '{surge} · menor que la carga en marcha de {running}',
+    inverterNotePeak: '{surge} · cubre {running} en marcha, no los {peak} de potencia de arranque',
+    inverterNoteTightPeak: '{surge} · {running} en marcha dejan {pct}% de margen, {peak} de potencia de arranque sin cubrir',
+    inverterSurge: '{surge} de potencia pico', inverterSurgeSet: '{surge} de potencia pico en total',
     inverterParallelNote: '{count} en paralelo trabajan como un inversor de {total} y toman hasta {amps} A de las barras colectoras',
     batteriesNote: '{series} en serie × {parallel} en paralelo ({config}) · banco de {bank}, {usable} utilizables',
     mainCableSpec: '{gauge} ({mm2} mm²) de cobre, {length} m cada uno', mainCableNote: 'De batería a inversor · {amps} A de corriente de diseño{perRun} · {ampacity} A tras la corrección · {runDrop}% de caída, {drop}% al arrancar',
@@ -74,7 +74,7 @@ export const es: Dictionary = {
     stringLeadsNote: 'Un positivo y un negativo de cada rama a las barras colectoras (barras no incluidas) · {amps} A de corriente de diseño · {ampacity} A tras la corrección',
     fuseSpec: '{amps} A clase {class}{perRun}', fuseNote: 'En línea en el cable positivo, lo más cerca posible del banco', perRun: ' por tramo', perInverter: ' por inversor', perRunOfInverter: ' por tramo, {n} tramos a cada inversor',
     fuseAicNote: '{aic} kA de capacidad de interrupción', stringFuseSpec: '{amps} A clase {class}, uno por rama en paralelo', stringFuseNote: 'En el positivo de cada rama, para que una rama en corto se aísle sola',
-    batteriesCurrentNote: '{cont} A continuos, {peak} A pico del banco (valores supuestos)',
+    batteriesCurrentNote: '{cont} A continuos, {peak} A de corriente pico del banco (valores supuestos)',
     batteriesForContinuous: '{parallel} en paralelo por la corriente continua; la energía sola pide {energy}',
     batteriesForPeak: '{parallel} en paralelo por la corriente pico; la energía sola pide {energy}',
     batteriesForLead: '{parallel} en paralelo para que los cables de ninguna rama lleven más de lo que soportan; la energía sola pide {energy}',
@@ -90,8 +90,8 @@ export const es: Dictionary = {
     fine: 'Cada aparato cuenta en todas las horas del respaldo. Supone {efficiency}% de eficiencia del inversor, {headroom}% de margen, {dod}% de profundidad de descarga, {perTon} por tonelada de refrigeración, {starts}, cable de cobre con aislamiento de {insulation} °C a {ambient} °C{bundled}. Tablas de ampacidad NEC; verifica con la normativa local. Los tamaños de inversor son vatios continuos, no VA, a temperatura ambiente; el margen de {headroom}% cubre el factor de potencia y el calor.',
     fineStartsOne: 'un solo motor arrancando a la vez', fineStartsTwo: 'dos motores arrancando juntos', fineStartsAll: 'todos los motores arrancando a la vez', fineBundled: ', agrupado',
     fineAcDuty: ' El aire acondicionado funciona {typical} de cada hora en un día típico y {hard} en un día duro.',
-    fineRatings: ' Valores supuestos, no de la ficha de un fabricante: cada batería de {battery} entrega {cont} A continuos y {peak} A pico durante {peakSeconds} s, como máximo {parallel} en paralelo, y {shortCircuit} A por Ah en cortocircuito; cada inversor de {inverter} arranca hasta {surge} durante {surgeSeconds} s.',
-    footer1: '{name} · {count} aparatos · {running} en marcha · {peak} pico', footer2: '{hours} h a {volts} V · {load} de carga', footer3: '{batteries} · {inverter} · {gauge}', footerEmpty: 'Nada seleccionado todavía',
+    fineRatings: ' Valores supuestos, no de la ficha de un fabricante: cada batería de {battery} entrega {cont} A continuos y {peak} A de corriente pico durante {peakSeconds} s, como máximo {parallel} en paralelo, y {shortCircuit} A por Ah en cortocircuito; cada inversor de {inverter} tiene una potencia pico de {surge} durante {surgeSeconds} s.',
+    footer1: '{name} · {count} aparatos · {running} en marcha · {peak} de potencia de arranque', footer2: '{hours} h a {volts} V · {load} de carga', footer3: '{batteries} · {inverter} · {gauge}', footerEmpty: 'Nada seleccionado todavía',
     back: 'Atrás', next: 'Siguiente: horas de respaldo', nextSolar: 'Siguiente: paneles solares', buildKit: 'Armar mi kit', startOver: 'Empezar de nuevo',
     continueGoogle: 'Continuar con Google', orDivider: 'o', googleExists: 'Este correo ya tiene una cuenta. Inicia sesión con tu contraseña y luego conecta Google desde el menú de tu cuenta.', googleFailed: 'No se completó el inicio con Google. Inténtalo de nuevo.', connectGoogle: 'Conectar Google',
     signOutFailed: 'No se pudo cerrar sesión. Sigues con la sesión iniciada. Inténtalo de nuevo.',
@@ -153,15 +153,15 @@ export const es: Dictionary = {
     runtimeRange: '{worst} en un día duro · {best} en un día ligero',
     checks: 'Verificaciones', incChecks: 'Verificaciones', checkPass: 'Cumple', checkWarn: 'Revisar',
     checksAttentionOne: '1 verificación necesita atención', checksAttentionMany: '{count} verificaciones necesitan atención',
-    checkSurge: 'Tamaño del inversor', checkSurgeOk: '{running} en marcha con un inversor de {inverter} · {peak} durante {seconds} s, dentro de sus {rating} de arranque supuestos',
-    checkSurgeOkMany: '{running} en marcha con {count} inversores de {unit} ({inverter} en total) · {peak} durante {seconds} s, dentro de sus {rating} de arranque supuestos',
-    checkSurgeOkNoStart: '{running} en marcha con un inversor de {inverter} · sin pico de arranque, dentro de sus {rating} de arranque supuestos',
-    checkSurgeOkManyNoStart: '{running} en marcha con {count} inversores de {unit} ({inverter} en total) · sin pico de arranque, dentro de sus {rating} de arranque supuestos',
+    checkSurge: 'Tamaño del inversor', checkSurgeOk: '{running} en marcha con un inversor de {inverter} · {peak} de potencia de arranque durante {seconds} s, dentro de su potencia pico supuesta de {rating}',
+    checkSurgeOkMany: '{running} en marcha con {count} inversores de {unit} ({inverter} en total) · {peak} de potencia de arranque durante {seconds} s, dentro de su potencia pico supuesta de {rating}',
+    checkSurgeOkNoStart: '{running} en marcha con un inversor de {inverter} · sin potencia de arranque adicional, dentro de su potencia pico supuesta de {rating}',
+    checkSurgeOkManyNoStart: '{running} en marcha con {count} inversores de {unit} ({inverter} en total) · sin potencia de arranque adicional, dentro de su potencia pico supuesta de {rating}',
     checkSurgeContributors: '{running} en marcha + {list} arrancando',
     checkBatteryContinuous: 'Corriente continua de la batería', checkBatteryContinuousOk: 'El banco entrega {bankA} A continuos supuestos; el inversor toma hasta {needA} A',
     checkBatteryContinuousOkMany: 'El banco entrega {bankA} A continuos supuestos; los {count} inversores toman hasta {needA} A en total',
-    checkBatteryPeak: 'Corriente pico de la batería', checkBatteryPeakOk: 'El pico supuesto del banco, {bankA} A, cubre los {needA} A de arranque durante {seconds} s',
-    checkBatteryPeakOkNoStart: 'El pico supuesto del banco, {bankA} A, cubre los {needA} A que toma',
+    checkBatteryPeak: 'Corriente pico de la batería', checkBatteryPeakOk: 'La corriente pico supuesta del banco, {bankA} A, cubre los {needA} A de arranque durante {seconds} s',
+    checkBatteryPeakOkNoStart: 'La corriente pico supuesta del banco, {bankA} A, cubre los {needA} A que toma',
     checkParallel: 'Ramas en paralelo', checkParallelOk: '{parallel} en paralelo, dentro del límite supuesto de {max}', checkParallelSingle: 'Una sola rama, nada que balancear · límite supuesto de {max} en paralelo',
     checkFuse: 'Fusible', checkFuseOk: '{amps} A clase {class}: bajo los {ampacity} A del cable, {aic} kA de interrupción ante una corriente de cortocircuito estimada de {fault} A, arranque de {startA} A dentro de lo que aguanta',
     checkCable: 'Cable', checkCableOk: '{gauge} soporta {ampacity} A tras la corrección ({ambient} °C{bundled}) para {designA} A de diseño{perRun} · {runDrop}% de caída, {drop}% al arrancar',
@@ -175,7 +175,7 @@ export const es: Dictionary = {
     parallelStrings: (p) => `${p.strings} ramas en paralelo se desbalancean. Prefiere unidades más grandes o un voltaje mayor.`,
     dominantLoad: (p) => `${p.itemName} es el ${p.sharePct}% de la energía. Quitarlo es la forma más barata de reducir el banco.`,
     splitPhase: (p) => `${p.itemName} normalmente funciona a 240 V. Necesitas un inversor de fase partida (240 V) o dos unidades acopladas.`,
-    lockedRotor: (p) => `${p.itemName}: el arranque es una estimación y la placa puede indicar más amperios de rotor bloqueado. Compara amperios de rotor bloqueado × voltios con el arranque del inversor, o instala un arrancador suave.`,
+    lockedRotor: (p) => `${p.itemName}: la potencia de arranque es una estimación y la placa puede indicar más amperios de rotor bloqueado. Compara amperios de rotor bloqueado × voltios con la potencia pico del inversor, o instala un arrancador suave.`,
     inverterUndersized: (p) => {
       const [inverter, unit, running] = [p.inverterW ?? 0, p.unitW ?? 0, p.runningW ?? 0].map((n) => n.toLocaleString('es-419'))
       const isUnder = (p.inverterW ?? 0) < (p.runningW ?? 0)
@@ -193,25 +193,25 @@ export const es: Dictionary = {
         : `El inversor de ${inverter} W deja ${p.headroomPct}% de margen sobre la carga en marcha de ${running} W; este kit prevé ${p.needPct}%. ${advice}`
     },
     surgeDuration: (p) => {
-      const start = `Un arranque de ${p.surgeW?.toLocaleString('es-419')} W`
+      const start = `Una potencia de arranque de ${p.surgeW?.toLocaleString('es-419')} W`
       const [rated, surge] = [p.ratedW, p.inverterSurgeW].map((n) => n?.toLocaleString('es-419'))
       // A set is already the most the list can put in parallel, so the advice no longer offers a bigger inverter.
       if (isSet(p)) {
         const set = `de los ${p.inverters} inversores de ${p.unitW?.toLocaleString('es-419')} W`
         const reason = p.tooLong
-          ? `${start} durante ${p.seconds} s supera la ventana de arranque ${set}; juntos solo sostienen ${rated} W ese tiempo.`
-          : `${start} supera los ${surge} W de arranque ${set} juntos.`
+          ? `${start} durante ${p.seconds} s dura más que la potencia pico ${set}; juntos solo sostienen ${rated} W ese tiempo.`
+          : `${start} supera los ${surge} W de potencia pico ${set} juntos.`
         return `${reason} Deja que arranquen menos motores a la vez.`
       }
       const inverter = `del inversor de ${p.inverterW?.toLocaleString('es-419')} W`
       const reason = p.tooLong
-        ? `${start} durante ${p.seconds} s supera la ventana de arranque ${inverter}; solo sostiene ${rated} W ese tiempo.`
-        : `${start} supera los ${surge} W de arranque ${inverter}.`
+        ? `${start} durante ${p.seconds} s dura más que la potencia pico ${inverter}; solo sostiene ${rated} W ese tiempo.`
+        : `${start} supera los ${surge} W de potencia pico ${inverter}.`
       return `${reason} Elige un inversor mayor o deja que arranquen menos motores a la vez.`
     },
     bankDischarge: (p) => `${isSet(p) ? `Los ${p.inverters} inversores toman hasta ${p.needA?.toLocaleString('es-419')} A en total` : `El inversor toma hasta ${p.needA?.toLocaleString('es-419')} A`} a plena carga; ${p.strings} × ${p.unitLabel} permite ${p.maxA?.toLocaleString('es-419')} A continuos y ${hasBms(p) ? 'su BMS cortaría' : NO_BMS}. Elige una unidad mayor o más voltaje.`,
     bankPeak: (p) => {
-      const peak = `${p.maxA?.toLocaleString('es-419')} A pico`
+      const peak = `${p.maxA?.toLocaleString('es-419')} A de corriente pico`
       const limit = hasBms(p) ? `el BMS del banco permite ${peak} y podría apagarse` : `el banco permite ${peak} y ${NO_BMS}`
       return `El arranque exige ${p.needA?.toLocaleString('es-419')} A durante ${p.seconds} s; ${limit}. Deja que arranquen menos motores a la vez o agrega una rama.`
     },
