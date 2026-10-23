@@ -1,0 +1,9 @@
+id	mutant	new momentary test	existing kettle test
+U1	Surge cell drops its sources	killed	survived
+U1b	Duty cell drops its sources	killed	survived
+U2	Kind cell drops the Burst sources	killed	survived
+U2b	Kind cell drops the Cycles sources	killed	killed
+U3	Surge cell shows the duty sources	killed	survived
+U4	Burst line shows the cycles sources	killed	killed
+U6	a figure shows only its first source	killed	survived
+U5	Watts cell drops its sources	killed	killed

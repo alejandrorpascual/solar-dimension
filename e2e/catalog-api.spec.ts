@@ -153,7 +153,7 @@ test('every write to an appliance is logged with the row before and after; an un
       [3000, 3000, true, false],
     ])
     expect(log.every((e) => e.actor === 'api-token')).toBe(true)
-    expect(log[1]!.after).toEqual({ ...item, watts: 3000, surge: 3000, kind: null, surgeClass: null, burstSeconds: null, cyclesPerHour: null, sortOrder: log[0]!.after.sortOrder, retired: false })
+    expect(log[1]!.after).toEqual({ ...item, watts: 3000, surge: 3000, kind: null, surgeClass: null, burstSeconds: null, cyclesPerHour: null, sources: {}, sortOrder: log[0]!.after.sortOrder, retired: false })
   } finally {
     await deleteTestAppliance(id)
   }

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { slugify } from '../src/lib/catalog-schema'
+import { catalogAuthHeader, writeHeaders } from './catalog-token'
 import { deleteTestAppliance, firstProjectName, markEmailVerified } from './db'
 import { quotePdf, signUp, uploadQuotes } from './quotes'
 import { E2E_ADMIN as ADMIN } from './servers'
@@ -109,6 +110,95 @@ test('an admin adds an appliance, sees it in the picker, and retires it', async 
     await expect(page.getByText(name)).toHaveCount(0)
   } finally {
     // Runs even if an assertion above throws midway, so no run leaves its e2e appliance behind.
+    await deleteTestAppliance(id)
+  }
+})
+
+test('sources sent with a token write read back, show in the admin row, and survive later writes that send none', async ({ page, request }) => {
+  const id = `e2e-sourced-${Date.now()}`
+  const name = `E2E kettle ${id}`
+  const kettle = {
+    id, category: 'Kitchen', watts: 1500, surge: 1500, duty: 0.1, tons: null, acType: null,
+    labels: { en: { name, note: 'Test item' }, es: { name: `Hervidor ${id}`, note: 'Ítem de prueba' } },
+  }
+  const nameplate = { source: 'https://example.com/e2e-kettle-nameplate.jpg', asWritten: '220-240V~ 50/60Hz 1500W' }
+  // A kettle is not momentary, so its cycles per hour is null; a source sent for it anyway is stored all the same.
+  const strayCycles = { source: 'https://example.com/e2e-kettle-manual.pdf', asWritten: 'Boils about 4 times an hour' }
+  const sources = { watts: [nameplate], cyclesPerHour: [strayCycles] }
+  const post = async (item: object) => expect((await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [item] })).status()).toBe(200)
+  const storedSources = async () => {
+    const { items } = await (await request.get('/api/catalog/appliances', { headers: catalogAuthHeader })).json() as { items: Array<{ id: string; sources: unknown }> }
+    return items.find((i) => i.id === id)?.sources
+  }
+  try {
+    await post({ ...kettle, sources })
+    expect(await storedSources()).toEqual(sources)
+
+    await post({ ...kettle, duty: 0.12 })
+    expect(await storedSources()).toEqual(sources)
+
+    await signInAsAdmin(page)
+    await page.goto('/admin/appliances')
+    const row = page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name: new RegExp(name) })
+    const source = row.getByRole('link', { name: `“${nameplate.asWritten}”` })
+    await expect(source).toHaveAttribute('href', nameplate.source)
+    // The quote takes the list's muted color, not the global link accent, at rest and on hover.
+    const sourcesColor = await source.evaluate((a) => getComputedStyle(a.closest('.admin__sources')!).color)
+    await expect(source).toHaveCSS('color', sourcesColor)
+    await source.hover()
+    await expect(source).toHaveCSS('color', sourcesColor)
+    // Shown whatever the kind, so a source stored against a figure the item does not use can be seen and cleared.
+    const kindCell = row.getByRole('cell').nth(4)
+    await expect(kindCell).toContainText(`Cycles: “${strayCycles.asWritten}”`)
+    await expect(kindCell.getByRole('link', { name: `“${strayCycles.asWritten}”` })).toHaveAttribute('href', strayCycles.source)
+
+    // The form has no sources field: its save sends none, so the stored ones stay.
+    await row.getByRole('button', { name: 'Edit' }).click()
+    await page.getByLabel('Duty').fill('0.15')
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(row.getByRole('cell').nth(3)).toContainText('0.15')
+    await expect(source).toBeVisible()
+    expect(await storedSources()).toEqual(sources)
+  } finally {
+    await deleteTestAppliance(id)
+  }
+})
+
+test('a momentary row shows each figure\'s sources in that figure\'s own cell', async ({ page, request }) => {
+  const id = `e2e-sourced-gate-${Date.now()}`
+  const name = `E2E gate motor ${id}`
+  const sourceFor = (figure: string) => ({ source: `https://example.com/e2e-gate-${figure}.pdf`, asWritten: `Gate motor ${figure} as written` })
+  // Surge has two, as the research skill asks for when there is no datasheet: every one of a figure's sources shows.
+  const sources = {
+    watts: [sourceFor('watts')], surge: [sourceFor('surge'), sourceFor('surge-shop')], duty: [sourceFor('duty')],
+    burstSeconds: [sourceFor('burst')], cyclesPerHour: [sourceFor('cycles')],
+  }
+  // The seed's sliding gate motor figures, so the row is a valid momentary load with a burst and cycles to show.
+  const motor = {
+    id, category: 'Security', watts: 550, surge: 1650, duty: 0.033, tons: null, acType: null,
+    kind: 'momentary', surgeClass: 'motor', burstSeconds: 20, cyclesPerHour: 6,
+    labels: { en: { name, note: 'Test item' }, es: { name: `Motor ${id}`, note: 'Ítem de prueba' } },
+    sources,
+  }
+  try {
+    expect((await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [motor] })).status()).toBe(200)
+
+    await signInAsAdmin(page)
+    await page.goto('/admin/appliances')
+    const cells = page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name: new RegExp(name) }).getByRole('cell')
+    // Exactly the figure's own links in its cell: a source dropped from a cell, or shown in another, fails here.
+    const expectLinks = async (cell: number, list: ReadonlyArray<{ source: string; asWritten: string }>) => {
+      await expect(cells.nth(cell).getByRole('link')).toHaveCount(list.length)
+      for (const s of list) await expect(cells.nth(cell).getByRole('link', { name: `“${s.asWritten}”`, exact: true })).toHaveAttribute('href', s.source)
+    }
+    await expectLinks(1, sources.watts)
+    await expectLinks(2, sources.surge)
+    await expectLinks(3, sources.duty)
+    await expectLinks(4, [...sources.burstSeconds, ...sources.cyclesPerHour])
+    // Burst and cycles share the Kind cell, so each one is named.
+    await expect(cells.nth(4)).toContainText(`Burst: “${sources.burstSeconds[0]!.asWritten}”`)
+    await expect(cells.nth(4)).toContainText(`Cycles: “${sources.cyclesPerHour[0]!.asWritten}”`)
+  } finally {
     await deleteTestAppliance(id)
   }
 })

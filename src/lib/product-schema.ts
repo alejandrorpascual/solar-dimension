@@ -19,7 +19,7 @@ export type ProductOrigin = (typeof PRODUCT_ORIGINS)[number]
 const BMS_PROTOCOLS = ['can', 'rs485'] as const
 const BATTERY_CHEMISTRIES = ['lifepo4', 'agm', 'other'] as const
 
-const httpsUrl = z.url({ protocol: /^https$/, message: 'an https URL' })
+export const httpsUrl = z.url({ protocol: /^https$/, message: 'an https URL' })
 const text = (max = MAX_TEXT) => z.string().trim().min(1).max(max)
 
 /**
