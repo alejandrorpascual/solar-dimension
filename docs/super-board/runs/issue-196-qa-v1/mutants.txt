@@ -1,0 +1,8 @@
+Mutants run against the Builder's tests (each restored after the run; none reached a commit)
+
+1. ApplianceForm.tsx: empty option text "Not set" -> "—" (the old text)
+   result: RED  src/components/admin/ApplianceForm.test.ts  expected [ 'Not set', ... ] got [ '—', ... ]
+2. components.css: .legal a rule reverted to the staging version (no min-height, no inline-flex)
+   result: RED  e2e/legal-links.spec.ts  4/4  link heights 16.5, 16.5 (phone) and 18, 18 (desktop)
+3. components.css: .legal a min-height 24px -> 23px (limit minus 1)
+   result: RED  e2e/legal-links.spec.ts  4/4  link heights 23, 23
