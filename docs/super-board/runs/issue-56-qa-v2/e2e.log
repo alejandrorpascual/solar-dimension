@@ -58,3 +58,10 @@ $ E2E_PORT=4112 npx playwright test e2e/qa-56-evidence.spec.ts
   ✓  1 [desktop] › e2e/qa-56-evidence.spec.ts:33:5 › tablet › qa-56 evidence tablet (12.5s)
   ✓  3 [desktop] › e2e/qa-56-evidence.spec.ts:33:5 › desktop › qa-56 evidence desktop (12.4s)
   3 passed (34.6s)
+
+# before shots on the base, origin/staging a51e1a7 (same flow, no Change total yet):
+$ E2E_PORT=4112 npx playwright test e2e/qa-56-before.spec.ts
+  ✓  1 [desktop] › e2e/qa-56-before.spec.ts:32:5 › desktop › qa-56 before desktop (9.5s)
+  ✓  3 [desktop] › e2e/qa-56-before.spec.ts:32:5 › mobile › qa-56 before mobile (11.2s)
+  ✓  2 [desktop] › e2e/qa-56-before.spec.ts:32:5 › tablet › qa-56 before tablet (11.2s)
+  3 passed (21.7s)
