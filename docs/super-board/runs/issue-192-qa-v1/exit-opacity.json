@@ -1,0 +1,79 @@
+{
+  "note": "Computed opacity of each part of a closing dialog, read with its exit animation paused at two moments (5 ms and 80 ms in). The overlay and the dialog fade down, so it is an exit and not an entrance. On a phone the dialog slides and only the overlay fades.",
+  "firstFrameMs": 5,
+  "frozenAtMs": 80,
+  "frames": {
+    "handoff-desktop": [
+      {
+        "part": "dialog",
+        "first": 0.940771,
+        "at": 0.24212
+      },
+      {
+        "part": "overlay",
+        "first": 0.940771,
+        "at": 0.24212
+      }
+    ],
+    "handoff-mobile": [
+      {
+        "part": "dialog",
+        "first": 1,
+        "at": 1
+      },
+      {
+        "part": "overlay",
+        "first": 0.940771,
+        "at": 0.24212
+      }
+    ],
+    "handoff-tablet": [
+      {
+        "part": "dialog",
+        "first": 0.940771,
+        "at": 0.24212
+      },
+      {
+        "part": "overlay",
+        "first": 0.940771,
+        "at": 0.24212
+      }
+    ],
+    "musts-desktop": [
+      {
+        "part": "dialog",
+        "first": 0.940771,
+        "at": 0.24212
+      },
+      {
+        "part": "overlay",
+        "first": 0.940771,
+        "at": 0.24212
+      }
+    ],
+    "musts-mobile": [
+      {
+        "part": "dialog",
+        "first": 1,
+        "at": 1
+      },
+      {
+        "part": "overlay",
+        "first": 0.940771,
+        "at": 0.24212
+      }
+    ],
+    "musts-tablet": [
+      {
+        "part": "dialog",
+        "first": 0.940771,
+        "at": 0.24212
+      },
+      {
+        "part": "overlay",
+        "first": 0.940771,
+        "at": 0.24212
+      }
+    ]
+  }
+}
