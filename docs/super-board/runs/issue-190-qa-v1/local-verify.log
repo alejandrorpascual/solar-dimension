@@ -1,0 +1,40 @@
+# QA clone · branch issue-190-one-appliance-count · app code 990f000 · base staging a51e1a7 · QA changed no app code
+
+## npm run typecheck
+typecheck exit 0
+
+## npx vitest run   (3 runs)
+ Test Files  132 passed (132)
+      Tests  2129 passed (2129)
+
+## npx vitest run --coverage --testTimeout=60000
+ Test Files  132 passed (132)
+      Tests  2129 passed (2129)
+All files          |   90.22 |    90.58 |   90.56 |   90.41 |
+
+## E2E_PORT=4380 npx playwright test e2e/kit-builder.spec.ts e2e/stepper.spec.ts
+64 passed, 1 skipped (a phone-only test on the desktop project; its phone run passed)
+
+## E2E_PORT=4380 npx playwright test e2e/kit-footer.spec.ts e2e/project-card.spec.ts e2e/solar.spec.ts e2e/download.spec.ts e2e/spanish-defaults.spec.ts e2e/step-headings.spec.ts
+75 passed, 2 skipped (phone-only on desktop)
+
+## npm run build
+exit 0 (each Playwright run builds first)
+
+## Environment
+- The test env file has DATABASE_URL only and the clone has no dev env file, so the test servers refused to start (BETTER_AUTH_SECRET is not set).
+  The e2e runs passed a throwaway BETTER_AUTH_SECRET=$(openssl rand -hex 32) in the shell, as ci.yml does.
+- Two runs of npm run test:coverage at the default 5 s timeout hit one or two timeouts (kit-conductors.test.ts, solar.test.ts)
+  while the machine's load average was 250 to 318 from parallel lanes. Both files pass alone and in every other run. Not related to this diff.
+
+## Mutation checks (each reverted, never committed)
+KitSummary.tsx counts units as appliances         -> caught by KitSummary.test.ts "the summary counts appliances ..."
+BackupWindow.tsx counts units as appliances       -> caught by BackupWindow.test.ts "step 2 counts the starting project ..."
+SolarFlow.tsx count: r.items.length -> r.units    -> NOT caught (survives)
+SheetSchedule.tsx total r.units -> r.items.length -> NOT caught (survives)
+
+## Screenshots
+before-* are the base a51e1a7; the rest are 990f000. -crop files cut the changed part.
+ac1-* ac2-*: English summary, chip, card. ac3-*: Spanish. extra-*: steps 1 to 3.
+observed.jsonl / observed-before.jsonl: the text each surface showed, per viewport (1920x1080, 1024x768, 375x667).
+Captured with a throwaway Playwright spec (not committed).
