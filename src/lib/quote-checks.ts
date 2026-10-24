@@ -1,3 +1,4 @@
+import { CURRENCY_CODES } from './parse-amount'
 import { PRODUCT_LIMITS } from './product-limits'
 import { hasOptions, optionLines } from './quote-options'
 import { UNLISTED_OPTION, type LineSpecs, type QuoteExtraction, type QuoteLine, type QuoteOption } from './quote-schema'
@@ -10,7 +11,6 @@ const LINE_TOLERANCE = 0.01
 const TOTAL_TOLERANCE = 0.02
 /** Rounding in a document is allowed one whole currency unit, however small the amount. */
 const MIN_ABSOLUTE_TOLERANCE = 1
-const CURRENCIES = new Set(Intl.supportedValuesOf('currency'))
 
 const near = (a: number, b: number, tolerance: number): boolean =>
   Math.abs(a - b) <= Math.max(MIN_ABSOLUTE_TOLERANCE, Math.abs(b) * tolerance)
@@ -178,7 +178,7 @@ export function checkExtraction(x: QuoteExtraction, pages: number | null = null)
   const isMulti = hasOptions(x)
   const isPriced = isMulti ? optionPrices(x).some((p) => p.total !== null) : hasTotal(x.total)
   if (!isPriced) failures.push('no_total')
-  if (!/^[A-Z]{3}$/.test(x.currency) || !CURRENCIES.has(x.currency)) failures.push('bad_currency')
+  if (!/^[A-Z]{3}$/.test(x.currency) || !CURRENCY_CODES.has(x.currency)) failures.push('bad_currency')
   if (x.lines.some((l) => !(l.qty > 0))) failures.push('bad_qty')
   // Such a line or warranty is in no option, so the reading can't be trusted to price, size or cover any of them.
   if ([...x.lines, ...x.warranties].some((i) => i.option === UNLISTED_OPTION)) failures.push('unknown_option')

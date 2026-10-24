@@ -1,14 +1,14 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { trq } from '../../i18n'
 import { entryName, type UnrankedQuote } from '../../lib/quote-compare'
-import { parseTotal } from '../../lib/quote-guards'
 import { lineRows } from '../../lib/quote-line-text'
 import { entrySubtitle, fileStatusText, misreadText, readTotalText, totalHelp } from '../../lib/quote-text'
 import { ChecksToggle } from './ChecksToggle'
 import { QuoteActions } from './QuoteActions'
 import { QuoteFacts } from './QuoteFacts'
 import { QuoteLines } from './QuoteLines'
+import { TotalForm } from './TotalForm'
 
 interface Props {
   u: UnrankedQuote; error: string | null
@@ -25,19 +25,8 @@ interface Props {
 export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Props) {
   const { t } = useLocale()
   const nameId = useId()
-  const inputId = useId()
-  const errorId = useId()
   const bodyId = useId()
   const [isOpen, setOpen] = useState(false)
-  // The field starts empty, beside the total that was read: saving the figure that failed the check takes typing it.
-  const [total, setTotal] = useState('')
-  const [isInvalid, setInvalid] = useState(false)
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    const n = parseTotal(total)
-    setInvalid(n === null)
-    if (n !== null) onTotal(n)
-  }
   const waitsForTotal = u.reason === 'needs_review' || u.reason === 'no_total'
   const extraction = u.quote.extraction
   const readText = extraction === null ? null : readTotalText(t, extraction)
@@ -63,20 +52,10 @@ export function UnrankedRow({ u, error, retry, onRetry, onDelete, onTotal }: Pro
         <span className={pill.cls}>{pill.text}</span>
       </div>
       {hasTotalForm && (
-        <form className="qrow__form" onSubmit={submit}>
+        <TotalForm onTotal={onTotal}>
           <p className="qmeta" style={{ flexBasis: '100%' }}>{totalHelp(t, u)}</p>
           {readText && <p className="qmeta num" style={{ flexBasis: '100%' }}>{readText}</p>}
-          <label htmlFor={inputId}>{t.quotes.totalInQuote}
-            <input id={inputId} className="in num" inputMode="decimal" value={total} aria-invalid={isInvalid || undefined}
-              aria-describedby={isInvalid ? errorId : undefined}
-              onChange={(e) => {
-                setTotal(e.target.value)
-                setInvalid(false)
-              }} />
-          </label>
-          <button type="submit" className="qbtn">{t.quotes.save}</button>
-          {isInvalid && <p className="qerr" id={errorId} role="alert" style={{ flexBasis: '100%' }}>{t.quotes.totalInvalid}</p>}
-        </form>
+        </TotalForm>
       )}
       {waitsForTotal && u.optionCount > 0 && <p className="qmeta">{trq(t, canReadAgain ? 'optionsReviewHelp' : 'optionsReviewHelpNoRetry', { count: u.optionCount })}</p>}
       {u.reason === 'misread' && extraction !== null && <p className="qmeta">{misreadText(t, extraction, u.quote.pages, canReadAgain)}</p>}

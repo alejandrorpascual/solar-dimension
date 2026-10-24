@@ -1,0 +1,10 @@
+# parseAmount/parseTotal on head 1e84c57: input amount/total (null = refused)
+AC1 refused (want null): "6485 + 18%" null/null · "6,485.00 (2 pagos)" null/null · "1e5" null/null
+AC2 parse (want 6480.5 · 6480.5 · 6480): "$6,480.50" 6480.5/6480.5 · "6.480,50" 6480.5/6480.5 · "RD$ 6,480" 6480/6480
+AC4 cap (want 50000000; MAX_TOTAL=1000000000): "50,000,000" 50000000/50000000 · "50.000.000" 50000000/50000000 · "50000000" 50000000/50000000 · "COP 1.000.000.000" 1000000000/1000000000 · "1,000,000,001" 1000000001/null
+v1 witnesses (want null): "650 mil" null/null · "1,5 mil" null/null · "6480 IVA" null/null · "6485 18" null/null · "mil 650" null/null
+magnitude words (want null): "6.5 M" null/null · "6.5 MM" null/null · "6.5k" null/null · "6 mln" null/null · "6 bn" null/null · "650 MIL" null/null · "650mil" null/null · "650 mil$" 650/650 · "650 mil $" null/null
+codes and symbols: "DOP 6,480" 6480/6480 · "6480 usd" 6480/6480 · "US$ 7,300" 7300/7300 · "€ 6.480,50" 6480.5/6480.5 · "Bs. 1.000" null/null · "VES 1.000" 1000/1000 · "S/ 6,480" null/null · "6480 pesos" null/null
+mixed or repeated separators: "6,480.500" 6480500/6480500 · "1,234.567" 1234567/1234567 · "1.234,567" 1234567/1234567 · "6,480,50" 6480.5/6480.5 · "6.480.50" 6480.5/6480.5 · "1 000 000" 1000000/1000000 · "6 480" 6480/6480 · "6 480,50" 6480.5/6480.5
+other: "0" 0/null · "0,50" 0.5/0.5 · "-5" null/null · "+5" null/null · "6480." null/null · ".50" null/null · "６４８０" null/null · "Infinity" null/null · "NaN" null/null · "0x10" null/null · "" null/null
+long adversarial input (10001 chars): 0.0 ms

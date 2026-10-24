@@ -12,6 +12,7 @@ import { QuoteFacts } from './QuoteFacts'
 import { QuoteLines } from './QuoteLines'
 import { QuoteActions } from './QuoteActions'
 import { SizingGauge } from './SizingGauge'
+import { TypedTotal } from './TotalForm'
 
 /** The words carry the meaning; the mark only repeats it at a glance. */
 const MARK: Record<CoverageKind, string> = { ok: '✓', short: '!', missing: '!', unclear: '?', unknown: '?' }
@@ -22,9 +23,11 @@ interface Props {
   retry: 'retry' | 'used_up' | 'none'
   onOverride: (item: ItemId, value: Override | null) => void
   onRetry: () => void; onDelete: () => void
+  /** Saves another total for a quote that ranks on one the user typed. */
+  onTotal: (total: number) => void
 }
 
-export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelete }: Props) {
+export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelete, onTotal }: Props) {
   const { t } = useLocale()
   const [isOpen, setOpen] = useState(false)
   const titleId = useId()
@@ -50,7 +53,7 @@ export function BestCard({ best, kit, error, retry, onOverride, onRetry, onDelet
         </div>
         <p className="qbest__total num">{money(t, best.total, best.currency)}</p>
       </div>
-      {isTotalTyped(best) && <p className="qmeta">{t.quotes.totalTyped}</p>}
+      {isTotalTyped(best) && <TypedTotal onTotal={onTotal} />}
       {gauges.length > 0 && (
         <div className="qbest__gauges">
           {gauges.map(({ id, s }) => <SizingGauge key={id} id={id} s={s} />)}

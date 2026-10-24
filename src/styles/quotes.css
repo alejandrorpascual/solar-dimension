@@ -239,6 +239,7 @@
 .qrow__form { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; }
 .qrow__form label { flex: 1 1 160px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
 .qrow__form .in { width: 100%; }
+.qtyped { display: flex; align-items: center; flex-wrap: wrap; gap: 0 10px; }
 .qitems { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .qitem { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
 .qitem:first-child { border-top: 0; }

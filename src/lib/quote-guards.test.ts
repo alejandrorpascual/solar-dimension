@@ -160,6 +160,10 @@ describe('parseTotal', () => {
     expect(parseTotal('$6,480')).toBe(6480)
     expect(parseTotal(String(MAX_TOTAL))).toBe(MAX_TOTAL)
   })
+  test('a total in a large-denomination currency can be typed', () => {
+    expect(parseTotal('50,000,000')).toBe(50_000_000)
+    expect(parseTotal('COP 1.000.000.000')).toBe(1_000_000_000)
+  })
   test('empty, zero, negative, non-numeric or above the cap is refused', () => {
     for (const bad of ['', '   ', 'abc', '0', '0,00', '-5', String(MAX_TOTAL + 1)]) expect(parseTotal(bad)).toBeNull()
   })

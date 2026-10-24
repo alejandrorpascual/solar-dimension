@@ -1,0 +1,14 @@
+# e2e, local build of 1e84c57 on the Neon e2e branch, E2E_PORT=4112
+$ E2E_PORT=4112 npx playwright test e2e/quotes.spec.ts e2e/qa-56-evidence.spec.ts
+  ✓ e2e/quotes.spec.ts:867 a total that failed its check is asked for in an empty field; a misread line is read again before its total can be typed
+  ✓ e2e/quotes.spec.ts:911 a typed total can be changed from its ranked card, which re-ranks the quotes; a sum is refused
+  ✓ qa-56-evidence desktop · tablet · mobile (screenshot run, not committed)
+  ✘ quotes.spec.ts:148, :192, :436, :533 (must-haves, 404 for another account, 10-quote cap): timeouts at load average ~480
+  37 passed, 4 failed (3.4m)
+$ E2E_PORT=4112 npx playwright test e2e/quotes.spec.ts --last-failed --workers=2
+  4 passed (32.8s)
+$ E2E_PORT=4112 npx playwright test e2e/qa-56-evidence.spec.ts   # re-shot, centred on the changed part
+  3 passed (34.6s)
+# before shots, same flow on origin/staging a51e1a7
+$ E2E_PORT=4112 npx playwright test e2e/qa-56-before.spec.ts
+  3 passed (21.7s)

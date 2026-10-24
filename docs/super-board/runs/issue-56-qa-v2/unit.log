@@ -1,0 +1,3 @@
+$ npx vitest run src/lib/parse-amount.test.ts src/lib/quote-guards.test.ts src/lib/quote-checks.test.ts src/components/quotes/VerdictView.test.ts  # head 1e84c57
+ Test Files  4 passed (4)
+      Tests  88 passed (88)
