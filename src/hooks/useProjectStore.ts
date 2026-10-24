@@ -7,10 +7,10 @@ import {
 } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
 import { currentProject, initialStore, nameFirstProject, rekeySeed, withSetAside } from '../lib/store'
+import { adoptKept, adoptStale, applyChanges, diffProjects } from '../lib/sync'
 import {
-  adoptKept, adoptStale, applyChanges, diffProjects, editsOf, hasUnsent, mergeEdits, namedSave, NOTHING_UNSENT, outgoing, readBack, rebase, recordEdits,
-  unsentOf, type Edits, type OwnEdits, type Unsent,
-} from '../lib/sync'
+  edited, isClean, listRead, NOT_SYNCED, readAnswered, readSent, readSettled, saveAnswered, saveFailed, saveOf,
+} from '../lib/tab-sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
 import { useLocale } from './useLocale'
 import { useRootData } from './useRootData'
@@ -87,24 +87,12 @@ export function useProjectStore() {
     saveStore(next)
   }, [account, isAccountUnreachable])
   const inFlight = useRef(0)
-  /** True once this mount's first sync with the account worked; until then nothing here knows what the account holds. */
-  const loaded = useRef(false)
-  /** What failed to reach the account since the last save that worked. The next save carries it again. */
-  const unsent = useRef<Unsent>(NOTHING_UNSENT)
-  /** The fields of `unsent`'s projects that edits changed, for that next save to name. */
-  const unsentEdits = useRef<Edits>(new Map())
-  /** The copy each field was last edited in here: a save sends a field it names at that edit's value and stamp. */
-  const ownEdits = useRef<OwnEdits>(new Map())
-  /** While the account is read again on coming back: the fields edited here since that read went out. */
-  const editedInRead = useRef<Edits | null>(null)
-  /** Ids of the projects the account has held as far as this tab knows: in a list it read, or in a save it answered. */
-  const held = useRef<ReadonlySet<string>>(new Set())
-  /** Whether the account holds everything this device does, as far as the requests answered so far can tell. */
-  const isClean = useCallback(() => loaded.current && !hasUnsent(unsent.current), [])
+  /** What this tab knows of its sync with the account: replaced whole on every change, and reset whole by an account change. */
+  const sync = useRef(NOT_SYNCED)
   /**
    * The account state the page shows: a new token each time the account changes or becomes unreachable, null once the
-   * page was left. A save answered under an earlier one must not write the store or clear the pending marker: what the
-   * page shows now has its own copy and marker, and a marker left set only costs a push.
+   * page was left. A save answered under an earlier one must not write the store, the tab's sync state or clear the
+   * pending marker: what the page shows now has its own copy, state and marker, and a marker left set only costs a push.
    */
   const scope = useRef<symbol | null>(null)
   useEffect(() => {
@@ -123,10 +111,7 @@ export function useProjectStore() {
     const { local, mustPush } = startingCopy(account, isAccountUnreachable, language.current)
     latest.current = local
     setStore(local)
-    loaded.current = false
-    unsent.current = NOTHING_UNSENT
-    ownEdits.current = new Map()
-    held.current = new Set()
+    sync.current = NOT_SYNCED
     // A load this run cancelled leaves the flag to it: with no account there is nothing to sync.
     setSyncing(account !== null)
     if (!account) return
@@ -135,8 +120,7 @@ export function useProjectStore() {
     enqueue(() => (mustPush ? importProjects({ data: { account, projects: local.projects } }) : listProjects({ data: { account } })))
       .then((list) => {
         if (cancelled) return
-        loaded.current = true
-        held.current = new Set(list.map((p) => p.id))
+        sync.current = listRead(sync.current, list)
         clearUnsent(account)
         if (inFlight.current === 0) clearPendingSave()
         // Edits made while the load was in flight are already queued behind it; keep them visible. A first project
@@ -181,24 +165,23 @@ export function useProjectStore() {
     if (!account) return
     let isReading = false
     const reread = () => {
-      if (isReading || document.visibilityState === 'hidden' || !isClean()) return
+      if (isReading || document.visibilityState === 'hidden' || !isClean(sync.current)) return
       isReading = true
       const readIn = scope.current
       // Edits made from here on are saved after this read, so the list cannot hold them yet.
       const before = latest.current
-      editedInRead.current = new Map()
+      sync.current = readSent(sync.current)
       enqueue(() => listProjects({ data: { account } }))
         .then((list) => {
-          if (scope.current !== readIn || !isClean()) return
-          const edited = editedInRead.current ?? new Map()
-          const shown = readBack(before.projects, list, hasPendingSave(), held.current)
-          held.current = new Set(list.map((p) => p.id))
-          show(fromServer(rebase(shown, before.projects, latest.current.projects, edited), latest.current))
+          if (scope.current !== readIn || !isClean(sync.current)) return
+          const answer = readAnswered(sync.current, list, before.projects, latest.current.projects, hasPendingSave())
+          sync.current = answer.sync
+          show(fromServer(answer.projects, latest.current))
         })
         .catch((error: unknown) => console.error('[projects] reload failed', { error }))
         .finally(() => {
           isReading = false
-          editedInRead.current = null
+          sync.current = readSettled(sync.current)
         })
     }
     window.addEventListener('focus', reread)
@@ -207,7 +190,7 @@ export function useProjectStore() {
       window.removeEventListener('focus', reread)
       document.removeEventListener('visibilitychange', reread)
     }
-  }, [account, enqueue, isClean, show])
+  }, [account, enqueue, show])
 
   // A first project nobody has edited reads in the language on screen, wherever it came from: made here, read back from
   // this browser or from the account, or shown before the language was switched. Only the screen changes: nothing is
@@ -226,9 +209,8 @@ export function useProjectStore() {
     const { upserts, deletes } = diffProjects(prev.projects, next.projects)
     if (upserts.length === 0 && deletes.length === 0) return
     const sentIn = scope.current
-    const edits = editsOf(prev.projects, upserts)
-    ownEdits.current = recordEdits(ownEdits.current, upserts, edits)
-    if (editedInRead.current) editedInRead.current = mergeEdits(editedInRead.current, edits)
+    const edit = edited(sync.current, prev.projects, upserts)
+    sync.current = edit.sync
     inFlight.current += 1
     markPendingSave()
     setSaving(true)
@@ -239,31 +221,29 @@ export function useProjectStore() {
       // The save names the fields edits here changed, each as its last edit here set it and with that edit's stamp, and
       // the account writes only those, each unless it holds a later edit of it: a copy here that missed another tab's or
       // device's edit to another field does not undo it, nor does an edit here sent after a later one to another field.
-      const sending = outgoing(scope.current === sentIn ? latest.current.projects : next.projects, { upserts, deletes }, unsent.current)
-      const carried = mergeEdits(unsentEdits.current, edits)
-      const { projects, named } = namedSave(sending.upserts, carried, ownEdits.current)
+      const save = saveOf(sync.current, scope.current === sentIn ? latest.current.projects : next.projects, { upserts, deletes }, edit.edits)
+      const { projects, named, deletes: deleting } = save
       try {
         const [saved] = await Promise.all([
           projects.length ? saveProjects({ data: { account, projects, named } }) : null,
-          sending.deletes.length ? deleteProjects({ data: { account, ids: sending.deletes } }) : null,
+          deleting.length ? deleteProjects({ data: { account, ids: deleting } }) : null,
         ])
-        unsent.current = NOTHING_UNSENT
-        unsentEdits.current = new Map()
+        // A save answered or failed under a later account state changes nothing of it: that state starts clean, and what
+        // the save carried is still in the copy it was made from, set aside or marked pending, and is sent from there.
+        if (scope.current === sentIn) sync.current = saveAnswered(sync.current, projects)
         return { sent: projects, stale: saved?.stale ?? [], named }
       } catch (error) {
-        unsent.current = unsentOf(sending)
-        unsentEdits.current = carried
+        if (scope.current === sentIn) sync.current = saveFailed(sync.current, save)
         throw error
       }
     })
       .then(({ sent, stale, named }) => {
         if (scope.current !== sentIn) return
-        held.current = new Set([...held.current, ...sent.map((p) => p.id)])
         if (stale.length) {
           // The account holds a newer copy of these: show it, unless the project was edited again meanwhile.
           show({ ...latest.current, projects: adoptStale(latest.current.projects, sent, stale, named) })
         }
-        if (isClean()) setSyncError(false)
+        if (isClean(sync.current)) setSyncError(false)
       })
       .catch((error: unknown) => {
         console.error('[projects] save failed', { error })
@@ -275,9 +255,9 @@ export function useProjectStore() {
         setSaving(false)
         // A save that failed keeps the marker, so the next load sends this device's copy before it reads the account's.
         // What that load sends is projects: one deleted here whose delete never arrived is back after it.
-        if (scope.current === sentIn && isClean()) clearPendingSave()
+        if (scope.current === sentIn && isClean(sync.current)) clearPendingSave()
       })
-  }, [account, enqueue, isClean, show])
+  }, [account, enqueue, show])
 
   return { store, project: currentProject(store), commit, syncing, saving, syncError }
 }
