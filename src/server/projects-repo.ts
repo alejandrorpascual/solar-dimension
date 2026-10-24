@@ -2,7 +2,7 @@ import { and, eq, inArray, sql, type SQL } from 'drizzle-orm'
 import { db } from '../db/client'
 import { projects } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { clampStamp, isNameable, NAMEABLE, type LeftOut, type Nameable, type NamedEdits } from '../lib/sync'
+import { clampStamp, isNameable, NAMEABLE, namedFields, type LeftOut, type Nameable, type NamedEdits } from '../lib/sync'
 
 export function toProject(row: typeof projects.$inferSelect): Project {
   return ProjectSchema.parse({
@@ -92,30 +92,41 @@ async function upsertGroup(userId: string, list: Project[], skipped: readonly (k
 }
 
 /**
+ * The stamp the account stores for each field a save names (`fields`): the stamp of the edit that set it, clamped as the
+ * project's is, and never later than the project's own (`rowStamp`), the stamp of its latest edit.
+ */
+function namedStamps(fields: NamedEdits[string], rowStamp: number, now: number): Partial<Record<Nameable, number>> {
+  return Object.fromEntries(namedFields(fields).map((field) => [field, Math.min(clampStamp(fields[field]!, now), rowStamp)]))
+}
+
+/**
  * Writes the fields each project names (`named`), each unless the account holds a later edit of it, by that field's own
- * stamp (`fieldStamps`): edits to different fields of one project so all reach the account, whatever order their saves
- * arrive in, and of two edits to one field the later stays, though it set the field back to where the other started. A
- * project the account does not hold is inserted whole: the save carries all of it. One statement per project, as each
- * one's fields differ, sent as one batch. Returns the ids whose named fields were all written: one where the account
- * kept a later edit is answered as refused, with its copy.
+ * stamp (`fieldStamps`) against the stamp of the edit that set the value sent: edits to different fields of one project
+ * so all reach the account, whatever order their saves arrive in, and of two edits to one field the later stays, though
+ * it set the field back to where the other started, or its save carries a later edit to another field. A project the
+ * account does not hold is inserted whole: the save carries all of it. One statement per project, as each one's fields
+ * differ, sent as one batch. Returns the ids whose named fields were all written: one where the account kept a later
+ * edit is answered as refused, with its copy.
  */
 async function upsertNamed(userId: string, list: Project[], named: NamedEdits): Promise<string[]> {
   const now = Date.now()
-  const stamps = new Map(list.map((p) => [p.id, clampStamp(p.updatedAt, now)]))
+  const rowStamps = new Map(list.map((p) => [p.id, clampStamp(p.updatedAt, now)]))
+  const fieldStamps = new Map(list.map((p) => [p.id, namedStamps(named[p.id] ?? {}, rowStamps.get(p.id)!, now)]))
   const [first, ...rest] = list.map((p) => {
-    const fields = named[p.id] ?? []
-    const stamp = sql`${stamps.get(p.id)}::bigint`
-    const isLater = (field: Nameable) => sql`${stamp} >= ${stampOf(field)}`
+    const stamps = fieldStamps.get(p.id)!
+    const fields = namedFields(stamps)
+    const stampSent = (field: Nameable) => sql`${stamps[field]}::bigint`
+    const isLater = (field: Nameable) => sql`${stampSent(field)} >= ${stampOf(field)}`
     return db
       .insert(projects)
-      .values({ ...p, userId, updatedAt: new Date(stamps.get(p.id)!) })
+      .values({ ...p, userId, updatedAt: new Date(rowStamps.get(p.id)!) })
       .onConflictDoUpdate({
         target: [projects.userId, projects.id],
         set: {
           ...Object.fromEntries(fields.map((field) => [field, sql`case when ${isLater(field)} then ${INCOMING[field]} else ${projects[field]} end`])),
           fieldStamps: stampsAfter(
-            NAMEABLE.map((field) => [field, fields.includes(field) ? sql`greatest(${stamp}, ${stampOf(field)})` : stampOf(field)]),
-            sql`greatest(${ROW_STAMP}, ${stamp})`,
+            NAMEABLE.map((field) => [field, fields.includes(field) ? sql`greatest(${stampSent(field)}, ${stampOf(field)})` : stampOf(field)]),
+            sql`greatest(${ROW_STAMP}, ${rowStamps.get(p.id)}::bigint)`,
           ),
           updatedAt: sql`greatest(${projects.updatedAt}, excluded.updated_at)`,
         },
@@ -126,7 +137,7 @@ async function upsertNamed(userId: string, list: Project[], named: NamedEdits): 
   const rows = await db.batch([first, ...rest])
   // A field written by this save carries its stamp; one the account kept carries the later stamp of its own write.
   const isWritten = (row: { id: string; fieldStamps: Record<string, number>; updatedAt: Date }) =>
-    (named[row.id] ?? []).every((field) => (row.fieldStamps[field] ?? row.updatedAt.getTime()) <= stamps.get(row.id)!)
+    Object.entries(fieldStamps.get(row.id) ?? {}).every(([field, stamp]) => (row.fieldStamps[field] ?? row.updatedAt.getTime()) <= stamp)
   return rows.flat().filter(isWritten).map((row) => row.id)
 }
 

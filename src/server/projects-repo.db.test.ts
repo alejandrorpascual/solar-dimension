@@ -8,7 +8,7 @@ import { projects } from '../db/schema'
 import { DEFAULT_ELECTRICAL, ProjectSchema, type Project } from '../lib/schema'
 import { currentProject, initialStore } from '../lib/store'
 import { emptyRequester } from '../lib/requester'
-import { leftOut } from '../lib/sync'
+import { leftOut, type Nameable } from '../lib/sync'
 import { listForUser, saveForUser } from './projects-repo'
 
 const userId = `test-db-${randomUUID()}`
@@ -24,6 +24,10 @@ function project(name: string, updatedAt: number): Project {
 
 /** The account's copy of a project, as a device reads it. */
 const stored = async (id: string) => (await listForUser(userId)).find((p) => p.id === id)!
+
+/** A save of `p` that names `fields`, each set by the edit that stamped `p`. */
+const saveNamed = (p: Project, fields: readonly Nameable[]) =>
+  saveForUser(userId, [p], new Map(), { [p.id]: Object.fromEntries(fields.map((field) => [field, p.updatedAt])) })
 
 afterAll(async () => {
   await db.delete(projects).where(inArray(projects.userId, [userId, otherUserId]))
@@ -82,8 +86,8 @@ describe('saveForUser on the test database', () => {
     const volts = { ...start, volts: 12 as const, updatedAt: LATER }
     const hours = { ...start, hours: 24, updatedAt: EARLIER }
 
-    await saveForUser(userId, [volts], new Map(), { [start.id]: ['volts'] })
-    const answer = await saveForUser(userId, [hours], new Map(), { [start.id]: ['hours'] })
+    await saveNamed(volts, ['volts'])
+    const answer = await saveNamed(hours, ['hours'])
 
     expect(answer).toEqual({ ok: true, stale: [] })
     expect((await listForUser(userId)).find((p) => p.id === start.id)).toEqual({ ...start, volts: 12, hours: 24, updatedAt: LATER })
@@ -95,8 +99,8 @@ describe('saveForUser on the test database', () => {
     const later = { ...start, qty: { fridge: 2 }, updatedAt: LATER }
     const earlier = { ...start, qty: { fan: 1 }, updatedAt: EARLIER }
 
-    await saveForUser(userId, [later], new Map(), { [start.id]: ['qty'] })
-    const answer = await saveForUser(userId, [earlier], new Map(), { [start.id]: ['qty'] })
+    await saveNamed(later, ['qty'])
+    const answer = await saveNamed(earlier, ['qty'])
 
     expect(answer).toEqual({ ok: true, stale: [later] })
     expect((await listForUser(userId)).find((p) => p.id === start.id)).toEqual(later)
@@ -106,8 +110,8 @@ describe('saveForUser on the test database', () => {
     const start = project('Home', EARLIER)
     const requester = { ...emptyRequester('US'), name: 'Ana Lopez', docPrefix: '', doc: '' }
 
-    const inserted = await saveForUser(userId, [{ ...start, hours: 7 }], new Map(), { [start.id]: ['hours'] })
-    const answer = await saveForUser(userId, [{ ...start, hours: 7, requester, updatedAt: LATER }], new Map(), { [start.id]: ['requester'] })
+    const inserted = await saveNamed({ ...start, hours: 7 }, ['hours'])
+    const answer = await saveNamed({ ...start, hours: 7, requester, updatedAt: LATER }, ['requester'])
 
     expect([inserted, answer]).toEqual([{ ok: true, stale: [] }, { ok: true, stale: [] }])
     expect(await stored(start.id)).toEqual({ ...start, hours: 7, requester, updatedAt: LATER })
@@ -120,9 +124,9 @@ describe('saveForUser on the test database', () => {
     const read = await stored(seed.id)
     expect(read.electrical).toEqual(DEFAULT_ELECTRICAL)
 
-    await saveForUser(userId, [{ ...read, hours: 24, updatedAt: LATER }], new Map(), { [read.id]: ['hours'] })
+    await saveNamed({ ...read, hours: 24, updatedAt: LATER }, ['hours'])
     const ambient = { ...read, electrical: { ...read.electrical, ambientC: 40 as const }, updatedAt: EARLIER }
-    const answer = await saveForUser(userId, [ambient], new Map(), { [read.id]: ['electrical'] })
+    const answer = await saveNamed(ambient, ['electrical'])
 
     expect(answer).toEqual({ ok: true, stale: [] })
     expect(await stored(read.id)).toEqual({ ...read, hours: 24, electrical: ambient.electrical, updatedAt: LATER })
@@ -131,11 +135,11 @@ describe('saveForUser on the test database', () => {
   it('keeps the later of two edits to one field when it sets the field back to where the older edit started', async () => {
     const start = project('Home', EARLIER - 2)
     await saveForUser(userId, [start])
-    const deviceB = (hours: number, updatedAt: number) => saveForUser(userId, [{ ...start, hours, updatedAt }], new Map(), { [start.id]: ['hours'] })
+    const deviceB = (hours: number, updatedAt: number) => saveNamed({ ...start, hours, updatedAt }, ['hours'])
     await deviceB(12, LATER)
     await deviceB(start.hours, LATER + 1)
 
-    const answer = await saveForUser(userId, [{ ...start, hours: 5, updatedAt: EARLIER }], new Map(), { [start.id]: ['hours'] })
+    const answer = await saveNamed({ ...start, hours: 5, updatedAt: EARLIER }, ['hours'])
 
     expect(answer).toEqual({ ok: true, stale: [{ ...start, updatedAt: LATER + 1 }] })
     expect(await stored(start.id)).toEqual({ ...start, updatedAt: LATER + 1 })
@@ -147,11 +151,27 @@ describe('saveForUser on the test database', () => {
     const first = { ...start, hours: 12, updatedAt: LATER }
     const last = { ...start, hours: 20, updatedAt: LATER }
 
-    await saveForUser(userId, [first], new Map(), { [start.id]: ['hours'] })
-    const answer = await saveForUser(userId, [last], new Map(), { [start.id]: ['hours'] })
+    await saveNamed(first, ['hours'])
+    const answer = await saveNamed(last, ['hours'])
 
     expect(answer).toEqual({ ok: true, stale: [] })
     expect(await stored(start.id)).toEqual(last)
+  })
+
+  it('keeps the later of two edits to one field when the earlier one is sent in a save stamped by a later edit to another field (QA-W5)', async () => {
+    const start = project('Home', EARLIER)
+    await saveForUser(userId, [start])
+    const [agmAt, fiveAt, twelveAt, voltsAt] = [EARLIER + 1, EARLIER + 2, EARLIER + 3, EARLIER + 4]
+    // Device C sets 12 h after tab A set 5 h; its save lands first. Tab A's 5 h goes out after its 12 V edit.
+    await saveNamed({ ...start, hours: 12, updatedAt: twelveAt }, ['hours'])
+    await saveNamed({ ...start, chemistry: 'agm', updatedAt: agmAt }, ['chemistry'])
+    const tabA: Project = { ...start, chemistry: 'agm', hours: 5, volts: 12, updatedAt: voltsAt }
+    const hours = await saveForUser(userId, [tabA], new Map(), { [start.id]: { hours: fiveAt } })
+    const volts = await saveForUser(userId, [tabA], new Map(), { [start.id]: { volts: voltsAt } })
+
+    expect(hours.stale.map((p) => p.hours)).toEqual([12])
+    expect(volts).toEqual({ ok: true, stale: [] })
+    expect(await stored(start.id)).toMatchObject({ hours: 12, volts: 12, chemistry: 'agm', updatedAt: voltsAt })
   })
 
   it('answers a named save of appliance counts as written, though the account stores their keys in another order', async () => {
@@ -160,7 +180,7 @@ describe('saveForUser on the test database', () => {
     // jsonb keeps an object's keys shortest first: this is stored as {"tv": 1, "fridge": 2}.
     const counts = { ...start, qty: { fridge: 2, tv: 1 }, updatedAt: LATER }
 
-    const answer = await saveForUser(userId, [counts], new Map(), { [start.id]: ['qty'] })
+    const answer = await saveNamed(counts, ['qty'])
 
     expect(answer).toEqual({ ok: true, stale: [] })
     expect((await stored(start.id)).qty).toEqual(counts.qty)
@@ -169,11 +189,11 @@ describe('saveForUser on the test database', () => {
   it('keeps the stamp of a field a whole save left out, so an edit to it made after its last write still lands', async () => {
     const start: Project = { ...project('Home', EARLIER), solar: { roofM2: 40, panels: 6, sunHours: 5 } }
     await saveForUser(userId, [start])
-    await saveForUser(userId, [{ ...start, solar: { ...start.solar!, panels: 8 }, updatedAt: EARLIER + 1 }], new Map(), { [start.id]: ['solar'] })
+    await saveNamed({ ...start, solar: { ...start.solar!, panels: 8 }, updatedAt: EARLIER + 1 }, ['solar'])
     // A build older than solar saves the project whole without it; an edit to solar made before that save lands after.
     const { solar: _solar, ...older } = { ...start, hours: 12, updatedAt: LATER }
     await saveForUser(userId, [ProjectSchema.parse(older)], leftOut([older]))
-    const answer = await saveForUser(userId, [{ ...start, solar: { ...start.solar!, panels: 4 }, updatedAt: EARLIER + 2 }], new Map(), { [start.id]: ['solar'] })
+    const answer = await saveNamed({ ...start, solar: { ...start.solar!, panels: 4 }, updatedAt: EARLIER + 2 }, ['solar'])
 
     expect(answer).toEqual({ ok: true, stale: [] })
     expect(await stored(start.id)).toMatchObject({ hours: 12, solar: { panels: 4 }, updatedAt: LATER })

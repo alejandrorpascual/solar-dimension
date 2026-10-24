@@ -1,12 +1,12 @@
 // Test double for src/server/projects.ts: accounts held in memory, under the server's rules. The same input schema,
 // the same stamp clamp, an update only when the incoming stamp is not older than the stored one (the upsert's
-// setWhere), a named field written only by an edit not older than that field's last write (upsertNamed's fieldStamps), a
-// batch that names a project twice is refused, as Postgres refuses an upsert that would touch a row
-// twice, and an import stores a never-edited first project only for an account with no project yet. A call without a
-// session throws as requireUserId does, and one from a page loaded for another account as requireAccount does.
+// setWhere), a named field written only when the stamp sent for it is not older than that field's last write
+// (upsertNamed's fieldStamps), a batch that names a project twice is refused, as Postgres refuses an upsert that would
+// touch a row twice, and an import stores a never-edited first project only for an account with no project yet. A call
+// without a session throws as requireUserId does, and one from a page loaded for another account as requireAccount does.
 import { z } from 'zod'
 import { ProjectSchema, type Project } from '../lib/schema'
-import { clampStamp, importable, isForAccount, NAMEABLE, parseNamed, type Nameable, type NamedEdits } from '../lib/sync'
+import { clampStamp, importable, isForAccount, NAMEABLE, namedFields, parseNamed, type Nameable, type NamedEdits } from '../lib/sync'
 
 const ProjectsInput = z.object({ account: z.string().min(1).optional(), projects: z.array(ProjectSchema).max(200) })
 type Call = 'list' | 'save' | 'import' | 'delete'
@@ -121,10 +121,12 @@ function upsertNamed(list: Project[], named: NamedEdits): Set<string> {
     const row = stored.get(p.id)!
     const updatedAt = clampStamp(p.updatedAt, now)
     const stamps = stampsOf(row)
-    const fields = named[p.id]!
-    const taken = fields.filter((field) => updatedAt >= stamps[field])
+    const sent = named[p.id]!
+    const fields = namedFields(sent)
+    const stampSent = (field: Nameable) => Math.min(clampStamp(sent[field]!, now), updatedAt)
+    const taken = fields.filter((field) => stampSent(field) >= stamps[field])
     const copy = { ...row, ...Object.fromEntries(taken.map((field) => [field, structuredClone(p[field])])), updatedAt: Math.max(row.updatedAt, updatedAt) } as Project
-    recordWrite(p.id, { copy, stamps: { ...stamps, ...Object.fromEntries(taken.map((field) => [field, updatedAt])) } })
+    recordWrite(p.id, { copy, stamps: { ...stamps, ...Object.fromEntries(taken.map((field) => [field, stampSent(field)])) } })
     if (taken.length === fields.length) written.add(p.id)
     return [p.id, copy]
   }))

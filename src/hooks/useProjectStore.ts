@@ -8,8 +8,8 @@ import {
 import type { Project, Store } from '../lib/schema'
 import { currentProject, initialStore, nameFirstProject, rekeySeed, withSetAside } from '../lib/store'
 import {
-  adoptKept, adoptStale, applyChanges, diffProjects, editsOf, hasUnsent, mergeEdits, namedEdits, NOTHING_UNSENT, outgoing, readBack, rebase, unsentOf,
-  type Edits, type Unsent,
+  adoptKept, adoptStale, applyChanges, diffProjects, editsOf, hasUnsent, mergeEdits, namedSave, NOTHING_UNSENT, outgoing, readBack, rebase, recordEdits,
+  unsentOf, type Edits, type OwnEdits, type Unsent,
 } from '../lib/sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
 import { useLocale } from './useLocale'
@@ -93,6 +93,8 @@ export function useProjectStore() {
   const unsent = useRef<Unsent>(NOTHING_UNSENT)
   /** The fields of `unsent`'s projects that edits changed, for that next save to name. */
   const unsentEdits = useRef<Edits>(new Map())
+  /** The copy each field was last edited in here: a save sends a field it names at that edit's value and stamp. */
+  const ownEdits = useRef<OwnEdits>(new Map())
   /** While the account is read again on coming back: the fields edited here since that read went out. */
   const editedInRead = useRef<Edits | null>(null)
   /** Ids of the projects the account has held as far as this tab knows: in a list it read, or in a save it answered. */
@@ -123,6 +125,7 @@ export function useProjectStore() {
     setStore(local)
     loaded.current = false
     unsent.current = NOTHING_UNSENT
+    ownEdits.current = new Map()
     held.current = new Set()
     // A load this run cancelled leaves the flag to it: with no account there is nothing to sync.
     setSyncing(account !== null)
@@ -224,6 +227,7 @@ export function useProjectStore() {
     if (upserts.length === 0 && deletes.length === 0) return
     const sentIn = scope.current
     const edits = editsOf(prev.projects, upserts)
+    ownEdits.current = recordEdits(ownEdits.current, upserts, edits)
     if (editedInRead.current) editedInRead.current = mergeEdits(editedInRead.current, edits)
     inFlight.current += 1
     markPendingSave()
@@ -232,19 +236,20 @@ export function useProjectStore() {
       // What failed before goes again with this save. If either request fails both count as unsent: sending a
       // project or a delete twice changes nothing. Each project goes as the screen shows it now: a read of the account
       // answered since this edit has laid it over the account's copy, which the copy made at the edit would overwrite.
-      // The save names the fields edits here changed, and the account writes only those, each unless it holds a later
-      // edit of it: a copy here that missed another tab's or device's edit to another field does not undo it.
+      // The save names the fields edits here changed, each as its last edit here set it and with that edit's stamp, and
+      // the account writes only those, each unless it holds a later edit of it: a copy here that missed another tab's or
+      // device's edit to another field does not undo it, nor does an edit here sent after a later one to another field.
       const sending = outgoing(scope.current === sentIn ? latest.current.projects : next.projects, { upserts, deletes }, unsent.current)
       const carried = mergeEdits(unsentEdits.current, edits)
-      const named = namedEdits(sending.upserts, carried)
+      const { projects, named } = namedSave(sending.upserts, carried, ownEdits.current)
       try {
         const [saved] = await Promise.all([
-          sending.upserts.length ? saveProjects({ data: { account, projects: sending.upserts, named } }) : null,
+          projects.length ? saveProjects({ data: { account, projects, named } }) : null,
           sending.deletes.length ? deleteProjects({ data: { account, ids: sending.deletes } }) : null,
         ])
         unsent.current = NOTHING_UNSENT
         unsentEdits.current = new Map()
-        return { sent: sending.upserts, stale: saved?.stale ?? [], named }
+        return { sent: projects, stale: saved?.stale ?? [], named }
       } catch (error) {
         unsent.current = unsentOf(sending)
         unsentEdits.current = carried

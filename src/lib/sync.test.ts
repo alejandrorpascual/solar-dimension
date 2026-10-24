@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest'
 import { addProject, currentProject, initialStore, patchCurrent } from './store'
 import {
-  adoptKept, adoptStale, applyChanges, clampStamp, diffProjects, editsOf, hasUnsent, importable, isForAccount, leftOut, MAX_CLOCK_LEAD_MS, mergeEdits, namedEdits,
-  newestById, NOTHING_UNSENT, outgoing, parseNamed, readBack, rebase, unsentOf, type Edits, type Nameable,
+  adoptKept, adoptStale, applyChanges, clampStamp, diffProjects, editsOf, hasUnsent, importable, isForAccount, leftOut, MAX_CLOCK_LEAD_MS, mergeEdits, namedSave,
+  newestById, NOTHING_UNSENT, outgoing, parseNamed, readBack, rebase, recordEdits, unsentOf, type Edits, type Nameable,
 } from './sync'
 
 test('reports new and changed projects as upserts and missing ones as deletes', () => {
@@ -216,20 +216,37 @@ test('edits carried from a failed save name the fields of both saves once, and a
   const merged = mergeEdits(earlier, later)
 
   expect(merged).toEqual(new Map<string, unknown>([['p1', ['hours', 'volts']], ['p2', 'all'], ['p3', ['qty']]]))
-  expect(namedEdits([project('p1'), project('p2')], merged)).toEqual({ p1: ['hours', 'volts'] })
+  const sending = [{ ...project('p1'), updatedAt: 30 }, project('p2')]
+  expect(namedSave(sending, merged, new Map()).named).toEqual({ p1: { hours: 30, volts: 30 } })
 })
 
-test('a save names only fields a save can write, each once', () => {
-  expect(parseNamed({ p1: ['hours', 'requester', 'hours'] })).toEqual({ p1: ['hours', 'requester'] })
+test("a save sends each field it names as its last edit here set it, with that edit's stamp, though the screen shows a later copy", () => {
+  const start = { ...project('p1'), updatedAt: 10 }
+  const hours = { ...start, hours: 5, updatedAt: 20 }
+  const volts = { ...hours, volts: 12 as const, updatedAt: 40 }
+  let own = recordEdits(new Map(), [hours], editsOf([start], [hours]))
+  own = recordEdits(own, [volts], editsOf([hours], [volts]))
+  // The screen took another tab's later copy of the hours since: that tab's save carries them.
+  const shown = { ...volts, hours: 7, updatedAt: 50 }
+
+  expect(namedSave([shown], new Map([['p1', ['hours']]]), own)).toEqual({ projects: [{ ...shown, hours: 5 }], named: { p1: { hours: 20 } } })
+  expect(namedSave([shown], new Map([['p1', ['hours', 'volts']]]), own).named).toEqual({ p1: { hours: 20, volts: 40 } })
+  expect(namedSave([shown], new Map([['p1', 'all']]), own)).toEqual({ projects: [shown], named: {} })
+})
+
+test('a save names only fields a save can write, each with a stamp', () => {
+  expect(parseNamed({ p1: { hours: 20, requester: 30 } })).toEqual({ p1: { hours: 20, requester: 30 } })
   expect(parseNamed(undefined)).toEqual({})
-  expect(() => parseNamed({ p1: ['updatedAt'] })).toThrow('cannot name the field updatedAt')
-  expect(() => parseNamed({ p1: { hours: 10 } })).toThrow()
+  expect(() => parseNamed({ p1: { updatedAt: 20 } })).toThrow('cannot name the field updatedAt')
+  expect(() => parseNamed({ p1: ['hours'] })).toThrow()
+  expect(() => parseNamed({ p1: { hours: -1 } })).toThrow()
+  expect(() => parseNamed({ p1: { hours: 1.5 } })).toThrow()
 })
 
 test('a named save takes back only the fields the account holds at another value, where the screen still shows what was sent', () => {
   const sent = { ...seed!, hours: 5, name: 'Renamed' }
   const account = { ...seed!, hours: 20, name: 'Renamed', volts: 12 as const }
-  const named = { [seed!.id]: ['hours', 'name'] as const }
+  const named = { [seed!.id]: { hours: 1, name: 1 } }
 
   expect(adoptStale([sent], [sent], [account], named)).toEqual([{ ...sent, hours: 20 }])
   expect(adoptStale([{ ...sent, hours: 6 }], [sent], [account], named)).toEqual([{ ...sent, hours: 6 }])

@@ -77,7 +77,7 @@ export function adoptStale(projects: readonly Project[], sent: readonly Project[
     if (!account || !copy) return p
     const fields = named[p.id]
     if (!fields) return isSame(p, copy) ? account : p
-    const refused = fields.filter((field) => !isSame(account[field], copy[field]) && isSame(p[field], copy[field]))
+    const refused = namedFields(fields).filter((field) => !isSame(account[field], copy[field]) && isSame(p[field], copy[field]))
     return refused.length ? { ...p, ...Object.fromEntries(refused.map((field) => [field, account[field]])) } : p
   })
 }
@@ -160,12 +160,17 @@ export const NAMEABLE = (Object.keys(ProjectSchema.shape) as Field[]).filter((fi
 export const isNameable = (field: string): field is Nameable => (NAMEABLE as string[]).includes(field)
 
 /**
- * By project id, the fields a save names: the account writes only those, each unless it holds a later edit of that
- * field, whatever the value either edit started from (an edit made back to that value is still the later one).
+ * By project id, the fields a save names, each with the stamp of the edit that set the value the save carries: the
+ * account writes only those, each unless it holds a later edit of that field, whatever the value either edit started
+ * from (an edit made back to that value is still the later one).
  */
-export type NamedEdits = Readonly<Record<string, readonly Nameable[]>>
+export type NamedEdits = Readonly<Record<string, Readonly<Partial<Record<Nameable, number>>>>>
+/** The fields one project of a save names. */
+export const namedFields = (fields: NamedEdits[string]): Nameable[] => Object.keys(fields) as Nameable[]
 /** By project id, the fields edits changed, or `all` for a project an edit added, which a save sends whole. */
 export type Edits = ReadonlyMap<string, readonly Nameable[] | 'all'>
+/** By project id, the copy each field was last edited in here: the value that edit set, and its stamp. */
+export type OwnEdits = ReadonlyMap<string, Readonly<Partial<Record<Nameable, Project>>>>
 
 /** What each project in `upserts` changed from its copy in `prev`. One that `prev` lacks is new: all of it. */
 export function editsOf(prev: readonly Project[], upserts: readonly Project[]): Edits {
@@ -189,21 +194,48 @@ export function mergeEdits(earlier: Edits, later: Edits): Edits {
   return merged
 }
 
-/** What a save sending `sending` names. A project edited `all`, or one no edit names, is left out and goes whole. */
-export function namedEdits(sending: readonly Project[], edits: Edits): NamedEdits {
-  return Object.fromEntries(sending.flatMap((p) => {
+/** `own` after edits `edits` made the copies `upserts`: each field they changed was last edited in its copy there. */
+export function recordEdits(own: OwnEdits, upserts: readonly Project[], edits: Edits): OwnEdits {
+  const next = new Map(own)
+  for (const p of upserts) {
     const fields = edits.get(p.id)
-    return fields && fields !== 'all' ? [[p.id, fields]] : []
-  }))
+    if (fields && fields !== 'all') next.set(p.id, { ...next.get(p.id), ...Object.fromEntries(fields.map((field) => [field, p])) })
+  }
+  return next
 }
 
-/** The fields a save names, as the request carried them. A field a save cannot name refuses the save, as a project that does not parse does. */
+/**
+ * What a save sends of `sending`, and the fields of each project it names (`edits`), each at the value and the stamp of
+ * its last edit here (`own`). A field the screen took since from another tab or the account is that copy's to save: an
+ * edit here, sent with the stamp of a later edit, would outrank an edit made elsewhere in between. A project edited
+ * `all`, or one no edit names, goes whole.
+ */
+export function namedSave(sending: readonly Project[], edits: Edits, own: OwnEdits): { projects: Project[]; named: NamedEdits } {
+  const saves = sending.map((p) => {
+    const fields = edits.get(p.id)
+    if (!fields || fields === 'all') return { project: p }
+    const editedIn = (field: Nameable): Project => own.get(p.id)?.[field] ?? p
+    return {
+      project: { ...p, ...Object.fromEntries(fields.map((field) => [field, editedIn(field)[field]])) },
+      stamps: Object.fromEntries(fields.map((field) => [field, editedIn(field).updatedAt])),
+    }
+  })
+  return {
+    projects: saves.map((save) => save.project),
+    named: Object.fromEntries(saves.flatMap((save) => (save.stamps ? [[save.project.id, save.stamps]] : []))),
+  }
+}
+
+/**
+ * The fields a save names and their stamps, as the request carried them. A field a save cannot name refuses the save,
+ * as a project that does not parse does.
+ */
 export function parseNamed(raw: unknown): NamedEdits {
-  const edits = z.record(z.string(), z.array(z.string())).optional().parse(raw) ?? {}
-  return Object.fromEntries(Object.entries(edits).map(([id, fields]) => [id, [...new Set(fields)].map((field) => {
+  const edits = z.record(z.string(), z.record(z.string(), z.number().int().nonnegative())).optional().parse(raw) ?? {}
+  return Object.fromEntries(Object.entries(edits).map(([id, fields]) => [id, Object.fromEntries(Object.entries(fields).map(([field, stamp]) => {
     if (!isNameable(field)) throw new Error(`A save cannot name the field ${field}`)
-    return field
-  })]))
+    return [field, stamp]
+  }))]))
 }
 
 /** One copy per project id, the one stamped latest (the later in the list on a tie), in the order ids first appear. */
