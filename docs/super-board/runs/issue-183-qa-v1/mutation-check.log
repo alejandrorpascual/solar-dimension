@@ -1,0 +1,51 @@
+=== baseline (no mutation)
+      Tests  19 passed (19)
+=== M1: no rounding margin at the limits
+     × gives no warning at exactly 15% from a system voltage or 10% off volts × Ah, and warns just past them 10ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/product-warnings.test.ts > warnProducts at the limits > gives no warning at exactly 15% from a system voltage or 10% off volts × Ah, an [... omitted end of long line]
+      Tests  1 failed | 18 passed (19)
+=== M2: stored form checked even when the request touches no field
+     × gives no warning from stored values alone when the request states none of a check’s fields 21ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
++   "6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours.",
+      Tests  1 failed | 18 passed (19)
+=== M3: stored form never checked
+     × checks a kWh filled into a stored battery against its stored volts × Ah 5ms
+     × checks a peak amps or a surge level filled in below the stored continuous value 1ms
+     × checks volts, Ah or a continuous value filled in against the stored values they are compared with 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/product-warnings.test.ts > warnProducts on a product filled in over a stored one > checks a kWh filled into a stored battery against it [... omitted end of long line]
+-   "6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours.",
+=== M4: product as sent not checked
+     × still checks the numbers as sent when the merge keeps the stored value aside as a conflict 7ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+-   "6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours.",
+    157|       '6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, …
+      Tests  1 failed | 18 passed (19)
+=== M5: a message both forms give said twice
+     × warns when kWh is more than 10% off volts × Ah, and not at 9% 4ms
+     × warns on a surge level below the continuous watts, and not on one equal to it 1ms
+     × warns on peak amps below the continuous amps, and not on a higher peak 0ms
+     × gives no warning at exactly 15% from a system voltage or 10% off volts × Ah, and warns just past them 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/product-warnings.test.ts > warnProducts on odd specs > warns when kWh is more than 10% off volts × Ah, and not at 9%
+=== M6: every product checked against the first stored form
+     × the inverter() and battery() fixtures give no warning, alone or together 3ms
+     × in the seed leads, only the two LuxpowerTek SNA-US and the two Pytes V5 warn, each naming the other 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 17 passed (19)
+=== M8: energy check touched by kWh only
+     × checks volts, Ah or a continuous value filled in against the stored values they are compared with 9ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+-   "6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours.",
+    135|     const kWhOff = '6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check…
+      Tests  1 failed | 18 passed (19)
+=== M9: peak check touched by peakA only
+     × checks volts, Ah or a continuous value filled in against the stored values they are compared with 7ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 18 passed (19)
+=== M10: surge check touched by surges only
+     × checks volts, Ah or a continuous value filled in against the stored values they are compared with 9ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 18 passed (19)
