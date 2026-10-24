@@ -1,0 +1,10 @@
+$ npx vitest run src/lib/parse-amount.test.ts src/lib/quote-guards.test.ts src/lib/quote-checks.test.ts src/components/quotes/VerdictView.test.ts  # head 1e84c57
+
+ RUN  v5.0.1 <clone>
+
+
+ Test Files  4 passed (4)
+      Tests  88 passed (88)
+   Start at  00:55:29
+   Duration  2.98s (transform 49%, import 48%, tests 3%)
+

@@ -1,0 +1,70 @@
+# parseAmount and parseTotal on head 1e84c57: the AC inputs, the QA v1 witnesses, and edge cases
+AC1 refused (want null):
+  "6485 + 18%"                 parseAmount=null         parseTotal=null
+  "6,485.00 (2 pagos)"         parseAmount=null         parseTotal=null
+  "1e5"                        parseAmount=null         parseTotal=null
+
+AC2 parse (want 6480.5 · 6480.5 · 6480):
+  "$6,480.50"                  parseAmount=6480.5       parseTotal=6480.5
+  "6.480,50"                   parseAmount=6480.5       parseTotal=6480.5
+  "RD$ 6,480"                  parseAmount=6480         parseTotal=6480
+
+AC4 cap (want 50000000; MAX_TOTAL=1000000000):
+  "50,000,000"                 parseAmount=50000000     parseTotal=50000000
+  "50.000.000"                 parseAmount=50000000     parseTotal=50000000
+  "50000000"                   parseAmount=50000000     parseTotal=50000000
+  "COP 1.000.000.000"          parseAmount=1000000000   parseTotal=1000000000
+  "1,000,000,001"              parseAmount=1000000001   parseTotal=null
+
+v1 witnesses (want null):
+  "650 mil"                    parseAmount=null         parseTotal=null
+  "1,5 mil"                    parseAmount=null         parseTotal=null
+  "6480 IVA"                   parseAmount=null         parseTotal=null
+  "6485 18"                    parseAmount=null         parseTotal=null
+  "mil 650"                    parseAmount=null         parseTotal=null
+
+magnitude words (want null):
+  "6.5 M"                      parseAmount=null         parseTotal=null
+  "6.5 MM"                     parseAmount=null         parseTotal=null
+  "6.5k"                       parseAmount=null         parseTotal=null
+  "6 mln"                      parseAmount=null         parseTotal=null
+  "6 bn"                       parseAmount=null         parseTotal=null
+  "650 MIL"                    parseAmount=null         parseTotal=null
+  "650mil"                     parseAmount=null         parseTotal=null
+  "650 mil$"                   parseAmount=650          parseTotal=650
+  "650 mil $"                  parseAmount=null         parseTotal=null
+
+codes and symbols:
+  "DOP 6,480"                  parseAmount=6480         parseTotal=6480
+  "6480 usd"                   parseAmount=6480         parseTotal=6480
+  "US$ 7,300"                  parseAmount=7300         parseTotal=7300
+  "€ 6.480,50"                 parseAmount=6480.5       parseTotal=6480.5
+  "Bs. 1.000"                  parseAmount=null         parseTotal=null
+  "VES 1.000"                  parseAmount=1000         parseTotal=1000
+  "S/ 6,480"                   parseAmount=null         parseTotal=null
+  "6480 pesos"                 parseAmount=null         parseTotal=null
+
+mixed or repeated separators:
+  "6,480.500"                  parseAmount=6480500      parseTotal=6480500
+  "1,234.567"                  parseAmount=1234567      parseTotal=1234567
+  "1.234,567"                  parseAmount=1234567      parseTotal=1234567
+  "6,480,50"                   parseAmount=6480.5       parseTotal=6480.5
+  "6.480.50"                   parseAmount=6480.5       parseTotal=6480.5
+  "1 000 000"                  parseAmount=1000000      parseTotal=1000000
+  "6 480"                      parseAmount=6480         parseTotal=6480
+  "6 480,50"                   parseAmount=6480.5       parseTotal=6480.5
+
+other:
+  "0"                          parseAmount=0            parseTotal=null
+  "0,50"                       parseAmount=0.5          parseTotal=0.5
+  "-5"                         parseAmount=null         parseTotal=null
+  "+5"                         parseAmount=null         parseTotal=null
+  "6480."                      parseAmount=null         parseTotal=null
+  ".50"                        parseAmount=null         parseTotal=null
+  "６４８０"                       parseAmount=null         parseTotal=null
+  "Infinity"                   parseAmount=null         parseTotal=null
+  "NaN"                        parseAmount=null         parseTotal=null
+  "0x10"                       parseAmount=null         parseTotal=null
+  ""                           parseAmount=null         parseTotal=null
+
+long adversarial input (10001 chars): 0.0 ms
