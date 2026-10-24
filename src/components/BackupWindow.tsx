@@ -1,5 +1,5 @@
 import { useLocale } from '../hooks/useLocale'
-import { tr } from '../i18n'
+import { applianceCount, tr } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES, FEW_INVERTERS_VOLTAGE, VOLTAGES, type ChemistryId, type Voltage } from '../lib/catalog'
 import { HOURS_MAX, HOURS_MIN, type Store } from '../lib/schema'
@@ -19,7 +19,7 @@ export function BackupWindow({ store, commit, result }: Props) {
   const summary = result.empty
     ? t.ui.step2Empty
     : tr(t, 'step2Summary', {
-        count: result.count, running: fmtW(result.runningW, locale), load: fmtKwh(result.loadWh, locale),
+        appliances: applianceCount(t, result.items.length, result.units), running: fmtW(result.runningW, locale), load: fmtKwh(result.loadWh, locale),
         hours: p.hours, need: fmtKwh(result.requiredWh, locale),
       })
 

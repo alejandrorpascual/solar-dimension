@@ -37,7 +37,7 @@ export function SolarFlow({ result: r }: Props) {
         <div className="flow__arrow" aria-hidden="true"><span className="num flow__arrow-t">{fmtKwh(s.dailyWh, locale)}</span></div>
         <div className="flow__node flow__node--bank"><Battery size={26} aria-hidden="true" /><span className="num flow__v">{fmtKwh(r.battery.bankWh, locale)}</span><span className="flow__s">{tr(t, 'flowBank', { volts: r.volts, batteries: batteryCount(t, r.battery.count) })}</span></div>
         <div className="flow__arrow flow__arrow--ink" aria-hidden="true"><span className="num flow__arrow-t">{fmtKwh(s.dailyUseWh, locale)}</span></div>
-        <div className="flow__node"><Home size={26} aria-hidden="true" /><span className="num flow__v">{fmtW(r.runningW, locale)}</span><span className="flow__s num">{tr(t, 'flowHome', { count: r.count, hours: r.hours })}</span></div>
+        <div className="flow__node"><Home size={26} aria-hidden="true" /><span className="num flow__v">{fmtW(r.runningW, locale)}</span><span className="flow__s num">{tr(t, 'flowHome', { count: r.items.length, hours: r.hours })}</span></div>
       </div>
       <div className="cover">
         <div className="cover__head">
