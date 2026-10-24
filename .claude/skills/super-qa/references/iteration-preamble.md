@@ -60,13 +60,12 @@ worker memory creep:
 - `mattpocock-skills:tdd` (red spec before fix)
 - `mattpocock-skills:diagnosing-bugs` (root-cause discipline for fixes)
 - `verification-before-completion` (before claiming a fix done — no Matt Pocock equivalent)
-- `playwright-best-practices` (load when writing or refactoring a spec).
-  Reference its `core/locators.md` (data-testid first, `getByRole` fallback),
-  `core/fixtures-hooks.md` (custom fixtures for auth and pre-test seeding/teardown),
-  `core/test-data.md` (test data factories), `core/assertions-waiting.md` (avoid
-  explicit waits), and `core/page-object-model.md` (POM for reusable interactions).
-  The `[data-testid]` rule below is reinforced there; fixture-based setup
-  and POM are the path to keep specs reusable as the suite grows.
+- `e2e-testing` (load when writing or refactoring a spec). Use its Page Object
+  Model, Test Structure and Flaky Test Patterns sections. Locators: `data-testid`
+  first, `getByRole` as the fallback. Auth and seed data go in fixtures, not in the
+  test body. Wait on assertions, never on fixed timeouts. The `[data-testid]` rule
+  below still applies; fixture-based setup and POM keep specs reusable as the
+  suite grows.
 
 ### Where does this test go? — localise the defect, don't consult a pyramid
 
@@ -115,7 +114,7 @@ it does not decide the layer, the ladder above does.
 **Then the mechanics.** The library follows from the rung, and the repo decides
 it — read `package.json`, don't assume. TS/JS unit and integration → `vitest`
 (19 references: `core-expect`, `features-mocking`, `features-coverage`,
-`core-hooks`, `advanced-vi`). Browser e2e → `playwright-best-practices`.
+`core-hooks`, `advanced-vi`). Browser e2e → `e2e-testing`.
 
 **Keeping the e2e.** Once the regression is pinned at its own rung, keep a thin
 e2e only if the route itself is a critical user path. Do not keep both a unit
