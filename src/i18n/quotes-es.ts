@@ -166,6 +166,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   totalRead: 'Leímos {total}.',
   totalReadLines: 'Leímos {total}, pero sus líneas e impuestos suman {sum}.',
   totalTyped: 'Total escrito por ti',
+  changeTotal: 'Cambiar total',
   misreadCurrency: 'No pudimos saber en qué moneda están sus precios.',
   misreadLines: 'En algunas líneas, la cantidad por el precio unitario no da el total de la línea.',
   misreadQty: 'Algunas líneas tienen una cantidad de 0 o menos.',

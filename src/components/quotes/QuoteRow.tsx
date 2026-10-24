@@ -12,6 +12,7 @@ import { QuoteFacts } from './QuoteFacts'
 import { QuoteLines } from './QuoteLines'
 import { QuoteActions } from './QuoteActions'
 import { SizingBars } from './SizingBars'
+import { TypedTotal } from './TotalForm'
 
 const PILL: Record<RankedQuote['fit'], string> = { fits: 'qpill qpill--ok', unclear: 'qpill qpill--unk', short: 'qpill qpill--warn' }
 
@@ -21,10 +22,12 @@ interface Props {
   /** Whether Read again is on offer (see UnrankedRow); it only shows for a quote that needs review. */
   retry: 'retry' | 'used_up' | 'none'
   onRetry: () => void; onDelete: () => void
+  /** Saves another total for a quote that ranks on one the user typed. */
+  onTotal: (total: number) => void
 }
 
 /** A ranked quote as a stacked card: name and total on one line, then fit, the reason at full width, sizing and coverage. */
-export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, onDelete }: Props) {
+export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, onDelete, onTotal }: Props) {
   const { t } = useLocale()
   const [isOpen, setOpen] = useState(false)
   const nameId = useId()
@@ -52,7 +55,7 @@ export function QuoteRow({ r, verdict, kit, error, retry, onOverride, onRetry, o
         <span className={PILL[r.fit]}>{fitLabel(t, r, verdict)}</span>
         {delta && <span className="qmeta num">{delta}</span>}
       </div>
-      {isTotalTyped(r) && <p className="qmeta">{t.quotes.totalTyped}</p>}
+      {isTotalTyped(r) && <TypedTotal onTotal={onTotal} />}
       <p className="qrow__reason">{reasonLine(t, r, verdict, kit)}</p>
       <SizingBars sizing={quoteSizing(r.items, kit)} />
       {backup && <p className="qmeta num">{backup}</p>}

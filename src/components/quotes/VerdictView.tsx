@@ -149,6 +149,8 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
     }
   }
   const remove = (quoteId: string, key: string) => run(key, () => deleteQuote({ data: { account, quoteId } }))
+  const saveTotal = (quoteId: string, key: string) => (total: number) =>
+    void run(key, () => setQuoteTotal({ data: { account, quoteId, total } }))()
   const retryFor = (quoteId: string) => {
     const q = data.quotes.find((x) => x.id === quoteId)
     return q === undefined ? 'none' : retryOffer(q, user?.canUseQuotes === true)
@@ -164,7 +166,8 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
         {others.map((r) => (
           <QuoteRow key={entryKey(r)} r={r} verdict={verdict} kit={kit} error={errorFor(entryKey(r))}
             retry={retryFor(r.quote.id)} onRetry={run(entryKey(r), () => retryQuote({ data: { account, quoteId: r.quote.id } }))}
-            onOverride={onOverride(r.quote.id, entryKey(r))} onDelete={remove(r.quote.id, entryKey(r))} />
+            onOverride={onOverride(r.quote.id, entryKey(r))} onDelete={remove(r.quote.id, entryKey(r))}
+            onTotal={saveTotal(r.quote.id, entryKey(r))} />
         ))}
       </div>
     </section>
@@ -181,7 +184,8 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
         <div className={ranked ? 'qv__grid qv__grid--split' : 'qv__grid'}>
           <BestCard best={verdict.best} kit={kit} error={errorFor(entryKey(verdict.best))}
             retry={retryFor(verdict.best.quote.id)} onRetry={run(entryKey(verdict.best), () => retryQuote({ data: { account, quoteId: verdict.best!.quote.id } }))}
-            onOverride={onOverride(verdict.best.quote.id, entryKey(verdict.best))} onDelete={remove(verdict.best.quote.id, entryKey(verdict.best))} />
+            onOverride={onOverride(verdict.best.quote.id, entryKey(verdict.best))} onDelete={remove(verdict.best.quote.id, entryKey(verdict.best))}
+            onTotal={saveTotal(verdict.best.quote.id, entryKey(verdict.best))} />
           {ranked}
         </div>
       ) : ranked}
@@ -198,8 +202,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
                   onRetry={onRetry} onDelete={remove(u.quote.id, key)} />
               ) : (
                 <UnrankedRow key={key} u={u} error={errorFor(key)} retry={retryFor(u.quote.id)}
-                  onRetry={onRetry} onDelete={remove(u.quote.id, key)}
-                  onTotal={(total) => void run(key, () => setQuoteTotal({ data: { account, quoteId: u.quote.id, total } }))()} />
+                  onRetry={onRetry} onDelete={remove(u.quote.id, key)} onTotal={saveTotal(u.quote.id, key)} />
               )
             })}
           </div>

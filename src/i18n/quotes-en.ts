@@ -165,6 +165,7 @@ export const quotesEn = {
   totalRead: 'We read {total}.',
   totalReadLines: 'We read {total}, but its lines and tax add up to {sum}.',
   totalTyped: 'Total entered by you',
+  changeTotal: 'Change total',
   misreadCurrency: "We couldn't tell which currency its prices are in.",
   misreadLines: "On some lines, the quantity times the unit price doesn't make the line total.",
   misreadQty: 'Some lines have a quantity of 0 or less.',

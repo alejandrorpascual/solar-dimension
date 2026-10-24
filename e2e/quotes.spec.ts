@@ -908,6 +908,42 @@ test('a total that failed its check is asked for in an empty field; a misread li
   await expect(page.getByRole('region', { name: 'SolarTec Caribe' }).getByRole('note')).toContainText(quotesEn.caveatTyped)
 })
 
+test('a typed total can be changed from its ranked card, which re-ranks the quotes; a sum is refused', async ({ page }) => {
+  const email = await signUp(page)
+  await uploadQuotes(page, await Promise.all(['solartec', 'voltia'].map(quotePdf)))
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+  await page.goto(`/projects/${projectId}/quotes`)
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least', { timeout: 30_000 })
+
+  // Both totals read as 648: each quote waits for the one its lines add up to.
+  await misreadQuoteTotal(email, projectId, 648)
+  await page.reload()
+  const card = (name: string) => page.getByRole('article').filter({ hasText: name })
+  const typeTotal = async (name: string, total: string) => {
+    await card(name).getByRole('textbox', { name: quotesEn.totalInQuote }).fill(total)
+    await card(name).getByRole('button', { name: quotesEn.save, exact: true }).click()
+  }
+  await typeTotal('SolarTec Caribe', '6,480')
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe is the cheapest that fits: confirm 1 thing first')
+  await typeTotal('Voltia Instalaciones', 'US$ 7,300')
+  await expect(card('Voltia Instalaciones')).toContainText('$820 more than the best')
+
+  // Changed to more than Voltia's, SolarTec's total moves Voltia to the top. A sum is not read as its digits.
+  const best = page.getByRole('region', { name: 'SolarTec Caribe' })
+  await best.getByRole('button', { name: quotesEn.changeTotal }).click()
+  const field = best.getByRole('textbox', { name: quotesEn.totalInQuote })
+  await expect(field).toBeFocused()
+  await field.fill('8000 + 18%')
+  await best.getByRole('button', { name: quotesEn.save, exact: true }).click()
+  await expect(best.getByRole('alert')).toHaveText(quotesEn.totalInvalid)
+  await field.fill('8,000')
+  await best.getByRole('button', { name: quotesEn.save, exact: true }).click()
+  await expect(verdictHeading(page)).toHaveText(/^Voltia Instalaciones is the cheapest that fits: confirm/)
+  await expect(card('SolarTec Caribe')).toContainText('$700 more than the best')
+  await expect(card('SolarTec Caribe')).toContainText(quotesEn.totalTyped)
+})
+
 test('a ranked quote whose reading needs a check can be read again from its card', async ({ page }) => {
   test.slow()
   const email = await signUp(page)
