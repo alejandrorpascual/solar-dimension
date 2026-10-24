@@ -3,7 +3,7 @@ import { MAX_RETRIES } from './quote-guards'
 import { SECONDS_PER_QUOTE } from './quote-jobs'
 import type { Rejection } from './quote-limits'
 import type { QuoteStatus } from './quote-schema'
-import { etaText, fileStatusText, rejectionText } from './quote-text'
+import { elapsedText, etaText, fileStatusText, rejectionText } from './quote-text'
 
 /** How a file in the hand-off dialog is doing: still on its way, finished one of three ways, or refused at upload. */
 export type HandoffRowState = 'working' | 'done' | 'review' | 'failed' | 'rejected'
@@ -33,10 +33,15 @@ export function handoffSummary(t: Dictionary, states: readonly HandoffRowState[]
 
 const aboutOneQuote = (t: Dictionary): string => trq(t, 'aboutEta', { eta: etaText(t, SECONDS_PER_QUOTE) })
 
-/** The second line of a file's row: what it is doing and about how long that takes, how it ended, or why it was refused. */
-export function handoffRowMeta(t: Dictionary, state: HandoffRowState, status: QuoteStatus | 'uploading', rejection: Rejection | null): string {
+/**
+ * The second line of a file's row: what it is doing, about how long that takes and how long it has taken so far, how
+ * it ended, or why it was refused.
+ */
+export function handoffRowMeta(
+  t: Dictionary, state: HandoffRowState, status: QuoteStatus | 'uploading', rejection: Rejection | null, elapsed: number,
+): string {
   if (state === 'rejected') return rejection ? rejectionText(t, rejection) : t.quotes.errUpload
-  if (state === 'working') return `${fileStatusText(t, status)}${SUMMARY_SEPARATOR}${aboutOneQuote(t)}`
+  if (state === 'working') return [fileStatusText(t, status), aboutOneQuote(t), elapsedText(t, elapsed)].join(SUMMARY_SEPARATOR)
   return fileStatusText(t, status)
 }
 
@@ -66,4 +71,6 @@ export function triesLeftText(t: Dictionary, retries: number): string {
   return left === 1 ? t.quotes.triesLeftOne : trq(t, 'triesLeft', { count: left })
 }
 
-export const readyInText = (t: Dictionary): string => trq(t, 'readyIn', { eta: etaText(t, SECONDS_PER_QUOTE) })
+/** About when a quote being read will be ready, and how long it has taken so far. */
+export const readyInText = (t: Dictionary, elapsed: number): string =>
+  `${trq(t, 'readyIn', { eta: etaText(t, SECONDS_PER_QUOTE) })}${SUMMARY_SEPARATOR}${elapsedText(t, elapsed)}`

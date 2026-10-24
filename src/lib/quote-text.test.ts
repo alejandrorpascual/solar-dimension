@@ -12,7 +12,7 @@ import type { QuoteLine } from './quote-schema'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import { compute, type SizingInput } from './sizing'
 import {
-  askText, coverageLines, currencyTieText, evidenceLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, kitAttentionText, kitHold, markLabel, misreadText, money, oversizeTip,
+  askText, coverageLines, currencyTieText, evidenceLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, elapsedText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, kitAttentionText, kitHold, markLabel, misreadText, money, oversizeTip,
   projectLine, questionText, ratioLabel, readTotalText, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
@@ -534,6 +534,15 @@ describe('status and progress text', () => {
   test('ETA in seconds, then minutes', () => {
     expect(etaText(en, 45)).toBe('45 s')
     expect(etaText(en, 120)).toBe('2 min')
+  })
+  // Issue #144: a cue that changes during a read without moving, so a screen with Reduce Motion on never looks frozen.
+  // Minutes and seconds, so the text changes every second however long the read takes.
+  test('time so far in minutes and two-digit seconds, in both languages', () => {
+    expect(elapsedText(en, 0)).toBe('0:00 so far')
+    expect(elapsedText(en, 9)).toBe('0:09 so far')
+    expect(elapsedText(en, 61)).toBe('1:01 so far')
+    expect(elapsedText(es, 125)).toBe('2:05 hasta ahora')
+    expect(elapsedText(en, 72)).not.toBe(elapsedText(en, 74))
   })
 })
 

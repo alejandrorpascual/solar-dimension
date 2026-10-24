@@ -46,6 +46,7 @@ export const quotesEn = {
   sumRead: '{count} read',
   aboutEta: 'about {eta}',
   readyIn: 'Ready in about {eta}',
+  elapsed: '{time} so far',
   stepUploaded: 'Uploaded',
   stepCompared: 'Compared with your kit',
   triesLeftOne: '1 try left',

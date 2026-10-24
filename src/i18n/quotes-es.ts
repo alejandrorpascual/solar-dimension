@@ -47,6 +47,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   sumRead: '{count} leídas',
   aboutEta: 'unos {eta}',
   readyIn: 'Lista en unos {eta}',
+  elapsed: '{time} hasta ahora',
   stepUploaded: 'Subida',
   stepCompared: 'Comparada con tu kit',
   triesLeftOne: 'Te queda 1 intento',
