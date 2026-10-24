@@ -1,0 +1,15 @@
+# Verify · issue #217 · QA v1 · head fda5a7d · clean clone of origin/issue-217-sync-state-one-interface
+npm ci --prefer-offline --no-audit --no-fund               added 395 packages
+npm run typecheck                                          exit 0
+npm run build                                              exit 0
+npm run test:coverage                                      exit 1: 2128 passed, 1 timed out at 5000 ms in kit-conductors.test.ts (load average 197)
+npm run test:coverage (again)                              exit 1: 2128 passed, another kit-conductors.test.ts test timed out (load average 297)
+npx vitest run src/lib/kit-conductors.test.ts              14 passed alone; the branch does not touch it or anything it imports
+npx vitest run --coverage --testTimeout=30000              exit 0: 134 files, 2129 passed · tab-sync.ts lines 100%, branches 83.33% (line 51)
+npx vitest run src/hooks/useProjectStore{,.accounts,.edit-stamps,.orders,.outage,.sync}.test.ts    6 files, 82 passed
+npx vitest run src/hooks/useProjectStore.account-change.test.ts src/lib/tab-sync.test.ts            2 files, 5 passed
+old hook (a51e1a7) + npx vitest run src/hooks/useProjectStore.account-change.test.ts
+  2 failed: account-change.test.ts:59 and :85 got named [hours, qty], want [qty]
+BETTER_AUTH_SECRET=<throwaway, as ci.yml> E2E_PORT=4434 npx playwright test e2e/sync-tabs-devices.spec.ts \
+  e2e/shared-browser.spec.ts e2e/account.spec.ts e2e/kit-builder.spec.ts --workers=2                 66 passed (1.8m)
+CI verify on fda5a7d                                       success (actions run 40059653060)

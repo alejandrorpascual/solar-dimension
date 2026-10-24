@@ -1,0 +1,16 @@
+# Mutants · issue #217 · QA v1 · head fda5a7d
+# Each applied alone, then restored: npx vitest run src/hooks/ src/lib/tab-sync.test.ts src/lib/sync.test.ts (116 tests)
+M1  reset keeps unsentEdits (useProjectStore.ts:114)       killed    account-change.test.ts:40
+M2  saveFailed without the scope guard (:236)              killed    account-change.test.ts:63
+M3  saveAnswered without the scope guard (:233)            survived  equivalent: the new account's load runs after it and resets held
+M4  saveAnswered keeps the old held (tab-sync.ts:77)       killed    useProjectStore.sync.test.ts:240
+M5  no readSettled in the read's finally (:184)            survived  equivalent: readSent starts each read window empty
+M6  readAnswered keeps the old held (tab-sync.ts:51)       killed    useProjectStore.sync.test.ts:254
+M7  edited skips the read window (tab-sync.ts:57)          survived  gap: Medium, see test-gaps.md
+M8  saveFailed drops the carried fields (tab-sync.ts:81)   killed    tab-sync.test.ts:19 · edit-stamps.test.ts:72 · sync.test.ts:160
+M9  listRead drops held (tab-sync.ts:37)                   killed    useProjectStore.sync.test.ts:254
+M10 reset keeps ownEdits (:114)                            survived  equivalent: a field a save names was always recorded since the reset
+M11 saveOf drops what failed before (tab-sync.ts:70)       killed    useProjectStore.test.ts:63, :80 (4 tests)
+M12 saveOf drops the deletes (tab-sync.ts:72)              killed    useProjectStore.test.ts:80 (4 tests)
+M13 isClean ignores isLoaded (tab-sync.ts:32)              killed    useProjectStore.test.ts:125 · tab-sync.test.ts:29
+M15 listRead never sets isLoaded (tab-sync.ts:37)          killed    26 tests
