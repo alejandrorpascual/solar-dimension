@@ -371,8 +371,9 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 }
 
 .stage--narrow { max-width: 440px; }
-.legal { display: flex; gap: 8px; align-self: center; }
-.legal a { color: inherit; }
+.legal { display: flex; align-items: center; gap: 8px; align-self: center; }
+/* A pointer target is at least 24 px tall (WCAG 2.5.8); the 11px line alone is 16.5 px. */
+.legal a { color: inherit; display: inline-flex; align-items: center; min-height: 24px; }
 /* Long-form text pages (privacy): readable measure, calm hierarchy. */
 .prose { max-width: 640px; }
 .prose h1 { font-size: 32px; }
