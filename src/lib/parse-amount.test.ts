@@ -32,6 +32,21 @@ test('refuses anything but digits, separators, spaces and one currency at either
   }
 })
 
+test('refuses a word beside the amount that is not a currency code', () => {
+  // "650 mil" is Spanish for 650 thousand: reading it as 650 would rank the quote a thousand times too cheap.
+  for (const bad of ['650 mil', '1,5 mil', '6480 IVA', '6485 más', 'mil 650']) {
+    expect(parseAmount(bad), bad).toBeNull()
+  }
+  expect(parseAmount('cop 1.000.000')).toBe(1_000_000)
+})
+
+test('refuses digit groups that are not thousands', () => {
+  // Grouping splits thousands, so every group after the first has three digits: "6485 18" is not 648,518.
+  for (const bad of ['6485 18', '1,2345', '64 85']) {
+    expect(parseAmount(bad), bad).toBeNull()
+  }
+})
+
 test('refuses digits too many to be a number', () => {
   expect(parseAmount('9'.repeat(400))).toBeNull()
 })
