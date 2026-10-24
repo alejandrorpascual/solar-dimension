@@ -1,0 +1,51 @@
+# QA v1 for #93 · local verification in a clone of issue-93-sync-two-tabs-or-devices (app code at ddf681e)
+
+## npm run typecheck (exit 0)
+
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+
+## npm run test:coverage (exit 0)
+
+> test:coverage
+> vitest run --coverage
+ Test Files  120 passed (120)
+      Tests  1998 passed (1998)
+=============================== Coverage summary ===============================
+Statements   : 89.55% ( 3884/4337 )
+Branches     : 89.85% ( 2923/3253 )
+Functions    : 90.3% ( 1295/1434 )
+Lines        : 89.6% ( 2947/3289 )
+================================================================================
+
+## npm run build (exit 0)
+✓ built in 815ms
+ℹ Generated .output/nitro.json
+
+## npx vitest run --reporter=verbose src/hooks/useProjectStore.sync.test.ts src/lib/sync.test.ts src/server/projects.test.ts
+ ✓ src/lib/sync.test.ts > reports new and changed projects as upserts and missing ones as deletes 2ms
+ ✓ src/lib/sync.test.ts > applyChanges overlays local edits on a server list 0ms
+ ✓ src/lib/sync.test.ts > a changed requester makes the project an upsert 0ms
+ ✓ src/lib/sync.test.ts > clampStamp keeps a stamp the device could honestly have written 0ms
+ ✓ src/lib/sync.test.ts > clampStamp replaces a stamp from a clock that runs far ahead with the server time 0ms
+ ✓ src/lib/sync.test.ts > adoptStale takes the newer copy of a project that was not edited since it was sent 0ms
+ ✓ src/lib/sync.test.ts > adoptStale leaves a project edited again since it was sent, and one that was not sent 0ms
+ ✓ src/lib/sync.test.ts > a save with nothing unsent before it sends its own change and nothing else 0ms
+ ✓ src/lib/sync.test.ts > a save carries what failed before it, as each project stands now 0ms
+ ✓ src/lib/sync.test.ts > a project whose edit failed and that was deleted since is only deleted, once 0ms
+ ✓ src/lib/sync.test.ts > a save that failed is what the next one must carry 0ms
+ ✓ src/lib/sync.test.ts > newestById keeps one copy of each project, the one stamped latest 0ms
+ ✓ src/lib/sync.test.ts > an import stores a never-edited first project only for an account that has no project yet 0ms
+ ✓ src/lib/sync.test.ts > a request acts on the signed-in account only from a page that was loaded for it 0ms
+ ✓ src/lib/sync.test.ts > a save leaves out the fields its build does not know, by project; a battery-only kit still carries its solar 0ms
+ ✓ src/hooks/useProjectStore.sync.test.ts > hours changed in another tab show here, and volts changed here next keep them, in the account and after a  [... omitted end of long line]
+ ✓ src/hooks/useProjectStore.sync.test.ts > a copy another tab keeps for another account is not shown here 8ms
+ ✓ src/hooks/useProjectStore.sync.test.ts > another device's saved hours show once this tab is back (focus), and volts changed here next keep them 16m [... omitted end of long line]
+ ✓ src/hooks/useProjectStore.sync.test.ts > another device's saved hours show once this tab is back (visibilitychange), and volts changed here next ke [... omitted end of long line]
+ ✓ src/hooks/useProjectStore.sync.test.ts > an edit made here while the account is read again stays on screen and reaches the account 11ms
+ ✓ src/hooks/useProjectStore.sync.test.ts > coming back while an edit has not reached the account reads nothing and keeps that edit 8ms
+ ✓ src/hooks/useProjectStore.sync.test.ts > a read that fails when this tab is back is logged and changes nothing on screen 7ms
+ ✓ src/server/projects.test.ts > a save that carries a project without solar asks the write to keep the stored solar, and writes a sent null 5ms
+ ✓ src/server/projects.test.ts > an import that carries a project without solar asks the write to keep the stored solar 1ms
+ Test Files  3 passed (3)
+      Tests  24 passed (24)

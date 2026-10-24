@@ -1,0 +1,164 @@
+# QA v5 run log · issue 93 · PR #202 head 44bbba3 (app code 44bbba3)
+# Local machine: Node v24.15.0, clone of origin/issue-93-sync-two-tabs-or-devices, npm ci
+# The signed-in app was not run here: a guard-secrets hook refused linking .env.test.local into the clone, so e2e and
+# test:db on the Neon test branch come from CI (run 40024731355). The real SQL ran on a throwaway local Postgres 15.12.
+# Witness files ran from the clone as src/hooks/useProjectStore.qa93v5.test.ts (qa-v5-witness.test.ts.txt),
+# src/hooks/useProjectStore.qa93v5-orders.test.ts (the committed orders test with only the QA-W5 row) and
+# .qa93/w5.qa.test.ts (qa-v5-db-witness.test.ts.txt); none is committed as a test.
+
+## 1. Project verify (npm run typecheck && npm run test:coverage && npm run build), after npm ci
+ Test Files  127 passed (127)
+      Tests  2088 passed (2088)
+All files          |   90.25 |    90.52 |   90.66 |   90.38 |                   
+VERIFY_EXIT=0
+
+## 2. Builder's local tests: npx vitest run src/hooks src/lib/sync.test.ts src/server/projects.test.ts (QA v5 witness files excluded)
+ Test Files  8 passed (8)
+      Tests  105 passed (105)
+
+## 3. Committed DB tests + QA-W5b replay on a local Postgres 15.12 with every drizzle/ migration (0000 to 0016)
+##    qa-v5-pg-client.ts.txt, qa-v5-vitest.config.ts.txt, qa-v5-db-witness.test.ts.txt
+   × QA-W5b on the real SQL: tab A's 5 h edit (made at 1000020) saved with the stamp of its later 12 V edit outranks device C's later 12 h (1000030) 344ms
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 12 passed (13)
+ FAIL  .qa93/w5.qa.test.ts > QA-W5b on the real SQL: tab A's 5 h edit (made at 1000020) saved with the stamp of its later 12 V edit outranks device C's later 12 h (1000030)
+AssertionError: expected { hours: 5, volts: 12, …(1) } to deeply equal { hours: 12, volts: 12, …(1) }
+
+- Expected
++ Received
+
+  {
+    "chemistry": "agm",
+-   "hours": 12,
++   "hours": 5,
+    "volts": 12,
+  }
+
+ ❯ .qa93/w5.qa.test.ts:28:79
+     26|
+     27|   const home = (await listForUser(userId)).find((p) => p.id === HOME.i…
+     28|   expect({ hours: home.hours, volts: home.volts, chemistry: home.chemi…
+       |                                                                               ^
+     29| })
+     30|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+## 4. Hook witnesses on the fake account server (qa-v5-witness.test.ts.txt): two tabs' code, the real useProjectStore
+##    QA-W5b records what each save sends: A's 5 h edit was made at 1000020, between AGM (1000010) and C's 12 h (1000030),
+##    and its save names hours with 1000040, the stamp of the 12 V edit made after C's.
+[qa93-v5] W5b sent {"by":"A","hours":10,"volts":48,"updatedAt":1000010,"named":["chemistry"]}
+[qa93-v5] W5b sent {"by":"C","hours":12,"volts":48,"updatedAt":1000030,"named":["hours"]}
+[qa93-v5] W5b sent {"by":"A","hours":5,"volts":12,"updatedAt":1000040,"named":["hours"]}
+[qa93-v5] W5b sent {"by":"A","hours":5,"volts":12,"updatedAt":1000040,"named":["volts"]}
+   × QA-W5: 5 h in A as the click that brings A back, 12 h on C (the later edit, saved first), then 12 V in A before its read answers: the account keeps 12 h 63ms
+   × QA-W5b: 5 h in A queued behind A's own AGM save, 12 h on C (the later edit, saved first), then 12 V in A: the account keeps 12 h 29ms
+   × QA-W6: 5 h in A whose save fails, 12 h on C (the later edit, saved), then 12 V in A carries the 5 h: the account keeps 12 h 23ms
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
+ FAIL  src/hooks/useProjectStore.qa93v5.test.ts > QA-W5: 5 h in A as the click that brings A back, 12 h on C (the later edit, saved first), then 12 V in A before its read answers: the account keeps 12 h
+AssertionError: expected { hours: 5, volts: 12 } to deeply equal { hours: 12, volts: 12 }
+
+- Expected
++ Received
+
+  {
+-   "hours": 12,
++   "hours": 5,
+    "volts": 12,
+  }
+
+ ❯ src/hooks/useProjectStore.qa93v5.test.ts:62:70
+     60|   await landAll()
+     61|
+     62|   expect({ hours: accountHome().hours, volts: accountHome().volts }).t…
+       |                                                                      ^
+     63| })
+     64|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+ FAIL  src/hooks/useProjectStore.qa93v5.test.ts > QA-W5b: 5 h in A queued behind A's own AGM save, 12 h on C (the later edit, saved first), then 12 V in A: the account keeps 12 h
+AssertionError: expected { hours: 5, volts: 12, …(1) } to deeply equal { hours: 12, volts: 12, …(1) }
+
+- Expected
++ Received
+
+  {
+    "chemistry": "agm",
+-   "hours": 12,
++   "hours": 5,
+    "volts": 12,
+  }
+
+ ❯ src/hooks/useProjectStore.qa93v5.test.ts:76:106
+     74|   // A's save of 5 h names hours with the stamp of the 12 V edit made …
+     76|   expect({ hours: accountHome().hours, volts: accountHome().volts, che…
+       |                                                                                                          ^
+     77| })
+     78|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+ FAIL  src/hooks/useProjectStore.qa93v5.test.ts > QA-W6: 5 h in A whose save fails, 12 h on C (the later edit, saved), then 12 V in A carries the 5 h: the account keeps 12 h
+AssertionError: expected { hours: 5, volts: 12 } to deeply equal { hours: 12, volts: 12 }
+
+- Expected
++ Received
+
+  {
+-   "hours": 12,
++   "hours": 5,
+    "volts": 12,
+  }
+
+ ❯ src/hooks/useProjectStore.qa93v5.test.ts:100:70
+     98|   await landAll()
+     99|
+    100|   expect({ hours: accountHome().hours, volts: accountHome().volts }).t…
+       |                                                                      ^
+    101|   expect(screenOf('A').projects[0]!.volts).toBe(12)
+    102| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+## 5. The every-order test with QA-W5's steps: qa-v5-orders-case.patch.txt applied to the committed file (7 old rows pass,
+##    the QA-W5 row fails), then reverted; the first losing order, from the copy with only the QA-W5 row
+   × QA-W5: 5 h in A as the click that brings A back, 12 h on C, then 12 V in A before A has sent its 5 h: no order loses an edit, and each tab shows the account once back 6506ms
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+ FAIL  src/hooks/useProjectStore.qa93v5-orders.test.ts > QA-W5 every order: 5 h in A as the click that brings A back, 12 h on C, then 12 V in A: no order loses an edit, and each tab shows the account once back
+AssertionError: expected { …(2) } to deeply equal { lost: [], stale: [] }
+
+- Expected
++ Received
+
+  {
+-   "lost": [],
++   "lost": [
++     "{\"hours\":5,\"volts\":12,\"chemistry\":\"lifepo4\"} via A focus > A {\"hours\":5} > C focus > C {\"hours\":12} > A {\"volts\":12} > A:list > C:list > A:save > C:save > A:save",
++   ],
+    "stale": [],
+  }
+
+ ❯ src/hooks/useProjectStore.qa93v5-orders.test.ts:114:64
+    112|
+    113|   expect(orders).toBeGreaterThan(steps.length)
+    114|   expect({ lost: lost.slice(0, 1), stale: stale.slice(0, 1) }).toEqual…
+       |                                                                ^
+    115| }, 120_000)
+    116|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+## 6. The same hook witnesses on round 4's code (c37f419): also red, so the gap predates the per-field stamps
+[qa93-v5] W5b sent {"by":"A","hours":10,"volts":48,"updatedAt":1000010,"named":{"chemistry":"lifepo4"}}
+[qa93-v5] W5b sent {"by":"C","hours":12,"volts":48,"updatedAt":1000030,"named":{"hours":10}}
+[qa93-v5] W5b sent {"by":"A","hours":5,"volts":12,"updatedAt":1000040,"named":{"hours":10}}
+[qa93-v5] W5b sent {"by":"A","hours":5,"volts":12,"updatedAt":1000040,"named":{"volts":48}}
+   × QA-W5: 5 h in A as the click that brings A back, 12 h on C (the later edit, saved first), then 12 V in A before its read answers: the account keeps 12 h 57ms
+   × QA-W5b: 5 h in A queued behind A's own AGM save, 12 h on C (the later edit, saved first), then 12 V in A: the account keeps 12 h 29ms
+   × QA-W6: 5 h in A whose save fails, 12 h on C (the later edit, saved), then 12 V in A carries the 5 h: the account keeps 12 h 24ms
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
+
+## 7. CI at 44bbba3 (run 40024731355, job 120657942860), read at 21:27 UTC
+db:migrate on the test branch success · test:db success · typecheck success · test:coverage success · build success · e2e still running

@@ -1,0 +1,11 @@
+--- a/src/hooks/useProjectStore.orders.test.ts
++++ b/src/hooks/useProjectStore.orders.test.ts
+@@ -114,6 +114,8 @@
+   ['one field on two devices: 24 h on C, then 12 h in B, which is the later edit', ['B', 'C'], switching([edit('C', { hours: 24 }), edit('B', { hours: 12 })])],
+   ['one field set back (QA-W4): 5 h in A, then 12 h and back to 10 h on C, which is the later edit', ['A', 'C'],
+     switching([edit('A', { hours: 5 }), edit('C', { hours: 12 }), edit('C', { hours: 10 })])],
++  ['QA-W5: 5 h in A as the click that brings A back, 12 h on C, then 12 V in A before A has sent its 5 h', ['A', 'C'],
++    [{ tab: 'A', focus: true }, edit('A', { hours: 5 }), { tab: 'C', focus: true }, edit('C', { hours: 12 }), edit('A', { volts: 12 })]],
+ ] as const)('%s: no order loses an edit, and each tab shows the account once back', async (_what, names, steps) => {
+   const { orders, lost, stale } = await everyOrder(names, steps)
+ 

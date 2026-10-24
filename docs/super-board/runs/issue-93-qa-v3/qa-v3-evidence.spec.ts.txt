@@ -1,0 +1,158 @@
+// QA v3 evidence spec for issue #93. Copy to e2e/ as a .spec.ts to run it (E2E_PORT=4186 npx playwright test
+// e2e/qa-v3-evidence.spec.ts --project=desktop --workers=1). The QA-W1 test is red on fe731be.
+
+// QA v3 evidence for issue #93 (not part of the suite): screenshots of AC1 and AC2 working, and a browser run of
+// QA-W1, where this tab's own save clears the pending marker while tab A's save is still on its way.
+import { expect, test, type Page, type Request, type Route } from '@playwright/test'
+import { savedProject } from './db'
+
+const DIR = 'docs/super-board/runs/issue-93-qa-v3'
+const PASSWORD = 'e2e-sync-password-1234'
+const newEmail = () => `e2e-sync-qa-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
+const VIEWPORTS = { desktop: { width: 1920, height: 1080 }, tablet: { width: 1024, height: 768 }, mobile: { width: 375, height: 667 } } as const
+const hoursShown = (page: Page) => page.locator('.hours-value')
+const voltage = (page: Page, volts: number) => page.getByRole('main').getByRole('button', { name: new RegExp(`^${volts} V`) })
+const isSave = (request: Request) => request.url().includes('/_serverFn/') && request.method() === 'POST'
+
+async function synced(page: Page, email: string): Promise<void> {
+  await expect(page.getByRole('button', { name: `Signed in as ${email}` })).toBeVisible()
+  await expect(page.getByText('Syncing your projects…')).toBeHidden()
+}
+async function signUp(page: Page, email: string): Promise<void> {
+  await page.goto('/login')
+  await page.getByRole('button', { name: 'No account yet? Create one' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await synced(page, email)
+}
+async function signIn(page: Page, email: string): Promise<void> {
+  await page.goto('/login')
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await synced(page, email)
+}
+async function openStep2(page: Page, email: string): Promise<void> {
+  await page.goto('/?step=2')
+  await synced(page, email)
+}
+async function clickAndSave(page: Page, target: ReturnType<Page['getByRole']>): Promise<void> {
+  const saved = page.waitForResponse((r) => isSave(r.request()) && r.ok())
+  await target.click()
+  await saved
+}
+async function comeBack(page: Page): Promise<void> {
+  const read = page.waitForResponse((r) => r.url().includes('/_serverFn/') && r.request().method() === 'GET' && r.ok())
+  await page.bringToFront()
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await read
+}
+/** Full page at each viewport, and a crop of the hours and battery panel at desktop and tablet. */
+async function shoot(page: Page, name: string): Promise<void> {
+  for (const [label, size] of Object.entries(VIEWPORTS)) {
+    await page.setViewportSize(size)
+    await page.waitForTimeout(150)
+    await page.screenshot({ path: `${DIR}/${name}-${label}.png` })
+    if (label !== 'mobile') await page.locator('.window__cols').screenshot({ path: `${DIR}/${name}-${label}-crop.png` })
+  }
+  await page.setViewportSize(VIEWPORTS.desktop)
+}
+/** Holds this page's next save until `release` is called. */
+async function holdNextSave(page: Page): Promise<{ started: Promise<void>; release: () => void }> {
+  let release!: () => void
+  let seen!: () => void
+  const held = new Promise<void>((resolve) => { release = resolve })
+  const started = new Promise<void>((resolve) => { seen = resolve })
+  let isHolding = true
+  await page.route('**/_serverFn/**', async (route: Route) => {
+    if (isHolding && isSave(route.request())) {
+      isHolding = false
+      seen()
+      await held
+    }
+    return route.continue()
+  })
+  return { started, release }
+}
+
+test.use({ viewport: VIEWPORTS.desktop })
+
+test('evidence AC1: tab B shows the 24 h set in tab A, and after 12 V in B the account holds both', async ({ page: tabA }) => {
+  const email = newEmail()
+  await signUp(tabA, email)
+  await openStep2(tabA, email)
+  const tabB = await tabA.context().newPage()
+  await tabB.setViewportSize(VIEWPORTS.desktop)
+  await openStep2(tabB, email)
+  await clickAndSave(tabA, tabA.getByRole('button', { name: '24 h', exact: true }))
+  await expect(hoursShown(tabB)).toHaveText('24 h')
+  await clickAndSave(tabB, voltage(tabB, 12))
+  await expect.poll(() => savedProject(email, 'Home')).toMatchObject({ hours: 24, volts: 12 })
+  await tabB.reload()
+  await synced(tabB, email)
+  await expect(hoursShown(tabB)).toHaveText('24 h')
+  await shoot(tabB, 'ac1-tab-b-after-reload')
+})
+
+test("evidence AC2: browser B shows browser A's 24 h once it is back, and keeps it after 12 V", async ({ page: deviceA, browser }) => {
+  const email = newEmail()
+  await signUp(deviceA, email)
+  await openStep2(deviceA, email)
+  const other = await browser.newContext({ viewport: VIEWPORTS.desktop })
+  const deviceB = await other.newPage()
+  await signIn(deviceB, email)
+  await openStep2(deviceB, email)
+  await clickAndSave(deviceA, deviceA.getByRole('button', { name: '24 h', exact: true }))
+  await comeBack(deviceB)
+  await expect(hoursShown(deviceB)).toHaveText('24 h')
+  await clickAndSave(deviceB, voltage(deviceB, 12))
+  await expect.poll(() => savedProject(email, 'Home')).toMatchObject({ hours: 24, volts: 12 })
+  await shoot(deviceB, 'ac2-browser-b-back')
+  await other.close()
+})
+
+test("QA-W1 in a browser: tab B's own save clears the marker while tab A's hours save is on its way; B comes back and its 12 V drops A's 24 h", async ({ page: tabA }) => {
+  const email = newEmail()
+  await signUp(tabA, email)
+  await openStep2(tabA, email)
+  const tabB = await tabA.context().newPage()
+  await tabB.setViewportSize(VIEWPORTS.desktop)
+  await openStep2(tabB, email)
+
+  // a. In tab B, AGM: its save is slow (held).
+  const bSave = await holdNextSave(tabB)
+  await tabB.getByRole('main').getByRole('button', { name: /AGM lead-acid/ }).click()
+  await bSave.started
+  // b. In tab A, 24 h: its save is slow too (held). B hears A's copy.
+  const aSave = await holdNextSave(tabA)
+  await tabA.bringToFront()
+  await tabA.getByRole('button', { name: '24 h', exact: true }).click()
+  await aSave.started
+  await expect(hoursShown(tabB)).toHaveText('24 h')
+  // c. B's save lands; A's has not.
+  const bLanded = tabB.waitForResponse((r) => isSave(r.request()))
+  bSave.release()
+  await bLanded
+  const marker = await tabB.evaluate(() => localStorage.getItem('solar-dimension.pending.v1'))
+  // d. The user comes back to tab B: it reads the account, which has B's AGM but not A's 24 h.
+  await comeBack(tabB)
+  const bShowsAfterBack = await hoursShown(tabB).innerText()
+  const aShowsAfterBack = await hoursShown(tabA).innerText()
+  await shoot(tabB, 'qa-w1-tab-b-after-back')
+  await tabA.screenshot({ path: `${DIR}/qa-w1-tab-a-after-back-desktop.png` })
+  await tabA.locator('.window__cols').screenshot({ path: `${DIR}/qa-w1-tab-a-after-back-desktop-crop.png` })
+  // e. A's save lands, then 12 V in B.
+  const aLanded = tabA.waitForResponse((r) => isSave(r.request()))
+  aSave.release()
+  await aLanded
+  await tabB.bringToFront()
+  await clickAndSave(tabB, voltage(tabB, 12))
+  await expect.poll(async () => (await savedProject(email, 'Home'))?.volts).toBe(12)
+  const account = await savedProject(email, 'Home')
+  console.log(`QA-W1 browser: pending marker after B's save landed = ${JSON.stringify(marker)}; after coming back B shows ${bShowsAfterBack}, A shows ${aShowsAfterBack}; account ends ${JSON.stringify({ hours: account?.hours, volts: account?.volts, chemistry: account?.chemistry })}`)
+
+  expect({ marker, bShowsAfterBack, account: { hours: account?.hours, volts: account?.volts, chemistry: account?.chemistry } }).toEqual({
+    marker: '1', bShowsAfterBack: '24 h', account: { hours: 24, volts: 12, chemistry: 'agm' },
+  })
+})

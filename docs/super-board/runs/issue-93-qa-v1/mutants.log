@@ -1,0 +1,12 @@
+M1 | storage listener never added | Tests  1 failed | 23 passed (24) | red: hours changed in another tab show here, and volts changed here next keep them, in the account and after a reload
+M2 | owner check on another tab's copy dropped | Tests  1 failed | 23 passed (24) | red: a copy another tab keeps for another account is not shown here
+M3 | focus listener never added | Tests  3 failed | 21 passed (24) | red: another device's saved hours show once this tab is back (focus), and volts changed here next keep them;an edit made here while the account is read again stays on screen and reaches the account;a read that fails when this tab is back is logged and changes nothing on screen
+M4 | visibilitychange listener never added | Tests  1 failed | 23 passed (24) | red: another device's saved hours show once this tab is back (visibilitychange), and volts changed here next keep them
+M5 | re-read while an edit is unsent | Tests  1 failed | 23 passed (24) | red: coming back while an edit has not reached the account reads nothing and keeps that edit
+M6 | edits made during the re-read not laid back on top | Tests  1 failed | 23 passed (24) | red: an edit made here while the account is read again stays on screen and reaches the account
+M7 | re-read also when the tab is hidden | Tests  24 passed (24) | red: none (mutant survives)
+M8 | left-out fields read after parsing | Tests  2 failed | 22 passed (24) | red: a save that carries a project without solar asks the write to keep the stored solar, and writes a sent null;an import that carries a project without solar asks the write to keep the stored solar
+M9 | import drops left-out fields | Tests  1 failed | 23 passed (24) | red: an import that carries a project without solar asks the write to keep the stored solar
+M10 | a sent null counted as left out | Tests  3 failed | 21 passed (24) | red: a save leaves out the fields its build does not know, by project; a battery-only kit still carries its solar;a save that carries a project without solar asks the write to keep the stored solar, and writes a sent null;an import that carries a project without solar asks the write to keep the stored solar
+?? docs/super-board/runs/issue-93-qa-v1/
+?? src/server/projects.test.ts

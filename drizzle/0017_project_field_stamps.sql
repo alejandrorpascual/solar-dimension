@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "field_stamps" jsonb DEFAULT '{}'::jsonb NOT NULL;

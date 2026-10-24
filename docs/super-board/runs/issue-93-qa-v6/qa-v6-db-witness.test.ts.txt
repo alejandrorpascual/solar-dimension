@@ -1,0 +1,63 @@
+// QA v6 witness for issue 93 on a local Postgres with every drizzle/ migration (0000 to 0017; not committed: copied to
+// the evidence folder as .txt). It replays, through the real saveForUser, the saves the tabs send in the hook witnesses
+// QA-W8 and QA-W9, with each named field at the stamp of the edit that set it, in both orders they can land.
+import { randomUUID } from 'node:crypto'
+import { inArray } from 'drizzle-orm'
+import { afterAll, expect, it } from 'vitest'
+import { db } from './pg-client'
+import { projects } from '../src/db/schema'
+import { ProjectSchema, type Project } from '../src/lib/schema'
+import type { NamedEdits } from '../src/lib/sync'
+import { listForUser, saveForUser } from '../src/server/projects-repo'
+
+const users: string[] = []
+afterAll(async () => { await db.delete(projects).where(inArray(projects.userId, users)) })
+
+const HOME = ProjectSchema.parse({ id: 'acct-home', name: 'Home', qty: {}, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4', updatedAt: 1000 })
+const T = (n: number) => 1_000_000 + n
+
+async function account(): Promise<{ save: (p: Partial<Project>, named: NamedEdits[string]) => Promise<{ stale: Project[] }>; home: () => Promise<Project> }> {
+  const userId = `qa93-v6-${randomUUID()}`
+  users.push(userId)
+  await saveForUser(userId, [HOME])
+  return {
+    save: (fields, named) => saveForUser(userId, [{ ...HOME, ...fields }], new Map(), { [HOME.id]: named }),
+    home: async () => (await listForUser(userId)).find((p) => p.id === HOME.id)!,
+  }
+}
+
+it("QA-W8 on the real SQL: A's 5 h save (T20) lands after C's 12 h (T30) and is refused; A's 8 h (T40) lands: the account keeps 8 h", async () => {
+  const { save, home } = await account()
+  await save({ hours: 12, updatedAt: T(30) }, { hours: T(30) })
+  const refused = await save({ hours: 5, updatedAt: T(20) }, { hours: T(20) })
+  const written = await save({ hours: 8, updatedAt: T(40) }, { hours: T(40) })
+
+  expect(refused.stale.map((p) => p.hours)).toEqual([12])
+  expect(written.stale).toEqual([])
+  expect(await home()).toMatchObject({ hours: 8, updatedAt: T(40) })
+})
+
+for (const bFirst of [true, false]) {
+  it(`QA-W9 on the real SQL: A carries its failed 5 h (T20) with 12 V (T40), B saves 7 h (T30); ${bFirst ? 'B' : 'A'} lands first: 7 h and 12 V`, async () => {
+    const { save, home } = await account()
+    const a = () => save({ hours: 5, volts: 12, updatedAt: T(40) }, { hours: T(20), volts: T(40) })
+    const b = () => save({ hours: 7, updatedAt: T(30) }, { hours: T(30) })
+    const answers = bFirst ? [await b(), await a()] : [await a(), await b()]
+
+    expect(await home()).toMatchObject({ hours: 7, volts: 12, chemistry: 'lifepo4', updatedAt: T(40) })
+    // The save whose hours lost is answered with the account's copy; the other is answered as written.
+    expect(answers.map((answer) => answer.stale.map((p) => p.hours))).toEqual(bFirst ? [[], [7]] : [[], []])
+  })
+}
+
+it('a field another save left alone keeps the stamp of its own last edit, so an edit to it between that one and the row stamp still lands', async () => {
+  const { save, home } = await account()
+  await save({ hours: 12, updatedAt: T(30) }, { hours: T(30) })
+  await save({ volts: 24, updatedAt: T(50) }, { volts: T(50) })
+  const between = await save({ hours: 7, updatedAt: T(40) }, { hours: T(40) })
+  const older = await save({ hours: 3, updatedAt: T(35) }, { hours: T(35) })
+
+  expect(between.stale).toEqual([])
+  expect(older.stale.map((p) => p.hours)).toEqual([7])
+  expect(await home()).toMatchObject({ hours: 7, volts: 24, updatedAt: T(50) })
+})

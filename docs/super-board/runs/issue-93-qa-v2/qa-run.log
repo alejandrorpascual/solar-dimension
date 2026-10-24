@@ -1,0 +1,40 @@
+# QA v2 on issue #93, PR #202 · app code ca83c72 · run 2026-10-22
+
+## Local run (lane clone, app code ca83c72 plus the QA v2 test changes)
+$ npm run typecheck            exit 0
+$ npm run test:coverage        exit 0 · Test Files 120 passed (120) · Tests 2001 passed (2001)
+$ npm run build                exit 0
+$ npx vitest run src/hooks/useProjectStore.sync.test.ts src/lib/sync.test.ts src/server/projects.test.ts
+                               Test Files 3 passed (3) · Tests 27 passed (27)
+
+## CI verify on ca83c72 (merged with staging ac00bbb): see ci-ca83c72-excerpt.log
+test:db 4/4 · unit 2003/2003 · e2e 313 passed, 10 skipped
+
+## Not run here
+- e2e and the app signed in: a hook refused linking .env.test.local into the lane clone, so the
+  app cannot reach the test database. No screenshots: the change shows only signed in.
+
+## What QA v2 changed in the tests
+- The AC1 and AC2 tests and the rebase unit test edited volts to 48, the volts a new project
+  starts with (src/lib/store.ts:30). That edit changes only the stamp, so the volts half of each
+  assertion could not fail. They now edit volts to 24 (VOLTS). Proof: mutants.log Q1-Q3.
+- New test: a save that fails while the account is read again keeps its edit on screen, and the
+  next save carries it (the !isClean() check when the read answers). Proof: mutants.log Q4.
+
+## AC ledger (unit = hook or function test · component · e2e)
+AC1 two tabs   unit useProjectStore.sync.test.ts:40, :53 · component n/a (the hook is the seam) · e2e none
+AC2 two devices unit useProjectStore.sync.test.ts:64 (focus, visibilitychange), :98 (focusing click),
+               :79 (edit during the read), :131 (save fails during the read), :117 (unsent: no read);
+               sync.test.ts:34 rebase · component n/a · e2e none
+AC3 no solar   unit sync.test.ts:162 leftOut; projects.test.ts:48 save, :58 import · db
+               projects-repo.db.test.ts:63 (CI test:db 4/4 on ca83c72) · e2e none: the defect is in the
+               server function and the write, both tested; the e2e named in the AC cannot run here
+
+## Test gaps (not written)
+- Medium · no browser run of two tabs or two contexts; the hook harness fires the same events
+- Medium · a delete made while the account is read again is not pinned (R9 survives)
+- Medium · a queued save after the account changed sends the copy made at its edit; not pinned (R5)
+- Medium · a read answered after the page was left is not pinned (R7); isClean() covers an account switch
+- Low · two reads at once (R8, same end state) · a read on a hidden tab (v1 M7)
+- Low · rebase keeps this device's stamp: with this clock behind the other device's, the account
+  refuses the save as older and the screen falls back to its copy (the existing stamp rule)
