@@ -20,6 +20,12 @@ test('appliances carry an optional load kind, surge class and burst figures', ()
   for (const name of ['kind', 'surgeClass', 'burstSeconds', 'cyclesPerHour'] as const) expect(cols[name].notNull).toBe(false)
 })
 
+test('appliance sources default to none, so every row written before them reads as having no sources', () => {
+  const { sources } = getTableColumns(appliances)
+  expect(sources.notNull).toBe(true)
+  expect(sources.default).toEqual({})
+})
+
 test('quotes table has the columns processing and the verdict need', () => {
   expect(Object.keys(getTableColumns(quotes)).sort()).toEqual([
     'attempts', 'blobPathname', 'claimedAt', 'createdAt', 'error', 'extraction', 'fileName', 'id', 'mime', 'modelUsed',

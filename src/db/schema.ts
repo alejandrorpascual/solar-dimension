@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { check, date, doublePrecision, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import type { ApplianceLabels } from '../lib/catalog'
-import { APPLIANCE_CATEGORIES, type ApplianceRecord } from '../lib/catalog-schema'
+import { APPLIANCE_CATEGORIES, type ApplianceRecord, type FigureSources } from '../lib/catalog-schema'
 import { LOAD_KINDS, SURGE_CLASSES } from '../lib/catalog'
 import type { Musts, Overrides } from '../lib/quote-items'
 import type { Requester } from '../lib/requester'
@@ -65,6 +65,8 @@ export const appliances = pgTable(
     /** Momentary loads only: seconds per burst and bursts per hour. */
     burstSeconds: doublePrecision('burst_seconds'),
     cyclesPerHour: doublePrecision('cycles_per_hour'),
+    /** Where each figure came from; `{}` when none was given. Validated by ApplianceSchema on read. */
+    sources: jsonb('sources').$type<FigureSources>().notNull().default({}),
     labels: jsonb('labels').$type<ApplianceLabels>().notNull(),
     sortOrder: integer('sort_order').notNull(),
     retiredAt: timestamp('retired_at', { withTimezone: true }),

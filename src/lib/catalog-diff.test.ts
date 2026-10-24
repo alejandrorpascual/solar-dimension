@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { assignSortOrders, diffAppliances, planUpsert, retireWrite, warnAppliances, writtenFields } from './catalog-diff'
 import { ApplianceSchema } from './catalog-schema'
 import { APPLIANCE_SEED } from './catalog-snapshot'
@@ -92,6 +92,39 @@ test('an unchanged item writes nothing, and a new one is written with no row bef
   expect(changes.map((c) => c.kind)).toEqual(['unchanged', 'new'])
   expect(writes.map((w) => [w.after.id, w.before])).toEqual([['stove', null]])
   expect(writtenFields(writes[0]!)).toEqual([])
+})
+
+describe('sources', () => {
+  const nameplate = { source: 'https://example.com/fridge-nameplate.jpg', asWritten: '1.2 A 115 V' }
+  const datasheet = { source: 'https://example.com/fridge.pdf', asWritten: 'Locked rotor current: 10 A' }
+  const sourcedFridge = { ...fridge, sources: { watts: [nameplate] } }
+
+  test('a write without sources keeps the stored ones, and they never count as a change', () => {
+    expect(diffAppliances([sourcedFridge], [fridgeInput])).toEqual([{ id: 'fridge', kind: 'unchanged' }])
+
+    const { writes } = planUpsert([sourcedFridge], [{ ...fridgeInput, watts: 180 }])
+
+    expect(writes.map((w) => w.after.sources)).toEqual([{ watts: [nameplate] }])
+    expect(writtenFields(writes[0]!)).toEqual([{ field: 'watts', from: 150, to: 180 }])
+  })
+
+  test('a write with sources replaces them all, and an empty set clears them', () => {
+    const replaced = planUpsert([sourcedFridge], [{ ...fridgeInput, sources: { surge: [datasheet] } }])
+    const cleared = planUpsert([sourcedFridge], [{ ...fridgeInput, sources: {} }])
+
+    expect(replaced.changes).toEqual([
+      { id: 'fridge', kind: 'changed', fields: [{ field: 'sources', from: { watts: [nameplate] }, to: { surge: [datasheet] } }] },
+    ])
+    expect(replaced.writes.map((w) => w.after.sources)).toEqual([{ surge: [datasheet] }])
+    expect(writtenFields(replaced.writes[0]!)).toEqual([{ field: 'sources', from: { watts: [nameplate] }, to: { surge: [datasheet] } }])
+    expect(cleared.writes.map((w) => w.after.sources)).toEqual([{}])
+  })
+
+  test('the same sources again, in any key order, are unchanged', () => {
+    const reordered = { sources: { watts: [{ asWritten: nameplate.asWritten, source: nameplate.source }] } }
+
+    expect(diffAppliances([sourcedFridge], [{ ...fridgeInput, ...reordered }])).toEqual([{ id: 'fridge', kind: 'unchanged' }])
+  })
 })
 
 test('a retire and a restore are each one write that flips only the retired flag; repeating one writes nothing', () => {

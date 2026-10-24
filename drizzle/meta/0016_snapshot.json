@@ -1,5 +1,5 @@
 {
-  "id": "be176876-22de-4966-983c-0c3ad3945a26",
+  "id": "86fcf491-b079-49a9-8ffb-0a5406691bb2",
   "prevId": "3593a67a-d481-44a2-a7c3-74b005beb944",
   "version": "7",
   "dialect": "postgresql",
@@ -134,6 +134,13 @@
           "type": "double precision",
           "primaryKey": false,
           "notNull": false
+        },
+        "sources": {
+          "name": "sources",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
         },
         "labels": {
           "name": "labels",
@@ -428,13 +435,6 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
-        },
-        "field_stamps": {
-          "name": "field_stamps",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
         },
         "created_at": {
           "name": "created_at",
