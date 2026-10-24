@@ -1,0 +1,308 @@
+{
+  "note": "Issue 192, head 1f2444e. Each dialog was closed with its exit animation paused; exitMs is the length of each part's exit (limit 160) and frames are the computed opacity and transform at 20, 70 and 120 ms into it. reducedMotion lists the animations that ran on close with prefers-reduced-motion: reduce (none expected). Desktop and tablet show a centred dialog that fades and drops 4 px; at 375 px the sheet slides down and only the overlay fades.",
+  "limitMs": 160,
+  "exit": [
+    {
+      "dialog": "handoff",
+      "viewport": "desktop",
+      "width": 1920,
+      "height": 1080,
+      "exitMs": {
+        "dialog": 140,
+        "overlay": 140
+      },
+      "frames": [
+        {
+          "ms": 20,
+          "overlay": {
+            "opacity": 0.775,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.775,
+            "transform": "matrix(1, 0, 0, 1, 0, 0.901149)"
+          }
+        },
+        {
+          "ms": 70,
+          "overlay": {
+            "opacity": 0.315,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.315,
+            "transform": "matrix(1, 0, 0, 1, 0, 2.73857)"
+          }
+        },
+        {
+          "ms": 120,
+          "overlay": {
+            "opacity": 0.033,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.033,
+            "transform": "matrix(1, 0, 0, 1, 0, 3.86644)"
+          }
+        }
+      ]
+    },
+    {
+      "dialog": "handoff",
+      "viewport": "tablet",
+      "width": 1024,
+      "height": 768,
+      "exitMs": {
+        "dialog": 140,
+        "overlay": 140
+      },
+      "frames": [
+        {
+          "ms": 20,
+          "overlay": {
+            "opacity": 0.775,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.775,
+            "transform": "matrix(1, 0, 0, 1, 0, 0.901149)"
+          }
+        },
+        {
+          "ms": 70,
+          "overlay": {
+            "opacity": 0.315,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.315,
+            "transform": "matrix(1, 0, 0, 1, 0, 2.73857)"
+          }
+        },
+        {
+          "ms": 120,
+          "overlay": {
+            "opacity": 0.033,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.033,
+            "transform": "matrix(1, 0, 0, 1, 0, 3.86644)"
+          }
+        }
+      ]
+    },
+    {
+      "dialog": "handoff",
+      "viewport": "mobile",
+      "width": 375,
+      "height": 667,
+      "exitMs": {
+        "dialog": 160,
+        "overlay": 140
+      },
+      "frames": [
+        {
+          "ms": 20,
+          "overlay": {
+            "opacity": 0.775,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, 0, 87.1549)"
+          }
+        },
+        {
+          "ms": 70,
+          "overlay": {
+            "opacity": 0.315,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, 0, 269.918)"
+          }
+        },
+        {
+          "ms": 120,
+          "overlay": {
+            "opacity": 0.033,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, 0, 397.87)"
+          }
+        }
+      ]
+    },
+    {
+      "dialog": "musts",
+      "viewport": "desktop",
+      "width": 1920,
+      "height": 1080,
+      "exitMs": {
+        "dialog": 140,
+        "overlay": 140
+      },
+      "frames": [
+        {
+          "ms": 20,
+          "overlay": {
+            "opacity": 0.775,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.775,
+            "transform": "matrix(1, 0, 0, 1, 0, 0.901149)"
+          }
+        },
+        {
+          "ms": 70,
+          "overlay": {
+            "opacity": 0.315,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.315,
+            "transform": "matrix(1, 0, 0, 1, 0, 2.73857)"
+          }
+        },
+        {
+          "ms": 120,
+          "overlay": {
+            "opacity": 0.033,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.033,
+            "transform": "matrix(1, 0, 0, 1, 0, 3.86644)"
+          }
+        }
+      ]
+    },
+    {
+      "dialog": "musts",
+      "viewport": "tablet",
+      "width": 1024,
+      "height": 768,
+      "exitMs": {
+        "dialog": 140,
+        "overlay": 140
+      },
+      "frames": [
+        {
+          "ms": 20,
+          "overlay": {
+            "opacity": 0.775,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.775,
+            "transform": "matrix(1, 0, 0, 1, 0, 0.901149)"
+          }
+        },
+        {
+          "ms": 70,
+          "overlay": {
+            "opacity": 0.315,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.315,
+            "transform": "matrix(1, 0, 0, 1, 0, 2.73857)"
+          }
+        },
+        {
+          "ms": 120,
+          "overlay": {
+            "opacity": 0.033,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 0.033,
+            "transform": "matrix(1, 0, 0, 1, 0, 3.86644)"
+          }
+        }
+      ]
+    },
+    {
+      "dialog": "musts",
+      "viewport": "mobile",
+      "width": 375,
+      "height": 667,
+      "exitMs": {
+        "dialog": 160,
+        "overlay": 140
+      },
+      "frames": [
+        {
+          "ms": 20,
+          "overlay": {
+            "opacity": 0.775,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, 0, 119.207)"
+          }
+        },
+        {
+          "ms": 70,
+          "overlay": {
+            "opacity": 0.315,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, 0, 369.182)"
+          }
+        },
+        {
+          "ms": 120,
+          "overlay": {
+            "opacity": 0.033,
+            "transform": "none"
+          },
+          "dialog": {
+            "opacity": 1,
+            "transform": "matrix(1, 0, 0, 1, 0, 544.19)"
+          }
+        }
+      ]
+    }
+  ],
+  "reducedMotion": [
+    {
+      "dialog": "handoff",
+      "viewport": "desktop",
+      "animationsOnClose": 0
+    },
+    {
+      "dialog": "handoff",
+      "viewport": "tablet",
+      "animationsOnClose": 0
+    },
+    {
+      "dialog": "handoff",
+      "viewport": "mobile",
+      "animationsOnClose": 0
+    },
+    {
+      "dialog": "musts",
+      "viewport": "desktop",
+      "animationsOnClose": 0
+    },
+    {
+      "dialog": "musts",
+      "viewport": "tablet",
+      "animationsOnClose": 0
+    },
+    {
+      "dialog": "musts",
+      "viewport": "mobile",
+      "animationsOnClose": 0
+    }
+  ]
+}
