@@ -1,0 +1,13 @@
+
+ RUN  v5.0.1 /private/tmp/claude-501/-Users-alejandrorpascual-projects-solar-dimension--claude-worktrees-determined-jang-9e5404/c87e5d60-b453-4afb-b843-2788a75c6999/scratchpad/lanes/issue-56-qa
+
+
+ Test Files  3 passed (3)
+      Tests  37 passed (37)
+   Start at  23:47:42
+   Duration  4.93s (import 49%, transform 45%, tests 7%)
+
+  Transform  transforming modules took 2.31s · 45% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+
