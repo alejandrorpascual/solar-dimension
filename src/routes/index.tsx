@@ -19,7 +19,7 @@ import { useLocale } from '../hooks/useLocale'
 import { useProjectStore } from '../hooks/useProjectStore'
 import { useRootData } from '../hooks/useRootData'
 import { useSignOut } from '../hooks/useSignOut'
-import { batteryCount, inverterSize, panelCount, tr, type Dictionary, type Locale } from '../i18n'
+import { applianceCount, batteryCount, inverterSize, panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { attentionLine } from '../lib/kit-checks'
 import { computeProject } from '../lib/project-summary'
@@ -38,7 +38,7 @@ export const Route = createFileRoute('/')({
 })
 
 function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary, locale: Locale): string {
-  if (step === 1) return tr(t, 'footer1', { name, count: r.count, running: fmtW(r.runningW, locale), peak: fmtW(r.surgeW, locale) })
+  if (step === 1) return tr(t, 'footer1', { name, appliances: applianceCount(t, r.items.length, r.units), running: fmtW(r.runningW, locale), peak: fmtW(r.surgeW, locale) })
   if (step === 2) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) })
   if (step === 3) {
     const base = { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) }

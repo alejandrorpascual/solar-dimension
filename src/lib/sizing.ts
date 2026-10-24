@@ -136,7 +136,7 @@ export function compute(input: SizingInput, appliances: readonly CatalogItem[], 
   return {
     empty: items.length === 0,
     items,
-    count: sum(items, (i) => i.qty),
+    units: sum(items, (i) => i.qty),
     hours, volts, chemistry: chem.id, chemistryLabel: chem.label,
     runningW, surgeW: profile.surgeW, surgeSeconds: profile.seconds, surgeProfile: profile, simultaneousStarts: starts,
     largestSurgeName: largest?.name ?? '', largestSurgeId: largest?.id ?? '',

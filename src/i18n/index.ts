@@ -83,6 +83,14 @@ export function inverterSize(t: Dictionary, inverter: { count: number; unitW: nu
   return tr(t, inverter.count > 1 ? 'inverterSizeMany' : 'inverterSizeOne', { count: inverter.count, w: fmtW(inverter.unitW, locale) })
 }
 
+/**
+ * "6 appliances" in the active language, or "6 appliances (7 units)" when some are more than one of their kind: the
+ * count of kinds is the one number every screen shows, and the units are named wherever they differ.
+ */
+export function applianceCount(t: Dictionary, appliances: number, units: number): string {
+  return tr(t, units === appliances ? 'appliancesOnly' : 'appliancesAndUnits', { count: appliances, units })
+}
+
 /** "1 panel" / "5 panels" in the active language. */
 export function panelCount(t: Dictionary, count: number): string {
   return tr(t, count === 1 ? 'panelCountOne' : 'panelCountMany', { count })
