@@ -84,7 +84,7 @@ test('with panels, the box under the parts list also says what the solar side do
     baseline: null, projectName: 'Home', oversize: null, quickEdit: null, onBatteryUnit: () => {},
   }))
   const box = (html: string) => /<p class="estimate" role="note">([^<]*)<\/p>/.exec(html)?.[1].replace(/&#x27;/g, "'") ?? ''
-  expect(box(kit(4))).toMatch(/before you buy or install anything\. This kit does not size the solar side's ground-fault and surge protection, .* a qualified installer designs them\.$/)
+  expect(box(kit(4))).toMatch(/before you buy or install anything\. This kit does not size the solar side's ground-fault and overvoltage protection, .* a qualified installer designs them\.$/)
   expect(kit(4)).toContain('Controller to battery: cable and fuse')
   expect(box(kit(0))).toMatch(/before you buy or install anything\.$/)
 })

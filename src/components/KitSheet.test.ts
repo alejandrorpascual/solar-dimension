@@ -89,10 +89,10 @@ describe('the spec sheet carries what a supplier must read', () => {
   test('a conventional AC prints the locked-rotor note under Notes and the AC duty in the assumptions, in English and Spanish', () => {
     const ac: SizingInput = { qty: { ...DEFAULT_QTY, ac1c: 1 }, hours: 8, volts: 48, chemistry: 'lifepo4' }
     const en = sheetText(ac, 'en')
-    expect(en.slice(en.indexOf('\nNotes\n'))).toContain('1 ton AC · conventional: the start-up surge is a rule of thumb, and the nameplate\'s locked-rotor amps can be higher.')
+    expect(en.slice(en.indexOf('\nNotes\n'))).toContain('1 ton AC · conventional: the start-up power is a rule of thumb, and the nameplate\'s locked-rotor amps can be higher.')
     expect(en).toContain('Air conditioning runs 50% of each hour on a typical day and 100% on a hard day.')
     const es = sheetText(ac, 'es')
-    expect(es.slice(es.indexOf('\nNotas\n'))).toContain('Aire de 1 tonelada · convencional: el arranque es una estimación y la placa puede indicar más amperios de rotor bloqueado.')
+    expect(es.slice(es.indexOf('\nNotas\n'))).toContain('Aire de 1 tonelada · convencional: la potencia de arranque es una estimación y la placa puede indicar más amperios de rotor bloqueado.')
     expect(es).toContain('El aire acondicionado funciona 50% de cada hora en un día típico y 100% en un día duro.')
   })
 
@@ -159,7 +159,7 @@ describe('the spec sheet says what it is', () => {
 
 describe('a kit with panels says what its solar side does not size', () => {
   const PANELS: SizingInput = { ...SOUND, batteryUnit: '48-200', solar: { roofM2: 40, panels: 10, sunHours: 5 } }
-  const EN = "This kit does not size the solar side's ground-fault and surge protection, grounding, the controller's voltage window or the roof structure; a qualified installer designs them."
+  const EN = "This kit does not size the solar side's ground-fault and overvoltage protection, grounding, the controller's voltage window or the roof structure; a qualified installer designs them."
   const ES = 'De la parte solar, este kit no dimensiona la protección contra fallas a tierra y sobretensiones, la puesta a tierra, la ventana de voltaje del controlador ni la estructura del techo; las diseña un instalador calificado.'
 
   test.each<[string, ExportInclude]>([

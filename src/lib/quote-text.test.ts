@@ -232,22 +232,22 @@ describe('itemText', () => {
   test('a short inverter names what the kit needs', () => {
     expect(get('enerhogar', 'inverter')).toEqual({ label: '300 W', detail: 'Your kit needs 3,860 W' })
   })
-  test('an inverter whose start-up power is not stated shows its watts, and says what is missing', () => {
+  test('an inverter whose surge rating is not stated shows its watts, and says what is missing', () => {
     const unstated = checkItems(extraction([line('inverter', 1, { specs: { watts: 5000 } })]), KIT).find((c) => c.id === 'inverter')!
     expect(unstated.status).toBe('unknown')
-    expect(itemText(en, unstated, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'Start-up power not stated' })
-    expect(itemText(es, unstated, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'No indica la potencia de arranque' })
+    expect(itemText(en, unstated, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'Surge rating not stated' })
+    expect(itemText(es, unstated, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'No indica la potencia pico' })
   })
-  test('the icon of an inverter whose start-up power is not stated says so, not that it is not mentioned', () => {
+  test('the icon of an inverter whose surge rating is not stated says so, not that it is not mentioned', () => {
     const unstated = checkItems(extraction([line('inverter', 1, { specs: { watts: 5000 } })]), KIT).find((c) => c.id === 'inverter')!
-    expect(markLabel(en, unstated)).toBe('Start-up power not stated')
-    expect(markLabel(es, unstated)).toBe('No indica la potencia de arranque')
+    expect(markLabel(en, unstated)).toBe('Surge rating not stated')
+    expect(markLabel(es, unstated)).toBe('No indica la potencia pico')
     const none = checkItems(extraction([line('labor', 1)]), KIT).find((c) => c.id === 'inverter')!
     expect(markLabel(en, none)).toBe('Not mentioned')
     expect(markLabel(en, items('solartec').find((c) => c.id === 'inverter')!)).toBe('Meets it')
     expect(markLabel(en, items('enerhogar').find((c) => c.id === 'inverter')!)).toBe('Too small')
   })
-  test('an inverter the user confirmed as included reads as confirmed, even with its start-up power not stated', () => {
+  test('an inverter the user confirmed as included reads as confirmed, even with its surge rating not stated', () => {
     const quote = extraction([line('inverter', 1, { specs: { watts: 5000 } })])
     const confirmed = checkItems(quote, KIT, { inverter: 'included' }).find((c) => c.id === 'inverter')!
     expect(confirmed.facts.surgeUnknown).toBe(true)
@@ -255,10 +255,10 @@ describe('itemText', () => {
     expect(itemText(es, confirmed, KIT, 'USD')).toEqual({ label: '5,000 W', detail: 'Confirmado por ti' })
     expect(markLabel(en, confirmed)).toBe('Meets it')
   })
-  test('an inverter that covers the surge on its running watts alone, unconfirmed, still says its start-up power is not stated', () => {
+  test('an inverter that covers the surge on its running watts alone, unconfirmed, still says its surge rating is not stated', () => {
     const big = checkItems(extraction([line('inverter', 1, { specs: { watts: KIT.surgeW } })]), KIT).find((c) => c.id === 'inverter')!
     expect(big.status).toBe('ok')
-    expect(itemText(en, big, KIT, 'USD').detail).toBe('Start-up power not stated')
+    expect(itemText(en, big, KIT, 'USD').detail).toBe('Surge rating not stated')
   })
   test('an inverter not mentioned at all still says so', () => {
     const none = checkItems(extraction([line('labor', 1)]), KIT).find((c) => c.id === 'inverter')!
@@ -319,16 +319,16 @@ describe('evidence and arithmetic (AI-18)', () => {
   })
   test('an inverter that meets the kit prints its running and start-up watts, line by line', () => {
     const solartec = checkItems(SAMPLE_QUOTES.solartec, KIT).find((c) => c.id === 'inverter')!
-    expect(itemText(en, solartec, KIT, 'USD')).toEqual({ label: '12.0 kW', detail: '12.0 kW running · 24.0 kW surge' })
-    expect(itemText(es, solartec, KIT, 'USD').detail).toBe('12.0 kW en marcha · 24.0 kW de arranque')
+    expect(itemText(en, solartec, KIT, 'USD')).toEqual({ label: '12.0 kW', detail: '12.0 kW running · 24.0 kW surge rating' })
+    expect(itemText(es, solartec, KIT, 'USD').detail).toBe('12.0 kW en marcha · 24.0 kW de potencia pico')
     const pair = judged([said('inverter', 1, 'Inversor 5 kW × 2', 2, { watts: 5000, surgeWatts: 10000 })], 'inverter')
-    expect(itemText(en, pair, KIT, 'USD')).toEqual({ label: '10.0 kW', detail: '2 × 5,000 W running · 2 × 10.0 kW surge' })
+    expect(itemText(en, pair, KIT, 'USD')).toEqual({ label: '10.0 kW', detail: '2 × 5,000 W running · 2 × 10.0 kW surge rating' })
     const mixed = judged([
       said('inverter', 1, 'Inversor 3 kW', 1, { watts: 3000, surgeWatts: 6000 }),
       said('inverter', 1, 'Inversor 2 kW', 1, { watts: 2000, surgeWatts: 4000 }),
     ], 'inverter')
-    expect(itemText(en, mixed, KIT, 'USD').detail).toBe('3,000 W + 2,000 W running · 6,000 W + 4,000 W surge')
-    expect(itemText(es, mixed, KIT, 'USD').detail).toBe('3,000 W + 2,000 W en marcha · 6,000 W + 4,000 W de arranque')
+    expect(itemText(en, mixed, KIT, 'USD').detail).toBe('3,000 W + 2,000 W running · 6,000 W + 4,000 W surge rating')
+    expect(itemText(es, mixed, KIT, 'USD').detail).toBe('3,000 W + 2,000 W en marcha · 6,000 W + 4,000 W de potencia pico')
   })
   test('an item the quote does not mention shows no evidence', () => {
     expect(evidenceLines(en, judged([said('labor', 1, 'Mano de obra', 1)], 'charger'))).toEqual([])
@@ -476,7 +476,7 @@ describe('items a quote mentions without enough to judge them', () => {
       const unsure = noCharger.map((l) => (l.kind === 'battery' ? { ...l, qty: 4, specs: { ...l.specs, kWh: null, batteryVolts: 12, ah: 200, chemistry: null } } : l))
       expect(ask([...unsure, wiring('2/0')])).toBe('Hi Luz, could you confirm the battery chemistry?')
       const surge = noCharger.map((l) => (l.kind === 'inverter' ? { ...l, specs: { ...l.specs, surgeWatts: null } } : l))
-      expect(questionText(es, rank([...surge, wiring('2/0')]).r)).toBe('Hola, Luz: ¿podría confirmar la potencia de arranque del inversor?')
+      expect(questionText(es, rank([...surge, wiring('2/0')]).r)).toBe('Hola, Luz: ¿podría confirmar la potencia pico del inversor?')
     })
   })
 })
@@ -577,7 +577,7 @@ describe('a quote that offers two systems', () => {
     const alone = compareQuotes(KIT, { ...DEFAULT_MUSTS, battery: false, charger: false, cables: false, fuse: false, installation: false }, [suna])
     const [first, second] = alone.ranked as [RankedQuote, RankedQuote]
     expect(entryKey(alone.best!)).toBe('suna:o2')
-    // Its 10 kW inverter passes on its running power alone: the quote states no start-up power, so it is one thing to confirm.
+    // Its 10 kW inverter passes on its running power alone: the quote states no surge rating, so it is one thing to confirm.
     expect(fitLabel(en, first, alone)).toBe(en.quotes.bestFitToConfirm)
     expect(fitLabel(en, second, alone)).not.toBe(en.quotes.bestFitToConfirm)
     expect(verdictHeading(en, alone)).toBe('SUNA M.P. · Inversor 10 kW is the cheapest that fits: confirm 1 thing first')

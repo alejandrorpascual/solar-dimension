@@ -157,7 +157,7 @@ test('the CSV parts list carries the solar parts when panels are chosen', async 
   const feedLine = text.split('\n').find(line => line.startsWith('Controller to battery: cable and fuse'))
   expect(feedLine?.trim()).toMatch(/^Controller to battery: cable and fuse,80 A class T fuse · 4 AWG \(21\.2 mm²\) copper,.*,1$/)
   // The file closes on what the solar side does not size.
-  expect(text.trimEnd().split('\n').at(-1)).toMatch(/^"This kit does not size the solar side's ground-fault and surge protection.*a qualified installer designs them\."$/)
+  expect(text.trimEnd().split('\n').at(-1)).toMatch(/^"This kit does not size the solar side's ground-fault and overvoltage protection.*a qualified installer designs them\."$/)
 })
 
 test('export progress is visible while the file is being prepared', async ({ page }) => {
