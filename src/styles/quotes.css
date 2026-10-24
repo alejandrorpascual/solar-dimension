@@ -45,8 +45,11 @@
    a sheet sized to the layout viewport would hide its last fields behind it. */
 .qdialog__overlay { position: fixed; top: 0; left: 0; width: 100%; height: var(--visual-viewport-height, 100dvh); z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(18, 22, 28, 0.44); }
 .qdialog__overlay[data-entering] { animation: qfade 160ms ease-out; }
+/* React Aria unmounts a closing modal at once unless it has an exit animation: it keeps the modal until the animation ends, marked data-exiting. */
+.qdialog__overlay[data-exiting] { animation: qfade 140ms ease-in reverse; }
 .qdialog { width: 100%; max-width: 560px; max-height: calc(var(--visual-viewport-height, 100dvh) - 32px); overflow-y: auto; border-radius: var(--radius-lg); background: var(--surface); box-shadow: 0 18px 48px rgba(18, 22, 28, 0.16), 0 2px 6px rgba(18, 22, 28, 0.06); outline: none; }
 .qdialog[data-entering] { animation: qrise 160ms ease-out; }
+.qdialog[data-exiting] { animation: qrise 140ms ease-in reverse; }
 .qdialog__body { position: relative; display: flex; flex-direction: column; gap: 18px; padding: 28px 32px 30px; outline: none; }
 .qdialog__close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 999px; border: 0; background: var(--fill); color: var(--ink); display: grid; place-items: center; }
 .qdialog__title { margin: 0; padding-right: 44px; font-family: var(--font-display); font-size: 28px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
@@ -63,6 +66,7 @@
   .qdialog__overlay { place-items: end center; padding: 0; }
   .qdialog { max-width: none; max-height: calc(var(--visual-viewport-height, 100dvh) * 0.9); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
   .qdialog[data-entering] { animation: bsel-sheet 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .qdialog[data-exiting] { animation: bsel-sheet 160ms ease-in reverse; }
   .qdialog__body { padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); }
   .qdialog__title { font-size: 24px; }
   .qdialog__actions { flex-direction: column; }
