@@ -36,7 +36,7 @@ column is the skill to invoke.
 | Prove a claim before calling work done | `verification-before-completion` |
 | Decide *which kind* of test a change needs | `testing-strategy` |
 | Write a unit or integration test (TS/JS) | `vitest` |
-| Write a browser e2e spec | `playwright-best-practices` |
+| Write a browser e2e spec | `e2e-testing` |
 
 The last four have no equivalent in the Matt Pocock pack and are kept as-is.
 Everything else routes through `mattpocock-skills:*`.
@@ -64,7 +64,7 @@ been caught by `lint`. Take the human gate instead — see below.
   third party → not a test, file a mock/contract gap. Write it at the rung you
   stopped on, not the rung you found it on.
 - **Mechanics** — the repo decides the library, so read `package.json`. TS/JS
-  unit and integration → `vitest`. Browser e2e → `playwright-best-practices`.
+  unit and integration → `vitest`. Browser e2e → `e2e-testing`.
 
 `testing-strategy` informs *coverage* (what a component type is worth testing,
 what to skip) — it does not decide placement.
@@ -114,7 +114,7 @@ implement against the spec before you reach for design vocabulary.
 
 **On top of the row, when the situation calls for it:**
 
-- `vitest` or `playwright-best-practices` — picked by walking the localisation
+- `vitest` or `e2e-testing` — picked by walking the localisation
   ladder, never by label. A `ux` ticket whose defect reproduces in a pure
   function gets a unit test.
 - `testing-strategy` — when the issue leaves coverage scope open.
