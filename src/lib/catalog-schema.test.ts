@@ -53,6 +53,32 @@ describe('ApplianceSchema', () => {
     expect(ApplianceSchema.safeParse({ ...stove, surgeClass: 'inrush' }).success).toBe(false)
     expect(ApplianceSchema.safeParse({ ...stove, surge: 4000, surgeClass: 'inrush' }).success).toBe(true)
   })
+  test('accepts an item without sources, and one with sources for its figures', () => {
+    const datasheet = { source: 'https://example.com/cooktop.pdf', asWritten: 'Rated power: 3500 W' }
+    const review = { source: 'https://example.org/cooktop-review', asWritten: 'draws about 3.4 kW on full power' }
+
+    expect(ApplianceSchema.parse(stove)).not.toHaveProperty('sources')
+    expect(ApplianceSchema.parse({ ...stove, sources: { watts: [datasheet, review], surge: [datasheet] } }).sources)
+      .toEqual({ watts: [datasheet, review], surge: [datasheet] })
+    expect(ApplianceSchema.parse({ ...gate, sources: { duty: [review], burstSeconds: [datasheet], cyclesPerHour: [review] } }).sources)
+      .toEqual({ duty: [review], burstSeconds: [datasheet], cyclesPerHour: [review] })
+  })
+  test('takes up to three sources for a figure, each with up to 200 characters as written', () => {
+    const three = Array.from({ length: 3 }, (_, i) => ({ source: `https://example.com/${i}`, asWritten: 'W'.repeat(200) }))
+
+    expect(ApplianceSchema.parse({ ...stove, sources: { watts: three } }).sources).toEqual({ watts: three })
+  })
+  test.each([
+    ['a source that is not https', { watts: [{ source: 'http://example.com/cooktop.pdf', asWritten: '3500 W' }] }],
+    ['201 characters as written', { watts: [{ source: 'https://example.com/cooktop.pdf', asWritten: 'W'.repeat(201) }] }],
+    ['a source with a field besides the page and its words', { watts: [{ source: 'https://example.com/cooktop.pdf', asWritten: '3500 W', page: 2 }] }],
+    ['a source without its words as written', { watts: [{ source: 'https://example.com/cooktop.pdf', asWritten: '  ' }] }],
+    ['a figure with an empty list', { watts: [] }],
+    ['four sources for one figure', { watts: Array.from({ length: 4 }, (_, i) => ({ source: `https://example.com/${i}`, asWritten: '3500 W' })) }],
+    ['a field that is not a sourced figure', { tons: [{ source: 'https://example.com/cooktop.pdf', asWritten: '1 ton' }] }],
+  ])('rejects sources with %s', (_, sources) => {
+    expect(ApplianceSchema.safeParse({ ...stove, sources }).success).toBe(false)
+  })
   test('reserves custom-load-shaped ids with a specific message', () => {
     const result = ApplianceSchema.safeParse({ ...stove, id: 'custom12' })
     expect(result.success).toBe(false)

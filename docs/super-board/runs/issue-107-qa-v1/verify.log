@@ -1,0 +1,27 @@
+# QA v1 · issue #107 · clone of issue-107-appliance-figure-sources
+
+## Run 1 · head 91eb7d3 as built: npm run typecheck && npm run test:coverage && npm run build (exit 0)
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+> test:coverage
+> vitest run --coverage
+ Test Files  124 passed (124)
+      Tests  2055 passed (2055)
+All files          |    90.5 |    90.83 |   91.28 |   90.63 |
+  catalog-repo.ts  |   94.54 |      100 |    90.9 |   93.18 | 48-53
+> build
+> vite build
+✓ built in 1.20s
+✓ built in 584ms
+✓ built in 851ms
+ℹ Generated .output/nitro.json
+
+## Run 2 · with the QA schema tests: npm run typecheck && npm run test:coverage (exit 0)
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+> test:coverage
+> vitest run --coverage
+ Test Files  124 passed (124)
+      Tests  2058 passed (2058)
+All files          |    90.5 |    90.83 |   91.28 |   90.63 |
+  catalog-repo.ts  |   94.54 |      100 |    90.9 |   93.18 | 48-53

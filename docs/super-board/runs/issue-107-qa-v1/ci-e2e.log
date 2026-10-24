@@ -1,0 +1,31 @@
+# CI run 40014734016, job 120623763588 (verify: success) on PR #214, head 91eb7d3 merged into staging 9d72f6d
+# Lines kept: checkout, migrations, unit and db test counts, every admin / catalog-api / migration-check e2e result, the e2e summary.
+
+[Run actions/checkout@v4] 2026-10-23T19:51:52.6760660Z HEAD is now at 586b1d7 Merge 91eb7d3c256530ef3d82ac136bbec003ddaa42b8 into 9d72f6d3b951809508c63a7b20f6e67868fa7a23
+[Run npm run db:migrate] 2026-10-23T19:52:08.2528056Z [ [✓] migrations applied successfully!db:migrate: <endpoint> has all 17 migrations of the journal
+[Migrate an empty database] 2026-10-23T19:52:09.9536188Z [ [✓] migrations applied successfully!db:migrate: <endpoint> has all 17 migrations of the journal
+[Run npm run test:db] 2026-10-23T19:52:11.7021985Z  Test Files  1 passed (1)
+[Run npm run test:db] 2026-10-23T19:52:11.7023812Z       Tests  3 passed (3)
+[Run npm run test:coverage] 2026-10-23T19:52:46.1051379Z  Test Files  124 passed (124)
+[Run npm run test:coverage] 2026-10-23T19:52:46.1062179Z       Tests  2055 passed (2055)
+[Run npm run e2e] 2026-10-23T19:53:19.1967480Z Running 330 tests using 2 workers
+[Run npm run e2e] 2026-10-23T19:53:28.4457838Z   ✓   11 [desktop] › e2e/admin.spec.ts:37:3 › non-admins get a 404 at /admin/appliances (1.5s)
+[Run npm run e2e] 2026-10-23T19:53:29.8745501Z   ✓   12 [desktop] › e2e/admin.spec.ts:37:3 › non-admins get a 404 at /admin/quotes (1.4s)
+[Run npm run e2e] 2026-10-23T19:53:33.9643964Z   ✓   15 [desktop] › e2e/admin.spec.ts:46:1 › a quote the model could not read shows on /admin/quotes with its file name, account, project, error and time (4.1s)
+[Run npm run e2e] 2026-10-23T19:53:34.5758647Z   ✓   18 [desktop] › e2e/catalog-api.spec.ts:10:1 › the catalog API needs the token (45ms)
+[Run npm run e2e] 2026-10-23T19:53:34.5979169Z   ✓   19 [desktop] › e2e/catalog-api.spec.ts:15:1 › says which database it is on, as a test one, and only to a request with the token (14ms)
+[Run npm run e2e] 2026-10-23T19:53:34.7473771Z   ✓   20 [desktop] › e2e/catalog-api.spec.ts:30:1 › writes only when the POST names this database, and writes to the database it names (131ms)
+[Run npm run e2e] 2026-10-23T19:53:34.8440975Z   ✓   21 [desktop] › e2e/catalog-api.spec.ts:55:1 › a mistyped flag answers 400 naming it, and nothing is written (83ms)
+[Run npm run e2e] 2026-10-23T19:53:34.9428812Z   ✓   22 [desktop] › e2e/catalog-api.spec.ts:70:1 › the dry run and the write both carry plausibility warnings, and a warning never stops the write (84ms)
+[Run npm run e2e] 2026-10-23T19:53:36.6433002Z   ✓   23 [desktop] › e2e/catalog-api.spec.ts:101:1 › dry run, create, show in the picker in both languages, then retire (1.7s)
+[Run npm run e2e] 2026-10-23T19:53:36.7735391Z   ✓   24 [desktop] › e2e/catalog-api.spec.ts:136:1 › every write to an appliance is logged with the row before and after; an unchanged write logs nothing (117ms)
+[Run npm run e2e] 2026-10-23T19:53:37.4548546Z   ✓   17 [desktop] › e2e/admin.spec.ts:73:1 › an admin adds an appliance, sees it in the picker, and retires it (3.5s)
+[Run npm run e2e] 2026-10-23T19:53:39.7073608Z   ✓   32 [desktop] › e2e/admin.spec.ts:117:1 › sources sent with a token write read back, show in the admin row, and survive later writes that send none (2.2s)
+[Run npm run e2e] 2026-10-23T19:53:42.1798675Z   ✓   36 [desktop] › e2e/admin.spec.ts:155:1 › "New appliance" refuses an id that already belongs to another appliance (2.5s)
+[Run npm run e2e] 2026-10-23T19:54:44.8341456Z   ✓  126 [desktop] › e2e/migration-check.spec.ts:36:1 › the check passes the repository's journal on this run's database (367ms)
+[Run npm run e2e] 2026-10-23T19:54:45.1518857Z   ✓  127 [desktop] › e2e/migration-check.spec.ts:44:1 › the check fails for a migration this database never ran and never will: one stamped earlier than its newest row (295ms)
+[Run npm run e2e] 2026-10-23T19:54:45.2410044Z   ✓  128 [desktop] › e2e/migration-check.spec.ts:54:1 › the check lists a migration stamped later than every row, and does not fail for it (295ms)
+[Run npm run e2e] 2026-10-23T19:58:03.6225420Z ##[notice]  10 skipped
+[Run npm run e2e] 320 passed (4.9m)
+[Run npm run e2e] 2026-10-23T19:58:03.6234809Z   10 skipped
+[Run npm run e2e] 2026-10-23T19:58:03.6235091Z   320 passed (4.9m)

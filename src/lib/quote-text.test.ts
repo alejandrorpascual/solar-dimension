@@ -12,7 +12,7 @@ import type { QuoteLine } from './quote-schema'
 import { gaugePos, GAUGE_ZONES, quoteSizing, sizingZone, type Sizing } from './quote-sizing'
 import { compute, type SizingInput } from './sizing'
 import {
-  askText, coverageLines, evidenceLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, kitAttentionText, kitHold, markLabel, misreadText, money, oversizeTip,
+  askText, coverageLines, currencyTieText, evidenceLines, extraPanelsText, isTotalTyped, coverageMeta, deleteConfirmText, entrySubtitle, sizingSentence, deltaText, etaText, fitLabel, gaugeLabel, gaugeLegend, gaugeTitle, itemText, kitAttentionText, kitHold, markLabel, misreadText, money, oversizeTip,
   projectLine, questionText, ratioLabel, readTotalText, reasonLine, rejectionText, totalHelp, unrankedTitle, verdictHeading, verdictStatus, verdictSubline,
   zoneName, zonePill,
 } from './quote-text'
@@ -146,18 +146,11 @@ describe('totalHelp', () => {
     )
   })
   test('read again and still not holding, a reading names the check that failed, then asks for the total as the quote writes it', () => {
-    const badCurrency = { ...SAMPLE_QUOTES.solartec, currency: 'RD$' }
     expect(totalHelp(en, unranked({ extraction: lineOff, retries: 1 }))).toBe(
       "On some lines, the quantity times the unit price doesn't make the line total. We read it again with the same result. If the quote is written that way (a discount on a line, say), enter its total to compare it.",
     )
-    expect(totalHelp(en, unranked({ extraction: badCurrency, retries: 1 }))).toBe(
-      "We couldn't tell which currency its prices are in. We read it again with the same result. If the quote is written that way (a discount on a line, say), enter its total to compare it.",
-    )
     expect(totalHelp(es, unranked({ extraction: lineOff, retries: 1 }))).toBe(
       'En algunas líneas, la cantidad por el precio unitario no da el total de la línea. La leímos de nuevo con el mismo resultado. Si la cotización está escrita así (con un descuento en una línea, por ejemplo), escribe su total para compararla.',
-    )
-    expect(totalHelp(es, unranked({ extraction: badCurrency, retries: 1 }))).toBe(
-      'No pudimos saber en qué moneda están sus precios. La leímos de nuevo con el mismo resultado. Si la cotización está escrita así (con un descuento en una línea, por ejemplo), escribe su total para compararla.',
     )
     expect(totalHelp(es, unranked({ extraction: noLines, retries: 1 }))).toBe(es.quotes.noLinesTotalHelp)
   })
@@ -697,5 +690,18 @@ describe('unrankedTitle', () => {
   })
   test('a quote with options to check gets no total form, so it does not count as waiting for a total', () => {
     expect(unrankedTitle(en, [{ ...u('needs_review'), optionCount: 2 }])).toBe('Not compared yet')
+  })
+})
+
+describe('currencyTieText (AI-28)', () => {
+  const eur = { ...view('voltia', 0), extraction: { ...SAMPLE_QUOTES.voltia, currency: 'EUR' } }
+  test("names the currency that was ranked when as many quotes are in another, in both languages", () => {
+    const tie = compareQuotes(KIT, DEFAULT_MUSTS, [eur, view('solartec', 1)])
+    expect(currencyTieText(en, tie)).toBe('EUR and USD have the same number of quotes to compare. Only the ones in EUR are compared, as the earliest of those quotes is in EUR.')
+    expect(currencyTieText(es, tie)).toBe('EUR y USD tienen la misma cantidad de cotizaciones por comparar. Solo se comparan las que están en EUR, porque la más antigua de ellas está en EUR.')
+  })
+  test('is null without a tie', () => {
+    expect(currencyTieText(en, v)).toBeNull()
+    expect(currencyTieText(en, compareQuotes(KIT, DEFAULT_MUSTS, [eur, view('solartec', 1), view('grupoluz', 2)]))).toBeNull()
   })
 })

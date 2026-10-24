@@ -6,6 +6,7 @@ import { useRootData, type RootData } from '../hooks/useRootData'
 import { DEFAULT_LOCALE, getDictionary } from '../i18n'
 import { APP_NAME } from '../lib/brand'
 import { serverErrorRef } from '../lib/server-error'
+import { siteHead } from '../lib/site-head'
 import { shouldReloadForStaleChunk } from '../lib/stale-chunk'
 import { withFallback } from '../lib/ttl-cache'
 import { QuoteTray } from '../components/quotes/QuoteTray'
@@ -13,6 +14,7 @@ import { getCatalog } from '../server/catalog'
 import { getLocale } from '../server/locale'
 import { getQuotePollMs } from '../server/quotes/api'
 import { getAuthFeatures, getSession } from '../server/session'
+import { getSiteOrigin } from '../server/site-origin'
 import stylesheet from '../styles.css?url'
 
 const SEARCH_CONSOLE_TOKEN = 'G9yqTKOqSP1tOS4jjC6xGCcsVFT7J3iZC5AzXQ2LNFY'
@@ -37,24 +39,26 @@ export const Route = createRootRoute({
   // A loader, not beforeLoad: beforeLoad reruns on every navigation, loader data is cached. Moving between
   // steps only changes ?step, so this runs once per page load and again only on router.invalidate().
   loader: async (): Promise<RootData> => {
-    const [locale, session, features, catalog, quotePollMs] = await Promise.all([
-      getLocale(), readSession(), getAuthFeatures(), getCatalog(), getQuotePollMs(),
+    const [locale, session, features, catalog, quotePollMs, siteOrigin] = await Promise.all([
+      getLocale(), readSession(), getAuthFeatures(), getCatalog(), getQuotePollMs(), getSiteOrigin(),
     ])
-    return { locale, ...session, googleEnabled: features.googleEnabled, catalog, quotePollMs }
+    return { locale, ...session, googleEnabled: features.googleEnabled, catalog, quotePollMs, siteOrigin }
   },
   staleTime: Infinity,
   head: ({ loaderData }) => {
-    const t = getDictionary(loaderData?.locale ?? DEFAULT_LOCALE)
+    // The error screen can render before the loader has data: it keeps the product description, and names the image by a path with no origin.
+    const site = siteHead(getDictionary(loaderData?.locale ?? DEFAULT_LOCALE), loaderData?.siteOrigin ?? '')
     return {
       meta: [
         { charSet: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { title: APP_NAME },
-        { name: 'description', content: t.ui.q1Help },
+        ...site.meta,
         // Proves ownership of solar-dimension.vercel.app to Google Search Console (needed for OAuth branding review).
         { name: 'google-site-verification', content: SEARCH_CONSOLE_TOKEN },
       ],
       links: [
+        ...site.links,
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
         { rel: 'stylesheet', href: FONTS_URL },

@@ -4,7 +4,7 @@ import { stable } from './stable-json'
 const COMPARED = ['category', 'watts', 'surge', 'duty', 'tons', 'acType', 'labels', 'kind', 'surgeClass', 'burstSeconds', 'cyclesPerHour'] as const
 const SORT_STEP = 10
 
-export interface FieldChange { field: (typeof COMPARED)[number] | 'sortOrder'; from: unknown; to: unknown }
+export interface FieldChange { field: (typeof COMPARED)[number] | 'sources' | 'sortOrder'; from: unknown; to: unknown }
 export type ApplianceChange =
   | { id: string; kind: 'new' }
   | { id: string; kind: 'changed'; fields: FieldChange[] }
@@ -16,9 +16,15 @@ export function diffAppliances(existing: readonly ApplianceRecord[], incoming: r
     const current = byId.get(item.id)
     if (!current) return { id: item.id, kind: 'new' }
     const content: FieldChange[] = COMPARED.filter((f) => stable(current[f]) !== stable(item[f])).map((field) => ({ field, from: current[field], to: item[field] }))
-    // Order is only compared when the caller asks for one; otherwise an item keeps its place.
+    // Sources and order are only compared when the caller sends them; otherwise an item keeps its stored ones.
+    const storedSources = current.sources ?? {}
+    const hasNewSources = item.sources !== undefined && stable(item.sources) !== stable(storedSources)
     const isReordered = item.sortOrder !== undefined && item.sortOrder !== current.sortOrder
-    const fields = isReordered ? [...content, { field: 'sortOrder' as const, from: current.sortOrder, to: item.sortOrder }] : content
+    const fields = [
+      ...content,
+      ...(hasNewSources ? [{ field: 'sources' as const, from: storedSources, to: item.sources }] : []),
+      ...(isReordered ? [{ field: 'sortOrder' as const, from: current.sortOrder, to: item.sortOrder }] : []),
+    ]
     return fields.length > 0 ? { id: item.id, kind: 'changed', fields } : { id: item.id, kind: 'unchanged' }
   })
 }
@@ -43,4 +49,38 @@ export function assignSortOrders(existing: readonly ApplianceRecord[], incoming:
     const order = sortOrder ?? current?.sortOrder ?? base + (newIds.indexOf(item.id) + 1) * SORT_STEP
     return { ...item, sortOrder: order, retired: current?.retired ?? false }
   })
+}
+
+/** One write as the change log keeps it: the row as it was (null for a new row) and the row as written. */
+export interface ApplianceWrite { before: ApplianceRecord | null; after: ApplianceRecord }
+
+/** The row as written: an item that sends no sources keeps the stored row's. */
+export const keepStoredSources = (after: ApplianceRecord, before: ApplianceRecord | null): ApplianceRecord =>
+  after.sources !== undefined || before?.sources === undefined ? after : { ...after, sources: before.sources }
+
+/** What an upsert does: the change for each item, and the rows it writes. Unchanged items write nothing. */
+export function planUpsert(existing: readonly ApplianceRecord[], incoming: readonly ApplianceInput[]): { changes: ApplianceChange[]; writes: ApplianceWrite[] } {
+  const byId = new Map(existing.map((r) => [r.id, r]))
+  const changes = diffAppliances(existing, incoming)
+  const writes = assignSortOrders(existing, incoming)
+    .filter((_, i) => changes[i]!.kind !== 'unchanged')
+    .map((after) => {
+      const before = byId.get(after.id) ?? null
+      return { before, after: keepStoredSources(after, before) }
+    })
+  return { changes, writes }
+}
+
+/** A retire or restore as one write, or null when the row is already in that state (nothing to write). */
+export function retireWrite(current: ApplianceRecord, retired: boolean): ApplianceWrite | null {
+  return current.retired === retired ? null : { before: current, after: { ...current, retired } }
+}
+
+const LOGGED = [...COMPARED, 'sources', 'sortOrder', 'retired'] as const
+export interface WrittenField { field: (typeof LOGGED)[number]; from: unknown; to: unknown }
+
+/** The fields a logged write changed, from and to. Empty for a new row: there is nothing before it to compare. */
+export function writtenFields({ before, after }: ApplianceWrite): WrittenField[] {
+  if (!before) return []
+  return LOGGED.filter((f) => stable(before[f]) !== stable(after[f])).map((field) => ({ field, from: before[field], to: after[field] }))
 }

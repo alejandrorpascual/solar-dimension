@@ -46,12 +46,14 @@ export interface QuoteJobRepo {
   claim(id: string): Promise<ClaimedQuote | null>
   /**
    * Stores the outcome only while `job`'s claim still holds: the row is processing and no later claim bumped its
-   * attempts. Returns false, writing nothing, when the claim went stale and another worker took the job over.
+   * attempts. Returns the status the row now has, which for a failed re-read of a quote with a reading is needs_review;
+   * null, writing nothing, when the claim went stale and another worker took the job over.
    */
-  finish(job: ClaimedQuote, f: Finish): Promise<boolean>
+  finish(job: ClaimedQuote, f: Finish): Promise<QuoteStatus | null>
 }
 export interface ProcessDeps { repo: QuoteJobRepo; storage: QuoteStorage; model: QuoteModel; models: { primary: string; fallback: string } }
-export type Outcome = 'skipped' | Finish['status']
+/** How a run ended: the status it stored, or skipped when it stored nothing. */
+export type Outcome = 'skipped' | QuoteStatus
 
 type Attempt =
   | { ok: true; extraction: QuoteExtraction; passes: boolean; usage: QuoteUsage }
@@ -133,12 +135,13 @@ export async function processQuote(id: string, deps: ProcessDeps): Promise<Outco
    * A worker that lost its claim stores nothing, so it never overwrites the newer worker's result.
    */
   const finish = async (f: Finish): Promise<Outcome> => {
-    if (!(await deps.repo.finish(job, f))) {
+    const stored = await deps.repo.finish(job, f)
+    if (!stored) {
       console.warn('[quotes] a late worker lost its claim', { id })
       return 'skipped'
     }
     if ('error' in f && f.status === 'failed') console.error('[quotes] a quote could not be read', { id, error: f.error })
-    return f.status
+    return stored
   }
   let bytes: Uint8Array | null
   try {

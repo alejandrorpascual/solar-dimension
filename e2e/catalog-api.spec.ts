@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { ANOTHER_ENDPOINT, catalogAuthHeader as auth, meantFor, testEndpoint, writeHeaders, wrongTokenHeader } from './catalog-token'
-import { deleteTestAppliance, testApplianceExists } from './db'
+import { deleteTestAppliance, testApplianceChanges, testApplianceExists } from './db'
 
 const cooktop = (id: string) => ({
   id, category: 'Kitchen', watts: 3500, surge: 3500, duty: 0.15, tons: null, acType: null,
@@ -129,6 +129,32 @@ test('dry run, create, show in the picker in both languages, then retire', async
     expect((await request.post('/api/catalog/appliances/no-such-id/retire', { headers: writeHeaders() })).status()).toBe(404)
   } finally {
     // Runs even if an assertion above throws midway, so no run leaves its e2e-* row behind.
+    await deleteTestAppliance(id)
+  }
+})
+
+test('every write to an appliance is logged with the row before and after; an unchanged write logs nothing', async ({ request }) => {
+  const id = `e2e-log-${Date.now()}`
+  const item = cooktop(id)
+  const post = (path: string, data?: unknown) => request.post(path, { headers: writeHeaders(), data })
+  try {
+    expect((await post('/api/catalog/appliances', [item])).status()).toBe(200)
+    expect((await post('/api/catalog/appliances', [item])).status()).toBe(200)
+    expect((await post('/api/catalog/appliances', [{ ...item, watts: 3000, surge: 3000 }])).status()).toBe(200)
+    expect((await post(`/api/catalog/appliances/${id}/retire`)).status()).toBe(200)
+    expect((await post(`/api/catalog/appliances/${id}/restore`)).status()).toBe(200)
+
+    const log = await testApplianceChanges(id)
+    // Created, changed, retired, restored: the repeated write of the same item added nothing.
+    expect(log.map((e) => [e.before?.watts ?? null, e.after.watts, e.before?.retired ?? null, e.after.retired])).toEqual([
+      [null, 3500, null, false],
+      [3500, 3000, false, false],
+      [3000, 3000, false, true],
+      [3000, 3000, true, false],
+    ])
+    expect(log.every((e) => e.actor === 'api-token')).toBe(true)
+    expect(log[1]!.after).toEqual({ ...item, watts: 3000, surge: 3000, kind: null, surgeClass: null, burstSeconds: null, cyclesPerHour: null, sources: {}, sortOrder: log[0]!.after.sortOrder, retired: false })
+  } finally {
     await deleteTestAppliance(id)
   }
 })

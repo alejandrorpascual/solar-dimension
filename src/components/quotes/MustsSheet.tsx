@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { useLocale } from '../../hooks/useLocale'
-import type { ItemId, Musts } from '../../lib/quote-items'
+import { FIXED_MUSTS, type ItemId, type Musts } from '../../lib/quote-items'
 
 interface Props {
   isOpen: boolean; onOpenChange: (open: boolean) => void
@@ -13,10 +13,13 @@ interface Props {
 function MustRow({ id, isOn, onChange }: { id: ItemId; isOn: boolean; onChange: (v: boolean) => void }) {
   const { t } = useLocale()
   const nameId = useId()
+  // The inverter and battery are always must-haves (the help above says so): their switch shows it and can't be turned off.
+  const isFixed = FIXED_MUSTS.includes(id)
   return (
     <li className="qmusts__row">
       <span className="qmusts__name" id={nameId}>{t.quoteItems[id]}</span>
-      <button type="button" role="switch" className="qmust" aria-checked={isOn} aria-labelledby={nameId} onClick={() => onChange(!isOn)}>
+      <button type="button" role="switch" className="qmust" aria-checked={isOn} aria-labelledby={nameId} disabled={isFixed}
+        onClick={() => onChange(!isOn)}>
         {isOn ? t.quotes.mustHave : t.quotes.niceToHave}
       </button>
     </li>

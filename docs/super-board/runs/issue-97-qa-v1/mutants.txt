@@ -1,0 +1,29 @@
+Mutation check, head c7e3fed. Each mutant was applied in a clone, the named tests were run,
+then the file was restored with git checkout. No mutant was committed.
+
+QA's new test (npx vitest run src/server/admin-quotes.test.ts), first run green, so each guarded line was broken:
+
+G1  admin-quotes.ts  `await requireAdmin()` removed                       KILLED  3 failed | 2 passed (5)
+    message: AssertionError: promise resolved "[]" instead of rejecting
+G2  admin-quotes.ts  `(processedAt ?? createdAt)` -> `(createdAt)`        KILLED  1 failed | 4 passed (5)
+G3  admin-quotes.ts  status 'failed' -> 'ready' in the where              KILLED  1 failed | 4 passed (5)
+
+Before QA's test, G1 to G3 had no unit test: CI coverage showed admin-quotes.ts at 0% (lines 8-35),
+and the e2e reaches the list only as the admin, so G1 left every account's email open to a direct call.
+
+The Builder's tests (npx vitest run src/server/quotes/sweep.test.ts src/server/quotes/repo.test.ts):
+
+S1  src/server/quotes/sweep.ts  `stuck: ids.length + gaveUp` -> `stuck: ids.length`  (diff +1/-1)  KILLED  2 failed | 21 passed (23)
+S2  src/server/quotes/sweep.ts  `failed: gaveUp + outcomes` -> `failed: 0 + outcomes`  (diff +1/-1)  KILLED  2 failed | 21 passed (23)
+S3  src/server/quotes/sweep.ts  `outcomes.filter((o) => o === 'failed').length` -> `0`  (diff +1/-1)  KILLED  1 failed | 22 passed (23)
+S4  src/server/quotes/sweep.ts  `trashed: trash.removed.length` -> `trashed: trash.kept.length`  (diff +1/-1)  KILLED  1 failed | 22 passed (23)
+S5  src/server/quotes/sweep.ts  `trashKept: trash.kept.length` -> `trashKept: 0`  (diff +1/-1)  KILLED  1 failed | 22 passed (23)
+S6  src/server/quotes/sweep.ts  `o === 'failed').length` -> `o === 'failed' || o === 'error').length`  (diff +1/-1)  SURVIVED  23 passed (23)
+R1  src/server/quotes/repo.ts  `gaveUp: fail.length` -> `gaveUp: 0`  (diff +1/-1)  KILLED  1 failed | 22 passed (23)
+R2  src/server/quotes/api.ts  `if (kick.length) kickQuotes(kick)` -> `if (kick.length) kickQuotes([])`  (diff +1/-1)  SURVIVED  23 passed (23)
+
+S6 survives: no test has a read that throws during the sweep, so an 'error' outcome counted as failed
+goes unseen. Witness: processQuote rejects for job 'a' (kick ['a'], gaveUp 0); expected stuck 1, failed 0.
+R2 survives: getQuoteJobs is a server function with no unit test; the tray's restart of stuck reads
+was untested before this PR too; typecheck pins the new result shape. S6 ranked Medium, R2 Low;
+neither written: see test-gaps.md.

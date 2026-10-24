@@ -35,6 +35,7 @@ export interface Dictionary {
 export interface LegalPage { title: string; updated: string; sections: readonly { heading: string; body: string }[] }
 
 export type UiKey =
+  | 'siteDescription'
   | 'steps' | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
   | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
   | 'firstProject' | 'projectNumbered' | 'copySuffix' | 'customTag'

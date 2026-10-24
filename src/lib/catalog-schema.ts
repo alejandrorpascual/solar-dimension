@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { LOAD_KINDS, MAX_APPLIANCE_SURGE, MAX_APPLIANCE_WATTS, SIZING, SURGE_CLASSES, type ApplianceLabels, type CatalogItem, type CompressorType, type LoadKind, type SurgeClass } from './catalog'
 import { isCustomLoadId } from './custom'
+import { httpsUrl } from './product-schema'
 
 export const APPLIANCE_CATEGORIES = ['Kitchen', 'Living', 'Climate', 'Air conditioning', 'Work', 'Utility', 'Security', 'Personal'] as const
 export type ApplianceCategory = (typeof APPLIANCE_CATEGORIES)[number]
@@ -30,6 +31,24 @@ const ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,47}$/
 
 const Label = z.object({ name: z.string().trim().min(1).max(80), note: z.string().trim().max(160) }).strict()
 
+/** Room for the two sources that must agree when a figure has no datasheet or nameplate, and one more. */
+const MAX_SOURCES_PER_FIGURE = 3
+const MAX_AS_WRITTEN = 200
+/** Where a figure came from: the page, and its words as written there, so the figure can be checked against them. */
+const FigureSourceSchema = z.object({ source: httpsUrl, asWritten: z.string().trim().min(1).max(MAX_AS_WRITTEN) }).strict()
+const FigureSourceListSchema = z.array(FigureSourceSchema).min(1).max(MAX_SOURCES_PER_FIGURE)
+export const FigureSourcesSchema = z
+  .object({
+    watts: FigureSourceListSchema.optional(),
+    surge: FigureSourceListSchema.optional(),
+    duty: FigureSourceListSchema.optional(),
+    burstSeconds: FigureSourceListSchema.optional(),
+    cyclesPerHour: FigureSourceListSchema.optional(),
+  })
+  .strict()
+export type FigureSource = z.infer<typeof FigureSourceSchema>
+export type FigureSources = z.infer<typeof FigureSourcesSchema>
+
 export const ApplianceSchema = z
   .object({
     id: z
@@ -49,6 +68,8 @@ export const ApplianceSchema = z
     burstSeconds: z.number().positive().max(MAX_BURST_SECONDS).nullable().default(null),
     cyclesPerHour: z.number().positive().max(MAX_CYCLES_PER_HOUR).nullable().default(null),
     labels: z.object({ en: Label, es: Label }).strict(),
+    /** Left out, a write keeps the stored sources; given, it replaces all of them (`{}` clears them). */
+    sources: FigureSourcesSchema.optional(),
     sortOrder: z.number().int().nonnegative().optional(),
   })
   .strict()
