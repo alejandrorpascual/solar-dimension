@@ -1,0 +1,95 @@
+# QA v6 run log · issue 93 · PR #202 head f573ced (app code f573ced: staging #214 merged in, migration 0017, round-6 fix)
+# Local machine: Node v24.15.0, clone of origin/issue-93-sync-two-tabs-or-devices, npm ci
+# The signed-in app was not run here: a guard-secrets hook refused linking .env.test.local into the clone, so e2e and
+# test:db on the Neon test branch come from CI (run 40052763278 at f573ced). The real SQL ran on a throwaway local
+# Postgres 15.12 (port 54396), reached through psql with the v5 harness (qa-v5-pg-client.ts.txt, port and database
+# name changed) and qa-v6-migrate.ts.txt. QA witness files ran from the clone and are not committed as tests.
+
+## 1. Project verify (npm run typecheck && npm run test:coverage && npm run build), after npm ci
+ Test Files  128 passed (128)
+      Tests  2112 passed (2112)
+All files          |   90.21 |    90.57 |   90.55 |   90.39 |
+VERIFY_EXIT=0
+
+## 2. Reviewer's local tests: npx vitest run src/hooks src/lib/sync.test.ts src/server/projects.test.ts
+ Test Files  9 passed (9)
+      Tests  111 passed (111)
+
+## 3. QA v5 hook witnesses (qa-v5-witness.test.ts.txt, unchanged) at f573ced: red on 60b97be, green now
+ ✓ QA-W5: 5 h in A as the click that brings A back, 12 h on C (the later edit, saved first), then 12 V in A
+ ✓ QA-W5b: 5 h in A queued behind A's own AGM save, 12 h on C (the later edit, saved first), then 12 V in A
+ ✓ QA-W5 control: the same edits with A saving 5 h before its 12 V edit keep 12 h (C is later)
+ ✓ QA-W6: 5 h in A whose save fails, 12 h on C (the later edit, saved), then 12 V in A carries the 5 h
+      Tests  4 passed (4)
+
+## 4. Every-order test: the committed file 8/8 (its QA-W5 row is :117), and 5 new step lists (qa-v6-orders-rows.patch.txt)
+##    run on a copy of it; each order replays from a fresh start
+ ✓ QA-v6 R1: 5 h in A, 12 h on C, then 12 V in A, with tab B open
+ ✓ QA-v6 R2: 5 h then 24 V in A, 12 h on C, then AGM in A
+ ✓ QA-v6 R3: 5 h in A, 12 h on C, then 7 h in A, the latest
+ ✓ QA-v6 R4: 5 h in A, 24 V in B, 12 h on C, then AGM in A   (999 s)
+ ✓ QA-v6 R5: 24 V on C, 5 h in B, 12 h on C, then 12 V in B
+   no order lost an edit, and every tab showed the account's copy once back
+
+## 5. Migrations through drizzle's own migrator (a migration runs when its journal `when` is later than the last row)
+##    a. production's path: a database at 0000 to 0015, then the full journal (the merge to main)
+applied 16 migration(s) (0000 to 0015, last row 1792683124499)
+full journal: rows 1792784552000 (0016_appliance_sources) and 1792788841291 (0017_project_field_stamps) added, in that order
+projects.field_stamps | jsonb | '{}'::jsonb | NOT NULL
+##    b. an empty database: 18 migrations (0000 to 0017)
+##    c. the Neon test branch: CI's db:migrate then db:check passed at f573ced, so it holds a row for every journal stamp
+
+## 6. DB tests on the local Postgres with 0000 to 0017 (.qa93/vitest.config.ts aliases ../db/client to the psql harness)
+ src/server/projects-repo.db.test.ts      13 passed (13)
+ qa-v6-db-witness.test.ts.txt             4 passed (4)
+ ✓ QA-W8 on the real SQL: A's 5 h save (T20) lands after C's 12 h (T30) and is refused; A's 8 h (T40) lands: 8 h
+ ✓ QA-W9 on the real SQL: A carries its failed 5 h (T20) with 12 V (T40), B saves 7 h (T30); B lands first: 7 h and 12 V
+ ✓ QA-W9 on the real SQL: ... A lands first: 7 h and 12 V
+ ✓ a field another save left alone keeps the stamp of its own last edit, so an edit to it between that one and the row stamp still lands
+   red-capable: with isLater comparing the row stamp (M7), QA-W9 (A first) and the last test go red
+
+## 7. Hook witnesses (qa-v6-witness.test.ts.txt), real useProjectStore as tabs on the fake account
+ ✓ QA-W7: 5 h in A whose save fails, 12 h on C (saved), then 7 h in A, the latest edit: the account keeps 7 h
+ ✓ QA-W8: 5 h in A (save on its way), 12 h on C (lands first), then 8 h in A: the account keeps 8 h
+ ✓ QA-W9: 5 h in A whose save fails, 7 h in B (later), then 12 V in A carries the 5 h; B's save lands first: 7 h and 12 V
+ ✓ QA-W9: ... A's save lands first: 7 h and 12 V
+ ✓ QA-W10: 12 h on C (saved), then 5 h in A while offline; back online, 12 V in A sends both: 5 h and 12 V
+      Tests  5 passed (5)
+   red-capable: M1 turns both QA-W9 red, M8 turns QA-W7 and QA-W8 red, M9 turns QA-W10 red
+
+## 8. Mutants, one at a time, then the file restored from git (suite: the committed hook, sync and server-function tests;
+##    DB: the 13 committed DB tests on the local Postgres)
+M1 sync.ts:220  a named field's stamp is the project's (round 5)       10 failed: edit-stamps QA-W5/W5b/W6, orders QA-W5, ...
+M2 sync.ts:219  a named field goes at the screen's value                2 failed: edit-stamps three-place, sync.test.ts:223
+M3 useProjectStore.ts:230  no edit is recorded per field               7 failed: edit-stamps QA-W5/W5b/W6, orders QA-W5, ...
+M4 projects-repo.ts:99  field stamp not clamped to the project's        SURVIVES: 13/13 (only a hand-made request reaches it)
+M5 projects-repo.ts:119  `>=` to `>`                                    1 failed: DB :148 equal stamps
+M6 projects-repo.ts:128  a refused field takes the sent stamp           3 failed: DB :96, :135, :161
+M7 projects-repo.ts:119  a named field compared with the row stamp      4 failed: DB :83, :120, :161, :189
+M8 sync.ts:202  recordEdits keeps a field's first edit                  4 failed: orders QA-W4, sync :66, useProjectStore.test x2
+M9 useProjectStore.ts:243  a save does not carry a failed one's fields  2 failed: edit-stamps QA-W6, sync :160
+
+## 9. CI run 40052763278 (job verify) at f573ced: every step success
+npm ci · refuse production db · db:migrate · migrate an empty database · drop it · test:db · typecheck · test:coverage ·
+build · playwright install · e2e (includes e2e/sync-tabs-devices.spec.ts :60, :81, :124 and e2e/migration-check.spec.ts)
+
+## 10. git merge-tree f573ced with origin/staging 1125d3d (#207 landed after the merge): no conflict
+
+## AC ledger at f573ced (unit · hook/component · DB · e2e)
+AC1 sync.test.ts:34, :91, :255 · useProjectStore.sync.test.ts:49, :194; orders :108, :109 · DB :83, :120 · e2e :60 (CI)
+AC2 sync.test.ts:34, :47 · useProjectStore.sync.test.ts:108, :127; orders :111, :112 · DB :83 · e2e :81 (CI)
+AC3 sync.test.ts:213, :223 · edit-stamps.test.ts:45, :59, :72, :87; orders :113 to :117 · DB :96, :135, :148, :161 ·
+    e2e n/a: two edits inside one round trip need held requests, which the hook and DB rungs drive
+AC4 sync.test.ts:191; projects.test.ts:48, :58 · n/a · DB :71, :189 · e2e :124 (CI)
+AC5 useProjectStore.orders.test.ts 8/8, the QA-W5 row :117 included
+
+## Test gaps (not written)
+Low   projects-repo.ts:99 clamps a named field's stamp to its project's stamp; no test pins it (M4 survives). An honest
+      save never sends a field stamp later than its project's, so only a hand-made request reaches it.
+Low   a project whose id is `constructor` reads as named (projects-repo.ts:151, :152); ids are UUIDs (from QA v5, untouched)
+Low   useProjectStore.ts:127 clears `unsent` but not `unsentEdits` when the account or its reachability changes, so a later
+      save names those fields at the screen's value and the latest stamp (code reading, not reproduced)
+
+## Screenshots
+None: the signed-in app could not run here (the hook refused linking .env.test.local), and every AC is about what the
+account holds. CI ran the three sync e2e tests in Chromium at f573ced; the QA v3 screenshots show the same screens.

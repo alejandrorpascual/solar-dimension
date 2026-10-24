@@ -1,0 +1,34 @@
+--- a/src/hooks/useProjectStore.orders.test.ts
++++ b/src/hooks/useProjectStore.orders.test.ts
+@@ -105,20 +105,19 @@
+ const edit = (tab: string, change: Partial<Fields>): Step => ({ tab, edit: change })
+ 
+ test.each([
+-  ['two tabs: hours in A, then volts in B', ['A', 'B'], switching([edit('A', { hours: 24 }), edit('B', { volts: 12 })])],
+-  ["two tabs: AGM in B, hours in A, volts in B (QA-W1, B's own save lands while A's is on its way)", ['A', 'B'],
+-    switching([edit('B', { chemistry: 'agm' }), edit('A', { hours: 24 }), edit('B', { volts: 12 })])],
+-  ['two devices: hours on C, then volts in B', ['B', 'C'], switching([edit('C', { hours: 24 }), edit('B', { volts: 12 })])],
+-  ['two devices with no focus between: hours on C, volts in B', ['B', 'C'], [edit('C', { hours: 24 }), edit('B', { volts: 12 })]],
+-  ['one field in two tabs: 24 h in A, then 12 h in B, which is the later edit', ['A', 'B'], switching([edit('A', { hours: 24 }), edit('B', { hours: 12 })])],
+-  ['one field on two devices: 24 h on C, then 12 h in B, which is the later edit', ['B', 'C'], switching([edit('C', { hours: 24 }), edit('B', { hours: 12 })])],
+-  ['one field set back (QA-W4): 5 h in A, then 12 h and back to 10 h on C, which is the later edit', ['A', 'C'],
+-    switching([edit('A', { hours: 5 }), edit('C', { hours: 12 }), edit('C', { hours: 10 })])],
+-  ['QA-W5: 5 h in A as the click that brings A back, 12 h on C, then 12 V in A before A has sent its 5 h', ['A', 'C'],
+-    [{ tab: 'A', focus: true }, edit('A', { hours: 5 }), { tab: 'C', focus: true }, edit('C', { hours: 12 }), edit('A', { volts: 12 })]],
++  ['QA-v6 R1: 5 h in A, 12 h on C, then 12 V in A, with tab B open', ['A', 'B', 'C'],
++    switching([edit('A', { hours: 5 }), edit('C', { hours: 12 }), edit('A', { volts: 12 })])],
++  ['QA-v6 R2: 5 h then 24 V in A, 12 h on C, then AGM in A', ['A', 'C'],
++    [{ tab: 'A', focus: true }, edit('A', { hours: 5 }), edit('A', { volts: 24 }), { tab: 'C', focus: true }, edit('C', { hours: 12 }), edit('A', { chemistry: 'agm' })]],
++  ['QA-v6 R3: 5 h in A, 12 h on C, then 7 h in A, the latest', ['A', 'C'],
++    [{ tab: 'A', focus: true }, edit('A', { hours: 5 }), { tab: 'C', focus: true }, edit('C', { hours: 12 }), edit('A', { hours: 7 })]],
++  ['QA-v6 R4: 5 h in A, 24 V in B, 12 h on C, then AGM in A', ['A', 'B', 'C'],
++    switching([edit('A', { hours: 5 }), edit('B', { volts: 24 }), edit('C', { hours: 12 }), edit('A', { chemistry: 'agm' })])],
++  ['QA-v6 R5: 24 V on C, 5 h in B, 12 h on C, then 12 V in B', ['B', 'C'],
++    switching([edit('C', { volts: 24 }), edit('B', { hours: 5 }), edit('C', { hours: 12 }), edit('B', { volts: 12 })])],
+ ] as const)('%s: no order loses an edit, and each tab shows the account once back', async (_what, names, steps) => {
+   const { orders, lost, stale } = await everyOrder(names, steps)
+ 
+   expect(orders).toBeGreaterThan(steps.length)
+   expect({ lost: lost.slice(0, 1), stale: stale.slice(0, 1) }).toEqual({ lost: [], stale: [] })
+-}, 120_000)
++}, 1_500_000)
