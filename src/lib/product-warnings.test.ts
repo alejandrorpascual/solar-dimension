@@ -127,6 +127,23 @@ describe('warnProducts on a product filled in over a stored one', () => {
     ])
   })
 
+  test('checks volts, Ah or a continuous value filled in against the stored values they are compared with', () => {
+    const noVolts = battery({ nominalV: NONE, kWh: stated(6, '6kWh') })
+    const noAh = battery({ ah: NONE, kWh: stated(6, '6kWh') })
+    const noContinuousA = battery({ maxContinuousA: NONE, peakA: stated(80, 'Peak discharge 80A') })
+    const noContinuousW = inverter({ continuousW: NONE, surges: [level(5000, 10, '5000W for 10 s')] })
+    const kWhOff = '6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours.'
+
+    expect(warnOver(noVolts, stating(noVolts, { nominalV: stated(51.2, 'Nominal Voltage 51.2V') }))).toEqual([kWhOff])
+    expect(warnOver(noAh, stating(noAh, { ah: stated(100, '100Ah') }))).toEqual([kWhOff])
+    expect(warnOver(noContinuousA, stating(noContinuousA, { maxContinuousA: stated(100, 'Max. continuous discharge 100A') }))).toEqual([
+      'Peak 80 A is below the 100 A continuous: check the peak and continuous current.',
+    ])
+    expect(warnOver(noContinuousW, stating(noContinuousW, { continuousW: stated(6000, 'NOMINAL POWER OUTPUT 6000W') }))).toEqual([
+      'A surge of 5000 W is below the 6000 W continuous: check the surge levels.',
+    ])
+  })
+
   test('gives no warning from stored values alone when the request states none of a check’s fields', () => {
     const oddBattery = battery({ kWh: stated(6, '6kWh'), peakA: stated(80, 'Peak discharge 80A') })
     const oddInverter = inverter({ surges: [level(5000, 10, '5000W for 10 s')] })

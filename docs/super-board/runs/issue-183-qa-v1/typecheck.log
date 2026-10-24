@@ -1,0 +1,5 @@
+
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+
+exit=0
