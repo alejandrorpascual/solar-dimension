@@ -1,0 +1,19 @@
+QA v1 · #196 · branch issue-196-a11y-empty-option-footer-links · head 0a52ba6 · clone of staging a51e1a7
+Run: 24 Oct 2026, local clone, test database branch via .env.test.local, throwaway BETTER_AUTH_SECRET (openssl rand, as ci.yml does)
+
+npm ci --prefer-offline --no-audit --no-fund                      exit 0
+npm run typecheck                                                 exit 0
+npm run test:coverage                                             exit 0 · 133 files · 2125 tests passed · all files 90.22% stmts
+npm run build                                                     exit 0
+npx vitest run src/components/admin/ApplianceForm.test.ts         1 passed (AC1)
+E2E_PORT=4392 npx playwright test e2e/legal-links.spec.ts         4 passed: / and /login, desktop and phone projects (AC2)
+
+Full e2e on the branch: E2E_PORT=4392 CI=true npx playwright test
+  345 tests · 324 passed · 10 skipped · 9 flaky (passed on retry) · 2 failed after 1 retry
+  failed: e2e/quotes.spec.ts:867 · e2e/shared-browser.spec.ts:207
+  flaky:  admin.spec.ts:46 · database-down.spec.ts:36 and :70 · download.spec.ts:163 and :203 · quotes.spec.ts:412
+          shared-browser.spec.ts:165, :223, :255
+  Cause: machine load average was 354 (other lanes and old servers running); the failures are sign-in and
+  quote-read timeouts in files this diff does not touch.
+  Rerun of the two failures alone, --retries=0 --workers=1: 2 passed (quotes.spec.ts:867, shared-browser.spec.ts:207).
+  legal-links.spec.ts passed in the full run.
