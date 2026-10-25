@@ -236,6 +236,13 @@ export async function quoteRetryStates(email: string, projectId: string): Promis
   return rows.map((r) => ({ status: r.status as string, retries: r.retries as number }))
 }
 
+/** The file name and stored fingerprint (quotes.file_hash) of every quote of the user, oldest first. */
+export async function quoteFileHashes(email: string): Promise<{ fileName: string; fileHash: string | null }[]> {
+  const rows = await testDb()`
+    select q.file_name, q.file_hash from quotes q join "user" u on u.id = q.user_id where u.email = ${email} order by q.created_at`
+  return rows.map((r) => ({ fileName: r.file_name as string, fileHash: r.file_hash as string | null }))
+}
+
 /** Every quote of the user, with its project and the path of its file in storage. */
 export async function quoteFiles(email: string): Promise<{ projectId: string; path: string }[]> {
   const rows = await testDb()`

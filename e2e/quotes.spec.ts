@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
@@ -6,7 +6,7 @@ import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
 import { quotesEs } from '../src/i18n/quotes-es'
 import {
-  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFiles, quoteRetryStates, seedFailedQuote,
+  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFileHashes, quoteFiles, quoteRetryStates, seedFailedQuote,
   seedQuoteRows, setQuoteCurrency, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
@@ -127,6 +127,25 @@ test('the same quote uploaded twice ranks once with a warning, and inverter and 
     await expect(fixed).toHaveAttribute('aria-checked', 'true')
     await expect(fixed).toBeDisabled()
   }
+})
+
+test('the same file uploaded again is a duplicate even when its second reading differs, and only its fingerprint is stored (#208)', async ({ page }) => {
+  const email = await signUp(page)
+  // One file sent twice under two names: the stub reads a file by its name, so the copy reads as Voltia's quote.
+  const file = await quotePdf('solartec')
+  await uploadQuotes(page, [file, { ...file, name: 'voltia.pdf' }])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  const copy = page.getByRole('article').filter({ hasText: quotesEn.duplicate })
+  await expect(copy).toHaveCount(1)
+  await expect(copy).toContainText('Voltia Instalaciones')
+  await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toHaveCount(1)
+
+  // Both rows hold the SHA-256 of the bytes sent, worked out here on its own, and nothing else of the file.
+  const sha256 = createHash('sha256').update(file.buffer).digest('hex')
+  expect(await quoteFileHashes(email)).toEqual([{ fileName: 'solartec.pdf', fileHash: sha256 }, { fileName: 'voltia.pdf', fileHash: sha256 }])
 })
 
 test('a tie between currencies says on screen which one was compared (AI-28)', async ({ page }) => {
