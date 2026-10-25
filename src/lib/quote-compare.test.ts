@@ -255,6 +255,16 @@ describe('the same quote uploaded twice (AI-28)', () => {
     expect(ids(v.ranked)).toEqual(['first'])
     expect(v.unranked).toMatchObject([{ quote: { id: 'again' }, reason: 'duplicate' }])
   })
+  test('a file whose first upload was a reading duplicate is still a duplicate when uploaded again and read differently', () => {
+    const reworded = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, description: `${l.description} (reworded)` } : l)) }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('a', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'h1', createdAt: 1 }),
+      view('b', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'h2', createdAt: 2 }),
+      view('c', { extraction: reworded, fileHash: 'h2', createdAt: 3 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['a'])
+    expect(v.unranked.map((u) => [u.quote.id, u.reason])).toEqual([['b', 'duplicate'], ['c', 'duplicate']])
+  })
   test('the same file is its own quote once the user types a different total into it', () => {
     const noTotal = { ...SAMPLE_QUOTES.voltia, total: 0 }
     const v = compareQuotes(KIT, DEFAULT_MUSTS, [

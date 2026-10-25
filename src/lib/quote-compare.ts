@@ -147,9 +147,10 @@ function withoutDuplicates(entries: readonly Entry[]): Entry[] {
     const readingKey = `${JSON.stringify(extraction)}|${entered}|${e.optionId}`
     const fileKey = fileHash === null ? null : `${fileHash}|${entered}`
     const fileOwner = fileKey === null ? undefined : firstFile.get(fileKey)
+    // Recorded even when this entry is a reading duplicate, so a later upload of its file is matched too.
+    if (fileKey !== null && fileOwner === undefined) firstFile.set(fileKey, id)
     if (firstReading.has(readingKey) || (fileOwner !== undefined && fileOwner !== id)) continue
     firstReading.set(readingKey, e)
-    if (fileKey !== null && fileOwner === undefined) firstFile.set(fileKey, id)
     kept.add(e)
   }
   return entries.filter((e) => kept.has(e))

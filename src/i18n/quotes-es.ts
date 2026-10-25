@@ -186,7 +186,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   otherCurrency: 'En {currency}, por eso no se compara',
   noPrice: 'Sin precio para esta opción',
   duplicate: 'Subida dos veces',
-  duplicateHelp: 'Se lee igual que una cotización que subiste antes, por eso se deja fuera. Puedes borrar esta copia.',
+  duplicateHelp: 'Es la misma cotización que una que subiste antes, por eso se deja fuera. Puedes borrar esta copia.',
   currencyTie: '{currencies} tienen la misma cantidad de cotizaciones por comparar. Solo se comparan las que están en {currency}, porque la más antigua de ellas está en {currency}.',
   included: 'Incluido',
   notIncluded: 'No incluido',
