@@ -1,0 +1,45 @@
+import { expect, test, type Locator, type Page } from '@playwright/test'
+
+// Throwaway QA capture for #194 (not committed): keyboard-focused controls at the standard viewports.
+const OUT = process.env.SHOT_DIR!
+const PREFIX = process.env.SHOT_PREFIX ?? ''
+const VIEWPORTS = { desktop: { width: 1920, height: 1080 }, tablet: { width: 1024, height: 768 }, mobile: { width: 375, height: 667 } }
+
+async function tabTo(page: Page, target: Locator) {
+  await target.focus()
+  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press('Tab')
+  await expect(target).toBeFocused()
+}
+
+for (const [name, size] of Object.entries(VIEWPORTS)) {
+  test(`shot ${name}`, async ({ page }) => {
+    await page.setViewportSize(size)
+    await page.goto('/?step=1')
+    await page.evaluate(() => document.fonts.ready)
+    const chip = page.getByRole('main').getByRole('button', { name: /^Kitchen(\s|$)/ })
+    await tabTo(page, chip)
+    await page.waitForTimeout(300)
+    await page.screenshot({ path: `${OUT}/${PREFIX}${name}.png` })
+    if (name !== 'mobile') {
+      await chip.locator('..').screenshot({ path: `${OUT}/${PREFIX}${name}-crop.png` })
+      const signIn = page.getByRole('link', { name: 'Sign in' })
+      await tabTo(page, signIn)
+      await page.waitForTimeout(300)
+      await page.locator('header').screenshot({ path: `${OUT}/${PREFIX}${name}-signin-crop.png` })
+    }
+    if (name === 'desktop') {
+      await page.goto('/?step=4')
+      const toggle = page.getByRole('button', { name: /^Appliances · \d+/ })
+      const panel = page.locator('.qedit__panel')
+      await expect(async () => {
+        if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+        await expect(panel).toBeVisible({ timeout: 1000 })
+      }).toPass()
+      const duty = panel.getByLabel('Refrigerator: share of each hour it runs')
+      await tabTo(page, duty)
+      await page.waitForTimeout(300)
+      await duty.locator('xpath=ancestor::*[contains(@class,"qedit__row")][1]').screenshot({ path: `${OUT}/${PREFIX}desktop-duty-crop.png` })
+    }
+  })
+}
