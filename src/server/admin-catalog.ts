@@ -5,7 +5,7 @@ import { isAdmin } from '../lib/admin'
 import { auth } from '../lib/auth'
 import { ApplianceSchema, type ApplianceRecord } from '../lib/catalog-schema'
 import { PublicError } from '../lib/server-error'
-import { applianceExists, listRecords, recentChanges, setRetired, upsertAppliances, type ApplianceChangeEntry } from './catalog-repo'
+import { applianceExists, listRecords, recentChanges, revertChange, setRetired, upsertAppliances, type ApplianceChangeEntry } from './catalog-repo'
 
 async function adminUser() {
   const session = await auth.api.getSession({ headers: getRequestHeaders() })
@@ -56,5 +56,25 @@ export const adminSetRetired = createServerFn({ method: 'POST' })
     const user = await requireAdmin()
     const { id, retired } = SetRetiredInput.parse(data)
     if (!(await setRetired(id, retired, user.id))) throw new PublicError('Not found')
+    return { ok: true as const }
+  })
+
+const RevertChangeInput = z.object({ changeId: z.number().int().positive() }).strict()
+
+/** Why a revert wrote nothing, in the admin's words. */
+const REVERT_REFUSED = {
+  'not-found': 'Not found',
+  created: 'This change created the appliance, so there is nothing before it to put back. Retire it instead.',
+  invalid: 'The values before this change fail the catalog checks, so they cannot be put back.',
+  unchanged: 'The appliance already has the values from before this change.',
+} as const
+
+export const adminRevertChange = createServerFn({ method: 'POST' })
+  .validator((d: unknown) => d)
+  .handler(async ({ data }) => {
+    const user = await requireAdmin()
+    const { changeId } = RevertChangeInput.parse(data)
+    const outcome = await revertChange(changeId, user.id)
+    if (outcome !== 'reverted') throw new PublicError(REVERT_REFUSED[outcome])
     return { ok: true as const }
   })

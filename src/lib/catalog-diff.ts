@@ -1,4 +1,4 @@
-import { applianceWarnings, type ApplianceInput, type ApplianceRecord } from './catalog-schema'
+import { ApplianceSchema, applianceWarnings, type ApplianceInput, type ApplianceRecord } from './catalog-schema'
 import { stable } from './stable-json'
 
 const COMPARED = ['category', 'watts', 'surge', 'duty', 'tons', 'acType', 'labels', 'kind', 'surgeClass', 'burstSeconds', 'cyclesPerHour'] as const
@@ -83,4 +83,19 @@ export interface WrittenField { field: (typeof LOGGED)[number]; from: unknown; t
 export function writtenFields({ before, after }: ApplianceWrite): WrittenField[] {
   if (!before) return []
   return LOGGED.filter((f) => stable(before[f]) !== stable(after[f])).map((field) => ({ field, from: before[field], to: after[field] }))
+}
+
+/** Why a logged change cannot be reverted: it created the row, or the row it kept fails the schema (edited by hand). */
+export type RevertRefusal = 'created' | 'invalid'
+
+/**
+ * What reverting a logged change writes: the row as it is now, back to the entry's "before", every logged field
+ * included (retired and sort order too). 'unchanged' when the row already holds those values: nothing to write.
+ */
+export function revertWrite(current: ApplianceRecord, before: ApplianceRecord | null): ApplianceWrite | RevertRefusal | 'unchanged' {
+  if (!before) return 'created'
+  const { retired, ...fields } = before
+  if (!ApplianceSchema.safeParse(fields).success) return 'invalid'
+  const write = { before: current, after: before }
+  return writtenFields(write).length > 0 ? write : 'unchanged'
 }

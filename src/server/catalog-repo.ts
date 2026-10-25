@@ -2,7 +2,7 @@ import { asc, desc, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client'
 import { applianceChanges, appliances, user } from '../db/schema'
 import type { CatalogItem } from '../lib/catalog'
-import { keepStoredSources, planUpsert, retireWrite, warnAppliances, type ApplianceWarnings, type ApplianceWrite } from '../lib/catalog-diff'
+import { keepStoredSources, planUpsert, retireWrite, revertWrite, warnAppliances, type ApplianceWarnings, type ApplianceWrite, type RevertRefusal } from '../lib/catalog-diff'
 import { ApplianceSchema, FigureSourcesSchema, toCatalogItem, type ApplianceInput, type ApplianceRecord } from '../lib/catalog-schema'
 import { ttlCache } from '../lib/ttl-cache'
 
@@ -131,6 +131,38 @@ export async function setRetired(id: string, retired: boolean, actor: string): P
   ])
   catalogCache.clear()
   return true
+}
+
+/**
+ * Puts one appliance back to the "before" of change-log entry `changeId`, with its own entry for the revert in the same
+ * batch, so a revert can itself be reverted. The current row is read as stored (schema skipped), so a row edited by
+ * hand can still be put back. Already holding those values: nothing is written.
+ */
+export async function revertChange(changeId: number, actor: string): Promise<'reverted' | 'unchanged' | 'not-found' | RevertRefusal> {
+  const [entry] = await db
+    .select({ applianceId: applianceChanges.applianceId, before: applianceChanges.before })
+    .from(applianceChanges)
+    .where(eq(applianceChanges.id, changeId))
+    .limit(1)
+  if (!entry) return 'not-found'
+  const [row] = await db.select().from(appliances).where(eq(appliances.id, entry.applianceId)).limit(1)
+  if (!row) return 'not-found'
+  const write = revertWrite(storedRecord(row), entry.before)
+  if (typeof write === 'string') return write
+  const { after: r } = write
+  await db.batch([
+    db.update(appliances).set({
+      category: r.category, watts: r.watts, surge: r.surge, duty: r.duty, tons: r.tons, acType: r.acType, labels: r.labels,
+      kind: r.kind ?? null, surgeClass: r.surgeClass ?? null, burstSeconds: r.burstSeconds ?? null, cyclesPerHour: r.cyclesPerHour ?? null,
+      sources: r.sources ?? {}, sortOrder: r.sortOrder,
+      // Kept when the row is already retired, so its retired date stays the first one.
+      retiredAt: r.retired ? sql`coalesce(${appliances.retiredAt}, now())` : null,
+      updatedAt: sql`now()`, updatedBy: actor,
+    }).where(eq(appliances.id, r.id)),
+    logStatement([write], actor),
+  ])
+  catalogCache.clear()
+  return 'reverted'
 }
 
 const RECENT_CHANGES = 50

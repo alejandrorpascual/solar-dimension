@@ -4,7 +4,7 @@ import { ApplianceForm } from '../../components/admin/ApplianceForm'
 import '../../components/admin/admin.css'
 import { writtenFields } from '../../lib/catalog-diff'
 import { APPLIANCE_CATEGORIES, type ApplianceRecord, type FigureSource } from '../../lib/catalog-schema'
-import { adminListAppliances, adminRecentChanges, adminSetRetired, checkAdmin } from '../../server/admin-catalog'
+import { adminListAppliances, adminRecentChanges, adminRevertChange, adminSetRetired, checkAdmin } from '../../server/admin-catalog'
 import type { ApplianceChangeEntry } from '../../server/catalog-repo'
 
 export const Route = createFileRoute('/admin/appliances')({
@@ -26,15 +26,18 @@ function AdminAppliances() {
   const existingIds = new Set(items.map((r) => r.id))
   // The root loader caches the catalog for the visit; invalidate so the picker sees the change.
   const refresh = () => router.invalidate()
-  const toggleRetired = async (r: ApplianceRecord) => {
+  /** Runs one write, then reloads the page's data; a refusal shows in the alert above the table. */
+  const write = async (send: () => Promise<unknown>) => {
     setError(null)
     try {
-      await adminSetRetired({ data: { id: r.id, retired: !r.retired } })
+      await send()
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not update the appliance')
     }
   }
+  const toggleRetired = (r: ApplianceRecord) => write(() => adminSetRetired({ data: { id: r.id, retired: !r.retired } }))
+  const revert = (c: ApplianceChangeEntry) => write(() => adminRevertChange({ data: { changeId: c.id } }))
   return (
     <main className="admin">
       <header className="admin__head">
@@ -79,7 +82,7 @@ function AdminAppliances() {
           </tbody>
         ))}
       </table>
-      <RecentChanges changes={changes} />
+      <RecentChanges changes={changes} onRevert={revert} />
     </main>
   )
 }
@@ -100,13 +103,13 @@ function Sources({ list, label }: { list: readonly FigureSource[] | undefined; l
 
 const asText = (v: unknown) => (typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v))
 
-function RecentChanges({ changes }: { changes: ApplianceChangeEntry[] }) {
+function RecentChanges({ changes, onRevert }: { changes: ApplianceChangeEntry[]; onRevert: (c: ApplianceChangeEntry) => void }) {
   return (
     <section className="admin__changes" aria-labelledby="admin-changes">
       <h2 id="admin-changes">Recent changes</h2>
       {changes.length === 0 ? <p>No changes yet.</p> : (
         <table className="admin__table" aria-labelledby="admin-changes">
-          <thead><tr><th>When (UTC)</th><th>Appliance</th><th>Who</th><th>What changed</th></tr></thead>
+          <thead><tr><th>When (UTC)</th><th>Appliance</th><th>Who</th><th>What changed</th><th /></tr></thead>
           <tbody>
             {changes.map((c) => (
               <tr key={c.id}>
@@ -121,6 +124,8 @@ function RecentChanges({ changes }: { changes: ApplianceChangeEntry[] }) {
                     </ul>
                   )}
                 </td>
+                {/* A creation has no "before" to put back: the row is retired instead. */}
+                <td>{c.before !== null && <button type="button" onClick={() => onRevert(c)}>Revert</button>}</td>
               </tr>
             ))}
           </tbody>

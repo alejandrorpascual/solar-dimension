@@ -232,3 +232,51 @@ test('"New appliance" refuses an id that already belongs to another appliance', 
   await expect(page.getByLabel('Running watts')).toHaveValue('900')
   await page.getByRole('button', { name: 'Cancel' }).click()
 })
+
+test('a token change shows in the admin log, and Revert puts a saved project\'s kit back to the earlier numbers', async ({ page, request, browser }) => {
+  const id = `e2e-revert-${Date.now()}`
+  const name = `E2E heater ${id}`
+  const heater = {
+    id, category: 'Kitchen', watts: 400, surge: 400, duty: 1, tons: null, acType: null,
+    labels: { en: { name, note: 'Test item' }, es: { name: `Calentador ${id}`, note: 'Ítem de prueba' } },
+  }
+  const post = async (item: object) => expect((await request.post('/api/catalog/appliances', { headers: writeHeaders(), data: [item] })).status()).toBe(200)
+  // A project saved in another browser, with one heater on it and nothing else, so its running load is the heater's watts.
+  const kitContext = await browser.newContext()
+  try {
+    await post(heater)
+    await post({ ...heater, watts: 800, surge: 800 })
+
+    const kit = await kitContext.newPage()
+    await kit.addInitScript(({ key, applianceId }) => {
+      if (localStorage.getItem(key)) return
+      const project = { id: 'p1', name: 'Heater', qty: { [applianceId]: 1 }, custom: [], hours: 4, volts: 24, chemistry: 'lifepo4', batteryUnit: null, updatedAt: 1, dutyOverrides: {} }
+      localStorage.setItem(key, JSON.stringify({ version: 1, projects: [project], currentId: 'p1' }))
+    }, { key: 'solar-dimension.projects.v1', applianceId: id })
+    await kit.goto('/?step=4')
+    const runningLoad = kit.locator('.stat').filter({ hasText: 'Running load' }).locator('.stat__v')
+    await expect(runningLoad).toHaveText('800 W')
+
+    await signInAsAdmin(page)
+    await page.goto('/admin/appliances')
+    const logged = page.getByRole('table', { name: 'Recent changes' }).getByRole('row', { name: new RegExp(id) })
+    await expect(logged).toHaveCount(2)
+    await expect(logged.nth(0)).toContainText('watts: 400 → 800')
+    await expect(logged.nth(0)).toContainText('api-token')
+    // A creation has nothing before it to put back.
+    await expect(logged.nth(1).getByRole('button', { name: 'Revert' })).toHaveCount(0)
+
+    await logged.nth(0).getByRole('button', { name: 'Revert' }).click()
+    // The revert is its own entry, under the admin, so it can be reverted in turn.
+    await expect(logged).toHaveCount(3)
+    await expect(logged.nth(0)).toContainText('watts: 800 → 400')
+    await expect(logged.nth(0)).toContainText(ADMIN.email)
+    await expect(page.getByRole('table', { name: 'Catalog' }).getByRole('row', { name: new RegExp(name) }).getByRole('cell').nth(1)).toHaveText('400')
+
+    await kit.reload()
+    await expect(runningLoad).toHaveText('400 W')
+  } finally {
+    await kitContext.close()
+    await deleteTestAppliance(id)
+  }
+})
