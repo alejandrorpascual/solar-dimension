@@ -75,6 +75,26 @@ export function kitNeeds(r: SizingResult): KitNeeds {
   }
 }
 
+/**
+ * Why quotes can't be judged against a kit: it leaves out appliances the catalog could not load (`missing`), so a quote
+ * could fit it and not the real one, or it has no appliances at all (`empty`).
+ */
+export type KitHold = 'missing' | 'empty'
+
+/** The one rule for when a kit holds the comparison, for the verdict page and the cards alike. Null when it doesn't. */
+export function kitHoldReason(r: SizingResult): KitHold | null {
+  if (r.warnings.some((w) => w.code === 'missingAppliances')) return 'missing'
+  return r.empty ? 'empty' : null
+}
+
+/** What quotes are judged against: the kit's needs, or why there are none to judge against. */
+export type QuoteKit = { hold: KitHold; needs: null } | { hold: null; needs: KitNeeds }
+
+export function quoteKit(r: SizingResult): QuoteKit {
+  const hold = kitHoldReason(r)
+  return hold ? { hold, needs: null } : { hold: null, needs: kitNeeds(r) }
+}
+
 /** One summed line: how many units it counts and one unit's rating (W or Wh). */
 export interface Term { qty: number; each: number }
 

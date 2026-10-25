@@ -1,5 +1,5 @@
 import { compareQuotes, takesTypedTotal, type QuoteView } from './quote-compare'
-import type { KitNeeds, Musts } from './quote-items'
+import type { KitHold, Musts, QuoteKit } from './quote-items'
 import { FINISHED, isPending, type QuoteStatus } from './quote-schema'
 
 export interface JobQuote extends QuoteView {
@@ -10,18 +10,17 @@ export interface ProjectJobs {
   projectId: string; projectName: string
   files: JobFile[]
   total: number; done: number; pending: number; failed: number; needsReview: number
-  /** The kit has no appliances, so the quotes can't be compared yet. */
-  kitEmpty: boolean
-  /** A finished quote the user hasn't looked at yet: the tray shows "Verdict ready" until they do. Never true for an empty kit. */
+  /** Why the quotes can't be compared against the kit yet (kitHoldReason); null when they can. */
+  kitHold: KitHold | null
+  /** A finished quote the user hasn't looked at yet: the tray shows "Verdict ready" until they do. Never true for a held kit. */
   unseen: boolean
   best: { name: string; optionLabel: string | null; total: number; currency: string } | null
 }
 
-/** One project's quote jobs for the tray, the kit card and the project card. `kit` is null for an empty kit. */
-export function summarizeProject(projectId: string, projectName: string, quotes: readonly JobQuote[], kit: KitNeeds | null, musts: Musts): ProjectJobs {
+/** One project's quote jobs for the tray, the kit card and the project card. A held kit (quoteKit) compares nothing. */
+export function summarizeProject(projectId: string, projectName: string, quotes: readonly JobQuote[], kit: QuoteKit, musts: Musts): ProjectJobs {
   const pending = quotes.filter((q) => isPending(q.status)).length
-  const kitEmpty = kit === null
-  const verdict = kit !== null && pending === 0 ? compareQuotes(kit, musts, quotes) : null
+  const verdict = kit.needs !== null && pending === 0 ? compareQuotes(kit.needs, musts, quotes) : null
   const best = verdict?.best ? { name: verdict.best.name, optionLabel: verdict.best.optionLabel, total: verdict.best.total, currency: verdict.best.currency } : null
   return {
     projectId, projectName,
@@ -32,8 +31,8 @@ export function summarizeProject(projectId: string, projectName: string, quotes:
     failed: quotes.filter((q) => q.status === 'failed').length,
     // A typed total settles a reading only when its total was what failed, or once it has been read again: the verdict's rule.
     needsReview: quotes.filter((q) => q.status === 'needs_review' && (q.totalOverride === null || !takesTypedTotal(q))).length,
-    kitEmpty,
-    unseen: !kitEmpty && quotes.some((q) => FINISHED.includes(q.status) && q.status !== 'failed' && q.seenAt === null),
+    kitHold: kit.hold,
+    unseen: kit.hold === null && quotes.some((q) => FINISHED.includes(q.status) && q.status !== 'failed' && q.seenAt === null),
     best,
   }
 }
