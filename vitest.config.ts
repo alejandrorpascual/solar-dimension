@@ -6,9 +6,6 @@ export default defineConfig({
     // Database tests run with `npm run test:db` (vitest.db.config.ts), so this run needs no DATABASE_URL.
     exclude: [...configDefaults.exclude, 'src/**/*.db.test.ts'],
     environment: 'node',
-    // The exhaustive sweeps (solar, kit-conductors) take 2-3 s under coverage on a quiet machine and passed 5 s when
-    // several board lanes ran the suite at once, failing the merge gate on unrelated PRs (#228).
-    testTimeout: 15_000,
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.ts', 'src/i18n/**/*.ts', 'src/server/**/*.ts'],
