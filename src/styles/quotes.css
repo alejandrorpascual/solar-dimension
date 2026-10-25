@@ -134,7 +134,7 @@
 .qtray__chev { transition: transform 160ms; }
 .qtray__btn[aria-expanded='true'] .qtray__chev { transform: rotate(180deg); }
 .qtray__bar { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
-.qtray__bar > span { display: block; height: 100%; border-radius: 999px; background: #FFFFFF; transition: width 200ms; }
+.qtray__bar > span { display: block; height: 100%; border-radius: 999px; background: #FFFFFF; transform-origin: left; transition: transform 200ms; }
 .qtray__files { list-style: none; margin: 0; padding: 8px 0 0; border-top: 1px solid rgba(255, 255, 255, 0.14); display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .qtray__files li { display: flex; justify-content: space-between; gap: 12px; }
 .qtray__files span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
