@@ -3,11 +3,13 @@ import { getDictionary } from '../i18n'
 import { fmtInt } from '../i18n/format'
 import { DEFAULT_HARDWARE } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
-import { attentionLine, CHECK_IDS, CHECK_WARNINGS, failingChecks, kitChecks, kitNotes, uncheckedWarnings, warningKey, warningText } from './kit-checks'
-import { compute, type SizingInput } from './sizing'
+import { attentionLine, CHECK_IDS, CHECK_WARNINGS, failingChecks, kitChecks, kitNotes, uncheckedWarnings, warningKey, warningText, type WarningKit } from './kit-checks'
+import { compute, type SizingInput, type Warning } from './sizing'
 
 const en = getDictionary('en')
 const es = getDictionary('es')
+/** A LiFePO₄ kit with no appliances, for warnings whose wording names none. */
+const NO_ITEMS: WarningKit = { items: [], chemistry: 'lifepo4' }
 const ESSENTIALS = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
 const kit = (qty: Record<string, number>, extra: Partial<SizingInput> = {}) =>
   compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4', ...extra }, CATALOG_SNAPSHOT)
@@ -275,15 +277,15 @@ describe('kitChecks', () => {
       compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts, surge: watts, note: '' }], hours: 2, volts: 24, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 8000, surge: 16000, volts: [24] as const, surgeSeconds: 5, maxParallel: 2 }] })
     const high = low(9000).warnings.find((w) => w.code === 'highCurrent')!
     expect(high.params).toEqual({ amps: 741, volts: 24, nextVolts: 36 })
-    expect(warningText(en, high, [])).toBe('741 A on the DC side at 24 V is hard to wire safely. Consider 36 V.')
-    expect(warningText(es, high, [])).toBe('741 A en el lado de CC a 24 V es difícil de cablear con seguridad. Considera 36 V.')
-    expect(warningText(en, low(5000).warnings.find((w) => w.code === 'highCurrent')!, [])).toBe('370 A on the DC side at 24 V is hard to wire safely. Consider 36 V.')
+    expect(warningText(en, high, NO_ITEMS)).toBe('741 A on the DC side at 24 V is hard to wire safely. Consider 36 V.')
+    expect(warningText(es, high, NO_ITEMS)).toBe('741 A en el lado de CC a 24 V es difícil de cablear con seguridad. Considera 36 V.')
+    expect(warningText(en, low(5000).warnings.find((w) => w.code === 'highCurrent')!, NO_ITEMS)).toBe('370 A on the DC side at 24 V is hard to wire safely. Consider 36 V.')
     // At 48 V there is no higher voltage to suggest: the note is about what one inverter's cables are asked for.
     const top = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 20000, surge: 20000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 15000, surge: 30000, volts: [48] as const, surgeSeconds: 5, maxParallel: 2 }] })
     const each = top.warnings.find((w) => w.code === 'highCurrent')!
     expect(each.params).toEqual({ amps: 347, volts: 48, nextVolts: null, inverters: 2 })
-    expect(warningText(en, each, [])).toBe('347 A to each inverter at 48 V is hard to wire safely.')
-    expect(warningText(es, each, [])).toBe('347 A hacia cada inversor a 48 V es difícil de cablear con seguridad.')
+    expect(warningText(en, each, NO_ITEMS)).toBe('347 A to each inverter at 48 V is hard to wire safely.')
+    expect(warningText(es, each, NO_ITEMS)).toBe('347 A hacia cada inversor a 48 V es difícil de cablear con seguridad.')
     // Four 8 kW units draw 741 A; an hour of it takes eleven 50 A units, 550 A, so the bank is named as short for the set.
     const starved = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 20000, surge: 20000, note: '' }], hours: 1, volts: 48, chemistry: 'lifepo4', batteryUnit: '48-50' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 8000, surge: 16000, volts: [48] as const, surgeSeconds: 5, maxParallel: 4 }] })
     const discharge = starved.warnings.find((w) => w.code === 'bankDischarge')!
@@ -291,29 +293,29 @@ describe('kitChecks', () => {
     // Its eight fuses are judged against the bank's share for each, and the note counts them.
     const above = starved.warnings.find((w) => w.code === 'fuseAboveBank')!
     expect(above.params).toEqual({ fuseA: 125, maxA: 550, count: 8, conductor: 'mainCable' })
-    expect(warningText(en, above, [])).toBe('The 8 × 125 A fuses are sized for more than the 550 A the bank can deliver, so the BMS, not a fuse, would trip on an overload. Pick a bank that delivers more.')
-    expect(warningText(es, above, [])).toBe('Los 8 fusibles de 125 A están dimensionados para más de los 550 A que el banco puede entregar, así que cortaría el BMS y no un fusible en una sobrecarga. Elige un banco que entregue más.')
-    expect(warningText(en, discharge, starved.items)).toMatch(/^The 4 inverters draw up to 741 A together at full load; \d+ × 48 V 50 Ah LiFePO₄ allows [\d,]+ A continuous and its BMS would cut out\. /)
-    expect(warningText(es, discharge, starved.items)).toMatch(/^Los 4 inversores toman hasta 741 A en total a plena carga; \d+ × 48 V 50 Ah LiFePO₄ permite [\d,]+ A continuos y su BMS cortaría\. /)
+    expect(warningText(en, above, NO_ITEMS)).toBe('The 8 × 125 A fuses are sized for more than the 550 A the bank can deliver, so the BMS, not a fuse, would trip on an overload. Pick a bank that delivers more.')
+    expect(warningText(es, above, NO_ITEMS)).toBe('Los 8 fusibles de 125 A están dimensionados para más de los 550 A que el banco puede entregar, así que cortaría el BMS y no un fusible en una sobrecarga. Elige un banco que entregue más.')
+    expect(warningText(en, discharge, starved)).toMatch(/^The 4 inverters draw up to 741 A together at full load; \d+ × 48 V 50 Ah LiFePO₄ allows [\d,]+ A continuous and its BMS would cut out\. /)
+    expect(warningText(es, discharge, starved)).toMatch(/^Los 4 inversores toman hasta 741 A en total a plena carga; \d+ × 48 V 50 Ah LiFePO₄ permite [\d,]+ A continuos y su BMS cortaría\. /)
     // The checks pass the kit's chemistry to the wording, and LiFePO₄ keeps its BMS.
     for (const [t, locale] of [[en, 'en'], [es, 'es']] as const) {
       const checks = Object.fromEntries(kitChecks(t, starved, locale).map((c) => [c.id, c]))
-      expect(checks.batteryContinuous!.lines).toEqual([warningText(t, discharge, starved.items)])
-      expect(checks.fuse!.lines).toContain(warningText(t, above, []))
+      expect(checks.batteryContinuous!.lines).toEqual([warningText(t, discharge, starved)])
+      expect(checks.fuse!.lines).toContain(warningText(t, above, NO_ITEMS))
     }
     // 2 kW running fits the pair; a 30 kW start is more than the 20 kW the pair ever holds in a surge, at any length.
     const start = load(2000, 30000)
     expect(start.inverter).toMatchObject({ count: 2, headroomOk: true, surgeOk: false })
     const surge = start.warnings.find((w) => w.code === 'surgeDuration')!
-    expect(warningText(en, surge, start.items)).toBe('Start-up power of 30,000 W is more than the 20,000 W surge rating of the 2 × 5,000 W inverters together. Let fewer motors start at once.')
-    expect(warningText(es, surge, start.items)).toBe('Una potencia de arranque de 30,000 W supera los 20,000 W de potencia pico de los 2 inversores de 5,000 W juntos. Deja que arranquen menos motores a la vez.')
+    expect(warningText(en, surge, start)).toBe('Start-up power of 30,000 W is more than the 20,000 W surge rating of the 2 × 5,000 W inverters together. Let fewer motors start at once.')
+    expect(warningText(es, surge, start)).toBe('Una potencia de arranque de 30,000 W supera los 20,000 W de potencia pico de los 2 inversores de 5,000 W juntos. Deja que arranquen menos motores a la vez.')
     // A pair that holds 4 kW for half a second and 2 kW after that: a 3 kW start is within the rating and only outlasts the window.
     const brief = compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 1000, surge: 3000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT, { ...hardware, inverters: [{ w: 1000, surge: 2000, volts: [48] as const, surgeSeconds: 0.5, maxParallel: 2 }] })
     expect(brief.inverter).toMatchObject({ count: 2, headroomOk: true, surgeOk: false })
     const long = brief.warnings.find((w) => w.code === 'surgeDuration')!
     expect(long.params).toMatchObject({ inverters: 2, ratedW: 2000, inverterSurgeW: 4000, tooLong: true })
-    expect(warningText(en, long, brief.items)).toBe(`Start-up power of 3,000 W for ${brief.surgeSeconds} s outlasts the surge rating of the 2 × 1,000 W inverters; together they only hold 2,000 W that long. Let fewer motors start at once.`)
-    expect(warningText(es, long, brief.items)).toBe(`Una potencia de arranque de 3,000 W durante ${brief.surgeSeconds} s dura más que la potencia pico de los 2 inversores de 1,000 W; juntos solo sostienen 2,000 W ese tiempo. Deja que arranquen menos motores a la vez.`)
+    expect(warningText(en, long, brief)).toBe(`Start-up power of 3,000 W for ${brief.surgeSeconds} s outlasts the surge rating of the 2 × 1,000 W inverters; together they only hold 2,000 W that long. Let fewer motors start at once.`)
+    expect(warningText(es, long, brief)).toBe(`Una potencia de arranque de 3,000 W durante ${brief.surgeSeconds} s dura más que la potencia pico de los 2 inversores de 1,000 W; juntos solo sostienen 2,000 W ese tiempo. Deja que arranquen menos motores a la vez.`)
   })
 
   test('a start-up between the two surge windows is too long up to the full surge rating, and names what the longer rating holds', () => {
@@ -325,18 +327,18 @@ describe('kitChecks', () => {
     // 3.5 kW for 1 s is within the 4 kW the pair ever holds and over the 3 kW it holds that long.
     const within = start(3500)
     expect(warning(within).params).toEqual({ inverterW: 2000, inverters: 2, unitW: 1000, surgeW: 3500, seconds: 1, ratedW: 3000, inverterSurgeW: 4000, tooLong: true })
-    expect(warningText(en, warning(within), within.items)).toBe('Start-up power of 3,500 W for 1 s outlasts the surge rating of the 2 × 1,000 W inverters; together they only hold 3,000 W that long. Let fewer motors start at once.')
-    expect(warningText(es, warning(within), within.items)).toBe('Una potencia de arranque de 3,500 W durante 1 s dura más que la potencia pico de los 2 inversores de 1,000 W; juntos solo sostienen 3,000 W ese tiempo. Deja que arranquen menos motores a la vez.')
+    expect(warningText(en, warning(within), within)).toBe('Start-up power of 3,500 W for 1 s outlasts the surge rating of the 2 × 1,000 W inverters; together they only hold 3,000 W that long. Let fewer motors start at once.')
+    expect(warningText(es, warning(within), within)).toBe('Una potencia de arranque de 3,500 W durante 1 s dura más que la potencia pico de los 2 inversores de 1,000 W; juntos solo sostienen 3,000 W ese tiempo. Deja que arranquen menos motores a la vez.')
     // A start-up of exactly the surge rating is still within it: its length is the reason, not its watts.
     const atRating = start(4000)
     expect(warning(atRating).params).toMatchObject({ surgeW: 4000, ratedW: 3000, inverterSurgeW: 4000, tooLong: true })
-    expect(warningText(en, warning(atRating), atRating.items)).toBe('Start-up power of 4,000 W for 1 s outlasts the surge rating of the 2 × 1,000 W inverters; together they only hold 3,000 W that long. Let fewer motors start at once.')
-    expect(warningText(es, warning(atRating), atRating.items)).toBe('Una potencia de arranque de 4,000 W durante 1 s dura más que la potencia pico de los 2 inversores de 1,000 W; juntos solo sostienen 3,000 W ese tiempo. Deja que arranquen menos motores a la vez.')
+    expect(warningText(en, warning(atRating), atRating)).toBe('Start-up power of 4,000 W for 1 s outlasts the surge rating of the 2 × 1,000 W inverters; together they only hold 3,000 W that long. Let fewer motors start at once.')
+    expect(warningText(es, warning(atRating), atRating)).toBe('Una potencia de arranque de 4,000 W durante 1 s dura más que la potencia pico de los 2 inversores de 1,000 W; juntos solo sostienen 3,000 W ese tiempo. Deja que arranquen menos motores a la vez.')
     // One watt more is over the rating at any length.
     const over = start(4001)
     expect(warning(over).params).toMatchObject({ surgeW: 4001, inverterSurgeW: 4000, tooLong: false })
-    expect(warningText(en, warning(over), over.items)).toBe('Start-up power of 4,001 W is more than the 4,000 W surge rating of the 2 × 1,000 W inverters together. Let fewer motors start at once.')
-    expect(warningText(es, warning(over), over.items)).toBe('Una potencia de arranque de 4,001 W supera los 4,000 W de potencia pico de los 2 inversores de 1,000 W juntos. Deja que arranquen menos motores a la vez.')
+    expect(warningText(en, warning(over), over)).toBe('Start-up power of 4,001 W is more than the 4,000 W surge rating of the 2 × 1,000 W inverters together. Let fewer motors start at once.')
+    expect(warningText(es, warning(over), over)).toBe('Una potencia de arranque de 4,001 W supera los 4,000 W de potencia pico de los 2 inversores de 1,000 W juntos. Deja que arranquen menos motores a la vez.')
   })
 
   test('a cable row that cannot carry its design current fails the cable check and names the row, in both languages', () => {
@@ -440,7 +442,7 @@ describe('uncheckedWarnings and keys', () => {
     expect(codes).toContain('splitPhase')
     for (const code of codes) expect(Object.values(CHECK_WARNINGS).flat()).not.toContain(code)
     const split = r.warnings.find((w) => w.code === 'splitPhase')!
-    expect(warningText(es, split, r.items)).toContain('Calentador de agua eléctrico')
+    expect(warningText(es, split, r)).toContain('Calentador de agua eléctrico')
   })
 
   test('a 2-ton air conditioner alone gives the split-phase note naming it, in English and Spanish', () => {
@@ -499,5 +501,28 @@ describe('the locked-rotor note', () => {
     { motor: 'starting at 4×, past the rule of thumb', watts: 500, surge: 2000 },
   ])('does not show for a motor $motor', ({ watts, surge }) => {
     expect(lockedRotor(motorKit(watts, surge))).toEqual([])
+  })
+})
+
+describe('warningText needs the kit', () => {
+  const agm = kit({ fridge: 1 }, { chemistry: 'agm' })
+  const bank = (r: ReturnType<typeof kit>): Warning => ({ code: 'fuseAboveBank', params: { fuseA: 125, maxA: 550, count: 8, conductor: 'mainCable' } })
+
+  test('a call without the kit\'s chemistry is a type error', () => {
+    // Never run: these calls would fail at runtime, and only the compiler has to refuse them.
+    const refused = () => {
+      // @ts-expect-error the kit's items alone carry no chemistry
+      warningText(en, bank(agm), agm.items)
+      // @ts-expect-error nor does an empty kit
+      warningText(en, bank(agm), { items: [] })
+    }
+    expect(refused).toBeTypeOf('function')
+  })
+
+  test('an AGM kit never names a BMS, in either language, and LiFePO₄ keeps it', () => {
+    for (const t of [en, es]) {
+      expect(warningText(t, bank(agm), agm)).not.toMatch(/BMS/)
+      expect(warningText(t, bank(agm), NO_ITEMS)).toMatch(/BMS/)
+    }
   })
 })
