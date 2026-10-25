@@ -27,6 +27,16 @@ test('step 2 says every appliance counts in every hour of the window, in English
   expect(stepTwo('es')).toContain('Cada aparato cuenta en todas las horas del respaldo.')
 })
 
+/** The sentence under the hours slider, tags out. */
+function windowSummary(locale: Locale): string {
+  return /<div class="note-box">([^<]*)<\/div>/.exec(stepTwo(locale))?.[1] ?? ''
+}
+
+test('step 2 counts the starting project as 6 appliances and names its 7 units, in English and Spanish', () => {
+  expect(windowSummary('en')).toMatch(/^Your 6 appliances \(7 units\) draw /)
+  expect(windowSummary('es')).toMatch(/^Tus 6 aparatos \(7 unidades\) consumen /)
+})
+
 test('a 60 h project sets the hours slider to 60 within a range that reaches it', () => {
   const html = stepTwo('en', (store) => patchCurrent(store, { hours: 60 }))
   const slider = /<input id="hours"[^>]*>/.exec(html)?.[0] ?? ''

@@ -40,7 +40,7 @@ export function SheetSchedule({ result: r, t, locale, breakBefore }: Props) {
         ))}
         <tfoot data-pdf-block="">
           <tr>
-            <td>{t.ui.total}</td><td className="ksheet__n">{r.count}</td><td />
+            <td>{t.ui.total}</td><td className="ksheet__n">{r.units}</td><td />
             <td className="ksheet__n">{fmtW(r.runningW, locale)}</td><td className="ksheet__n">{fmtW(r.averageW, locale)}</td>
             <td className="ksheet__n">{`${fmtInt(totalWh, locale)} Wh`}</td>
           </tr>

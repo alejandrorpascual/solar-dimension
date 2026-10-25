@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
-import { tr, type Dictionary } from '../i18n'
+import { applianceCount, tr, type Dictionary } from '../i18n'
 import { fmtHours, fmtInt, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { CHEMISTRIES } from '../lib/catalog'
 import { finePrint } from '../lib/fine-print'
@@ -68,7 +68,7 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
   const checks = kitChecks(t, r, locale)
   const notes = uncheckedWarnings(r)
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
-  const summary = r.empty ? t.ui.kitEmpty : tr(t, 'kitSummary', { count: r.count, hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
+  const summary = r.empty ? t.ui.kitEmpty : tr(t, 'kitSummary', { appliances: applianceCount(t, r.items.length, r.units), hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
   const d = baseline ? kitDeltas(baseline, r) : null
   const w = (n: number) => fmtW(n, locale)
   return (

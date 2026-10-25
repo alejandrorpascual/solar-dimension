@@ -58,6 +58,25 @@ test('a bank that is the smallest its voltage allows gets the note that says so,
   expect(noteOverPicker('en', note)).toBe('This bank holds 11× the 209 Wh the load needs: the kit cannot build a smaller bank at 24 V. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
 })
 
+/** The line under "Kit for …": what the kit backs up, tags out. */
+function summaryLine(locale: Locale, qty: Record<string, number>): string {
+  view.locale = locale
+  const result = compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+  const html = renderToStaticMarkup(createElement(KitSummary, { result, baseline: null, projectName: 'Home', oversize: null, quickEdit: null, onBatteryUnit: () => {} }))
+  return /<p class="muted">([^<]*)<\/p>/.exec(html)?.[1] ?? ''
+}
+
+test('the summary counts appliances, as the chip and the project card do, and names the units when they differ', () => {
+  // The starting Home project: 6 appliances, 7 units (two phone chargers).
+  expect(summaryLine('en', DEFAULT_QTY)).toMatch(/^Backs up 6 appliances \(7 units\) for 10 hours on a 48 V /)
+  expect(summaryLine('es', DEFAULT_QTY)).toMatch(/^Respalda 6 aparatos \(7 unidades\) durante 10 horas con un banco de 48 V /)
+})
+
+test('the summary names no units when every appliance is one of its kind', () => {
+  expect(summaryLine('en', { fridge: 1, lights: 1 })).toMatch(/^Backs up 2 appliances for 10 hours on a 48 V /)
+  expect(summaryLine('es', { fridge: 1, lights: 1 })).toMatch(/^Respalda 2 aparatos durante 10 horas con un banco de 48 V /)
+})
+
 /** A microwave for 8 h on 12 V 100 Ah AGM units: the bank's continuous current and the fuse need attention. */
 function twoFailingKitHtml(locale: Locale): string {
   view.locale = locale

@@ -4,7 +4,7 @@ import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
 import { CUSTOM_DUTY_MIN_PCT, EMPTY_FORM, parseCustom } from '../lib/custom'
 import { en } from './en'
 import { es } from './es'
-import { applianceName, applianceNote, batteryCount, deleteProjectText, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
+import { applianceCount, applianceName, applianceNote, batteryCount, deleteProjectText, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
 import { ITEM_IDS } from '../lib/quote-items'
 
 describe('dictionaries', () => {
@@ -182,6 +182,17 @@ describe('batteryCount', () => {
     expect(batteryCount(en, 5)).toBe('5 batteries')
     expect(batteryCount(es, 1)).toBe('1 batería')
     expect(batteryCount(es, 2)).toBe('2 baterías')
+  })
+})
+
+describe('applianceCount', () => {
+  test('counts appliances alone when none is more than one of a kind, in both languages', () => {
+    expect(applianceCount(en, 6, 6)).toBe('6 appliances')
+    expect(applianceCount(es, 6, 6)).toBe('6 aparatos')
+  })
+  test('counts appliances first and names the units when they differ, in both languages', () => {
+    expect(applianceCount(en, 6, 7)).toBe('6 appliances (7 units)')
+    expect(applianceCount(es, 6, 7)).toBe('6 aparatos (7 unidades)')
   })
 })
 

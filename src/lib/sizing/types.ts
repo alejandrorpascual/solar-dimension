@@ -323,7 +323,8 @@ export type InverterNote = 'builtForParallel' | 'ownRunAndFuse'
 export interface SizingResult {
   empty: boolean
   items: SelectedItem[]
-  count: number
+  /** Units in all, the quantities summed. The appliance count is `items.length`: one per kind, however many of it. */
+  units: number
   hours: number
   volts: Voltage
   chemistry: ChemistryId
