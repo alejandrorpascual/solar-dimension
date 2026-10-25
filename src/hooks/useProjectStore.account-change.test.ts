@@ -18,7 +18,7 @@ vi.mock('../server/projects', async () => {
 })
 vi.mock('./useRootData', async () => {
   const server = await import('./fake-account-server')
-  return { useRootData: () => ({ user: server.pageUser(), locale: 'en' }) }
+  return { useRootData: () => ({ session: server.pageSession(), locale: 'en' }) }
 })
 
 const ANA = { id: 'user-ana' }

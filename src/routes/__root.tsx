@@ -4,6 +4,7 @@ import { useLocale } from '../hooks/useLocale'
 import { QuoteJobsProvider } from '../hooks/useQuoteJobs'
 import { useRootData, type RootData } from '../hooks/useRootData'
 import { DEFAULT_LOCALE, getDictionary } from '../i18n'
+import { UNREACHABLE, sessionOf, type AccountSession } from '../lib/account-session'
 import { APP_NAME } from '../lib/brand'
 import { serverErrorRef } from '../lib/server-error'
 import { siteHead } from '../lib/site-head'
@@ -22,16 +23,14 @@ const SEARCH_CONSOLE_TOKEN = 'G9yqTKOqSP1tOS4jjC6xGCcsVFT7J3iZC5AzXQ2LNFY'
 const FONTS_URL =
   'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap'
 
-type SessionRead = Pick<RootData, 'user' | 'isAccountUnreachable'>
-
 /**
  * The signed-in user, or nobody. Sizing needs no account, so a session that cannot be read (the database is down) opens
- * the page without one instead of failing it: the page says the account is unreachable and keeps nothing it does.
+ * the page as unreachable instead of failing it: the page says so, offers no sign-in and keeps nothing it does.
  */
-const readSession = (): Promise<SessionRead> =>
-  withFallback<SessionRead>(
-    async () => ({ user: (await getSession())?.user ?? null, isAccountUnreachable: false }),
-    { user: null, isAccountUnreachable: true },
+const readSession = (): Promise<AccountSession> =>
+  withFallback<AccountSession>(
+    async () => sessionOf((await getSession())?.user ?? null),
+    UNREACHABLE,
     (error) => console.error('[root] the session could not be read; the page opens without the account', error),
   )
 
@@ -42,7 +41,7 @@ export const Route = createRootRoute({
     const [locale, session, features, catalog, quotePollMs, siteOrigin] = await Promise.all([
       getLocale(), readSession(), getAuthFeatures(), getCatalog(), getQuotePollMs(), getSiteOrigin(),
     ])
-    return { locale, ...session, googleEnabled: features.googleEnabled, catalog, quotePollMs, siteOrigin }
+    return { locale, session, googleEnabled: features.googleEnabled, catalog, quotePollMs, siteOrigin }
   },
   staleTime: Infinity,
   head: ({ loaderData }) => {

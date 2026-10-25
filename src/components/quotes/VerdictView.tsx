@@ -6,6 +6,7 @@ import { useLocale } from '../../hooks/useLocale'
 import { useQuoteJobs } from '../../hooks/useQuoteJobs'
 import { useRootData } from '../../hooks/useRootData'
 import { trq } from '../../i18n'
+import { signedInUser } from '../../lib/account-session'
 import { computeProject } from '../../lib/project-summary'
 import { compareQuotes, entryKey } from '../../lib/quote-compare'
 import { retryOffer } from '../../lib/quote-guards'
@@ -46,7 +47,7 @@ export function VerdictView({ data, progress, onReload, footerExtra }: Props) {
   const { t } = useLocale()
   const catalog = useCatalog()
   const { refresh } = useQuoteJobs()
-  const { user } = useRootData()
+  const user = signedInUser(useRootData().session)
   // Every save names the account this page was loaded for, so a tab left open after another account signs in is refused.
   const account = user?.id
   const [musts, setMusts] = useState<Musts>(data.musts)

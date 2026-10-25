@@ -10,6 +10,7 @@ import { useLocale } from '../hooks/useLocale'
 import { useProjectJobs, useQuoteJobs } from '../hooks/useQuoteJobs'
 import { useRootData } from '../hooks/useRootData'
 import { useSignOut } from '../hooks/useSignOut'
+import { signedInUser } from '../lib/account-session'
 import { APP_NAME } from '../lib/brand'
 import { finishedKey, verdictReload, type ReloadMark } from '../lib/quote-jobs'
 import { getProjectQuotes } from '../server/quotes/api'
@@ -26,7 +27,8 @@ export const Route = createFileRoute('/projects/$projectId/quotes')({
   loader: async ({ params, parentMatchPromise }): Promise<VerdictData> => {
     const isServer = typeof window === 'undefined'
     const readAt = isServer ? 0 : verdictClock.tick()
-    const account = isServer ? undefined : (await parentMatchPromise).loaderData?.user?.id
+    const rootSession = isServer ? undefined : (await parentMatchPromise).loaderData?.session
+    const account = rootSession && signedInUser(rootSession)?.id
     return { ...(await getProjectQuotes({ data: { account, projectId: params.projectId } })), readAt }
   },
   head: ({ loaderData }) => ({ meta: [{ title: loaderData ? `${loaderData.project.name} · ${APP_NAME}` : APP_NAME }] }),
@@ -36,7 +38,8 @@ export const Route = createFileRoute('/projects/$projectId/quotes')({
 function VerdictPage() {
   const data = Route.useLoaderData()
   const { projectId } = Route.useParams()
-  const { user } = useRootData()
+  const { session } = useRootData()
+  const user = signedInUser(session)
   const { t } = useLocale()
   const { signOut, hasFailed: hasSignOutFailed } = useSignOut(user)
   const google = useConnectGoogle(user)
@@ -61,7 +64,7 @@ function VerdictPage() {
   }, [doneKey, projectId, markSeen])
   return (
     <main className="page">
-      <HeaderBar account={<AccountMenu user={user} busy={false} onSignOut={signOut} google={google} />} />
+      <HeaderBar account={<AccountMenu session={session} busy={false} onSignOut={signOut} google={google} />} />
       {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
       {/* Only the menu's failure: the Connect Google button in the verdict says its own beside it. */}
       {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}

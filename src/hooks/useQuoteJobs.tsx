@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
+import { signedInUser } from '../lib/account-session'
 import { nextPollDelay, type ProjectJobs } from '../lib/quote-jobs'
 import { createQuotePoller } from '../lib/quote-poller'
 import { getQuoteJobs, markQuotesSeen } from '../server/quotes/api'
@@ -21,8 +22,8 @@ const QuoteJobsContext = createContext<QuoteJobsValue>({ jobs: [], loaded: false
 
 /** Loads the signed-in user's quote jobs once, then polls only while one is being read. */
 export function QuoteJobsProvider({ children }: { children: ReactNode }) {
-  const { user, quotePollMs } = useRootData()
-  const userId = user?.id ?? null
+  const { session, quotePollMs } = useRootData()
+  const userId = signedInUser(session)?.id ?? null
   const [jobs, setJobs] = useState<ProjectJobs[]>([])
   const [failures, setFailures] = useState(0)
   const [loaded, setLoaded] = useState(false)

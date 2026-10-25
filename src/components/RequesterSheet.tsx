@@ -6,6 +6,7 @@ import { useRootData } from '../hooks/useRootData'
 import {
   clearRequesterDraft, loadRequesterDraft, loadSavedClients, requesterStorage, saveSavedClients, type RequesterStorage,
 } from '../lib/persistence'
+import { signedInUser } from '../lib/account-session'
 import { defaultCountry, emptyRequester, type Requester } from '../lib/requester'
 import { resumableDraft, type DraftTarget } from '../lib/requester-draft'
 import { byRecent, matchingClient, removeClient, touchClient, upsertClient, type SavedClient } from '../lib/saved-clients'
@@ -45,8 +46,9 @@ const newClientId = (): string => crypto.randomUUID()
 function RequesterFlow({ projectId, requester, onSave, onRemove, close }: Omit<Props, 'isOpen' | 'onOpenChange'> & { close: () => void }) {
   const { t, locale } = useLocale()
   // Saved clients and the draft belong to whoever is signed in, or to nobody signed out.
-  const { user, isAccountUnreachable } = useRootData()
-  const owner = user?.id ?? null
+  const { session } = useRootData()
+  const owner = signedInUser(session)?.id ?? null
+  const isAccountUnreachable = session.status === 'unreachable'
   const storage = requesterStorage(isAccountUnreachable)
   const [clients, setClients] = useState<SavedClient[]>(() => loadSavedClients(owner, storage))
   const [view, setView] = useState<View>(() => firstView(clients, requester, owner, projectId, storage))

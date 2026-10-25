@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { useQuoteUpload } from '../../hooks/useQuoteUpload'
 import { useRootData } from '../../hooks/useRootData'
+import { signedInUser } from '../../lib/account-session'
 import { FilePickButton } from './FilePickButton'
 import { HandoffDialog } from './HandoffDialog'
 import { QuotesLockedAction } from './QuotesLockedAction'
@@ -12,7 +13,7 @@ import { QuotesLockedAction } from './QuotesLockedAction'
  */
 export function AddQuoteButton({ projectId, projectName }: { projectId: string; projectName: string }) {
   const { t } = useLocale()
-  const { user } = useRootData()
+  const user = signedInUser(useRootData().session)
   const upload = useQuoteUpload(projectId)
   const hintId = useId()
   if (!user?.canUseQuotes) return <QuotesLockedAction withNote />
