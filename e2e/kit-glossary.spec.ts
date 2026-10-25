@@ -3,7 +3,6 @@ import { switchLanguageOnLoad } from './header'
 import { PHONE } from './phone'
 
 const STORAGE_KEY = 'solar-dimension.projects.v1'
-const SHOTS = 'docs/super-board/runs/issue-209-qa-v1'
 
 /** A saved 48 V project with one microwave, opened on first load. */
 const seedMicrowave = (page: Page) =>
@@ -31,7 +30,7 @@ test('the kit step\'s Glossary opens on click and lists 11 terms, with the hard 
   await expect(glossary(page)).toBeVisible()
   await expect(glossary(page)).not.toHaveAttribute('open', '')
   await glossary(page).scrollIntoViewIfNeeded()
-  await page.screenshot({ path: `${SHOTS}/${info.project.name}-closed.png` })
+  await page.screenshot({ path: info.outputPath(`${info.project.name}-closed.png`) })
   await openGlossary(page)
   await expect(glossary(page).locator('dt')).toHaveCount(11)
   await expect(glossary(page).locator('dt').first()).toHaveText('Running watts')
@@ -43,8 +42,8 @@ test('the kit step\'s Glossary opens on click and lists 11 terms, with the hard 
   await expect(hardLight).toContainText('100%')
   await expect(hardLight).toContainText('85%')
   await glossary(page).scrollIntoViewIfNeeded()
-  await page.screenshot({ path: `${SHOTS}/${info.project.name}-open.png` })
-  await glossary(page).screenshot({ path: `${SHOTS}/${info.project.name}-open-crop.png` })
+  await page.screenshot({ path: info.outputPath(`${info.project.name}-open.png`) })
+  await glossary(page).screenshot({ path: info.outputPath(`${info.project.name}-open-crop.png`) })
 })
 
 test('the Glossary reads in Spanish', PHONE, async ({ page }, info) => {
@@ -56,5 +55,5 @@ test('the Glossary reads in Spanish', PHONE, async ({ page }, info) => {
   await expect(glossary(page).locator('dt')).toHaveCount(11)
   await expect(glossary(page).locator('dt').first()).toHaveText('Vatios en marcha')
   await glossary(page).scrollIntoViewIfNeeded()
-  await page.screenshot({ path: `${SHOTS}/${info.project.name}-es-open.png` })
+  await page.screenshot({ path: info.outputPath(`${info.project.name}-es-open.png`) })
 })
