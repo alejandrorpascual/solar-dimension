@@ -101,6 +101,8 @@ function Sources({ list, label }: { list: readonly FigureSource[] | undefined; l
   )
 }
 
+const REVERT_HINT = 'Puts the whole row back to before this change, so any later change to it is undone too'
+
 const asText = (v: unknown) => (typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v))
 
 function RecentChanges({ changes, onRevert }: { changes: ApplianceChangeEntry[]; onRevert: (c: ApplianceChangeEntry) => void }) {
@@ -109,7 +111,7 @@ function RecentChanges({ changes, onRevert }: { changes: ApplianceChangeEntry[];
       <h2 id="admin-changes">Recent changes</h2>
       {changes.length === 0 ? <p>No changes yet.</p> : (
         <table className="admin__table" aria-labelledby="admin-changes">
-          <thead><tr><th>When (UTC)</th><th>Appliance</th><th>Who</th><th>What changed</th><th /></tr></thead>
+          <thead><tr><th>When (UTC)</th><th>Appliance</th><th>Who</th><th>What changed</th><th><span className="visually-hidden">Actions</span></th></tr></thead>
           <tbody>
             {changes.map((c) => (
               <tr key={c.id}>
@@ -124,8 +126,9 @@ function RecentChanges({ changes, onRevert }: { changes: ApplianceChangeEntry[];
                     </ul>
                   )}
                 </td>
-                {/* A creation has no "before" to put back: the row is retired instead. */}
-                <td>{c.before !== null && <button type="button" onClick={() => onRevert(c)}>Revert</button>}</td>
+                {/* A creation has no "before" to put back: the row is retired instead. The whole row goes back, so the title says
+                    a revert of an older entry also undoes the later ones. */}
+                <td>{c.before !== null && <button type="button" title={REVERT_HINT} onClick={() => onRevert(c)}>Revert</button>}</td>
               </tr>
             ))}
           </tbody>

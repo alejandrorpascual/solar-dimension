@@ -266,6 +266,8 @@ test('a token change shows in the admin log, and Revert puts a saved project\'s 
     // A creation has nothing before it to put back.
     await expect(logged.nth(1).getByRole('button', { name: 'Revert' })).toHaveCount(0)
 
+    // The whole row goes back, so the button says a revert also undoes any later change.
+    await expect(logged.nth(0).getByRole('button', { name: 'Revert' })).toHaveAccessibleDescription(/whole row back/)
     await logged.nth(0).getByRole('button', { name: 'Revert' }).click()
     // The revert is its own entry, under the admin, so it can be reverted in turn.
     await expect(logged).toHaveCount(3)

@@ -161,6 +161,20 @@ describe('reverting a logged change', () => {
     expect(revertWrite(stored, null)).toBe('created')
   })
 
+  test('a "before" logged without sources keeps the row\'s stored sources', () => {
+    const sources = { watts: [{ source: 'https://example.com/fridge', asWritten: '150 W' }] }
+    // `stored` has no `sources` key, like an entry logged before sources were.
+    const before = { ...stored, watts: 150 }
+    const current = { ...stored, watts: 180, sources }
+    const write = revertWrite(current, before)
+    expect(write).toEqual({ before: current, after: { ...before, sources } })
+    expect(typeof write === 'object' && writtenFields(write)).toEqual([{ field: 'watts', from: 180, to: 150 }])
+  })
+
+  test('a "before" logged without sources, matching the row otherwise, writes nothing', () => {
+    expect(revertWrite({ ...stored, sources: {} }, stored)).toBe('unchanged')
+  })
+
   test('a "before" that fails the schema (a hand-edited row) is not put back', () => {
     expect(revertWrite(stored, { ...stored, watts: 0 })).toBe('invalid')
   })

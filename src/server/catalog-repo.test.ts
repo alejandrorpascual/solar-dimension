@@ -269,6 +269,17 @@ describe('reverting a change', () => {
     expect(wire.batches[0]![0]!.sql).toMatch(/"retired_at" = coalesce\("appliances"\."retired_at", now\(\)\)/)
   })
 
+  test('a "before" logged without sources keeps the row\'s stored sources in the write and in the log', async () => {
+    const sources = { watts: [{ source: 'https://example.com/fridge', asWritten: '150 W' }] }
+    storeWithEntry(fridgeRow({ watts: 180, sources }), storedFridge)
+
+    expect(await revertChange(7, 'admin-1')).toBe('reverted')
+
+    const [write, log] = wire.batches[0]!
+    expect(decoded(write!.params)).toContainEqual(sources)
+    expect(decoded(log!.params)).toEqual(['fridge', 'admin-1', { ...storedFridge, watts: 180, sources }, { ...storedFridge, sources }])
+  })
+
   test('a row that already holds the "before" values writes and logs nothing', async () => {
     storeWithEntry(fridgeRow(), storedFridge)
 

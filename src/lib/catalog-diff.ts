@@ -90,12 +90,13 @@ export type RevertRefusal = 'created' | 'invalid'
 
 /**
  * What reverting a logged change writes: the row as it is now, back to the entry's "before", every logged field
- * included (retired and sort order too). 'unchanged' when the row already holds those values: nothing to write.
+ * included (retired and sort order too; sources only when it logged them). 'unchanged' when the row already holds those values: nothing to write.
  */
 export function revertWrite(current: ApplianceRecord, before: ApplianceRecord | null): ApplianceWrite | RevertRefusal | 'unchanged' {
   if (!before) return 'created'
   const { retired, ...fields } = before
   if (!ApplianceSchema.safeParse(fields).success) return 'invalid'
-  const write = { before: current, after: before }
+  // A "before" logged without sources (before they were logged) keeps the row's, as an upsert that sends none does.
+  const write = { before: current, after: keepStoredSources(before, current) }
   return writtenFields(write).length > 0 ? write : 'unchanged'
 }
