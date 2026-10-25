@@ -367,6 +367,28 @@ describe('solar panels', () => {
   })
 })
 
+describe('the Main cables check reads the reader\'s tag on each cable (#184)', () => {
+  const cable = (text: string, awg: string, role: QuoteLine['role']): QuoteLine => ({
+    ...line('wiring', 1, { description: text, source: { page: 1, text }, specs: { awg } }), role,
+  })
+  const reading = (lines: QuoteLine[]) => {
+    const c = checkItems(extraction(lines), KIT).find((i) => i.id === 'cables')!
+    return `${markLabel(en, c)} · ${itemText(en, c, KIT, 'USD').label}`
+  }
+  const thinBattery = cable('Cable 6 AWG baterías', '6', null)
+  test('an AC feed tagged ac beside a thin battery cable reads Too small on the battery cable', () => {
+    expect(reading([cable('Acometida eléctrica 4/0 AWG', '4/0', 'ac'), thinBattery])).toBe('Too small · 6 AWG')
+  })
+  test('a cable tagged battery reads Meets it, whatever its words', () => {
+    expect(reading([cable('Cable 4/0 AWG para el inversor solar desde las baterías', '4/0', 'battery')])).toBe('Meets it · 4/0 AWG')
+    // Untagged, the keyword rules set "solar" wiring aside and the quote would name no battery cable.
+    expect(reading([cable('Cable solar 4/0 AWG', '4/0', 'battery')])).toBe('Meets it · 4/0 AWG')
+  })
+  test('the same AC feed with no tag reads as before the tags: Meets it on 4/0 AWG', () => {
+    expect(reading([cable('Acometida eléctrica 4/0 AWG', '4/0', null), thinBattery])).toBe('Meets it · 4/0 AWG')
+  })
+})
+
 describe('items a quote mentions without enough to judge them', () => {
   const judged = (lines: Parameters<typeof extraction>[0], id: string, kit: KitNeeds = KIT) => checkItems(extraction(lines), kit).find((c) => c.id === id)!
   const wiring = (awg: string | null, qty = 1) => line('wiring', 1, { qty, specs: { awg } })

@@ -1,0 +1,13 @@
+[mock] https://api.openai.com/v1/responses
+unlisted  quote-a.pdf  "Zapatas para cable 2/0"  tag=null
+┌─────────┬───────────────┬─────────────┬───────────┬───────────┬─────┐
+│ (index) │ file          │ text        │ want      │ got       │ ok  │
+├─────────┼───────────────┼─────────────┼───────────┼───────────┼─────┤
+│ 0       │ 'quote-a.pdf' │ 'Acometida' │ 'ac'      │ 'ac'      │ '✓' │
+│ 1       │ 'quote-a.pdf' │ 'baterías'  │ 'battery' │ 'battery' │ '✓' │
+│ 2       │ 'quote-a.pdf' │ 'módulos'   │ 'ground'  │ 'solar'   │ '✗' │
+└─────────┴───────────────┴─────────────┴───────────┴───────────┴─────┘
+model gpt-6-luna · 2/3 right
+battery: 1/1 right
+ac: 1/1 right
+ground: 0/1 right
