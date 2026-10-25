@@ -1,0 +1,242 @@
+{
+  "desktop/": {
+    "rects": [
+      {
+        "text": "Privacy",
+        "w": 38.609375,
+        "h": 24
+      },
+      {
+        "text": "Terms of use",
+        "w": 68.453125,
+        "h": 24
+      }
+    ],
+    "hitAtBottom": [
+      {
+        "text": "Privacy",
+        "covered": false,
+        "top": 946,
+        "bottom": 970,
+        "viewportH": 1080
+      },
+      {
+        "text": "Terms of use",
+        "covered": false,
+        "top": 946,
+        "bottom": 970,
+        "viewportH": 1080
+      }
+    ]
+  },
+  "desktop/login": {
+    "rects": [
+      {
+        "text": "Privacy",
+        "w": 38.609375,
+        "h": 24
+      },
+      {
+        "text": "Terms of use",
+        "w": 68.453125,
+        "h": 24
+      }
+    ],
+    "hitAtBottom": [
+      {
+        "text": "Privacy",
+        "covered": false,
+        "top": 641,
+        "bottom": 665,
+        "viewportH": 1080
+      },
+      {
+        "text": "Terms of use",
+        "covered": false,
+        "top": 641,
+        "bottom": 665,
+        "viewportH": 1080
+      }
+    ]
+  },
+  "tablet/": {
+    "rects": [
+      {
+        "text": "Privacy",
+        "w": 38.609375,
+        "h": 24
+      },
+      {
+        "text": "Terms of use",
+        "w": 68.453125,
+        "h": 24
+      }
+    ],
+    "hitAtBottom": [
+      {
+        "text": "Privacy",
+        "covered": false,
+        "top": 634,
+        "bottom": 658,
+        "viewportH": 768
+      },
+      {
+        "text": "Terms of use",
+        "covered": false,
+        "top": 634,
+        "bottom": 658,
+        "viewportH": 768
+      }
+    ]
+  },
+  "tablet/login": {
+    "rects": [
+      {
+        "text": "Privacy",
+        "w": 38.609375,
+        "h": 24
+      },
+      {
+        "text": "Terms of use",
+        "w": 68.453125,
+        "h": 24
+      }
+    ],
+    "hitAtBottom": [
+      {
+        "text": "Privacy",
+        "covered": false,
+        "top": 667,
+        "bottom": 691,
+        "viewportH": 768
+      },
+      {
+        "text": "Terms of use",
+        "covered": false,
+        "top": 667,
+        "bottom": 691,
+        "viewportH": 768
+      }
+    ]
+  },
+  "mobile/": {
+    "rects": [
+      {
+        "text": "Privacy",
+        "w": 35.390625,
+        "h": 24
+      },
+      {
+        "text": "Terms of use",
+        "w": 62.75,
+        "h": 24
+      }
+    ],
+    "hitAtBottom": [
+      {
+        "text": "Privacy",
+        "covered": false,
+        "top": 523,
+        "bottom": 547,
+        "viewportH": 667
+      },
+      {
+        "text": "Terms of use",
+        "covered": false,
+        "top": 523,
+        "bottom": 547,
+        "viewportH": 667
+      }
+    ]
+  },
+  "mobile/login": {
+    "rects": [
+      {
+        "text": "Privacy",
+        "w": 35.390625,
+        "h": 24
+      },
+      {
+        "text": "Terms of use",
+        "w": 62.75,
+        "h": 24
+      }
+    ],
+    "hitAtBottom": [
+      {
+        "text": "Privacy",
+        "covered": false,
+        "top": 523,
+        "bottom": 547,
+        "viewportH": 667
+      },
+      {
+        "text": "Terms of use",
+        "covered": false,
+        "top": 523,
+        "bottom": 547,
+        "viewportH": 667
+      }
+    ]
+  },
+  "phone390/": {
+    "rects": [
+      {
+        "text": "Privacy",
+        "w": 35.390625,
+        "h": 24
+      },
+      {
+        "text": "Terms of use",
+        "w": 62.75,
+        "h": 24
+      }
+    ],
+    "hitAtBottom": [
+      {
+        "text": "Privacy",
+        "covered": false,
+        "top": 700,
+        "bottom": 724,
+        "viewportH": 844
+      },
+      {
+        "text": "Terms of use",
+        "covered": false,
+        "top": 700,
+        "bottom": 724,
+        "viewportH": 844
+      }
+    ]
+  },
+  "phone390/login": {
+    "rects": [
+      {
+        "text": "Privacy",
+        "w": 35.390625,
+        "h": 24
+      },
+      {
+        "text": "Terms of use",
+        "w": 62.75,
+        "h": 24
+      }
+    ],
+    "hitAtBottom": [
+      {
+        "text": "Privacy",
+        "covered": false,
+        "top": 618,
+        "bottom": 642,
+        "viewportH": 844
+      },
+      {
+        "text": "Terms of use",
+        "covered": false,
+        "top": 618,
+        "bottom": 642,
+        "viewportH": 844
+      }
+    ]
+  }
+}
