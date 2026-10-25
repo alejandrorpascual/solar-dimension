@@ -105,4 +105,23 @@ describe('tax shapes that once mis-priced or mis-checked a quote', () => {
     expect(v.best).toMatchObject({ optionId: 'o1', total: 6740, caveats: [{ id: 'tax_unstated' }] })
     expect(v.cleanFit?.quote.id).toBe('a')
   })
+
+  // QA #124 v1: a total the user types replaces the one read, so whether the total holds the tax has to follow it.
+  describe('a reading whose total was read without its tax, once the user types the total with it', () => {
+    const misread = (): QuoteExtraction => extraction(kitLines(1100), { subtotal: 6340, tax: 1141.2, total: 6340 })
+    const typed = (): QuoteView => ({ ...view('a', misread()), status: 'needs_review', totalOverride: 7481.2 })
+
+    test('is not said to leave its tax out', () => {
+      const taxed = extraction(kitLines(1100), { subtotal: 6340, tax: 1260, total: 7600 })
+      const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [typed(), view('b', taxed)])
+      expect(v.best).toMatchObject({ total: 7481.2 })
+      expect(v.best?.caveats?.map((c) => c.id)).not.toContain('tax_unstated')
+    })
+
+    test('still marks a cheaper quote that states no tax beside it', () => {
+      const untaxed = extraction([...kitLines(1500), taxLine(0, 'Precios no incluyen ITBIS')])
+      const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [typed(), view('c', untaxed)])
+      expect({ best: v.best?.total, caveats: v.best?.caveats?.map((c) => c.id) }).toEqual({ best: 6740, caveats: ['tax_unstated'] })
+    })
+  })
 })
