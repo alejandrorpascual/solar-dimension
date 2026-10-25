@@ -48,7 +48,7 @@ export async function quoteCounts(userId: string, projectId: string): Promise<{ 
   return { project: projectRow?.n ?? 0, month: usageRow?.n ?? 0 }
 }
 
-export interface NewQuote { id: string; userId: string; projectId: string; fileName: string; blobPathname: string; mime: QuoteMime; sizeBytes: number; pages: number | null }
+export interface NewQuote { id: string; userId: string; projectId: string; fileName: string; blobPathname: string; mime: QuoteMime; sizeBytes: number; pages: number | null; fileHash: string }
 
 /**
  * Adds the quote only if the account's limits and today's read budget still allow it, and counts it in `quote_usage`
@@ -67,8 +67,8 @@ export async function insertWithinLimits(q: NewQuote): Promise<boolean> {
     lockUserQuotes(q.userId),
     db.execute(sql`
       with admitted as (${takeDailyRead(utcDay(new Date()), withinAccountLimits)})
-      insert into quotes (id, user_id, project_id, file_name, blob_pathname, mime, size_bytes, pages)
-      select ${q.id}::uuid, ${q.userId}::text, ${q.projectId}::text, ${q.fileName}::text, ${q.blobPathname}::text, ${q.mime}::text, ${q.sizeBytes}::integer, ${q.pages}::integer
+      insert into quotes (id, user_id, project_id, file_name, blob_pathname, mime, size_bytes, pages, file_hash)
+      select ${q.id}::uuid, ${q.userId}::text, ${q.projectId}::text, ${q.fileName}::text, ${q.blobPathname}::text, ${q.mime}::text, ${q.sizeBytes}::integer, ${q.pages}::integer, ${q.fileHash}::text
       where exists (select 1 from admitted)
       returning id`),
     db.execute(sql`

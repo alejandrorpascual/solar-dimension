@@ -13,6 +13,8 @@ export interface QuoteView {
   retries: number
   /** The file's page count (quotes.pages), which a reading's source pages are checked against; null for an image. */
   pages: number | null
+  /** The SHA-256 of the uploaded file (quotes.file_hash), which spots the same file uploaded again; null on quotes uploaded before it was stored. */
+  fileHash: string | null
 }
 export type Fit = 'fits' | 'unclear' | 'short'
 /** Which of a quote's systems an entry is. A single-system quote has no option and an option count of 0. */
@@ -34,7 +36,7 @@ export interface RankedQuote extends EntryOption {
  * was read but states no total. Both wait for the user's total. misread: a single-system reading whose line amounts,
  * quantities or currency don't hold, that has no lines, or that states an implausible number, which a typed total
  * wouldn't fix: it waits to be read again (takesTypedTotal). no_price: an option of a quote that offers several states no
- * price for it. duplicate: it reads exactly like an earlier upload, which ranks in its place.
+ * price for it. duplicate: it is the same file as an earlier upload, or reads exactly like one, which ranks in its place.
  */
 export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'misread' | 'no_price' | 'failed' | 'other_currency' | 'duplicate'
 export interface UnrankedQuote extends EntryOption { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
@@ -130,18 +132,26 @@ const isRankable = (e: Entry): boolean =>
 const byUpload = (a: { quote: QuoteView }, b: { quote: QuoteView }) => a.quote.createdAt - b.quote.createdAt
 
 /**
- * The entries left once a file uploaded twice counts once: an entry whose quote reads exactly like an earlier upload's
- * (the same reading, the same option of it, and nothing the user typed or confirmed that differs) is that upload's
- * duplicate. A copy the user changed is its own quote, so what they entered is never hidden. Kept in the order given.
+ * The entries left once a file uploaded twice counts once. An entry is an earlier upload's duplicate when its quote is
+ * the same file (the same fileHash), whatever its reading says, or reads exactly like it (the same reading and the same
+ * option of it); either way only when nothing the user typed or confirmed differs. A copy the user changed is its own
+ * quote, so what they entered is never hidden. Kept in the order given.
  */
 function withoutDuplicates(entries: readonly Entry[]): Entry[] {
-  const first = new Map<string, Entry>()
+  const firstReading = new Map<string, Entry>()
+  const firstFile = new Map<string, string>()
+  const kept = new Set<Entry>()
   for (const e of [...entries].sort(byUpload)) {
-    const { extraction, totalOverride, overrides } = e.quote
-    const key = `${JSON.stringify([extraction, totalOverride, overrides])}|${e.optionId}`
-    if (!first.has(key)) first.set(key, e)
+    const { id, extraction, totalOverride, overrides, fileHash } = e.quote
+    const entered = JSON.stringify([totalOverride, overrides])
+    const readingKey = `${JSON.stringify(extraction)}|${entered}|${e.optionId}`
+    const fileKey = fileHash === null ? null : `${fileHash}|${entered}`
+    const fileOwner = fileKey === null ? undefined : firstFile.get(fileKey)
+    if (firstReading.has(readingKey) || (fileOwner !== undefined && fileOwner !== id)) continue
+    firstReading.set(readingKey, e)
+    if (fileKey !== null && fileOwner === undefined) firstFile.set(fileKey, id)
+    kept.add(e)
   }
-  const kept = new Set(first.values())
   return entries.filter((e) => kept.has(e))
 }
 

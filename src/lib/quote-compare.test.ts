@@ -5,7 +5,7 @@ import { DEFAULT_MUSTS } from './quote-items'
 
 const view = (id: string, over: Partial<QuoteView> = {}): QuoteView => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready',
-  extraction: SAMPLE_QUOTES[id as SampleQuoteId] ?? null, overrides: {}, totalOverride: null, createdAt: 1, retries: 0, pages: null, ...over,
+  extraction: SAMPLE_QUOTES[id as SampleQuoteId] ?? null, overrides: {}, totalOverride: null, createdAt: 1, retries: 0, pages: null, fileHash: null, ...over,
 })
 const ALL = (['solartec', 'voltia', 'grupoluz', 'enerhogar'] as const).map((id, i) => view(id, { createdAt: i }))
 const ids = (v: { quote: QuoteView }[]) => v.map((r) => r.quote.id)
@@ -228,6 +228,48 @@ describe('the same quote uploaded twice (AI-28)', () => {
     const confirmed = { ...copy('again', 'grupoluz', 2), overrides: { charger: 'included' as const } }
     const withConfirmation = compareQuotes(KIT, DEFAULT_MUSTS, [copy('first', 'grupoluz', 1), confirmed])
     expect(ids(withConfirmation.ranked).sort()).toEqual(['again', 'first'])
+  })
+  test('the same file uploaded again is a duplicate even when its second reading words an item differently', () => {
+    const reworded = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, description: `${l.description} (reworded)` } : l)) }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: reworded, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['first'])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'again' }, reason: 'duplicate' }])
+  })
+  test('a file with several systems, uploaded again and read differently, has every system listed as a duplicate', () => {
+    const reworded = { ...SAMPLE_QUOTES.suna, vendor: { ...SAMPLE_QUOTES.suna.vendor, name: 'SUNA' } }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.suna, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: reworded, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(v.ranked.map(entryKey).sort()).toEqual(['first:o1', 'first:o2'])
+    expect(v.unranked.map((u) => [entryKey(u), u.reason])).toEqual([['again:o1', 'duplicate'], ['again:o2', 'duplicate']])
+  })
+  test('two different files that read the same are still duplicates by their reading', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'b2', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['first'])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'again' }, reason: 'duplicate' }])
+  })
+  test('the same file is its own quote once the user types a different total into it', () => {
+    const noTotal = { ...SAMPLE_QUOTES.voltia, total: 0 }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: noTotal, totalOverride: 6000, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: { ...noTotal, notes: ['read again'] }, totalOverride: 5000, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked).sort()).toEqual(['again', 'first'])
+  })
+  test('the same file read well the second time ranks when the first reading failed', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { status: 'failed', extraction: null, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['again'])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'first' }, reason: 'failed' }])
   })
   test('a copy does not sway the currency: one quote in each is a tie, which goes to the first', () => {
     const eur = (id: string, createdAt: number) => view(id, { extraction: { ...SAMPLE_QUOTES.voltia, currency: 'EUR' }, createdAt })

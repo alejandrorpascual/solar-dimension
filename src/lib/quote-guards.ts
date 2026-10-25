@@ -82,3 +82,12 @@ export async function inspectUpload(bytes: Uint8Array): Promise<Inspection> {
   if (info.pages > QUOTE_LIMITS.maxPages) return { ok: false, rejection: { code: 'pages', pages: info.pages } }
   return { ok: true, mime, pages: info.pages }
 }
+
+/**
+ * The file's fingerprint: the hex SHA-256 of its bytes. Stored on the quote (quotes.file_hash) so the same file uploaded
+ * again is spotted as a duplicate whatever its reading says; the bytes themselves are kept only in the quote's blob.
+ */
+export async function fileFingerprint(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+  return Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('')
+}

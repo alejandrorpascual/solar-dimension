@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { db } from '../../db/client'
 import { projects, quotes, quoteSettings } from '../../db/schema'
 import { computeProject } from '../../lib/project-summary'
-import { inspectUpload, MustInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, retryRefusal, TotalInput, uploadRejection } from '../../lib/quote-guards'
+import { fileFingerprint, inspectUpload, MustInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, retryRefusal, TotalInput, uploadRejection } from '../../lib/quote-guards'
 import { kitNeeds, resolveMusts, type Musts } from '../../lib/quote-items'
 import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quote-jobs'
 import { checkBasics, cleanFileName, type Rejection } from '../../lib/quote-limits'
@@ -32,7 +32,7 @@ function toJobQuote(r: QuoteRow): JobQuote {
   return {
     id: r.id, fileName: r.fileName, label: r.vendorLabel, status: r.status, extraction: r.extraction ? withOptionDefaults(r.extraction) : null,
     overrides: r.overrides, totalOverride: r.totalOverride, createdAt: r.createdAt.getTime(), seenAt: r.seenAt?.getTime() ?? null,
-    retries: r.retries, pages: r.pages,
+    retries: r.retries, pages: r.pages, fileHash: r.fileHash,
   }
 }
 
@@ -84,6 +84,7 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     const inspected = await inspectUpload(bytes)
     if (!inspected.ok) return reject(inspected.rejection)
     const { mime, pages } = inspected
+    const fileHash = await fileFingerprint(bytes)
 
     const id = crypto.randomUUID()
     const blobPathname = quotePath(userId, id, mime)
@@ -91,7 +92,7 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     try {
       await defaultStorage.put(blobPathname, bytes, mime)
       const added = await insertWithinLimits({
-        id, userId, projectId: data.projectId, fileName: cleanFileName(data.file.name), blobPathname, mime, sizeBytes: bytes.byteLength, pages,
+        id, userId, projectId: data.projectId, fileName: cleanFileName(data.file.name), blobPathname, mime, sizeBytes: bytes.byteLength, pages, fileHash,
       })
       if (!added) {
         // Another upload took the last slot, or the day's last read, while this file was being read and stored.

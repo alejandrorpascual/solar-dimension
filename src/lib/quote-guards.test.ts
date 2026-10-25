@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, test } from 'vitest'
 import {
-  canRetry, inspectUpload, MAX_RETRIES, MAX_TOTAL, MustInput, OverrideInput, parseTotal, QuoteId, RETRYABLE, refusedInsertRejection, retryOffer, retryRefusal, TotalInput,
+  canRetry, fileFingerprint, inspectUpload, MAX_RETRIES, MAX_TOTAL, MustInput, OverrideInput, parseTotal, QuoteId, RETRYABLE, refusedInsertRejection, retryOffer, retryRefusal, TotalInput,
   uploadRejection,
 } from './quote-guards'
 import { QUOTE_LIMITS } from './quote-limits'
@@ -166,5 +166,19 @@ describe('parseTotal', () => {
   })
   test('empty, zero, negative, non-numeric or above the cap is refused', () => {
     for (const bad of ['', '   ', 'abc', '0', '0,00', '-5', String(MAX_TOTAL + 1)]) expect(parseTotal(bad)).toBeNull()
+  })
+})
+
+describe('fileFingerprint', () => {
+  test('is the hex SHA-256 of the bytes: the same file gives the same fingerprint, and the fingerprint is all that is kept', async () => {
+    const bytes = new TextEncoder().encode('abc')
+    expect(await fileFingerprint(bytes)).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')
+    expect(await fileFingerprint(new Uint8Array(bytes))).toBe(await fileFingerprint(bytes))
+  })
+  test('a file that differs by one byte gets another fingerprint', async () => {
+    const one = new Uint8Array(await pdf(1))
+    const other = new Uint8Array(one)
+    other[other.length - 1] = other[other.length - 1]! ^ 1
+    expect(await fileFingerprint(other)).not.toBe(await fileFingerprint(one))
   })
 })
