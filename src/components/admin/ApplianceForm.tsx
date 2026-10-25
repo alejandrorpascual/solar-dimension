@@ -114,7 +114,7 @@ export function ApplianceForm({
           <label className="admin__field">
             <span>Compressor</span>
             <select value={draft.acType} onChange={set('acType')}>
-              <option value="">—</option><option value="inverter">inverter</option><option value="conventional">conventional</option>
+              <option value="">Not set</option><option value="inverter">inverter</option><option value="conventional">conventional</option>
             </select>
           </label>
         </>

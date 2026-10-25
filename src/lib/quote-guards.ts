@@ -6,8 +6,11 @@ import { ITEM_IDS, OVERRIDES } from './quote-items'
 import { limitRejection, QUOTE_LIMITS, sniffMime, type QuoteMime, type Rejection } from './quote-limits'
 import type { QuoteStatus } from './quote-schema'
 
-/** The largest total a user can type for a quote, in the quote's own currency. */
-export const MAX_TOTAL = 10_000_000
+/**
+ * The largest total a user can type for a quote, in the quote's own currency: the cap a reading's amounts have
+ * (PLAUSIBLE.AMOUNT in quote-checks), so a total in COP or VES fits.
+ */
+export const MAX_TOTAL = 1_000_000_000
 
 export const ProjectId = z.string().min(1).max(64)
 export const QuoteId = z.string().uuid()

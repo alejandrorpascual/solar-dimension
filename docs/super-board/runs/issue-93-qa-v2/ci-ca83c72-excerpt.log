@@ -1,0 +1,19 @@
+# CI verify on ca83c72 (merged with staging ac00bbb): job 120118581663, conclusion success
+
+## npm run test:db
+ ✓ src/server/projects-repo.db.test.ts (4 tests) 1474ms
+   ✓ saveForUser on the test database (4)
+     ✓ keeps the newer edit when an older copy arrives, and answers with it in stale 610ms
+     ✓ answers with this account's copy only, when another account has a project with the same id 358ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+
+## npm run test:coverage
+ Test Files  120 passed (120)
+      Tests  2003 passed (2003)
+
+## npm run e2e
+Running 323 tests using 2 workers
+  10 skipped
+  313 passed (5.2m)

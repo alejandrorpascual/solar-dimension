@@ -1,0 +1,9 @@
+tree d39d35a (head e499709 = adf9af9 + revert of dbbbf9b)
+npm run typecheck: exit 0
+npm test: Test Files  121 passed (121), Tests  2018 passed (2018)
+
+src/i18n/terms.test.ts with staging's i18n files: 3 failed
+ FAIL  src/i18n/terms.test.ts > "surge" appears only in the inverter's surge rating, and "peak" only in battery peak current and peak sun hours
+ FAIL  src/i18n/terms.test.ts > Spanish keeps "pico" for the inverter's potencia pico and the battery's corriente pico, never for a start-up
+ FAIL  src/i18n/terms.test.ts > copy that names a load's start-up says start-up power, in English and Spanish
+src/i18n/terms.test.ts on this tree: 3 passed

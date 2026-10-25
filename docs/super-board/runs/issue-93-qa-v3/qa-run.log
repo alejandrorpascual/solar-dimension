@@ -1,0 +1,78 @@
+# QA v3 on issue #93, PR #202 · app code fe731be · run 2026-10-22
+
+## Local run (lane clone, app code fe731be plus the QA v3 test changes, test database via .env.test.local)
+$ npm ci --silent && npm run typecheck && npm run test:coverage && npm run build
+                               exit 0 · Test Files 120 passed (120) · Tests 2003 passed (2003) · build ok
+$ npx vitest run src/hooks/useProjectStore.sync.test.ts src/lib/sync.test.ts src/server/projects.test.ts
+                               Test Files 3 passed (3) · Tests 29 passed (29)
+$ npm run test:db -- src/server/projects-repo.db.test.ts
+                               exit 0 · Tests 4 passed (4)
+$ E2E_PORT=4186 npx playwright test e2e/sync-tabs-devices.spec.ts --project=desktop
+                               3 passed
+$ E2E_PORT=4186 npx playwright test           (whole suite, desktop + phone)
+                               303 passed, 10 skipped, 1 failed (3.8m) · the one failure: admin.spec.ts:33,
+                               NeonDbError "fetch failed" in the test's own markEmailVerified (e2e/db.ts:16)
+$ E2E_PORT=4186 npx playwright test e2e/admin.spec.ts --project=desktop
+                               3 passed (the failure above was the test's database connection)
+
+## R2 (the [qa] thread): the AC1 hook test in the real event order
+useProjectStore.sync.test.ts:49 now has tab A commit as `commit` does: pending marker and storage event
+first, then this tab comes back (focus), then A's save lands and A clears the marker, then volts here,
+then a reload. The R1 witness at :53 said the same and is folded into it.
+- red on d089b1a app code: AssertionError: expected 10 to be 20 (screen hours after coming back)
+- red on fe731be with the `hasPendingSave()` read guard removed (useProjectStore.ts:172): same message
+- green on fe731be
+
+## New e2e: e2e/sync-tabs-devices.spec.ts (test database, desktop)
+:60  AC1 two tabs of one context: 24 h in tab A shows in tab B, 12 V in B, account 24 h + 12 V, both tabs after reload
+:81  AC2 two browser contexts: B shows 10 h, comes back (focus), shows 24 h, 12 V in B, account 24 h + 12 V, A back shows 12 V
+:121 AC3 the save request's project has its `solar` key taken out (route rewrites the body); stored solar unchanged
+Headless Chromium fires no focus event on bringToFront (probed: no focus, blur or visibilitychange on any
+page), so comeBack() dispatches the window's focus event and waits for the read it starts.
+
+Mutants, all three applied at once, each test red on its own one:
+M1 storage listener not added (useProjectStore.ts:157)  :60  Expected "24 h", Received "10 h" in tab B
+M2 focus listener not added (useProjectStore.ts:185)    :81  no read on coming back (test timeout)
+M3 upsert writes every field, left out or not (projects-repo.ts:66)  :121  solar Received null, Expected {roofM2 40, sunHours 4.5, panels null}
+
+## FAIL: QA-W1, a save from this tab clears the marker while tab A's save is on its way
+The pending marker is one key per browser. Any tab clears it when its own saves are done
+(useProjectStore.ts:248, also :127 at load). Then a tab coming back reads the account (:172) while
+another tab's save has not landed, and the read puts the account's older copy back over that tab's edit.
+
+Browser run (qa-v3-evidence.spec.ts.txt, QA-W1 test; tab A and tab B in one context, desktop):
+a. tab B picks AGM; its save is held in flight
+b. tab A picks 24 h; its save is held; tab B shows 24 h (storage event)
+c. tab B's save lands
+d. tab B comes back (focus)
+e. tab A's save lands, then 12 V in tab B
+Output: pending marker after B's save landed = null; after coming back B shows 10 h, A shows 24 h;
+account ends {"hours":10,"volts":12,"chemistry":"agm"}. Want hours 24.
+
+Hook witness (qa-w1-witness.test.ts.txt), red on fe731be:
+  - Expected + Received
+    "account": { "chemistry": "agm", - "hours": 20, + "hours": 10, "volts": 24 }
+  - "markerAfterB": true,  + "markerAfterB": false,
+  - "screenAfterBack": 20, + "screenAfterBack": 10,
+
+Fixed looks like: both QA-W1 witnesses go green. A read on coming back never puts back a copy older than
+one another tab of this browser kept and has not saved, whichever tab's save lands first. Two leads:
+the read answer keeps a project whose copy here is stamped later than the account's (the account's own
+rule, as adoptKept does for storage events), or the marker counts saves per tab instead of being
+cleared by whichever tab finishes first.
+
+## AC ledger (unit = hook or function test · component · e2e)
+AC1 two tabs    unit useProjectStore.sync.test.ts:49, :66; sync.test.ts:80 adoptKept · component n/a (the hook
+                is the seam) · e2e sync-tabs-devices.spec.ts:60 · FAILS on QA-W1
+AC2 two devices unit useProjectStore.sync.test.ts:93 (focus, visibilitychange), :108 (edit during the read),
+                :127 (focusing click), :146 (unsent: no read), :160 (save fails during the read);
+                sync.test.ts:34 rebase · component n/a · e2e sync-tabs-devices.spec.ts:81
+AC3 no solar    unit sync.test.ts:180 leftOut; projects.test.ts:48 save, :58 import · db
+                projects-repo.db.test.ts (4/4 here) · e2e sync-tabs-devices.spec.ts:121
+
+## Test gaps (not written)
+- High · QA-W1 above: needs app code, so the card goes back to build
+- Medium · a delete made while the account is read again is not pinned (v2 R9)
+- Medium · a read answered after the page was left is not pinned (v2 R7)
+- Low · two reads at once (v2 R8) · a read on a hidden tab (v1 M7)
+- Low · upsert groups run in parallel without a transaction (projects-repo.ts:52)

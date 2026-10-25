@@ -527,11 +527,11 @@ The worker (per `references/iteration-preamble.md`) must load and follow:
 - `vitest` — mechanics for unit and integration tests in a TS/JS repo. 19
   references (`core-expect`, `features-mocking`, `features-coverage`,
   `core-hooks`, `advanced-vi`).
-- `playwright-best-practices` — when writing or refactoring a spec. Reference
-  its `core/locators.md` (data-testid first, `getByRole` fallback),
-  `core/fixtures-hooks.md` (custom fixtures for auth, pre-test seeding, teardown),
-  `core/test-data.md` (test data factories), and `core/page-object-model.md` (POM for
-  reusable interactions). Keep specs reusable as the suite grows.
+- `e2e-testing` — when writing or refactoring a spec. Use its Page Object Model,
+  Test Structure and Flaky Test Patterns sections. Locators: `data-testid` first,
+  `getByRole` as the fallback. Auth and seed data go in fixtures, not in the test
+  body. Wait on assertions, never on fixed timeouts. Keep specs reusable as the
+  suite grows.
 
 ## Coexistence with `/super-build`
 

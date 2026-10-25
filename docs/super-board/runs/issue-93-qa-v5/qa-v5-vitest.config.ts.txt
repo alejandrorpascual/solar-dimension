@@ -1,0 +1,8 @@
+import path from 'node:path'
+import { defineConfig } from 'vitest/config'
+
+// QA harness only (not committed): the committed DB tests and the issue 93 v5 witnesses on a local Postgres.
+export default defineConfig({
+  resolve: { alias: [{ find: /^\.\.\/db\/client$/, replacement: path.resolve(__dirname, 'pg-client.ts') }] },
+  test: { root: path.resolve(__dirname, '..'), include: ['src/server/projects-repo.db.test.ts', '.qa93/*.qa.test.ts'], environment: 'node', fileParallelism: false },
+})

@@ -12,6 +12,7 @@ import type { Project } from '../../lib/schema'
 import { FilePickButton } from './FilePickButton'
 import { HandoffDialog } from './HandoffDialog'
 import { QuotesLockedAction } from './QuotesLockedAction'
+import { Spinner } from './Spinner'
 
 interface Props { project: Project; isSaving: boolean }
 
@@ -64,7 +65,7 @@ export function QuotesCard({ project, isSaving }: Props) {
   return (
     <section className={isDragging ? 'qcard qcard--drag' : 'qcard'} aria-labelledby={titleId}
       onDragOver={(e) => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
-      <span className="qcard__icon" aria-hidden="true"><FileText size={20} /></span>
+      <span className="qcard__icon" aria-hidden="true">{jobs && jobs.pending > 0 ? <Spinner size={20} /> : <FileText size={20} />}</span>
       <div className="qcard__body">
         <h3 className="qcard__title" id={titleId}>{jobs ? projectLine(t, jobs) : t.quotes.cardTitle}</h3>
         <p className="qcard__meta">{meta}</p>

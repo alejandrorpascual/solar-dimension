@@ -61,7 +61,7 @@ export type UiKey =
   | 'recoverAccess' | 'quotesNeedGoogle'
   | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating' | 'accountUnreachable'
   | 'projects' | 'projectsCount' | 'current' | 'quickEdit' | 'done' | 'projectMeta' | 'heaviestMore' | 'bank' | 'inverter' | 'close'
-  | 'appliancesCount' | 'windowLabel' | 'hourLess' | 'hourMore' | 'hoursShort' | 'saved' | 'undo' | 'allAppliances'
+  | 'appliancesOnly' | 'appliancesAndUnits' | 'appliancesCount' | 'windowLabel' | 'hourLess' | 'hourMore' | 'hoursShort' | 'saved' | 'undo' | 'allAppliances'
   | 'addApplianceSearch' | 'noSearchMatch'
   | 'download' | 'downloadFor' | 'format' | 'include' | 'preview' | 'previewOpen' | 'previewTitle' | 'previewPage' | 'previewImage'
   | 'fmtPdf' | 'fmtPdfHint' | 'fmtPng' | 'fmtPngHint' | 'fmtCsv' | 'fmtCsvHint'

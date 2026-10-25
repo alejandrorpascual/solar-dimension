@@ -1,0 +1,90 @@
+// QA v4 witnesses for issue 93 (not committed as a test): saveForUser on a local Postgres 15 with every migration
+// applied. The suite first runs the committed projects-repo.db.test.ts unchanged, so the harness is seen to agree with
+// CI's test database, then the witnesses.
+import { randomUUID } from 'node:crypto'
+import { eq, inArray } from 'drizzle-orm'
+import { afterAll, describe, expect, it, vi } from 'vitest'
+import { db } from '../db/client'
+import { projects } from '../db/schema'
+import { DEFAULT_ELECTRICAL, ProjectSchema, type Project } from '../lib/schema'
+import { currentProject, initialStore } from '../lib/store'
+import { listForUser, saveForUser } from './projects-repo'
+
+vi.mock('../db/client', () => import('./qa93-pg-client'))
+await import('./projects-repo.db.test')
+
+const userId = `qa93-${randomUUID()}`
+const EARLIER = Date.UTC(2026, 0, 1, 9)
+const LATER = Date.UTC(2026, 0, 1, 10)
+let nextId = 0
+const project = (name: string, updatedAt: number): Project =>
+  ProjectSchema.parse({ ...currentProject(initialStore()), id: `qa93-p-${++nextId}`, name, updatedAt })
+const stored = async (id: string) => (await listForUser(userId)).find((p) => p.id === id)!
+
+afterAll(async () => {
+  await db.delete(projects).where(inArray(projects.userId, [userId]))
+})
+
+describe('QA v4 witnesses', () => {
+  it('QA-W2: an older electrical edit landing after a newer hours save is kept, on a row migration 0011 left at {}', async () => {
+    const seed = project('Legacy', EARLIER - 1)
+    // As migration 0011 left every project saved before it: electrical and duty_overrides at their '{}' default.
+    await db.insert(projects).values({ ...seed, userId, electrical: {}, dutyOverrides: {}, updatedAt: new Date(EARLIER - 1) })
+    const read = await stored(seed.id)
+    expect(read.electrical).toEqual(DEFAULT_ELECTRICAL) // what every tab and device holds of it
+    const hours = { ...read, hours: 24, updatedAt: LATER }
+    const ambient = { ...read, electrical: { ...read.electrical, ambientC: 40 as const }, updatedAt: EARLIER }
+
+    await saveForUser(userId, [hours], new Map(), { [read.id]: { hours: read.hours } })
+    const answer = await saveForUser(userId, [ambient], new Map(), { [read.id]: { electrical: read.electrical } })
+
+    expect({ stale: answer.stale.length, ...(await stored(read.id)) }).toMatchObject({ stale: 0, hours: 24, electrical: { ambientC: 40 } })
+  })
+
+  it('QA-W2 control: the same two saves keep both edits on a row saved with a full electrical object', async () => {
+    const read = project('Saved whole', EARLIER - 1)
+    await saveForUser(userId, [read])
+    const hours = { ...read, hours: 24, updatedAt: LATER }
+    const ambient = { ...read, electrical: { ...read.electrical, ambientC: 40 as const }, updatedAt: EARLIER }
+
+    await saveForUser(userId, [hours], new Map(), { [read.id]: { hours: read.hours } })
+    const answer = await saveForUser(userId, [ambient], new Map(), { [read.id]: { electrical: read.electrical } })
+
+    expect({ stale: answer.stale.length, ...(await stored(read.id)) }).toMatchObject({ stale: 0, hours: 24, electrical: { ambientC: 40 } })
+  })
+
+  it('QA-W3: a named qty save the account wrote is not answered as refused when jsonb reorders its keys', async () => {
+    const read = project('Two loads', EARLIER - 1)
+    await saveForUser(userId, [read])
+    // jsonb keeps object keys shortest first, so it stores this as {"tv": 1, "fridge": 2}.
+    const added = { ...read, qty: { fridge: 2, tv: 1 }, updatedAt: LATER }
+
+    const answer = await saveForUser(userId, [added], new Map(), { [read.id]: { qty: read.qty } })
+
+    expect((await stored(read.id)).qty).toEqual({ fridge: 2, tv: 1 })
+    expect(answer.stale).toEqual([])
+  })
+
+  it('QA-W4: of two edits to one field, the later stays when it sets the field back to where the earlier one started (A-B-A)', async () => {
+    const read = project('Home', EARLIER - 2)
+    await saveForUser(userId, [read])
+    const tabA = { ...read, hours: 5, updatedAt: EARLIER } // 10 to 5, its save still on its way
+    const deviceB1 = { ...read, hours: 12, updatedAt: LATER } // 10 to 12
+    const deviceB2 = { ...read, hours: read.hours, updatedAt: LATER + 1 } // 12 back to 10: the latest edit
+
+    await saveForUser(userId, [deviceB1], new Map(), { [read.id]: { hours: read.hours } })
+    await saveForUser(userId, [deviceB2], new Map(), { [read.id]: { hours: 12 } })
+    await saveForUser(userId, [tabA], new Map(), { [read.id]: { hours: read.hours } })
+
+    expect((await stored(read.id)).hours).toBe(read.hours)
+  })
+
+  it('pins the electrical column a legacy row keeps after a named save of another field', async () => {
+    const seed = project('Legacy 2', EARLIER - 1)
+    await db.insert(projects).values({ ...seed, userId, electrical: {}, updatedAt: new Date(EARLIER - 1) })
+    await saveForUser(userId, [{ ...seed, hours: 7, updatedAt: LATER }], new Map(), { [seed.id]: { hours: seed.hours } })
+    const [row] = await db.select({ electrical: projects.electrical }).from(projects).where(eq(projects.id, seed.id))
+
+    expect(row!.electrical).toEqual({})
+  })
+})

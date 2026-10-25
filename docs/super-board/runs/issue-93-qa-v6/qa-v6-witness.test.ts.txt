@@ -1,0 +1,122 @@
+// QA v6 witnesses for issue 93 (not committed as a test: kept as .txt; ran as src/hooks/useProjectStore.qa93v6.test.ts).
+// One field edited in two places within one save's round trip while this tab's save of it failed or is still on its way:
+// the account keeps the edit made last (AC3) and the other fields (AC1, AC2), whether the other edit came from another
+// tab of this browser or from another device, in either order the saves land. Tabs A and B share one browser; C is
+// another device. Every edit is stamped 10 ms after the one before.
+import { afterAll, beforeEach, expect, test, vi } from 'vitest'
+import { ProjectSchema } from '../lib/schema'
+import { accounts, net, resetServer, session } from './fake-account-server'
+import { closeAll, editIn, focusTab, land, landAll, mountTab, openTabs, screenOf } from './project-store-tabs'
+
+vi.mock('../server/projects', () => import('./fake-account-server'))
+vi.mock('./useRootData', async () => {
+  const server = await import('./fake-account-server')
+  return { useRootData: () => ({ user: server.pageUser(), locale: 'en' }) }
+})
+
+const ANA = { id: 'user-ana' }
+const HOME = ProjectSchema.parse({ id: 'acct-home', name: 'Home', qty: {}, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4', updatedAt: 1000 })
+
+const accountHome = () => {
+  const home = accounts.get(ANA.id)!.find((p) => p.id === HOME.id)!
+  return { hours: home.hours, volts: home.volts, chemistry: home.chemistry }
+}
+const shown = (tab: string) => {
+  const home = screenOf(tab).projects.find((p) => p.id === HOME.id)!
+  return { hours: home.hours, volts: home.volts, chemistry: home.chemistry }
+}
+const heldCalls = () => net.held!.map((h) => `${h.by}:${h.call}`)
+
+async function open(layout: Record<string, string>): Promise<void> {
+  await closeAll()
+  resetServer()
+  session.user = ANA
+  accounts.set(ANA.id, [structuredClone(HOME)])
+  openTabs(layout)
+  let now = 1_000_000
+  vi.spyOn(Date, 'now').mockImplementation(() => (now += 10))
+  net.held = []
+  for (const name of Object.keys(layout)) {
+    await mountTab(name)
+    await landAll()
+  }
+}
+
+beforeEach(() => { vi.spyOn(console, 'error').mockImplementation(() => {}) })
+afterAll(async () => {
+  await closeAll()
+  vi.restoreAllMocks()
+})
+
+test('QA-W7: 5 h in A whose save fails, 12 h on C (saved), then 7 h in A, the latest edit: the account keeps 7 h', async () => {
+  await open({ A: 'laptop', C: 'phone' })
+  await editIn('A', { hours: 5 })
+  net.failing = new Set(['save'])
+  expect(await land(0)).toBe('A:save')
+  net.failing = new Set()
+  await editIn('C', { hours: 12 })
+  expect(await land(0)).toBe('C:save')
+  await editIn('A', { hours: 7 })
+  await landAll()
+
+  expect(accountHome()).toMatchObject({ hours: 7 })
+  expect(shown('A')).toMatchObject({ hours: 7 })
+})
+
+test("QA-W8: 5 h in A (save on its way), 12 h on C (lands first), then 8 h in A: A's first save is refused, its second lands, the account keeps 8 h", async () => {
+  await open({ A: 'laptop', C: 'phone' })
+  await editIn('A', { hours: 5 })
+  await editIn('C', { hours: 12 })
+  expect(heldCalls()).toEqual(['A:save', 'C:save'])
+  expect(await land(1)).toBe('C:save')
+  await editIn('A', { hours: 8 })
+  await landAll()
+
+  expect(accountHome()).toMatchObject({ hours: 8 })
+  expect(shown('A')).toMatchObject({ hours: 8 })
+})
+
+for (const bFirst of [true, false]) {
+  test(`QA-W9: 5 h in A whose save fails, 7 h in B (later), then 12 V in A carries the 5 h; ${bFirst ? "B's" : "A's"} save lands first: the account keeps 7 h and 12 V`, async () => {
+    await open({ A: 'laptop', B: 'laptop' })
+    await editIn('A', { hours: 5 })
+    net.failing = new Set(['save'])
+    expect(await land(0)).toBe('A:save')
+    net.failing = new Set()
+    await focusTab('B')
+    await landAll()
+    await editIn('B', { hours: 7 })
+    await focusTab('A')
+    await editIn('A', { volts: 12 })
+    expect(heldCalls()).toEqual(['B:save', 'A:save'])
+    await land(bFirst ? 0 : 1)
+    await landAll()
+
+    expect(accountHome()).toMatchObject({ hours: 7, volts: 12 })
+    for (const tab of ['A', 'B']) {
+      await focusTab(tab)
+      await landAll()
+      expect(shown(tab)).toMatchObject({ hours: 7, volts: 12 })
+    }
+  })
+}
+
+test('QA-W10: 12 h on C (saved), then 5 h in A while offline; back online, 12 V in A sends both: the account keeps 5 h and 12 V', async () => {
+  await open({ A: 'laptop', C: 'phone' })
+  await editIn('C', { hours: 12 })
+  await landAll()
+  await editIn('A', { hours: 5 })
+  net.offline = true
+  expect(await land(0)).toBe('A:save')
+  await focusTab('A')
+  expect(heldCalls()).toEqual([])
+  expect(shown('A')).toMatchObject({ hours: 5 })
+  net.offline = false
+  await editIn('A', { volts: 12 })
+  await landAll()
+
+  expect(accountHome()).toMatchObject({ hours: 5, volts: 12 })
+  await focusTab('C')
+  await landAll()
+  expect(shown('C')).toMatchObject({ hours: 5, volts: 12 })
+})

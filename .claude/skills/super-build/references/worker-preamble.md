@@ -57,7 +57,7 @@ on missing requirements and recheck each conditional helper before use.
    `references/decision-policy.md` → "Simplest solution first"; `verification-before-completion` before the
    final commit, and `mattpocock-skills:code-review` once against your own diff
    (see 6a). **When the situation calls for it:** `vitest` or
-   `playwright-best-practices` — picked by the localisation ladder in
+   `e2e-testing` — picked by the localisation ladder in
    `references/decision-policy.md`, **never by label**; `testing-strategy` when
    coverage scope is open; `resolving-merge-conflicts` on a live conflict.
 

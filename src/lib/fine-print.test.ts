@@ -26,13 +26,13 @@ describe.each(['en', 'es'] as const)('finePrint (%s)', (locale) => {
     const inverter = INVERTERS.find((i) => i.w === r.inverter.unitW)!
     const text = finePrint(t, r, DOD_PCT, locale)
     expect(text).toContain(es
-      ? `${unit.maxContinuousA} A continuos y ${unit.peakA} A pico durante ${unit.peakSeconds} s`
-      : `${unit.maxContinuousA} A continuous and ${unit.peakA} A peak for ${unit.peakSeconds} s`)
+      ? `${unit.maxContinuousA} A continuos y ${unit.peakA} A de corriente pico durante ${unit.peakSeconds} s`
+      : `${unit.maxContinuousA} A continuous and ${unit.peakA} A peak current for ${unit.peakSeconds} s`)
     expect(text).toContain(es ? `como máximo ${unit.maxParallel} en paralelo` : `at most ${unit.maxParallel} in parallel`)
     expect(text).toContain(es ? `${chem.shortCircuitPerAh} A por Ah en cortocircuito` : `${chem.shortCircuitPerAh} A per Ah into a short`)
     expect(text).toContain(es
-      ? `arranca hasta ${fmtW(inverter.surge, locale)} durante ${inverter.surgeSeconds} s`
-      : `surges to ${fmtW(inverter.surge, locale)} for ${inverter.surgeSeconds} s`)
+      ? `tiene una potencia pico de ${fmtW(inverter.surge, locale)} durante ${inverter.surgeSeconds} s`
+      : `has a ${fmtW(inverter.surge, locale)} surge rating for ${inverter.surgeSeconds} s`)
   })
 
   test('says the inverter sizes are continuous watts, not VA, at room temperature, with the headroom for power factor and heat', () => {
@@ -67,8 +67,8 @@ describe.each(['en', 'es'] as const)('finePrint (%s)', (locale) => {
     const inverter = INVERTERS.find((i) => i.w === r.inverter.unitW)!
     expect(r.inverter.count).toBeGreaterThan(1)
     expect(finePrint(t, r, DOD_PCT, locale)).toContain(es
-      ? `cada inversor de ${fmtW(inverter.w, locale)} arranca hasta ${fmtW(inverter.surge, locale)} durante ${inverter.surgeSeconds} s`
-      : `each ${fmtW(inverter.w, locale)} inverter surges to ${fmtW(inverter.surge, locale)} for ${inverter.surgeSeconds} s`)
+      ? `cada inversor de ${fmtW(inverter.w, locale)} tiene una potencia pico de ${fmtW(inverter.surge, locale)} durante ${inverter.surgeSeconds} s`
+      : `each ${fmtW(inverter.w, locale)} inverter has a ${fmtW(inverter.surge, locale)} surge rating for ${inverter.surgeSeconds} s`)
   })
 
   test('a panel kit adds the solar assumptions after the ratings', () => {

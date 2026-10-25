@@ -1,6 +1,9 @@
 import { expect, test } from 'vitest'
 import { addProject, currentProject, initialStore, patchCurrent } from './store'
-import { adoptStale, applyChanges, clampStamp, diffProjects, hasUnsent, importable, isForAccount, MAX_CLOCK_LEAD_MS, newestById, NOTHING_UNSENT, outgoing, unsentOf } from './sync'
+import {
+  adoptKept, adoptStale, applyChanges, clampStamp, diffProjects, editsOf, hasUnsent, importable, isForAccount, leftOut, MAX_CLOCK_LEAD_MS, mergeEdits, namedSave,
+  newestById, NOTHING_UNSENT, outgoing, parseNamed, readBack, rebase, recordEdits, unsentOf, type Edits, type Nameable,
+} from './sync'
 
 test('reports new and changed projects as upserts and missing ones as deletes', () => {
   const a = initialStore()
@@ -26,6 +29,30 @@ test('applyChanges overlays local edits on a server list', () => {
   const deleted = applyChanges(server, { upserts: [], deletes: ['p1'] })
   expect(deleted).toEqual([])
   expect(applyChanges(server, { upserts: [], deletes: [] })).toEqual(server)
+})
+
+test('rebase lays the fields edited here over the account copy, and takes a project added here whole', () => {
+  const before = initialStore()
+  const account = patchCurrent(before, { hours: 20, updatedAt: 5 }).projects
+  // 24 V, not the 48 V a new project starts with: an edit to the value already there changes only the stamp.
+  const after = addProject(patchCurrent(before, { volts: 24, updatedAt: 9 }), 'Office')
+
+  const merged = rebase(account, before.projects, after.projects)
+
+  expect(merged.map((p) => p.name)).toEqual(['Home', 'Office'])
+  expect(merged[0]).toMatchObject({ hours: 20, volts: 24, updatedAt: 9 })
+  expect(rebase([], before.projects, after.projects).map((p) => p.name)).toEqual(['Home', 'Office'])
+})
+
+test('rebase keeps a field edited here and set back to where it was, over the account copy', () => {
+  const before = initialStore()
+  const account = patchCurrent(before, { hours: 5, updatedAt: 5 }).projects
+  // Hours went 10 to 12 and back to 10 here while the account was read: the later edit, though nothing changed.
+  const after = patchCurrent(before, { updatedAt: 9 })
+  const edited: Edits = new Map([[before.currentId, ['hours']]])
+
+  expect(rebase(account, before.projects, after.projects, edited)[0]).toMatchObject({ hours: currentProject(before).hours, updatedAt: 9 })
+  expect(rebase(account, before.projects, after.projects)[0]).toMatchObject({ hours: 5, updatedAt: 9 })
 })
 
 test('a changed requester makes the project an upsert', () => {
@@ -59,6 +86,24 @@ test('adoptStale takes the newer copy of a project that was not edited since it 
 
   expect(adopted.map((p) => p.hours)).toEqual([sent[0]!.hours, 20])
   expect(adopted[0]).toBe(sent[0])
+})
+
+test("adoptKept follows another tab's list, with the copy here of a project where it is stamped later", () => {
+  const seed = initialStore().projects[0]!
+  const here = [
+    { ...seed, hours: 20, updatedAt: 30 },
+    { ...seed, id: 'p2', name: 'Office', hours: 4, updatedAt: 10 },
+    { ...seed, id: 'p3', name: 'Shed', updatedAt: 10 },
+  ]
+  const kept = [
+    { ...seed, hours: 12, updatedAt: 20 },
+    { ...seed, id: 'p2', name: 'Office', hours: 6, updatedAt: 40 },
+    { ...seed, id: 'p4', name: 'Barn', hours: 3, updatedAt: 5 },
+  ]
+
+  expect(adoptKept(here, kept).map((p) => [p.name, p.hours])).toEqual([['Home', 20], ['Office', 6], ['Barn', 3]])
+  // A tie goes to the kept copy, as the account takes the incoming copy on a tie.
+  expect(adoptKept([{ ...seed, hours: 20, updatedAt: 30 }], [{ ...seed, hours: 12, updatedAt: 30 }])[0]!.hours).toBe(12)
 })
 
 test('adoptStale leaves a project edited again since it was sent, and one that was not sent', () => {
@@ -141,4 +186,78 @@ test('a request acts on the signed-in account only from a page that was loaded f
   expect(isForAccount('user-ana', 'user-bea')).toBe(false)
   // A page built before requests said which account they were for.
   expect(isForAccount(undefined, 'user-bea')).toBe(true)
+})
+
+test('a save leaves out the fields its build does not know, by project; a battery-only kit still carries its solar', () => {
+  const home = currentProject(initialStore())
+  // A build older than solar and duty overrides sends neither.
+  const { solar: _solar, dutyOverrides: _duty, ...older } = { ...home, id: 'p-older' }
+
+  expect(leftOut([older, { ...home, id: 'p-whole' }, { ...home, id: 'p-battery-only', solar: null }])).toEqual(new Map([
+    ['p-older', ['solar', 'dutyOverrides']],
+    ['p-whole', []],
+    ['p-battery-only', []],
+  ]))
+})
+
+test('an edit names the fields it changed, and a project it added as all of it', () => {
+  const before = addProject(initialStore(), 'Office').projects
+  const after = [{ ...before[0]!, hours: 24, volts: 12 as const, updatedAt: 99 }, before[1]!, project('p-new')]
+
+  expect(editsOf(before, diffProjects(before, after).upserts)).toEqual(new Map<string, unknown>([
+    [before[0]!.id, ['hours', 'volts']],
+    ['p-new', 'all'],
+  ]))
+})
+
+test('edits carried from a failed save name the fields of both saves once, and a save names only those it sends', () => {
+  const earlier: Edits = new Map<string, readonly Nameable[] | 'all'>([['p1', ['hours']], ['p2', 'all']])
+  const later: Edits = new Map<string, readonly Nameable[] | 'all'>([['p1', ['hours', 'volts']], ['p2', ['name']], ['p3', ['qty']]])
+  const merged = mergeEdits(earlier, later)
+
+  expect(merged).toEqual(new Map<string, unknown>([['p1', ['hours', 'volts']], ['p2', 'all'], ['p3', ['qty']]]))
+  const sending = [{ ...project('p1'), updatedAt: 30 }, project('p2')]
+  expect(namedSave(sending, merged, new Map()).named).toEqual({ p1: { hours: 30, volts: 30 } })
+})
+
+test("a save sends each field it names as its last edit here set it, with that edit's stamp, though the screen shows a later copy", () => {
+  const start = { ...project('p1'), updatedAt: 10 }
+  const hours = { ...start, hours: 5, updatedAt: 20 }
+  const volts = { ...hours, volts: 12 as const, updatedAt: 40 }
+  let own = recordEdits(new Map(), [hours], editsOf([start], [hours]))
+  own = recordEdits(own, [volts], editsOf([hours], [volts]))
+  // The screen took another tab's later copy of the hours since: that tab's save carries them.
+  const shown = { ...volts, hours: 7, updatedAt: 50 }
+
+  expect(namedSave([shown], new Map([['p1', ['hours']]]), own)).toEqual({ projects: [{ ...shown, hours: 5 }], named: { p1: { hours: 20 } } })
+  expect(namedSave([shown], new Map([['p1', ['hours', 'volts']]]), own).named).toEqual({ p1: { hours: 20, volts: 40 } })
+  expect(namedSave([shown], new Map([['p1', 'all']]), own)).toEqual({ projects: [shown], named: {} })
+})
+
+test('a save names only fields a save can write, each with a stamp', () => {
+  expect(parseNamed({ p1: { hours: 20, requester: 30 } })).toEqual({ p1: { hours: 20, requester: 30 } })
+  expect(parseNamed(undefined)).toEqual({})
+  expect(() => parseNamed({ p1: { updatedAt: 20 } })).toThrow('cannot name the field updatedAt')
+  expect(() => parseNamed({ p1: ['hours'] })).toThrow()
+  expect(() => parseNamed({ p1: { hours: -1 } })).toThrow()
+  expect(() => parseNamed({ p1: { hours: 1.5 } })).toThrow()
+})
+
+test('a named save takes back only the fields the account holds at another value, where the screen still shows what was sent', () => {
+  const sent = { ...seed!, hours: 5, name: 'Renamed' }
+  const account = { ...seed!, hours: 20, name: 'Renamed', volts: 12 as const }
+  const named = { [seed!.id]: { hours: 1, name: 1 } }
+
+  expect(adoptStale([sent], [sent], [account], named)).toEqual([{ ...sent, hours: 20 }])
+  expect(adoptStale([{ ...sent, hours: 6 }], [sent], [account], named)).toEqual([{ ...sent, hours: 6 }])
+})
+
+test('a list read again keeps a copy this browser stamped later, and drops a project the account lacks unless a save is on its way', () => {
+  const here = [{ ...project('p1', 24), updatedAt: 30 }, { ...project('p2'), updatedAt: 5 }, { ...project('p-added'), updatedAt: 40 }]
+  const list = [{ ...project('p1', 10), updatedAt: 20 }, { ...project('p2', 6), updatedAt: 25 }]
+
+  expect(readBack(here, list, false, new Set()).map((p) => [p.id, p.hours])).toEqual([['p1', 24], ['p2', 6]])
+  expect(readBack(here, list, true, new Set(['p1', 'p2'])).map((p) => [p.id, p.hours])).toEqual([['p1', 24], ['p2', 6], ['p-added', 10]])
+  // The account held it once, so it was deleted there, whatever save is on its way.
+  expect(readBack(here, list, true, new Set(['p-added'])).map((p) => p.id)).toEqual(['p1', 'p2'])
 })

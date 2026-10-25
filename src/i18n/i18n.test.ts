@@ -4,7 +4,7 @@ import { CATALOG_SNAPSHOT } from '../lib/catalog-snapshot'
 import { CUSTOM_DUTY_MIN_PCT, EMPTY_FORM, parseCustom } from '../lib/custom'
 import { en } from './en'
 import { es } from './es'
-import { applianceName, applianceNote, batteryCount, deleteProjectText, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
+import { applianceCount, applianceName, applianceNote, batteryCount, deleteProjectText, getDictionary, inverterSize, isLocale, resolveLocale, tr, trq } from './index'
 import { ITEM_IDS } from '../lib/quote-items'
 
 describe('dictionaries', () => {
@@ -83,10 +83,10 @@ describe('dictionaries', () => {
     const p = { needA: 278, maxA: 100, strings: 1, unitLabel: '12 V 100 Ah LiFePO₄', seconds: 1, fuseA: 175, count: 2 }
     for (const q of [p, { ...p, chemistry: 'lifepo4' as const }]) {
       expect(en.warnings.bankDischarge(q)).toBe('The inverter draws up to 278 A at full load; 1 × 12 V 100 Ah LiFePO₄ allows 100 A continuous and its BMS would cut out. Pick a larger unit or a higher voltage.')
-      expect(en.warnings.bankPeak(q)).toBe("Start-up pulls 278 A for 1 s; the bank's BMS allows 100 A peak and may shut off. Let fewer motors start at once or add a string.")
+      expect(en.warnings.bankPeak(q)).toBe("Start-up pulls 278 A for 1 s; the bank's BMS allows 100 A peak current and may shut off. Let fewer motors start at once or add a string.")
       expect(en.warnings.fuseAboveBank(q)).toBe('The 2 × 175 A fuses are sized for more than the 100 A the bank can deliver, so the BMS, not a fuse, would trip on an overload. Pick a bank that delivers more.')
       expect(es.warnings.bankDischarge(q)).toBe('El inversor toma hasta 278 A a plena carga; 1 × 12 V 100 Ah LiFePO₄ permite 100 A continuos y su BMS cortaría. Elige una unidad mayor o más voltaje.')
-      expect(es.warnings.bankPeak(q)).toBe('El arranque exige 278 A durante 1 s; el BMS del banco permite 100 A pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.')
+      expect(es.warnings.bankPeak(q)).toBe('El arranque exige 278 A durante 1 s; el BMS del banco permite 100 A de corriente pico y podría apagarse. Deja que arranquen menos motores a la vez o agrega una rama.')
       expect(es.warnings.fuseAboveBank(q)).toBe('Los 2 fusibles de 175 A están dimensionados para más de los 100 A que el banco puede entregar, así que cortaría el BMS y no un fusible en una sobrecarga. Elige un banco que entregue más.')
     }
   })
@@ -182,6 +182,17 @@ describe('batteryCount', () => {
     expect(batteryCount(en, 5)).toBe('5 batteries')
     expect(batteryCount(es, 1)).toBe('1 batería')
     expect(batteryCount(es, 2)).toBe('2 baterías')
+  })
+})
+
+describe('applianceCount', () => {
+  test('counts appliances alone when none is more than one of a kind, in both languages', () => {
+    expect(applianceCount(en, 6, 6)).toBe('6 appliances')
+    expect(applianceCount(es, 6, 6)).toBe('6 aparatos')
+  })
+  test('counts appliances first and names the units when they differ, in both languages', () => {
+    expect(applianceCount(en, 6, 7)).toBe('6 appliances (7 units)')
+    expect(applianceCount(es, 6, 7)).toBe('6 aparatos (7 unidades)')
   })
 })
 

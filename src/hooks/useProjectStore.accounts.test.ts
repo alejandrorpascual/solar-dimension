@@ -359,7 +359,8 @@ test("a tab left open across a sign-out and another account's sign-in cannot sav
 
 test("a save answered after another tab released the copy writes it back as the account's, not as anybody's work", async () => {
   await anaWithClient()
-  accounts.set(ANA.id, account(ANA).map((p) => ({ ...p, updatedAt: clock.now() + HOUR_MS })))
+  // Another device set the hours later than this tab's edit, so the account keeps its own.
+  accounts.set(ANA.id, account(ANA).map((p) => ({ ...p, hours: 7, updatedAt: clock.now() + HOUR_MS })))
   let answer!: () => void
   net.gate = new Promise<void>((resolve) => { answer = resolve })
   await edit((h) => h.commit(patchCurrent(h.store, { hours: 5 })))

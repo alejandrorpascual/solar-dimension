@@ -35,17 +35,17 @@ describe('handoffSummary', () => {
 })
 
 describe('handoffRowMeta', () => {
-  test('a working file says what it is doing and about how long it takes', () => {
-    expect(handoffRowMeta(en, 'working', 'processing', null)).toBe('Reading · about 30 s')
-    expect(handoffRowMeta(es, 'working', 'queued', null)).toBe('En espera · unos 30 s')
-    expect(handoffRowMeta(en, 'working', 'uploading', null)).toBe('Uploading · about 30 s')
+  test('a working file says what it is doing, about how long it takes, and how long it has taken so far', () => {
+    expect(handoffRowMeta(en, 'working', 'processing', null, 12)).toBe('Reading · about 30 s · 0:12 so far')
+    expect(handoffRowMeta(es, 'working', 'queued', null, 0)).toBe('En espera · unos 30 s · 0:00 hasta ahora')
+    expect(handoffRowMeta(en, 'working', 'uploading', null, 75)).toBe('Uploading · about 30 s · 1:15 so far')
   })
   test('a finished file says how it ended; a refused one says why', () => {
-    expect(handoffRowMeta(en, 'failed', 'failed', null)).toBe("Couldn't read it")
-    expect(handoffRowMeta(en, 'done', 'ready', null)).toBe('Read')
-    expect(handoffRowMeta(en, 'review', 'needs_review', null)).toBe('Check the numbers')
-    expect(handoffRowMeta(en, 'rejected', 'uploading', { code: 'type' })).toBe(en.quotes.errType)
-    expect(handoffRowMeta(en, 'rejected', 'uploading', null)).toBe(en.quotes.errUpload)
+    expect(handoffRowMeta(en, 'failed', 'failed', null, 40)).toBe("Couldn't read it")
+    expect(handoffRowMeta(en, 'done', 'ready', null, 40)).toBe('Read')
+    expect(handoffRowMeta(en, 'review', 'needs_review', null, 40)).toBe('Check the numbers')
+    expect(handoffRowMeta(en, 'rejected', 'uploading', { code: 'type' }, 0)).toBe(en.quotes.errType)
+    expect(handoffRowMeta(en, 'rejected', 'uploading', null, 0)).toBe(en.quotes.errUpload)
   })
 })
 
@@ -79,8 +79,8 @@ describe('triesLeftText and readyInText', () => {
     expect(triesLeftText(es, 1)).toBe('Te quedan 2 intentos')
     expect(triesLeftText(es, MAX_RETRIES - 1)).toBe('Te queda 1 intento')
   })
-  test('says about when a quote being read will be ready', () => {
-    expect(readyInText(en)).toBe('Ready in about 30 s')
-    expect(readyInText(es)).toBe('Lista en unos 30 s')
+  test('says about when a quote being read will be ready, and how long it has taken so far', () => {
+    expect(readyInText(en, 0)).toBe('Ready in about 30 s · 0:00 so far')
+    expect(readyInText(es, 47)).toBe('Lista en unos 30 s · 0:47 hasta ahora')
   })
 })

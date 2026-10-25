@@ -1,0 +1,70 @@
+// QA v3 witness QA-W1 for issue #93. Copy to src/hooks/ as a .test.ts to run it; red on fe731be:
+// account hours 10 (want 20), marker cleared by this tab's own save, screen 10 h after coming back.
+// Not committed under src/: a red test would fail CI.
+
+import { afterAll, afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { hasPendingSave, markPendingSave } from '../lib/persistence'
+import type { Project } from '../lib/schema'
+import { patchCurrent } from '../lib/store'
+import { account, accounts, net, resetServer, session } from './fake-account-server'
+import { comeBack, edit, fakeStorage, home, mount, openBrowser, otherTabKeeps, storedStore, unmount, type FakeStorage } from './project-store-harness'
+
+vi.mock('../server/projects', () => import('./fake-account-server'))
+vi.mock('./useRootData', async () => {
+  const server = await import('./fake-account-server')
+  return { useRootData: () => ({ user: server.pageUser(), locale: 'en' }) }
+})
+
+const ANA = { id: 'user-ana' }
+let browser: FakeStorage
+beforeEach(async () => {
+  await unmount()
+  resetServer()
+  browser = fakeStorage()
+  openBrowser(browser)
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+})
+afterEach(() => { vi.restoreAllMocks() })
+afterAll(async () => { await unmount() })
+
+/** Tab A's save lands under the server's rule: a copy not older than the stored one replaces it. */
+function tabASaveLands(projects: Project[]) {
+  const stored = new Map(account(ANA).map((p) => [p.id, p]))
+  accounts.set(ANA.id, account(ANA).map((row) => {
+    const incoming = projects.find((p) => p.id === row.id)
+    return incoming && incoming.updatedAt >= (stored.get(row.id)?.updatedAt ?? -Infinity) ? structuredClone(incoming) : row
+  }))
+}
+
+test('QA-W1: this tab\'s own save lands while tab A\'s hours save is on its way; coming back here, then volts here, keeps A\'s hours', async () => {
+  const realNow = Date.now.bind(Date)
+  let t = realNow()
+  vi.spyOn(Date, 'now').mockImplementation(() => (t += 10))
+  session.user = ANA
+  await mount()
+  // This tab (B) switches chemistry: its save is held in flight.
+  let answer!: () => void
+  net.gate = new Promise<void>((resolve) => { answer = resolve })
+  await edit((h) => h.commit(patchCurrent(h.store, { chemistry: 'agm' })))
+  // The user moves to tab A and sets hours 20: A keeps its copy (built on B's, which it heard) and marks its save pending.
+  const tabA = patchCurrent(storedStore(browser)!, { hours: 20 })
+  markPendingSave(browser)
+  await otherTabKeeps(browser, tabA)
+  // B's own save lands; B has nothing else in flight.
+  net.gate = null
+  answer()
+  await edit(() => undefined)
+  const markerAfterB = hasPendingSave(browser)
+  // The user comes back to B before A's save lands; B's read answers with the account as it is now.
+  const back = await comeBack()
+  // A's save lands.
+  tabASaveLands(tabA.projects)
+  // Volts here.
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: 24 })))
+
+  expect({ markerAfterB, screenAfterBack: home(back.store.projects).hours, account: home(account(ANA)) }).toMatchObject({
+    markerAfterB: true,
+    screenAfterBack: 20,
+    account: { hours: 20, volts: 24, chemistry: 'agm' },
+  })
+})

@@ -182,9 +182,10 @@ test('an edit the account refuses as older is replaced on screen by the newer co
   expect(browser.getItem(PENDING_KEY)).toBeNull()
 })
 
-test('two quick edits the account refuses both end on the copy the account holds', async () => {
+test('two quick hours edits the account refuses end on its hours, and the rename made with the second is kept', async () => {
   session.user = ANA
   await mount()
+  // Another device set the hours later than these edits; nobody else renamed the project.
   accounts.set(ANA.id, account(ANA).map((p) => ({ ...p, hours: 20, updatedAt: clock.now() + HOUR_MS })))
   net.calls = []
 
@@ -194,9 +195,8 @@ test('two quick edits the account refuses both end on the copy the account holds
   })
 
   expect(net.calls).toEqual(['save', 'save'])
-  expect(home(account(ANA)).hours).toBe(20)
-  expect(names(after.store.projects)).toEqual(['Home'])
-  expect(after.store.projects[0]?.hours).toBe(20)
+  expect(account(ANA).map((p) => [p.name, p.hours])).toEqual([['Renamed since', 20]])
+  expect(after.store.projects.map((p) => [p.name, p.hours])).toEqual([['Renamed since', 20]])
   expect(after.syncError).toBe(false)
 })
 

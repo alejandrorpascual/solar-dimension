@@ -1,0 +1,42 @@
+// QA v5 harness only (not committed): src/db/client.ts over a throwaway local Postgres 15 with every drizzle/ migration
+// applied, reached through psql. The neon-http driver needs Neon's HTTP endpoint, so this swaps in drizzle's pg-proxy
+// driver: the same pg-core query builder, so the SQL saveForUser sends is the SQL Postgres runs here.
+import { execFileSync } from 'node:child_process'
+import { drizzle } from 'drizzle-orm/pg-proxy'
+import * as schema from '../src/db/schema'
+
+const PSQL = '/opt/homebrew/opt/postgresql@15/bin/psql'
+const ARGS = ['-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-h', '127.0.0.1', '-p', '54395', '-U', 'qa', '-d', 'qa93']
+
+function literal(value: unknown): string {
+  if (value === null || value === undefined) return 'NULL'
+  if (typeof value === 'number' || typeof value === 'bigint') return String(value)
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  if (value instanceof Date) return `'${value.toISOString()}'`
+  return `'${String(value).replace(/'/g, "''")}'`
+}
+
+export const statements: string[] = []
+
+function run(query: string, params: unknown[], method: string): unknown[][] {
+  const inlined = query.replace(/\$(\d+)/g, (_, n: string) => literal(params[Number(n) - 1]))
+  statements.push(inlined)
+  if (method !== 'all') {
+    execFileSync(PSQL, [...ARGS, '-c', inlined], { encoding: 'utf8' })
+    return []
+  }
+  const out = execFileSync(PSQL, [...ARGS, '-c', `with r as (${inlined}) select coalesce(json_agg(r), '[]'::json) from r`], { encoding: 'utf8' })
+  return (JSON.parse(out.trim()) as Record<string, unknown>[]).map((row) => Object.values(row))
+}
+
+const base = drizzle(async (query, params, method) => ({ rows: run(query, params, method) }), { schema })
+
+export const db = Object.assign(base, {
+  async batch(queries: readonly PromiseLike<unknown>[]) {
+    const results: unknown[] = []
+    for (const query of queries) results.push(await query)
+    return results
+  },
+})
+export const dbTarget = 'qa93-local-postgres'
+export type Db = typeof db

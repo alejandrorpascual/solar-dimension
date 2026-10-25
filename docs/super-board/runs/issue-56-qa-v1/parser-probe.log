@@ -1,0 +1,17 @@
+parseAmount / parseTotal on head c53d76e (src/lib/parse-amount.ts, src/lib/quote-guards.ts)
+"6485 + 18%"           parseAmount => null       parseTotal => null       # AC1 refused
+"6,485.00 (2 pagos)"   parseAmount => null       parseTotal => null       # AC1 refused
+"1e5"                  parseAmount => null       parseTotal => null       # AC1 refused
+"$6,480.50"            parseAmount => 6480.5     parseTotal => 6480.5     # AC2 parses
+"6.480,50"             parseAmount => 6480.5     parseTotal => 6480.5     # AC2 parses
+"RD$ 6,480"            parseAmount => 6480       parseTotal => 6480       # AC2 parses
+"50,000,000"           parseAmount => 50000000   parseTotal => 50000000   # AC4 fits the cap
+"650 mil"              parseAmount => 650        parseTotal => 650        # HIGH gap: Spanish for 650 thousand
+"1,5 mil"              parseAmount => 1.5        parseTotal => 1.5        # HIGH gap: Spanish for 1.5 thousand
+"6480 IVA"             parseAmount => 6480       parseTotal => 6480       # HIGH gap: IVA is not a currency code
+"6485 más"             parseAmount => 6485       parseTotal => 6485       # HIGH gap: más is not a currency code
+"6485 18"              parseAmount => 648518     parseTotal => 648518     # MEDIUM gap: group size unchecked
+"Bs. 1.000"            parseAmount => null       parseTotal => null       # MEDIUM gap: VES mark refused (safe direction)
+"Bs 1.000"             parseAmount => null       parseTotal => null       # MEDIUM gap: VES mark refused (safe direction)
+"DOP 6,480"            parseAmount => 6480       parseTotal => 6480       # currency code still parses
+"6480 usd"             parseAmount => 6480       parseTotal => 6480       # currency code still parses

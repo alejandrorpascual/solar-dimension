@@ -35,15 +35,17 @@ vi.mock('../../server/quotes/api', () => ({
 /** A small home kit, 48 V LiFePO4 for 10 hours, that SolarTec's 12 kW inverter and 41 kWh bank fit with room to spare. */
 const ESSENTIALS = { fridge: 1, lights: 1, router: 1, tv: 1, phone: 2, laptop: 1 }
 
-/** The verdict page for a project with these appliance counts and SolarTec's quote, read and ready. */
-function verdictHtml(locale: Locale, qty: Record<string, number>): string {
+type QuoteData = VerdictData['quotes'][number]
+
+/** The verdict page for a project with these appliance counts and SolarTec's quote, read and ready unless `over` says otherwise. */
+function verdictHtml(locale: Locale, qty: Record<string, number>, over: Partial<QuoteData> = {}): string {
   page.locale = locale
   const project = ProjectSchema.parse({ id: 'p1', name: 'Home', qty, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4' })
   const data: VerdictData = {
     project, musts: DEFAULT_MUSTS, readAt: 0,
     quotes: [{
       id: 'solartec', fileName: 'solartec.pdf', label: null, status: 'ready', extraction: SAMPLE_QUOTES.solartec, overrides: {},
-      totalOverride: null, createdAt: 0, seenAt: 0, retries: 0, pages: 2,
+      totalOverride: null, createdAt: 0, seenAt: 0, retries: 0, pages: 2, ...over,
     }],
   }
   return renderToStaticMarkup(createElement(VerdictView, { data, progress: null, onReload: async () => {} }))
@@ -79,5 +81,21 @@ describe('the verdict for a kit missing an appliance', () => {
     expect(head(es).title).toBe('A tu kit le faltan aparatos')
     expect(head(es).sub).toMatch(/^No se pudo cargar 1 aparato de este proyecto/)
     expect(es).not.toContain('qpanel--best')
+  })
+})
+
+describe('a quote ranked on a total the user typed', () => {
+  /** SolarTec with its total read as 648, so it ranks on the 6,480 the user typed. */
+  const typed: Partial<QuoteData> = { status: 'needs_review', extraction: { ...SAMPLE_QUOTES.solartec, total: 648 }, totalOverride: 6480 }
+
+  test('says so on its card, with Change total to type another, in English and Spanish', () => {
+    const en = verdictHtml('en', ESSENTIALS, typed)
+    expect(en).toContain('Total entered by you')
+    expect(en).toContain('<button type="button" class="qlink">Change total</button>')
+    expect(verdictHtml('es', ESSENTIALS, typed)).toContain('<button type="button" class="qlink">Cambiar total</button>')
+  })
+
+  test('a quote ranked on the total that was read offers no Change', () => {
+    expect(verdictHtml('en', ESSENTIALS)).not.toContain('Change total')
   })
 })

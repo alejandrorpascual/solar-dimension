@@ -1,0 +1,32 @@
+{
+  "desktop": {
+    "options": [
+      "—",
+      "inverter",
+      "conventional"
+    ],
+    "selectedText": "—",
+    "notSetOptionCount": 0,
+    "ariaSnapshot": "- combobox \"Compressor\":\n  - option \"—\" [selected]\n  - option \"inverter\"\n  - option \"conventional\""
+  },
+  "tablet": {
+    "options": [
+      "—",
+      "inverter",
+      "conventional"
+    ],
+    "selectedText": "—",
+    "notSetOptionCount": 0,
+    "ariaSnapshot": "- combobox \"Compressor\":\n  - option \"—\" [selected]\n  - option \"inverter\"\n  - option \"conventional\""
+  },
+  "mobile": {
+    "options": [
+      "—",
+      "inverter",
+      "conventional"
+    ],
+    "selectedText": "—",
+    "notSetOptionCount": 0,
+    "ariaSnapshot": "- combobox \"Compressor\":\n  - option \"—\" [selected]\n  - option \"inverter\"\n  - option \"conventional\""
+  }
+}

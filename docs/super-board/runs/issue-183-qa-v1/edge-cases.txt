@@ -1,0 +1,40 @@
+AC4 inverter volts 10.2 []
+AC4 inverter volts 13.8 []
+AC4 inverter volts 20.4 []
+AC4 inverter volts 27.6 []
+AC4 inverter volts 55.2 []
+AC4 inverter volts 30.6 []
+AC4 inverter volts 41.4 []
+AC4 inverter volts 40.8 []
+AC4 inverter volts 13.9 (past) [{"key":"inverter:eg4:6000xp","messages":["13.9 V is more than 15% from 12, 24, 36 or 48 V: check the battery voltage."]}]
+AC4 inverter volts 10.1 (past) [{"key":"inverter:eg4:6000xp","messages":["10.1 V is more than 15% from 12, 24, 36 or 48 V: check the battery voltage."]}]
+AC4 inverter volts 55.3 (past) [{"key":"inverter:eg4:6000xp","messages":["55.3 V is more than 15% from 12, 24, 36 or 48 V: check the battery voltage."]}]
+AC4 battery nominalV 13.8 (kWh/Ah consistent) []
+AC4 battery nominalV 55.2 (kWh/Ah consistent) []
+AC4 kWh 4.608 at 51.2x100 []
+AC4 kWh 5.632 at 51.2x100 []
+AC4 kWh 4.6 at 51.2x100 (past) [{"key":"battery:pytes:v5","messages":["4.6 kWh is 10% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]
+AC4 kWh 4.607 at 51.2x100 (past) [{"key":"battery:pytes:v5","messages":["4.607 kWh is 10% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]
+AC4 kWh 5.633 at 51.2x100 (past) [{"key":"battery:pytes:v5","messages":["5.633 kWh is 10% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]
+AC4 kWh 5.64 at 51.2x100 (past) [{"key":"battery:pytes:v5","messages":["5.64 kWh is 10% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]
+AC4 kWh 4.32 at 48x100 []
+AC4 kWh 5.28 at 48x100 []
+AC1 stored 51.2V 100Ah no kWh, dry-run kWh 6 alone {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":["specs.kWh"],"conflicts":[]}],"warnings":[{"key":"battery:pytes:v5","messages":["6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]}
+AC1 stored 100Ah 6kWh no volts, dry-run nominalV 51.2 alone {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":["specs.nominalV"],"conflicts":[]}],"warnings":[{"key":"battery:pytes:v5","messages":["6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]}
+AC1 stored 51.2V 6kWh no Ah, dry-run ah 100 alone {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":["specs.ah"],"conflicts":[]}],"warnings":[{"key":"battery:pytes:v5","messages":["6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]}
+AC1 stored 51.2V 100Ah no kWh, dry-run kWh 5.12 alone (consistent) {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":["specs.kWh"],"conflicts":[]}],"warnings":[]}
+AC2 stored 100A continuous, dry-run peakA 80 alone {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":["specs.peakA"],"conflicts":[]}],"warnings":[{"key":"battery:pytes:v5","messages":["Peak 80 A is below the 100 A continuous: check the peak and continuous current."]}]}
+AC2 stored 100A continuous, dry-run peakA 200 alone {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":["specs.peakA"],"conflicts":[]}],"warnings":[]}
+AC2 stored peak 80A, dry-run maxContinuousA 100 alone {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":["specs.maxContinuousA"],"conflicts":[]}],"warnings":[{"key":"battery:pytes:v5","messages":["Peak 80 A is below the 100 A continuous: check the peak and continuous current."]}]}
+AC2 stored 6000W continuous, dry-run surge 5000W alone {"changes":[{"key":"inverter:eg4:6000xp","status":"updated","fills":["specs.surges"],"conflicts":[]}],"warnings":[{"key":"inverter:eg4:6000xp","messages":["A surge of 5000 W is below the 6000 W continuous: check the surge levels."]}]}
+AC2 stored surge 5000W, dry-run continuousW 6000 alone {"changes":[{"key":"inverter:eg4:6000xp","status":"updated","fills":["specs.continuousW"],"conflicts":[]}],"warnings":[{"key":"inverter:eg4:6000xp","messages":["A surge of 5000 W is below the 6000 W continuous: check the surge levels."]}]}
+AC3 odd stored battery, dry-run warrantyYears alone {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":["specs.warrantyYears"],"conflicts":[]}],"warnings":[]}
+AC3 odd stored battery, dry-run chemistry alone {"changes":[{"key":"battery:pytes:v5","status":"unchanged","fills":[],"conflicts":[]}],"warnings":[]}
+AC3 odd stored inverter, dry-run warrantyYears alone {"changes":[{"key":"inverter:eg4:6000xp","status":"unchanged","fills":[],"conflicts":[]}],"warnings":[]}
+AC3 odd stored battery, dry-run peakA 80 alone (touches peak only) {"changes":[{"key":"battery:pytes:v5","status":"unchanged","fills":[],"conflicts":[]}],"warnings":[{"key":"battery:pytes:v5","messages":["Peak 80 A is below the 100 A continuous: check the peak and continuous current."]}]}
+conflict, replace off: stored 5.12 kWh, dry-run kWh 6 alone {"changes":[{"key":"battery:pytes:v5","status":"conflicts","fills":[],"conflicts":["specs.kWh"]}],"warnings":[]}
+conflict, replace off: stored 5.12 kWh, dry-run full battery with 6 kWh {"changes":[{"key":"battery:pytes:v5","status":"conflicts","fills":[],"conflicts":["specs.kWh"]}],"warnings":[{"key":"battery:pytes:v5","messages":["6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]}
+replace on: stored 5.12 kWh, dry-run kWh 6 alone {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":[],"conflicts":[]}],"warnings":[{"key":"battery:pytes:v5","messages":["6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]}
+new product with 6 kWh (message once) [{"key":"battery:pytes:v5","messages":["6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]
+two products: new inverter + kWh fill over stored battery {"changes":[{"key":"inverter:eg4:6000xp","status":"new","fills":[],"conflicts":[]},{"key":"battery:pytes:v5","status":"updated","fills":["specs.kWh"],"conflicts":[]}],"warnings":[{"key":"battery:pytes:v5","messages":["6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]}
+two products: kWh fill over stored battery + new inverter {"changes":[{"key":"battery:pytes:v5","status":"updated","fills":["specs.kWh"],"conflicts":[]},{"key":"inverter:eg4:6000xp","status":"new","fills":[],"conflicts":[]}],"warnings":[{"key":"battery:pytes:v5","messages":["6 kWh is 17% off 51.2 V × 100 Ah = 5.12 kWh: check the energy, the voltage and the amp-hours."]}]}

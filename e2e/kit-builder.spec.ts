@@ -57,7 +57,7 @@ test('the kit edits appliances and the window in place, shows what moved, and un
   await page.goto('/?step=4')
   await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
   await fontsReady(page)
-  const summary = page.getByText(/^Backs up \d+ appliances for/)
+  const summary = page.getByText(/^Backs up \d+ appliances/)
   await expect(summary).toContainText('for 10 hours')
   await page.getByRole('button', { name: /^Appliances · 6/ }).click()
   const panel = page.locator('.qedit__panel')
@@ -78,6 +78,21 @@ test('the kit edits appliances and the window in place, shows what moved, and un
   await expect(panel.getByLabel('Quantity of Refrigerator')).toHaveValue('1')
   await expect(page.locator('.stat__delta')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
+})
+
+test('the summary, the Appliances chip and the project card count the same appliances, and the summary names the units', async ({ page }) => {
+  // The starting Home project has 6 appliances and 7 units: two phone chargers.
+  await page.goto('/?step=4')
+  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await expect(page.getByText(/^Backs up 6 appliances \(7 units\) for 10 hours/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Appliances · 6$/ })).toBeVisible()
+  await showProjects(page)
+  await expect(openProjectCard(page)).toContainText('48 V · 10 h · 6 appliances')
+
+  await switchLanguage(page, 'Español')
+  await expect(page.getByText(/^Respalda 6 aparatos \(7 unidades\) durante 10 horas/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Aparatos · 6$/ })).toBeVisible()
+  await expect(openProjectCard(page)).toContainText('48 V · 10 h · 6 aparatos')
 })
 
 test('the full list is split into one labeled section per category', async ({ page }) => {
@@ -101,15 +116,17 @@ test('the full list is split into one labeled section per category', async ({ pa
 
 test('a condo can type 32 cameras, and the AC list is grouped by compressor type', async ({ page }) => {
   await page.goto('/')
-  const footer = page.getByText(/^Home · \d+ appliances ·/)
-  const before = Number((await footer.textContent())!.match(/(\d+) appliances/)![1])
+  // The footer names the units when they differ from the appliances: "6 appliances (7 units)", else "6 appliances".
+  const footer = page.getByText(/^Home · \d+ appliances/)
+  const footerText = (await footer.textContent())!
+  const before = Number(/\((\d+) units\)/.exec(footerText)?.[1] ?? /(\d+) appliances/.exec(footerText)![1])
   await page.getByRole('button', { name: 'Security', exact: true }).click()
   await page.getByRole('button', { name: 'Add CCTV camera' }).click()
   const field = page.getByRole('textbox', { name: 'Quantity of CCTV camera' })
   await field.fill('32')
   await field.press('Enter')
   await expect(field).toHaveValue('32')
-  await expect(footer).toContainText(`${before + 32} appliances`)
+  await expect(footer).toContainText(`(${before + 32} units)`)
   await field.fill('500')
   await field.blur()
   await expect(field).toHaveValue('100')

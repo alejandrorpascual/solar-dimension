@@ -1,0 +1,4 @@
+import { defineConfig } from 'vitest/config'
+
+// QA harness only (not committed): the issue 93 witnesses on a local Postgres.
+export default defineConfig({ test: { include: ['src/server/qa93-local-pg.qa.test.ts'], environment: 'node' } })

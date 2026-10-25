@@ -1,0 +1,43 @@
+// QA v6 harness only (not committed): runs drizzle's own migrator (timestamp rule: a migration runs when its journal
+// `when` is later than the last row in drizzle.__drizzle_migrations) over a throwaway local Postgres 15, reached
+// through psql. Usage: node .qa93/migrate.ts <database> [<last journal idx to include>]
+import { execFileSync } from 'node:child_process'
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { drizzle } from 'drizzle-orm/pg-proxy'
+import { migrate } from 'drizzle-orm/pg-proxy/migrator'
+
+const PSQL = '/opt/homebrew/opt/postgresql@15/bin/psql'
+const [database, lastIdx] = process.argv.slice(2)
+if (!database) throw new Error('usage: node .qa93/migrate.ts <database> [<last idx>]')
+const ARGS = ['-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-h', '127.0.0.1', '-p', '54396', '-U', 'qa', '-d', database]
+
+const rowsOf = (query: string): Record<string, unknown>[] =>
+  JSON.parse(execFileSync(PSQL, [...ARGS, '-c', `with r as (${query}) select coalesce(json_agg(r), '[]'::json) from r`], { encoding: 'utf8' }).trim())
+
+const db = drizzle(async (query, params) => {
+  if (params.length) throw new Error(`unexpected params in ${query}`)
+  if (/^\s*select/i.test(query)) return { rows: rowsOf(query) as never }
+  execFileSync(PSQL, [...ARGS, '-c', query], { encoding: 'utf8' })
+  return { rows: [] }
+})
+
+function folderUpTo(last: number): string {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'qa93-drizzle-'))
+  mkdirSync(path.join(dir, 'meta'))
+  const journal = JSON.parse(readFileSync('drizzle/meta/_journal.json', 'utf8')) as { entries: { idx: number; tag: string }[] }
+  const entries = journal.entries.filter((entry) => entry.idx <= last)
+  for (const entry of entries) copyFileSync(path.join('drizzle', `${entry.tag}.sql`), path.join(dir, `${entry.tag}.sql`))
+  writeFileSync(path.join(dir, 'meta', '_journal.json'), JSON.stringify({ ...journal, entries }))
+  return dir
+}
+
+const migrationsFolder = lastIdx === undefined ? 'drizzle' : folderUpTo(Number(lastIdx))
+await migrate(db, async (queries) => {
+  const file = path.join(mkdtempSync(path.join(os.tmpdir(), 'qa93-sql-')), 'run.sql')
+  writeFileSync(file, queries.map((q) => `${q}\n;`).join('\n'))
+  execFileSync(PSQL, [...ARGS, '-1', '-f', file], { encoding: 'utf8' })
+  console.log(`applied ${queries.filter((q) => q.startsWith('INSERT INTO "drizzle"')).length} migration(s) from ${migrationsFolder}`)
+}, { migrationsFolder })
+for (const row of rowsOf('select created_at from drizzle.__drizzle_migrations order by created_at')) console.log(`  row ${String(row.created_at)}`)

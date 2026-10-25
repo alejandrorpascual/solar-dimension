@@ -1,0 +1,48 @@
+import { createElement, type ReactNode } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { expect, test, vi } from 'vitest'
+import type { ProjectJobs } from '../../lib/quote-jobs'
+import { ProjectSchema } from '../../lib/schema'
+import { QuotesCard } from './QuotesCard'
+
+// Issue #144: while a quote was read, the kit page's quotes card showed the same still file icon as before any upload.
+
+/** The project's quote jobs; the user is signed in and may upload. The dialog and the router are not there here. */
+const page = vi.hoisted(() => ({ jobs: null as ProjectJobs | null }))
+vi.mock('../../hooks/useLocale', async () => {
+  const { getDictionary } = await import('../../i18n')
+  return { useLocale: () => ({ locale: 'en', t: getDictionary('en') }) }
+})
+vi.mock('../../hooks/useRootData', () => ({ useRootData: () => ({ user: { id: 'u1', canUseQuotes: true } }) }))
+vi.mock('../../hooks/useQuoteJobs', () => ({ useProjectJobs: () => page.jobs }))
+vi.mock('../../hooks/useQuoteUpload', () => ({
+  useQuoteUpload: () => ({ items: [], isOpen: false, isUploading: false, setOpen: () => {}, start: async () => {} }),
+}))
+vi.mock('./HandoffDialog', () => ({ HandoffDialog: () => null }))
+vi.mock('./QuotesLockedAction', () => ({ QuotesLockedAction: () => null }))
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({ className, children }: { className?: string; children?: ReactNode }) => createElement('a', { className }, children),
+}))
+
+/** What the card shows in its icon square, for a project with that many quotes being read and read. */
+function cardIcon(pending: number, done: number): string {
+  page.jobs = {
+    projectId: 'p1', projectName: 'Home', files: [], total: pending + done, done, pending, failed: 0, needsReview: 0,
+    kitEmpty: false, unseen: false, best: null,
+  }
+  const project = ProjectSchema.parse({ id: 'p1', name: 'Home', qty: { fridge: 1 }, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4' })
+  const html = renderToStaticMarkup(createElement(QuotesCard, { project, isSaving: false }))
+  return /<span class="qcard__icon"[^>]*>(.*?)<\/span>/.exec(html)?.[1] ?? ''
+}
+
+test('while a quote is read, the card shows a working indicator instead of the still file icon', () => {
+  const icon = cardIcon(1, 1)
+  expect(icon).toContain('class="qspin"')
+  expect(icon).not.toContain('lucide-file-text')
+})
+
+test('once every quote is read, the card shows the file icon again', () => {
+  const icon = cardIcon(0, 2)
+  expect(icon).toContain('lucide-file-text')
+  expect(icon).not.toContain('qspin')
+})
