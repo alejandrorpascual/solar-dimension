@@ -30,6 +30,15 @@ export function fmtNumber(n: number, locale: Locale): string {
 export function fmtDecimal(n: number, digits: number, locale: Locale): string {
   return n.toLocaleString(TAGS[locale], { minimumFractionDigits: digits, maximumFractionDigits: digits })
 }
+const PERCENT = 100
+/** A share as a whole percent in the locale's notation: 0.703 is "70%". */
+export function fmtPercent(share: number, locale: Locale): string {
+  return `${fmtInt(share * PERCENT, locale)}%`
+}
+/** A share as a CSS width, held to 0–100%: a bar never runs past its track. */
+export function cssPercent(share: number): string {
+  return `${Math.round(Math.min(1, Math.max(0, share)) * PERCENT)}%`
+}
 export function fmtDate(d: Date, locale: Locale): string {
   return d.toLocaleDateString(TAGS[locale], { day: 'numeric', month: 'short', year: 'numeric' })
 }

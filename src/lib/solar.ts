@@ -15,6 +15,9 @@ export const SOLAR = {
   /** Panel to battery: soiling, temperature, wiring and controller losses. */
   SYSTEM_EFF: 0.75,
   CLOUDY_SHARE: 0.4,
+  /** The solar flow's chart runs from 0 to at least a 1,100 W draw's day of use, rounded up to the next 2 kWh past that. */
+  CHART_MIN_WH: 26_400,
+  CHART_STEP_WH: 2_000,
   /** On the slider's half-hour grid. */
   DEFAULT_SUN_HOURS: 4.5,
   SUN_RANGE: [3, 6.5] as const,
@@ -76,6 +79,12 @@ export interface SolarPick {
   dailyUseWh: number
   /** A clear day's yield over what a day's use takes out of the bank: the use over the inverter's losses. */
   coverRatio: number
+  /** The same share on a cloudy day, which yields `CLOUDY_SHARE` of a clear one. */
+  cloudyCoverRatio: number
+  /** What a clear day yields past refilling the bank from empty; zero when it does not refill it. */
+  spareWh: number
+  /** The clear-day chart: its upper limit, and the fill (use a clear day carries) and the day's-use mark as shares of it, 0 to 1. */
+  chart: SolarChart
   /** What the panels put in to refill the bank from empty: its usable energy over the charge losses. */
   refillWh: number
   /** Hours of peak sun to refill the bank from empty; null with no panels. */
@@ -93,6 +102,8 @@ export interface SolarPick {
   pvRunM: number
   breakerA: number
 }
+
+export interface SolarChart { maxWh: number; carriedShare: number; useShare: number }
 
 const HOURS_PER_DAY = 24
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
@@ -182,6 +193,14 @@ function sizeElectrical(panels: number, volts: Voltage) {
   }
 }
 
+/** The chart reaches past both the yield and the use, so neither marker sits off its end. */
+function solarChart(dailyWh: number, dailyUseWh: number, coverRatio: number): SolarChart {
+  const maxWh = Math.max(SOLAR.CHART_MIN_WH, Math.ceil(Math.max(dailyWh, dailyUseWh) / SOLAR.CHART_STEP_WH) * SOLAR.CHART_STEP_WH)
+  // The fill is the use a clear day's yield carries past the inverter, so it meets the day's-use mark at exactly full cover.
+  const share = (wh: number) => Math.min(1, wh / maxWh)
+  return { maxWh, carriedShare: share(dailyUseWh * coverRatio), useShare: share(dailyUseWh) }
+}
+
 /** The solar side of the kit, or null when the project has no panels. Every input is clamped, never trusted. */
 export function sizeSolar(input: SolarInput): SolarPick | null {
   if (!input.solar) return null
@@ -205,6 +224,7 @@ export function sizeSolar(input: SolarInput): SolarPick | null {
   const refillHours = arrayW > 0 ? refillWh / (arrayW * SOLAR.SYSTEM_EFF) : null
   const refillsInOneDay = refillHours !== null && refillHours <= sunHours
   const electrical = sizeElectrical(panels, input.volts)
+  const coverRatio = dailyUseWh > 0 ? dailyWh / (dailyUseWh / SIZING.INVERTER_EFF) : 0
 
   return {
     roofM2, sunHours, volts: input.volts, fit, wiredFit, need, recommended, panels,
@@ -216,7 +236,10 @@ export function sizeSolar(input: SolarInput): SolarPick | null {
     dailyWh,
     cloudyWh: Math.round(dailyWh * SOLAR.CLOUDY_SHARE),
     dailyUseWh,
-    coverRatio: dailyUseWh > 0 ? dailyWh / (dailyUseWh / SIZING.INVERTER_EFF) : 0,
+    coverRatio,
+    cloudyCoverRatio: coverRatio * SOLAR.CLOUDY_SHARE,
+    spareWh: Math.max(0, dailyWh - refillWh),
+    chart: solarChart(dailyWh, dailyUseWh, coverRatio),
     refillWh,
     refillHours,
     refillsInOneDay,

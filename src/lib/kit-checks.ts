@@ -1,6 +1,6 @@
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtInt, fmtList, fmtW } from '../i18n/format'
-import { SIZING, type ChemistryId } from './catalog'
+import type { ChemistryId } from './catalog'
 import { shareLabel } from './kit-parts'
 import type { SelectedItem, SizingResult, Warning, WarningCode } from './sizing'
 
@@ -70,7 +70,6 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
   const inv = r.inverter
   const w = (n: number) => fmtW(n, locale)
   const a = (n: number) => fmtInt(Math.round(n), locale)
-  const startupA = r.surgeW / r.volts / SIZING.INVERTER_EFF
   // No appliance starts above its running watts: there is no surge, so no seconds to print.
   const hasSurge = r.surgeSeconds > 0
   switch (id) {
@@ -81,11 +80,11 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
     case 'batteryContinuous':
       return tr(t, inv.count > 1 ? 'checkBatteryContinuousOkMany' : 'checkBatteryContinuousOk', { bankA: a(b.bankContinuousA), needA: a(inv.continuousA), count: inv.count })
     case 'batteryPeak':
-      return tr(t, hasSurge ? 'checkBatteryPeakOk' : 'checkBatteryPeakOkNoStart', { bankA: a(b.bankPeakA), needA: a(startupA), seconds: r.surgeSeconds })
+      return tr(t, hasSurge ? 'checkBatteryPeakOk' : 'checkBatteryPeakOkNoStart', { bankA: a(b.bankPeakA), needA: a(r.startupA), seconds: r.surgeSeconds })
     case 'parallel':
       return tr(t, b.parallel > 1 ? 'checkParallelOk' : 'checkParallelSingle', { parallel: b.parallel, max: b.unit.maxParallel })
     case 'fuse':
-      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, fault: a(b.bankShortCircuitA), startA: a(startupA / c.runs) })
+      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, fault: a(b.bankShortCircuitA), startA: a(c.startupPerRunA) })
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
