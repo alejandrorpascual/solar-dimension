@@ -45,8 +45,9 @@
    a sheet sized to the layout viewport would hide its last fields behind it. */
 .qdialog__overlay { position: fixed; top: 0; left: 0; width: 100%; height: var(--visual-viewport-height, 100dvh); z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(18, 22, 28, 0.44); }
 .qdialog__overlay[data-entering] { animation: qfade 160ms ease-out; }
-/* React Aria unmounts a closing modal at once unless it has an exit animation: it keeps the modal until the animation ends, marked data-exiting. */
-.qdialog__overlay[data-exiting] { animation: qfade 140ms ease-in reverse; }
+/* React Aria unmounts a closing modal at once unless it has an exit animation: it keeps the modal until the animation ends, marked data-exiting.
+   Held faded (forwards): the phone sheet's exit outlasts this one, and the backdrop would flash back until it ends. */
+.qdialog__overlay[data-exiting] { animation: qfade 140ms ease-in reverse forwards; }
 .qdialog { width: 100%; max-width: 560px; max-height: calc(var(--visual-viewport-height, 100dvh) - 32px); overflow-y: auto; border-radius: var(--radius-lg); background: var(--surface); box-shadow: 0 18px 48px rgba(18, 22, 28, 0.16), 0 2px 6px rgba(18, 22, 28, 0.06); outline: none; }
 .qdialog[data-entering] { animation: qrise 160ms ease-out; }
 .qdialog[data-exiting] { animation: qrise 140ms ease-in reverse; }
