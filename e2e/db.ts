@@ -123,6 +123,16 @@ export async function savedProject(email: string, name: string): Promise<{ hours
   return row ? { hours: row.hours as number, volts: row.volts as number, chemistry: row.chemistry as string, solar: row.solar } : null
 }
 
+/**
+ * Sets the appliances a saved project counts, as a save would. A count whose appliance is in neither the catalog nor
+ * the project's custom list is what a custom appliance that no longer loads leaves behind: the kit leaves it out.
+ */
+export async function setProjectQty(email: string, projectId: string, qty: Record<string, number>): Promise<void> {
+  await testDb()`
+    update projects p set qty = ${JSON.stringify(qty)}::jsonb, custom = '[]'::jsonb
+    from "user" u where u.id = p.user_id and u.email = ${email} and p.id = ${projectId}`
+}
+
 /** Adds a copy of the user's first project under a new id, so a test has a project only this account can open. */
 export async function cloneProject(email: string, newId: string): Promise<void> {
   await testDb()`
