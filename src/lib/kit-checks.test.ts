@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { getDictionary } from '../i18n'
+import { fmtInt } from '../i18n/format'
 import { DEFAULT_HARDWARE } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { attentionLine, CHECK_IDS, CHECK_WARNINGS, failingChecks, kitChecks, kitNotes, uncheckedWarnings, warningKey, warningText } from './kit-checks'
@@ -157,6 +158,28 @@ describe('kitChecks', () => {
     for (const code of CHECK_WARNINGS.fuse.filter((c) => c !== 'fuseInterrupt')) {
       for (const chemistry of ['lifepo4', 'agm'] as const) expect(t.warnings[code]({ ...p, chemistry })).not.toMatch(stem)
     }
+  })
+
+  // The 7 kW load at 48 V on two 5 kW inverters: one run each, and every check passes, so both pass lines print.
+  const twoRuns = () => compute({ qty: { x: 1 }, custom: [{ id: 'x', name: 'Workshop', watts: 7000, surge: 7000, note: '' }], hours: 2, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT,
+    { ...DEFAULT_HARDWARE, inverters: [{ w: 5000, surge: 10000, volts: [48] as const, surgeSeconds: 5, maxParallel: 4 }] })
+  test.each([
+    ['one run', () => kit(ESSENTIALS), 1],
+    ['two runs of the 7 kW load', twoRuns, 2],
+  ] as const)('the battery-peak and fuse lines print the start-up current the engine worked out, with %s', (_, build, runs) => {
+    const r = build()
+    expect(r.cable.runs).toBe(runs)
+    expect(kitChecks(en, r, 'en').filter((c) => c.id === 'batteryPeak' || c.id === 'fuse').map((c) => c.status)).toEqual(['pass', 'pass'])
+    for (const [t, locale] of [[en, 'en'], [es, 'es']] as const) {
+      const by = Object.fromEntries(kitChecks(t, r, locale).map((c) => [c.id, c.lines[0]!]))
+      expect(by.batteryPeak).toContain(` ${fmtInt(r.startupA, locale)} A`)
+      expect(by.fuse).toContain(` ${fmtInt(r.cable.startupPerRunA, locale)} A`)
+    }
+    // A result whose start-up figures differ from surge ÷ volts ÷ inverter efficiency still prints them: the checks read, never recompute.
+    const odd = { ...r, startupA: 1234, cable: { ...r.cable, startupPerRunA: 617 } }
+    const by = Object.fromEntries(kitChecks(en, odd, 'en').map((c) => [c.id, c.lines[0]!]))
+    expect(by.batteryPeak).toContain('1,234 A')
+    expect(by.fuse).toContain('start-up 617 A')
   })
 
   test('with several runs the cable line reads per run', () => {

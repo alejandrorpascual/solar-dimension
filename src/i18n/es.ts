@@ -125,7 +125,7 @@ export const es: Dictionary = {
     clearDay: 'En un día despejado', flowSun: 'de sol pleno', flowBank: 'banco de {volts} V · {batteries}', flowHome: '{count} aparatos · {hours} h',
     coverHead: 'Producción en un día despejado frente al consumo de un día', coverAxis: 'consumo de un día · {use}',
     refillSameDay: 'Banco lleno tras unas {hours} de sol, con {spare} de sobra.', refillDays: 'El banco se recarga en unos {days} días de sol.', noPanelsYet: 'Aún no hay paneles. Toca el techo.',
-    cloudyDay: 'Día nublado (40%)', cloudyNote: '{wh}, cerca del {pct}% del consumo de un día.',
+    cloudyDay: 'Día nublado (40%)', cloudyNote: '{wh}, cerca del {pct} del consumo de un día.',
     solarAssumptions: 'Supone 75% de eficiencia de panel a batería y sin sombra al mediodía. Tu kit suma paneles, un controlador de carga MPPT con su cable y fusible a la batería, cable fotovoltaico, un seccionador de CC y la estructura.',
     solarRecharge: 'Recarga solar', solarRechargeSub: '{wh} en un día despejado',
     footerSolar: '{hours} h a {volts} V · {load} de carga · {panels}, {kw}', footerSolarNone: '{hours} h a {volts} V · {load} de carga · sin paneles', footer4Solar: '{batteries} · {inverter} · {gauge} · {panels}',
