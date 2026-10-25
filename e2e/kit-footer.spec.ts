@@ -58,3 +58,21 @@ test('the Cable run summary on step 2 shows a chevron', PHONE, async ({ page }) 
   await page.goto('/?step=2')
   await expect(page.locator('summary', { hasText: 'Cable run' }).locator('svg.elec__chev')).toBeVisible()
 })
+
+// The phone footer's summary used to stay on one line and end in an ellipsis, which cut "start-up power" off.
+for (const lang of ['en', 'es']) {
+  test(`the step 1 footer summary shows its start-up power label in full at 375 px in ${lang}`, async ({ page, context }) => {
+    await page.setViewportSize({ width: 375, height: 667 })
+    await context.addCookies([{ name: 'lang', value: lang, url: 'http://localhost:3000' }])
+    await page.goto('/?step=1')
+    const summary = page.locator('footer.footer .footer__summary')
+    await expect(summary).toContainText(lang === 'en' ? 'start-up power' : 'potencia de arranque')
+    const { clipped, sideways } = await summary.evaluate((el) => ({
+      clipped: el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight,
+      sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }))
+    expect(clipped).toBe(false)
+    expect(sideways).toBe(false)
+    await expect(page.locator('footer.footer').getByRole('button', { name: lang === 'en' ? 'Next: backup window' : /Siguiente/ })).toBeVisible()
+  })
+}

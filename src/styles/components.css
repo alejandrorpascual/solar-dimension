@@ -81,11 +81,12 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 }
 .footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px 28px; background: var(--ground); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
 .footer__line { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.footer__summary { min-width: 0; font-size: 13px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* On a phone the summary wraps to a second line rather than ending in an ellipsis, which cut "start-up power" off. */
+.footer__summary { min-width: 0; font-size: 13px; line-height: 20px; }
 .footer__actions { display: flex; gap: 8px; min-height: 50px; }
 @media (min-width: 1024px) {
   .footer { position: static; padding: 0; border: 0; flex-direction: row; justify-content: space-between; align-items: center; gap: 24px; }
-  .footer__summary { font-size: 15px; line-height: 1.45; white-space: normal; overflow: visible; }
+  .footer__summary { font-size: 15px; line-height: 1.45; }
   .footer__actions { gap: 10px; }
 }
 
