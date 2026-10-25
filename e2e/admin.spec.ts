@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import { slugify } from '../src/lib/catalog-schema'
+import { productKey } from '../src/lib/product-schema'
 import { catalogAuthHeader, writeHeaders } from './catalog-token'
-import { deleteTestAppliance, firstProjectName, markEmailVerified } from './db'
+import { deleteTestAppliance, deleteTestProduct, firstProjectName, markEmailVerified } from './db'
 import { quotePdf, signUp, uploadQuotes } from './quotes'
 import { E2E_ADMIN as ADMIN } from './servers'
 
@@ -33,7 +34,7 @@ async function signInAsAdmin(page: Page) {
   await signInOrUp(page, ADMIN.email, ADMIN.password)
 }
 
-for (const path of ['/admin/appliances', '/admin/quotes']) {
+for (const path of ['/admin/appliances', '/admin/quotes', '/admin/products']) {
   test(`non-admins get a 404 at ${path}`, async ({ page }) => {
     await page.goto(path)
     await expect(page.getByText('Page not found')).toBeVisible()
@@ -231,4 +232,40 @@ test('"New appliance" refuses an id that already belongs to another appliance', 
   await expect(page.getByLabel('Name (EN)')).toHaveValue('Coffee maker')
   await expect(page.getByLabel('Running watts')).toHaveValue('900')
   await page.getByRole('button', { name: 'Cancel' }).click()
+})
+
+test('a token-written product is unverified until the admin verifies it, and a token edit that changes a value undoes it', async ({ page, request }) => {
+  const SHEET = 'https://example.com/e2e-datasheet.pdf'
+  const NONE = { value: null, source: null, asWritten: null }
+  const model = `V${Date.now()}`
+  const product = (chargerA: object) => ({
+    kind: 'inverter', brand: 'E2E Power', model, makerUrl: null, datasheetUrl: SHEET, extraSpecs: [], price: null,
+    specs: {
+      continuousW: { value: 6000, source: SHEET, asWritten: 'Rated power 6000W' }, surges: [], batteryVolts: { value: 48, source: SHEET, asWritten: '48 VDC' },
+      splitPhase: NONE, chargerA, pvInputW: NONE, pvVocMax: NONE, maxParallelUnits: NONE, idleW: NONE, peakEfficiencyPct: NONE,
+      warrantyYears: NONE, bmsComms: [], compatibleBatteryBrands: [],
+    },
+  })
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  const write = (body: unknown) => request.post('/api/catalog/products', { headers: writeHeaders(), data: [body] })
+  const verificationOf = async () =>
+    ((await (await request.get('/api/catalog/products', { headers: catalogAuthHeader })).json()).items as Array<{ key: string; verification: unknown }>)
+      .find((i) => i.key === key)?.verification
+  try {
+    expect((await write(product(NONE))).status()).toBe(200)
+    expect(await verificationOf()).toEqual({ status: 'unverified' })
+
+    await signInAsAdmin(page)
+    await page.goto('/admin/products')
+    const row = page.getByRole('table', { name: 'Products' }).getByRole('row', { name: new RegExp(model) })
+    await expect(row).toContainText('Unverified')
+    await row.getByRole('button', { name: `Verify E2E Power ${model}` }).click()
+    await expect(row).toContainText(`Verified${ADMIN.email}`)
+    await expect(row.getByRole('button')).toHaveCount(0)
+
+    expect((await write(product({ value: 125, source: SHEET, asWritten: 'Max charge 125A' }))).status()).toBe(200)
+    expect(await verificationOf()).toEqual({ status: 'unverified' })
+  } finally {
+    await deleteTestProduct(key)
+  }
 })

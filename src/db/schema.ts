@@ -123,6 +123,9 @@ export const products = pgTable(
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     retiredAt: timestamp('retired_at', { withTimezone: true }),
     updatedBy: text('updated_by').notNull(),
+    /** Set only by a signed-in admin (the user id and when); a token write that changes a value clears both. Null = unverified. */
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    verifiedBy: text('verified_by'),
   },
   (t) => [
     check('products_kind_check', sql`${t.kind} in (${productKindList})`),

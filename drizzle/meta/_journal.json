@@ -127,6 +127,13 @@
       "when": 1792788841291,
       "tag": "0017_project_field_stamps",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792904311622,
+      "tag": "0018_product_verification",
+      "breakpoints": true
     }
   ]
 }
