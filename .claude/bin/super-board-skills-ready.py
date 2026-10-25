@@ -30,9 +30,9 @@ REGISTRY = {
                'testing-strategy', 'mattpocock-skills:code-review'],
         'review': ['mattpocock-skills:code-review', 'mattpocock-skills:codebase-design']},
     'conditional': {
-        'build': ['vitest', 'playwright-best-practices', 'testing-strategy',
+        'build': ['vitest', 'e2e-testing', 'testing-strategy',
                   'mattpocock-skills:resolving-merge-conflicts', 'mattpocock-skills:domain-modeling'],
-        'qa': ['mattpocock-skills:ask-matt', 'vitest', 'playwright-best-practices'], 'review': []},
+        'qa': ['mattpocock-skills:ask-matt', 'vitest', 'e2e-testing'], 'review': []},
     'optional': {'build': [], 'qa': [], 'review': ['ponytail:ponytail-review']},
     'aliases': {'mattpocock-skills': ['diagnosing-bugs', 'tdd', 'implement', 'codebase-design', 'code-review',
                                    'resolving-merge-conflicts', 'domain-modeling', 'ask-matt', 'to-spec', 'to-tickets', 'improve-codebase-architecture'],
