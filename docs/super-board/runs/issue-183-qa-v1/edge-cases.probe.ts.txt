@@ -1,0 +1,76 @@
+// QA #183 probe, kept as evidence only. Runs the dry run's own steps without a database:
+// parseProducts (the route), mergeProduct (plan), warnProducts (previewProducts), and writes one line per case.
+// Rerun: copy to src/lib/qa-183-edge-cases.tmp.test.ts, then QA_OUT=edge-cases.txt npx vitest run src/lib/qa-183-edge-cases.tmp.test.ts
+import { writeFileSync } from 'node:fs'
+import { test } from 'vitest'
+import { mergeProduct } from './product-merge'
+import { NONE, SHEET, battery, inverter, stated, stating } from './product-fixtures'
+import { parseProducts, productKey, type ProductInput } from './product-schema'
+import { warnProducts } from './product-warnings'
+
+const level = (w: number, seconds: number, asWritten: string) => ({ w, seconds, asWritten, source: SHEET })
+
+/** A dry run of `items` over `stored`, as previewProducts does it, after the route's parse. */
+function dryRun(stored: ProductInput[], items: ProductInput[], replace = false) {
+  const parsed = parseProducts(JSON.parse(JSON.stringify(items)))
+  if (!parsed.ok) return { error: parsed.errors }
+  const byKey = new Map(stored.map((s) => [productKey(s), { ...s, id: 'id', key: productKey(s), origin: 'admin' as const, conflicts: [], retired: false }]))
+  const merged = parsed.items.map((item) => mergeProduct(byKey.get(productKey(item)) ?? null, item, { replace, now: '2026-10-23T12:00:00.000Z' }))
+  return {
+    changes: merged.map((m) => ({ key: m.change.key, status: m.change.status, fills: m.change.fills, conflicts: m.change.conflicts.map((c) => c.field) })),
+    warnings: warnProducts(stored, parsed.items, merged.map((m) => m.next)),
+  }
+}
+
+const lines: string[] = []
+const record = (name: string, result: unknown) => lines.push(`${name} ${JSON.stringify(result)}`)
+const alone = (p: ProductInput) => dryRun([], [p]).warnings
+
+test('qa #183 edge cases', () => {
+  // AC4: the limits, new products (no stored row)
+  for (const v of [10.2, 13.8, 20.4, 27.6, 55.2, 30.6, 41.4, 40.8]) record(`AC4 inverter volts ${v}`, alone(inverter({ batteryVolts: stated(v, `${v} VDC`) })))
+  for (const v of [13.9, 10.1, 55.3]) record(`AC4 inverter volts ${v} (past)`, alone(inverter({ batteryVolts: stated(v, `${v} VDC`) })))
+  for (const v of [13.8, 55.2]) record(`AC4 battery nominalV ${v} (kWh/Ah consistent)`, alone(battery({ nominalV: stated(v, `${v}V`), ah: stated(100, '100Ah'), kWh: stated(v / 10, `${v / 10}kWh`) })))
+  for (const k of [4.608, 5.632]) record(`AC4 kWh ${k} at 51.2x100`, alone(battery({ kWh: stated(k, `${k}kWh`) })))
+  for (const k of [4.6, 4.607, 5.633, 5.64]) record(`AC4 kWh ${k} at 51.2x100 (past)`, alone(battery({ kWh: stated(k, `${k}kWh`) })))
+  for (const k of [4.32, 5.28]) record(`AC4 kWh ${k} at 48x100`, alone(battery({ nominalV: stated(48, '48V'), kWh: stated(k, `${k}kWh`) })))
+
+  // AC1: a kWh (or the volts or Ah) filled into a stored battery
+  const noKWh = battery({ kWh: NONE })
+  record('AC1 stored 51.2V 100Ah no kWh, dry-run kWh 6 alone', dryRun([noKWh], [stating(noKWh, { kWh: stated(6, '6kWh') })]))
+  const noVolts = battery({ nominalV: NONE, kWh: stated(6, '6kWh') })
+  record('AC1 stored 100Ah 6kWh no volts, dry-run nominalV 51.2 alone', dryRun([noVolts], [stating(noVolts, { nominalV: stated(51.2, '51.2V') })]))
+  const noAh = battery({ ah: NONE, kWh: stated(6, '6kWh') })
+  record('AC1 stored 51.2V 6kWh no Ah, dry-run ah 100 alone', dryRun([noAh], [stating(noAh, { ah: stated(100, '100Ah') })]))
+  record('AC1 stored 51.2V 100Ah no kWh, dry-run kWh 5.12 alone (consistent)', dryRun([noKWh], [stating(noKWh, { kWh: stated(5.12, '5.12kWh') })]))
+
+  // AC2: peak amps or surge watts filled in below the stored continuous value, and the reverse fill
+  const noPeak = battery()
+  record('AC2 stored 100A continuous, dry-run peakA 80 alone', dryRun([noPeak], [stating(noPeak, { peakA: stated(80, 'Peak 80A') })]))
+  record('AC2 stored 100A continuous, dry-run peakA 200 alone', dryRun([noPeak], [stating(noPeak, { peakA: stated(200, 'Peak 200A') })]))
+  const noContinuous = battery({ maxContinuousA: NONE, peakA: stated(80, 'Peak 80A') })
+  record('AC2 stored peak 80A, dry-run maxContinuousA 100 alone', dryRun([noContinuous], [stating(noContinuous, { maxContinuousA: stated(100, '100A') })]))
+  const noSurges = inverter({ surges: [] })
+  record('AC2 stored 6000W continuous, dry-run surge 5000W alone', dryRun([noSurges], [stating(noSurges, { surges: [level(5000, 10, '5000W for 10 s')] })]))
+  const noContinuousW = inverter({ continuousW: NONE, surges: [level(5000, 10, '5000W for 10 s')] })
+  record('AC2 stored surge 5000W, dry-run continuousW 6000 alone', dryRun([noContinuousW], [stating(noContinuousW, { continuousW: stated(6000, '6000W') })]))
+
+  // AC3: stored values alone never warn
+  const oddBattery = battery({ kWh: stated(6, '6kWh'), peakA: stated(80, 'Peak 80A') })
+  record('AC3 odd stored battery, dry-run warrantyYears alone', dryRun([oddBattery], [stating(oddBattery, { warrantyYears: stated(10, '10-year warranty') })]))
+  record('AC3 odd stored battery, dry-run chemistry alone', dryRun([oddBattery], [stating(oddBattery, { chemistry: stated('lifepo4' as const, 'LiFePO4') })]))
+  const oddInverter = inverter({ surges: [level(5000, 10, '5000W for 10 s')] })
+  record('AC3 odd stored inverter, dry-run warrantyYears alone', dryRun([oddInverter], [stating(oddInverter, { warrantyYears: stated(5, '5-YEAR WARRANTY') })]))
+  record('AC3 odd stored battery, dry-run peakA 80 alone (touches peak only)', dryRun([oddBattery], [stating(oddBattery, { peakA: stated(80, 'Peak 80A') })]))
+
+  // Other paths through the merge
+  const full = battery()
+  record('conflict, replace off: stored 5.12 kWh, dry-run kWh 6 alone', dryRun([full], [stating(full, { kWh: stated(6, '6kWh') })]))
+  record('conflict, replace off: stored 5.12 kWh, dry-run full battery with 6 kWh', dryRun([full], [battery({ kWh: stated(6, '6kWh') })]))
+  record('replace on: stored 5.12 kWh, dry-run kWh 6 alone', dryRun([full], [stating(full, { kWh: stated(6, '6kWh') })], true))
+  record('new product with 6 kWh (message once)', alone(battery({ kWh: stated(6, '6kWh') })))
+  record('two products: new inverter + kWh fill over stored battery', dryRun([noKWh], [inverter(), stating(noKWh, { kWh: stated(6, '6kWh') })]))
+  record('two products: kWh fill over stored battery + new inverter', dryRun([noKWh], [stating(noKWh, { kWh: stated(6, '6kWh') }), inverter()]))
+
+  writeFileSync(process.env.QA_OUT ?? '/dev/stdout', `${lines.join('\n')}\n`)
+})

@@ -1,0 +1,25 @@
+QA #183 v1 on 694cecb (PR #218)
+
+AC ledger (unit · db · e2e)
+AC1 kWh filled into stored 51.2 V x 100 Ah battery warns 17%
+    unit src/lib/product-warnings.test.ts:110 · db src/server/product-repo.db.test.ts:28 (CI test:db green) · e2e n/a: JSON API, no page
+AC2 peak or surge filled below stored continuous warns
+    unit src/lib/product-warnings.test.ts:118, reverse fills (continuous, volts, Ah) :130 (added by QA) · db none · e2e n/a
+AC3 no warning from stored values alone
+    unit src/lib/product-warnings.test.ts:147 · db src/server/product-repo.db.test.ts:40 (CI test:db green) · e2e n/a
+AC4 no warning at exactly 15% / 10%; 13.9 V and 4.6 kWh warn
+    unit src/lib/product-warnings.test.ts:92 · db n/a: pure function · e2e n/a
+
+Edge cases (edge-cases.txt, made by edge-cases.probe.ts.txt: parseProducts, mergeProduct, warnProducts)
+- boundaries: 10.2 13.8 20.4 27.6 55.2 30.6 41.4 40.8 V clean; 10.1 13.9 55.3 V warn; 4.608 5.632 kWh clean; 4.6 4.607 5.633 5.64 kWh warn; 48 V x 100 Ah 4.32 and 5.28 kWh clean
+- fills: kWh, nominalV, Ah, peakA, maxContinuousA, surges, continuousW each warn when filled into an inconsistent stored product
+- untouched checks: warranty or chemistry alone over an odd stored product gives no warning
+- merge paths: replace on warns on the replaced kWh; replace off keeps the stored kWh as a conflict and does not warn on a kWh sent alone; full product sent with a conflicting kWh warns once
+- volume: two products in one request, either order, warning keyed to the filled battery only
+
+Mutants (mutation-check.log): 9 tried, 9 killed. Not counted: `<=` to `<` at the margin, equivalent.
+
+Test gaps (not written)
+- Low: 4.6 and 4.607 kWh warn as "10% off" (the share is rounded for display), next to a 10% limit that is allowed. Copy, existed before.
+- Low: a kWh sent alone that conflicts with a stored kWh (replace off) gives no warning; the conflict is in `changes` and the stored value is kept, as the Fix says.
+- Low: research-product SKILL.md says "both also read" right after the surge and peak item; the kWh check reads the stored form too.

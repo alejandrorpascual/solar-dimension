@@ -22,6 +22,12 @@ export function inverter(specs: Partial<InverterSpecs> = {}): Extract<ProductInp
   }
 }
 
+/** `p` stating only `specs`: every other spec null and every list empty, as a request that fills in one field sends it. */
+export function stating<P extends ProductInput>(p: P, specs: Partial<P['specs']>): P {
+  const unstated = Object.fromEntries(Object.entries(p.specs).map(([name, s]) => [name, Array.isArray(s) ? [] : NONE]))
+  return { ...p, specs: { ...unstated, ...specs } }
+}
+
 export function battery(specs: Partial<BatterySpecs> = {}): Extract<ProductInput, { kind: 'battery' }> {
   return {
     kind: 'battery', brand: 'Pytes', model: 'V5', makerUrl: null, datasheetUrl: SHEET, extraSpecs: [], price: null,

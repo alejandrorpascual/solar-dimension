@@ -52,12 +52,13 @@ async function plan(items: readonly ProductInput[], replace: boolean): Promise<M
 /**
  * What a dry run answers: each product's change, and the soft checks worth a second look. Duplicates are looked for
  * across every stored product, since one stored under another spelling has another key; the library is tens of rows.
+ * The checks across fields also read each product as the write would store it, so a filled-in value meets the stored ones.
  */
 export async function previewProducts(
   items: readonly ProductInput[], replace: boolean,
 ): Promise<{ changes: ProductChange[]; warnings: ProductWarnings[] }> {
   const [merged, stored] = await Promise.all([plan(items, replace), listProducts()])
-  return { changes: merged.map((m) => m.change), warnings: warnProducts(stored, items) }
+  return { changes: merged.map((m) => m.change), warnings: warnProducts(stored, items, merged.map((m) => m.next)) }
 }
 
 /** New and changed products in one insert; a product that exists is updated in place. */

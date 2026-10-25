@@ -13,25 +13,34 @@ const MIN_EFFICIENCY_PCT = 50
 const MIN_CONTINUOUS_W = 100
 /** Two models of one maker whose keys start with this many same characters may be one product spelled two ways. */
 const MODEL_PREFIX = 6
+/** Floats land a hair past an exact limit (13.8 V is 0.15000000000000005 of 12 V away): a share this close to one is at it. */
+const ROUNDING_MARGIN = 1e-9
 
 const percent = (share: number) => Math.round(share * 100)
+const isWithin = (share: number, limit: number) => share <= limit + ROUNDING_MARGIN
 
 function voltsWarnings(volts: number | null, what: string): string[] {
-  if (volts === null || VOLTAGES.some((v) => Math.abs(volts - v) <= v * VOLTAGE_TOLERANCE)) return []
+  if (volts === null || VOLTAGES.some((v) => isWithin(Math.abs(volts - v) / v, VOLTAGE_TOLERANCE))) return []
   return [`${volts} V is more than ${percent(VOLTAGE_TOLERANCE)}% from ${VOLTAGES.slice(0, -1).join(', ')} or ${VOLTAGES.at(-1)} V: check the ${what}.`]
 }
 
 function inverterWarnings(s: InverterSpecs): string[] {
   const [continuous, efficiency] = [s.continuousW.value, s.peakEfficiencyPct.value]
-  const below = continuous === null ? [] : s.surges.filter((l) => l.w !== null && l.w < continuous)
   return [
     ...(continuous !== null && continuous < MIN_CONTINUOUS_W
       ? [`${continuous} W continuous is under ${MIN_CONTINUOUS_W} W: check the power is in watts.`]
       : []),
-    ...below.map((l) => `A surge of ${l.w} W is below the ${continuous} W continuous: check the surge levels.`),
     ...voltsWarnings(s.batteryVolts.value, 'battery voltage'),
     ...(efficiency !== null && efficiency < MIN_EFFICIENCY_PCT ? [`Peak efficiency ${efficiency}% is under ${MIN_EFFICIENCY_PCT}%: check it is a percent.`] : []),
   ]
+}
+
+function surgeWarnings(s: InverterSpecs): string[] {
+  const continuous = s.continuousW.value
+  if (continuous === null) return []
+  return s.surges
+    .filter((l) => l.w !== null && l.w < continuous)
+    .map((l) => `A surge of ${l.w} W is below the ${continuous} W continuous: check the surge levels.`)
 }
 
 function energyWarnings(s: BatterySpecs): string[] {
@@ -39,22 +48,43 @@ function energyWarnings(s: BatterySpecs): string[] {
   if (volts === null || ah === null || kWh === null) return []
   const expected = (volts * ah) / WH_PER_KWH
   const off = Math.abs(kWh - expected) / expected
-  if (off <= KWH_TOLERANCE) return []
+  if (isWithin(off, KWH_TOLERANCE)) return []
   return [`${kWh} kWh is ${percent(off)}% off ${volts} V × ${ah} Ah = ${Number(expected.toFixed(2))} kWh: check the energy, the voltage and the amp-hours.`]
 }
 
-function batteryWarnings(s: BatterySpecs): string[] {
+function peakWarnings(s: BatterySpecs): string[] {
   const [peak, continuous] = [s.peakA.value, s.maxContinuousA.value]
-  return [
-    ...energyWarnings(s),
-    ...(peak !== null && continuous !== null && peak < continuous
-      ? [`Peak ${peak} A is below the ${continuous} A continuous: check the peak and continuous current.`]
-      : []),
-    ...voltsWarnings(s.nominalV.value, 'nominal voltage'),
-  ]
+  return peak !== null && continuous !== null && peak < continuous
+    ? [`Peak ${peak} A is below the ${continuous} A continuous: check the peak and continuous current.`]
+    : []
 }
 
+/** One check across fields of a product: the specs it reads, and what it says of them. */
+interface CrossCheck { fields: ReadonlyArray<keyof InverterSpecs | keyof BatterySpecs>; messages: string[] }
+
+const crossChecks = (p: ProductInput): CrossCheck[] =>
+  p.kind === 'inverter'
+    ? [{ fields: ['continuousW', 'surges'], messages: surgeWarnings(p.specs) }]
+    : [
+        { fields: ['nominalV', 'ah', 'kWh'], messages: energyWarnings(p.specs) },
+        { fields: ['peakA', 'maxContinuousA'], messages: peakWarnings(p.specs) },
+      ]
+
 interface Spec { value: unknown; source: string | null; asWritten: string | null }
+/** A spec states a value; the surge levels state one when there is any. */
+const isStated = (spec: unknown) => (Array.isArray(spec) ? spec.length > 0 : (spec as Spec).value !== null)
+
+/**
+ * The checks across fields, on the product as sent and as the write would store it, since a value filled into a stored
+ * product can leave it inconsistent. The stored form is checked only where the request states one of a check's fields:
+ * stored values alone never warn. A message both give is said once.
+ */
+function crossFieldWarnings(p: ProductInput, toStore: ProductInput): string[] {
+  const specs = p.specs as Record<string, unknown>
+  const isTouched = (c: CrossCheck) => c.fields.some((field) => isStated(specs[field]))
+  return [...new Set([...crossChecks(p), ...crossChecks(toStore).filter(isTouched)].flatMap((c) => c.messages))]
+}
+
 const isSpec = (entry: [string, unknown]): entry is [string, Spec] =>
   typeof entry[1] === 'object' && entry[1] !== null && !Array.isArray(entry[1]) && 'asWritten' in entry[1]
 /** The specs that hold one stated value, by field path: everything but the surge levels and the lists. */
@@ -100,9 +130,10 @@ function sourceHostWarnings(p: ProductInput): string[] {
   })
 }
 
-/** The checks on one product alone. */
-const specWarnings = (p: ProductInput): string[] => [
-  ...(p.kind === 'inverter' ? inverterWarnings(p.specs) : batteryWarnings(p.specs)),
+/** The checks on one product alone; `toStore` is the same product as the write would store it. */
+const specWarnings = (p: ProductInput, toStore: ProductInput): string[] => [
+  ...crossFieldWarnings(p, toStore),
+  ...(p.kind === 'inverter' ? inverterWarnings(p.specs) : voltsWarnings(p.specs.nominalV.value, 'nominal voltage')),
   ...digitWarnings(p),
   ...sourceHostWarnings(p),
 ]
@@ -124,8 +155,12 @@ const duplicateMessage = ({ product, key, isStored }: Candidate) =>
 /**
  * The soft checks for each incoming product: odd specs, and possible duplicates among the stored products and the rest
  * of the request. Worth a second look, never a reason to refuse. Only products with something to say are listed.
+ * `toStore` holds each incoming product as the write would store it, in the same order; by default each is stored as
+ * sent, as a new product is.
  */
-export function warnProducts(stored: readonly ProductInput[], incoming: readonly ProductInput[]): ProductWarnings[] {
+export function warnProducts(
+  stored: readonly ProductInput[], incoming: readonly ProductInput[], toStore: readonly ProductInput[] = incoming,
+): ProductWarnings[] {
   const keys = new Set(incoming.map(productKey))
   // A stored product that is also in the request is named once, as in this request.
   const candidates: Candidate[] = [
@@ -133,10 +168,10 @@ export function warnProducts(stored: readonly ProductInput[], incoming: readonly
     ...incoming.map((product) => ({ product, key: productKey(product), isStored: false })),
   ]
   return incoming
-    .map((item) => {
+    .map((item, i) => {
       const key = productKey(item)
       const duplicates = candidates.filter((c) => c.key !== key && isPossibleDuplicate(item, c.product)).map(duplicateMessage)
-      return { key, messages: [...specWarnings(item), ...duplicates] }
+      return { key, messages: [...specWarnings(item, toStore[i]), ...duplicates] }
     })
     .filter((w) => w.messages.length > 0)
 }
