@@ -142,7 +142,7 @@
 .qtray__link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; font-size: 14px; font-weight: 700; color: #FFFFFF; text-decoration: underline; flex-shrink: 0; }
 @media (min-width: 1280px) { body:has(.rail) .qtray { right: calc(380px + 24px); } }
 @media (max-width: 1023px) {
-  :root { --qtray-above-footer: calc(132px + env(safe-area-inset-bottom)); }
+  :root { --qtray-above-footer: calc(var(--footer-h, 137px) + 15px + env(safe-area-inset-bottom)); }
   .qtray { left: 12px; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom)); width: auto; }
   body:has(.footer) .qtray { bottom: var(--qtray-above-footer); }
   /* The tray floats over the end of the page, so the page leaves room for it: --qtray-room is its height, which
