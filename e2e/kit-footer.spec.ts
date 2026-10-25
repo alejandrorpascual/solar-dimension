@@ -76,3 +76,33 @@ for (const lang of ['en', 'es']) {
     await expect(page.locator('footer.footer').getByRole('button', { name: lang === 'en' ? 'Next: backup window' : /Siguiente/ })).toBeVisible()
   })
 }
+
+// The footer's height follows its summary, so the room the page keeps under it must follow too (--footer-h).
+const STORAGE_KEY = 'solar-dimension.projects.v1'
+const LONG_NAME = 'N'.repeat(60) // PROJECT_NAME_MAX
+
+for (const { title, lang, step, name, patch } of [
+  { title: 'step 4 in es with 2 failing checks', lang: 'es', step: 4, name: 'Garita', patch: { qty: { micro: 1 }, hours: 8, batteryUnit: '12-100' } },
+  { title: 'step 1 with a 60-character project name', lang: 'en', step: 1, name: LONG_NAME, patch: { qty: {}, hours: 4, batteryUnit: null } },
+]) {
+  test(`the end of the page stays clear of a footer that wraps, ${title}, at 375 px`, async ({ page, context }) => {
+    await page.setViewportSize({ width: 375, height: 667 })
+    await context.addCookies([{ name: 'lang', value: lang, url: 'http://localhost:3000' }])
+    await page.addInitScript(({ key, name, patch }) => {
+      if (localStorage.getItem(key)) return
+      const project = { id: 'p1', name, custom: [], volts: 12, chemistry: 'agm', updatedAt: 1, ...patch }
+      localStorage.setItem(key, JSON.stringify({ version: 1, projects: [project], currentId: 'p1' }))
+    }, { key: STORAGE_KEY, name, patch })
+    await page.goto(`/?step=${step}`)
+    const footer = page.locator('footer.footer')
+    await expect(footer).toBeVisible()
+    // The footer publishes its height once the page hydrates.
+    await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--footer-h'))).not.toBe('')
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    const { contentEnd, footerTop } = await page.evaluate(() => {
+      const last = document.querySelector('.page .legal')!.getBoundingClientRect()
+      return { contentEnd: last.bottom, footerTop: document.querySelector('footer.footer')!.getBoundingClientRect().top }
+    })
+    expect(contentEnd).toBeLessThanOrEqual(footerTop)
+  })
+}
