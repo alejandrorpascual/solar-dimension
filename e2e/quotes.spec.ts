@@ -141,11 +141,30 @@ test('the same file uploaded again is a duplicate even when its second reading d
   const copy = page.getByRole('article').filter({ hasText: quotesEn.duplicate })
   await expect(copy).toHaveCount(1)
   await expect(copy).toContainText('Voltia Instalaciones')
+  // The copy read differently, so its help must not claim it reads the same (R1).
+  await expect(copy).toContainText('It is the same quote as one you uploaded before, so it is left out.')
+  await expect(copy).not.toContainText('reads the same')
   await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toHaveCount(1)
 
   // Both rows hold the SHA-256 of the bytes sent, worked out here on its own, and nothing else of the file.
   const sha256 = createHash('sha256').update(file.buffer).digest('hex')
   expect(await quoteFileHashes(email)).toEqual([{ fileName: 'solartec.pdf', fileHash: sha256 }, { fileName: 'voltia.pdf', fileHash: sha256 }])
+})
+
+test('a file whose first upload was a reading duplicate is still a duplicate when uploaded a third time and read differently (#208)', async ({ page }) => {
+  await signUp(page)
+  // Two different files the stub reads as SolarTec's quote, then the second file again under a name the stub reads as Voltia's.
+  const [first, copy] = await Promise.all(['solartec', 'solartec-copy'].map(quotePdf))
+  await uploadQuotes(page, [first!, copy!, { ...copy!, name: 'voltia.pdf' }])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(2)
+  // The third upload is the second file again: listed as a duplicate, never ranked as Voltia's own quote.
+  const voltia = page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })
+  await expect(voltia).toHaveCount(1)
+  await expect(voltia).toContainText(quotesEn.duplicate)
 })
 
 test('a tie between currencies says on screen which one was compared (AI-28)', async ({ page }) => {
