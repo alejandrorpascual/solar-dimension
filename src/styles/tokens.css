@@ -32,4 +32,12 @@
   --radius-lg: 24px;
   --shadow-card: 0 12px 40px rgba(18, 22, 28, 0.06);
   --tap: 44px;
+  /* Motion: hover and small pops, panels and dialogs, phone sheets, spinners. */
+  --dur-fast: 120ms;
+  --dur-base: 160ms;
+  --dur-sheet: 220ms;
+  --dur-spin: 900ms;
+  --ease-out: ease-out;
+  --ease-in: ease-in;
+  --ease-sheet: cubic-bezier(0.2, 0.8, 0.2, 1);
 }

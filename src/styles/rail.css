@@ -14,7 +14,7 @@
 .qedit { display: flex; flex-direction: column; gap: 12px; }
 .qedit__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
 .qedit__toggle { min-height: var(--tap); padding: 0 16px; font-size: 14px; }
-.qedit__chev { transition: transform 160ms; }
+.qedit__chev { transition: transform var(--dur-base); }
 .qedit__toggle[aria-expanded='true'] .qedit__chev { transform: rotate(180deg); }
 .qedit__window { display: flex; align-items: center; gap: 2px; min-height: var(--tap); padding: 0 3px 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
 .qedit__window-label { font-size: 14px; font-weight: 600; margin-right: 4px; }
@@ -26,7 +26,7 @@
 .qedit__dot { width: 8px; height: 8px; border-radius: 999px; background: #1F7A45; }
 .qedit__undo { border: 0; background: transparent; padding: 8px 4px; font-weight: 700; font-size: 13px; color: var(--accent); }
 .qedit__undo:hover { color: var(--accent-hover); text-decoration: underline; }
-.qedit__panel { display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: var(--radius-md); background: var(--ground); border: 1px solid var(--line); animation: qedit-open 160ms ease-out; }
+.qedit__panel { display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: var(--radius-md); background: var(--ground); border: 1px solid var(--line); animation: qedit-open var(--dur-base) var(--ease-out); }
 @keyframes qedit-open { from { opacity: 0; transform: translateY(-4px); } }
 .qedit__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 6px; }
 /* Playwright and keyboard focus scroll the control itself into view: keep it above the phone's fixed footer. */
@@ -104,7 +104,7 @@
 /* Rail tabs */
 .rtabs { display: flex; flex-direction: column; gap: 18px; }
 .rtabs__list { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--ground); }
-.rtab { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-radius: 9px; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; outline: none; transition: background 120ms, color 120ms; }
+.rtab { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border-radius: 9px; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; outline: none; transition: background var(--dur-fast), color var(--dur-fast); }
 .rtab[data-hovered] { color: var(--ink); }
 .rtab[data-selected] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(18, 22, 28, 0.12); }
 .rtab[data-focus-visible] { box-shadow: 0 0 0 2px var(--accent); }
@@ -118,7 +118,7 @@
 .pcards__new:hover { color: var(--accent-hover); text-decoration: underline; }
 /* Each card is its own stacking context: the z-index on its controls orders them inside the card only, so in the sheet
    they scroll under the sticky header instead of painting over it and taking its Close button's taps. */
-.pcard { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); transition: border-color 120ms, box-shadow 120ms; }
+.pcard { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); transition: border-color var(--dur-fast), box-shadow var(--dur-fast); }
 .pcard:hover { border-color: var(--line-strong); box-shadow: 0 8px 24px rgba(18, 22, 28, 0.06); }
 /* Stretched link: another project's name button covers its whole card, so a click anywhere on it opens the project. */
 .pcard--pickable { cursor: pointer; }
@@ -150,7 +150,7 @@
 .pcard__figs .lab { font-size: 10px; }
 .pcard__figs dd { margin: 0; font-family: var(--font-display); font-size: 17px; font-weight: 700; white-space: nowrap; }
 .pcard__bar { height: 6px; border-radius: 999px; background: #EEF0F4; overflow: hidden; }
-.pcard__bar > span { display: block; height: 100%; border-radius: 999px; background: var(--ink); transform-origin: left; transition: transform 200ms; }
+.pcard__bar > span { display: block; height: 100%; border-radius: 999px; background: var(--ink); transform-origin: left; transition: transform var(--dur-base); }
 .pcard__load { font-size: 12px; color: var(--muted); }
 .pcard__items { font-size: 13px; line-height: 1.45; }
 .pcard__edit { list-style: none; margin: 0; padding: 4px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; }
@@ -164,11 +164,11 @@
 
 /* The rail as a sheet on narrower screens */
 .rsheet__overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(18, 22, 28, 0.4); }
-.rsheet__overlay[data-entering] { animation: rsheet-fade 180ms ease-out; }
-.rsheet__overlay[data-exiting] { animation: rsheet-fade 140ms ease-in reverse; }
+.rsheet__overlay[data-entering] { animation: rsheet-fade var(--dur-base) var(--ease-out); }
+.rsheet__overlay[data-exiting] { animation: rsheet-fade var(--dur-fast) var(--ease-in) reverse; }
 .rsheet { width: 100%; max-width: 560px; max-height: 90dvh; overflow-y: auto; border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--surface); padding: 0 16px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -20px 60px rgba(18, 22, 28, 0.2); outline: none; }
-.rsheet[data-entering] { animation: bsel-sheet 240ms cubic-bezier(0.2, 0.8, 0.2, 1); }
-.rsheet[data-exiting] { animation: bsel-sheet 160ms ease-in reverse; }
+.rsheet[data-entering] { animation: bsel-sheet var(--dur-sheet) var(--ease-sheet); }
+.rsheet[data-exiting] { animation: bsel-sheet var(--dur-base) var(--ease-in) reverse; }
 .rsheet__dialog { outline: none; }
 .rsheet__head { position: sticky; top: 0; z-index: 1; display: flex; justify-content: center; min-height: 56px; padding: 8px 0 10px; background: var(--surface); }
 .rsheet__head .bsel__grab { margin: 0; }
@@ -187,7 +187,7 @@
 .dl__scaler { width: 794px; transform-origin: top left; }
 .dl__group { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .dl__group legend { padding: 0; margin-bottom: 8px; }
-.dl__fmt { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; transition: border-color 120ms, background 120ms; }
+.dl__fmt { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; transition: border-color var(--dur-fast), background var(--dur-fast); }
 .dl__fmt:hover { border-color: var(--line-strong); }
 .dl__fmt--on, .dl__fmt--on:hover { border-color: var(--accent); background: var(--accent-tint); }
 .dl__fmt:has(input:focus-visible) { box-shadow: 0 0 0 3px var(--accent-ring); }
@@ -205,7 +205,7 @@
 .dl__progress progress { width: 100%; height: 6px; accent-color: var(--accent); }
 .dl__success { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--accent); }
 .dl__success svg { flex-shrink: 0; }
-.dl__spinner { animation: dl-spin 900ms linear infinite; }
+.dl__spinner { animation: dl-spin var(--dur-spin) linear infinite; }
 @keyframes dl-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .dl__spinner { animation: none; } }
 
@@ -262,7 +262,7 @@
 .ksheet__client-cell dd { margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 
 /* The requester in the Download panel: an add button or a card; the form reuses the .qdialog dialog. */
-.rq-add { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 68px; padding: 12px 14px; border: 1.5px dashed var(--line-strong); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: border-color 120ms, background 120ms; }
+.rq-add { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 68px; padding: 12px 14px; border: 1.5px dashed var(--line-strong); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: border-color var(--dur-fast), background var(--dur-fast); }
 .rq-add:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-tint); }
 .rq-add:disabled { opacity: 0.55; cursor: default; }
 .rq-add:focus-visible, .rq-card__edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -283,7 +283,7 @@
 .rq-err { font-size: 12px; color: var(--error); }
 /* Saved clients: radio rows with an edit button, then the way to a new client. */
 .rq-list { display: flex; flex-direction: column; gap: 8px; }
-.rq-row { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 12px; border: 1.5px solid var(--line); border-radius: var(--radius-md); background: var(--surface); transition: border-color 120ms, background 120ms; }
+.rq-row { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 12px; border: 1.5px solid var(--line); border-radius: var(--radius-md); background: var(--surface); transition: border-color var(--dur-fast), background var(--dur-fast); }
 .rq-row:hover { border-color: var(--line-strong); }
 .rq-row--on, .rq-row--on:hover { border-color: var(--accent); background: var(--accent-tint); }
 .rq-row--on .rq-mark { background: var(--surface); }
@@ -317,7 +317,7 @@
 .dl__zoom { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: flex-end; padding: 10px; border: 0; border-radius: 12px; background: transparent; cursor: zoom-in; }
 .dl__zoom:hover { background: rgba(18, 22, 28, 0.04); }
 .dl__zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.dl__zoom-chip { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; background: var(--ink); color: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(18, 22, 28, 0.18); transition: background 120ms; }
+.dl__zoom-chip { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; background: var(--ink); color: #FFFFFF; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(18, 22, 28, 0.18); transition: background var(--dur-fast); }
 .dl__zoom:hover .dl__zoom-chip { background: var(--accent); }
 /* .qdialog.pvw: quotes.css loads later and caps .qdialog at 560 px; the preview needs room for the sheet at full size. */
 .qdialog.pvw { max-width: calc(794px + 64px); background: var(--ground); }
