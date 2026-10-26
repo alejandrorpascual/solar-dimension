@@ -25,7 +25,7 @@ const includedSum = (lines: readonly QuoteLine[]): number => lines.filter((l) =>
  * one shown beside the total field. A tax the quote also lists as a line is counted once.
  */
 export function linesWithTax(x: QuoteExtraction): number {
-  const { base, tax } = pricesOf(x).quote
+  const { base, tax } = documentTax(x)
   return base + (tax ?? 0)
 }
 
@@ -74,10 +74,14 @@ const isTaxLine = (l: QuoteLine): boolean =>
 const taxLineOf = (lines: readonly QuoteLine[], written: number | null): QuoteLine | undefined =>
   lines.find((l) => isTaxLine(l) && (written === null || near(l.lineTotal, written, LINE_TOLERANCE)))
 
-const includedOf = (total: number | null, base: number, tax: number | null): TaxIncluded => {
-  if (tax === null || total === null) return 'unknown'
-  if (near(total, base + tax, TOTAL_TOLERANCE)) return 'yes'
-  return near(total, base, TOTAL_TOLERANCE) ? 'no' : 'unknown'
+/**
+ * A single-system quote's base and the tax its document states: an included tax line counted once, so the base leaves
+ * it out. This is what its total is checked against.
+ */
+function documentTax(x: QuoteExtraction): { base: number; tax: number | null; taxLine: QuoteLine | undefined } {
+  const written = hasTotal(x.tax) ? x.tax : null
+  const taxLine = taxLineOf(x.lines, written)
+  return { base: includedSum(x.lines) - (taxLine?.lineTotal ?? 0), tax: taxLine?.lineTotal ?? written, taxLine }
 }
 
 /**
@@ -85,25 +89,42 @@ const includedOf = (total: number | null, base: number, tax: number | null): Tax
  * may be above the lines (tax or freight the quote doesn't itemise), never below them: that is a misread total, a dropped
  * digit or a decimal point read as a thousands one, and as the lowest price it would win. A total the user typed is
  * the one it ranks by, so whether that total holds the tax follows it; the check stays on the total the document wrote.
+ * A quote offering one system ranks as a single-system quote, so the tax written for that option is its tax when the
+ * document states none (#38); the check stays on the document's own tax.
  */
 function quotePrice(x: QuoteExtraction, typedTotal: number | null): Price {
-  const written = hasTotal(x.tax) ? x.tax : null
-  const taxLine = taxLineOf(x.lines, written)
-  const base = includedSum(x.lines) - (taxLine?.lineTotal ?? 0)
-  const tax = taxLine?.lineTotal ?? written
-  const sum = base + (tax ?? 0)
+  const { base, tax: docTax, taxLine } = documentTax(x)
+  const lone = x.options.length === 1 && hasTotal(x.options[0]!.tax) ? x.options[0]!.tax : null
+  const tax = docTax ?? lone
+  const sum = base + (docTax ?? 0)
   const read = hasTotal(x.total) ? x.total : null
   const isTyped = hasTotal(typedTotal)
   const total = isTyped ? typedTotal : read
   const isOff = !near(sum, x.total, TOTAL_TOLERANCE)
   return {
-    base, tax, total, taxIncluded: includedOf(total, base, tax),
-    from: { tax: taxLine ? 'line' : written === null ? null : 'written', total: isTyped ? 'typed' : read === null ? null : 'written' },
+    base, tax, total, taxIncluded: total === null || tax === null ? 'unknown' : taxIncludedOf(readTotal(total, quoteCandidates(x, lone), true), tax),
+    from: { tax: taxLine ? 'line' : tax === null ? null : 'written', total: isTyped ? 'typed' : read === null ? null : 'written' },
     isMismatch: x.subtotal !== null || x.tax !== null ? isOff : read !== null && read < sum && isOff,
   }
 }
 
-/** A total the option may be written as, and whether it holds a tax. */
+/**
+ * The totals a single-system quote may be written as. Untaxed: its included lines less every tax line. Taxed: its lines
+ * when they list a tax, and its lines, with or without their tax lines, plus a tax written for it.
+ */
+function quoteCandidates(x: QuoteExtraction, lone: number | null): Candidate[] {
+  const lines = includedSum(x.lines)
+  const taxLines = x.lines.filter(isTaxLine)
+  const untaxed = lines - includedSum(taxLines)
+  const written = [x.tax, lone].filter(hasTotal)
+  return [
+    { total: untaxed, hasTax: false, rate: false },
+    ...(taxLines.length > 0 ? [{ total: lines, hasTax: true, rate: false }] : []),
+    ...written.flatMap((t) => [untaxed + t, lines + t].map((total) => ({ total, hasTax: true, rate: false }))),
+  ]
+}
+
+/** A total a system may be written as, and whether it holds a tax. */
 interface Candidate { total: number; hasTax: boolean; rate: boolean }
 
 /**
@@ -118,37 +139,53 @@ const nearestTo = (total: number, candidates: readonly Candidate[]): Candidate |
   }, undefined)
 
 /**
+ * How a written total reads against the totals a system may be written as: the ones it matches, and the taxed one it is
+ * read as, if any. The one rule for a quote and an option. A system that states its own tax, written or as a line, holds
+ * it whenever a taxed total matches, though at a low rate its bare lines match too (review R6). One that states none can
+ * only be taxed at the document's rate, and is read as the candidate it is nearest (review R5).
+ */
+function readTotal(total: number, candidates: readonly Candidate[], isStated: boolean): { matches: Candidate[]; taxed: Candidate | undefined } {
+  const matches = candidates.filter((c) => near(total, c.total, TOTAL_TOLERANCE))
+  const read = isStated ? matches.find((c) => c.hasTax) : nearestTo(total, matches)
+  return { matches, taxed: read?.hasTax ? read : undefined }
+}
+
+const taxIncludedOf = (read: ReturnType<typeof readTotal>, tax: number | null): TaxIncluded =>
+  read.taxed ? 'yes' : read.matches.length > 0 && tax !== null ? 'no' : 'unknown'
+
+/**
  * An option's price. Its total is the one written for it, else its own included lines plus the shared ones, plus the tax
  * written for it, so an option stated as "subtotal + tax" ranks at what it costs. The document's own tax is not spread
  * over options: which option it belongs to is unknown. It can only explain a written total at the rate the document
  * states (its tax over its subtotal), never as a flat amount, which belongs to one subtotal. An option whose own lines
  * carry no price has none: shared lines or tax alone don't price a system, and a total written for it isn't checked.
+ * A written total that matches lines listing a tax line, the option's own or shared, holds a tax (review R7). The price
+ * counts a written tax once only against the option's own tax line, as staging did.
  */
 function optionPrice(x: QuoteExtraction, o: QuoteOption): Price {
   const ownLines = x.lines.filter((l) => l.option === o.id)
+  const systemLines = optionLines(x, o.id)
   const own = includedSum(ownLines)
-  const withShared = includedSum(optionLines(x, o.id))
+  const withShared = includedSum(systemLines)
   const written = hasTotal(o.tax) ? o.tax : null
-  const taxLine = written === null ? taxLineOf(optionLines(x, o.id), null) : taxLineOf(ownLines, written)
+  const taxLine = written === null ? taxLineOf(systemLines, null) : taxLineOf(ownLines, written)
   const lineTax = taxLine?.lineTotal ?? null
   const base = withShared - (lineTax ?? 0)
+  const listsTax = systemLines.some(isTaxLine)
   const rate = hasTotal(x.tax) && hasTotal(x.subtotal) ? x.tax / x.subtotal : null
   const candidates: Candidate[] = [own, withShared].flatMap((b) => [
-    { total: b, hasTax: lineTax !== null, rate: false },
+    { total: b, hasTax: listsTax, rate: false },
     ...(written !== null ? [{ total: b + written, hasTax: true, rate: false }] : []),
     ...(rate !== null ? [{ total: b * (1 + rate), hasTax: true, rate: true }] : []),
   ])
   const isPriced = own > 0
   if (hasTotal(o.total)) {
-    const matches = isPriced ? candidates.filter((c) => near(o.total!, c.total, TOTAL_TOLERANCE)) : []
-    const nearest = nearestTo(o.total, matches)
-    const taxed = nearest?.hasTax ? nearest : undefined
-    const tax = lineTax ?? written ?? (taxed?.rate ? o.total - o.total / (1 + rate!) : null)
+    const read = isPriced ? readTotal(o.total, candidates, written !== null || listsTax) : { matches: [], taxed: undefined }
+    const tax = lineTax ?? written ?? (read.taxed?.rate ? o.total - o.total / (1 + rate!) : null)
     return {
-      base, tax, total: o.total,
-      taxIncluded: taxed ? 'yes' : matches.length > 0 && tax !== null ? 'no' : 'unknown',
+      base, tax, total: o.total, taxIncluded: taxIncludedOf(read, tax),
       from: { tax: taxLine ? 'line' : written !== null ? 'written' : tax !== null ? 'rate' : null, total: 'written' },
-      isMismatch: isPriced && matches.length === 0,
+      isMismatch: isPriced && read.matches.length === 0,
     }
   }
   const tax = lineTax ?? written

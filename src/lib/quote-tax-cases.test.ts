@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { checkExtraction, linesWithTax, optionPrices } from './quote-checks'
+import { checkExtraction, linesWithTax, optionPrices, priceOf } from './quote-checks'
 import { compareQuotes, type QuoteView } from './quote-compare'
 import { extraction, line, SAMPLE_KIT } from './quote-fixtures'
 import { DEFAULT_MUSTS } from './quote-items'
@@ -157,6 +157,40 @@ describe('tax shapes that once mis-priced or mis-checked a quote', () => {
     const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', lowRate), view('b', extraction(kitLines(1200)))])
     const caveats = (id: string) => v.ranked.find((r) => r.quote.id === id)?.caveats?.map((c) => c.id)
     expect({ best: v.best?.quote.id, a: caveats('a'), b: caveats('b') }).toEqual({ best: 'a', a: [], b: ['tax_unstated'] })
+  })
+
+  /** A quote at 7,953.20 that holds its tax, beside which an entry that holds none gets the tax caveat. */
+  const taxedAt7953 = (): QuoteView => view('t', extraction(kitLines(1500), { subtotal: 6740, tax: 1213.2, total: 7953.2 }))
+  const taxCaveat = (v: ReturnType<typeof compareQuotes>, id: string, optionId: string | null = null) =>
+    v.ranked.find((r) => r.quote.id === id && r.optionId === optionId)?.caveats.some((c) => c.id === 'tax_unstated')
+
+  // Review R6 on #234: at 1% the bare lines and the lines plus the written tax both fall within the total tolerance. A
+  // tax the system writes itself reads as held whenever a taxed total matches, for an option as for a quote (staging).
+  test('an option and a quote that each write a 60 tax and total 6,340 both hold it, beside one at 7,953.20', () => {
+    const options = extraction([...kitLines(1100, 'o1'), ...kitLines(1200, 'o2')], { total: 0, options: [opt('o1', 6340, 60), opt('o2', 6500, 60)] })
+    const single = extraction(kitLines(1100), { tax: 60, total: 6340 })
+    const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('o', options), view('s', single), taxedAt7953()])
+    expect({ o1: taxCaveat(v, 'o', 'o1'), single: taxCaveat(v, 's') }).toEqual({ o1: false, single: false })
+    expect(priceOf(options, 'o1')?.taxIncluded).toBe(priceOf(single, null)?.taxIncluded)
+  })
+
+  // Review R7 on #234: an option's written tax may be a line every option shares; a total that holds that line holds it.
+  test('options that write a 1,000 tax listed once as a shared IVA line, totalled with it, hold their tax', () => {
+    const x = extraction(
+      [...kitLines(1000, 'o1'), ...kitLines(1100, 'o2'), line('labor', 200), taxLine(1000, 'IVA')],
+      { total: 0, options: [opt('o1', 7440, 1000), opt('o2', 7540, 1000)] },
+    )
+    const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('b', x), taxedAt7953()])
+    expect({ o1: taxCaveat(v, 'b', 'o1'), o2: taxCaveat(v, 'b', 'o2') }).toEqual({ o1: false, o2: false })
+  })
+
+  // Review R8 on #234: a quote offering one system ranks as a single-system quote, and that option's written tax is its
+  // tax (#38, d14c0e0d) when the document writes none.
+  test('a quote whose one option writes 1,141.20 tax in its 7,481.20 total holds it, so it is best fit with no caveat', () => {
+    const x = extraction(kitLines(1100, 'o1'), { total: 7481.2, options: [opt('o1', 7481.2, 1141.2)] })
+    const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('one', x), taxedAt7953()])
+    expect({ best: v.best?.quote.id, caveats: v.best?.caveats.map((c) => c.id), cleanFit: v.cleanFit?.quote.id ?? null })
+      .toEqual({ best: 'one', caveats: [], cleanFit: null })
   })
 
   // QA #124 v1: a total the user types replaces the one read, so whether the total holds the tax has to follow it.
