@@ -240,7 +240,7 @@ describe('string length against the charge voltage', () => {
         const fit = panelsFit(roofM2)
         const wirable = Array.from({ length: fit + 1 }, (_, n) => n).filter(wires)
         for (let tapped = 0; tapped <= fit; tapped++) {
-          const nearest = [...wirable].sort((a, b) => Math.abs(a - tapped) - Math.abs(b - tapped) || b - a)[0]
+          const nearest = wirable.reduce((best, n) => (Math.abs(n - tapped) <= Math.abs(best - tapped) ? n : best))
           const s = sizeSolar({ ...base, volts, solar: { roofM2, panels: tapped, sunHours: 5 } })!
           expect([s.panels, s.wiredFit], `${volts} V · ${tapped} tapped on ${roofM2} m²`).toEqual([nearest, wirable.at(-1)])
         }
@@ -280,15 +280,20 @@ describe('controllers, breakers and taps', () => {
   })
 
   test('adding panel n lights it and removing it leaves the most panels below n that wire; every tile can light, on every voltage and roof', () => {
+    // Up to its wired fit a roof changes no count that wires, so the largest roof walks every tile once; each roof adds only its own top tile.
+    const largest = SOLAR.ROOF_RANGE[1]
     for (const volts of VOLTAGES) {
-      for (let roofM2 = SOLAR.ROOF_RANGE[0]; roofM2 <= SOLAR.ROOF_RANGE[1]; roofM2 += SOLAR.ROOF_STEP) {
-        for (let n = 1; n <= pick(volts, roofM2, null).wiredFit; n++) {
-          const at = `${volts} V · panel ${n} on ${roofM2} m²`
-          const left = pick(volts, roofM2, nextWirable(n, -1, volts)).panels
-          expect([left < n, pick(volts, roofM2, nextWirable(n - 1, 1, volts)).panels >= n], at).toEqual([true, true])
-          // No count between what is left and n would have stayed as asked.
-          for (let k = left + 1; k < n; k++) expect(pick(volts, roofM2, k).panels, `${at} · ${k}`).not.toBe(k)
-        }
+      const { wiredFit } = pick(volts, largest, null)
+      for (let n = 1; n <= wiredFit; n++) {
+        const at = `${volts} V · panel ${n}`
+        const left = pick(volts, largest, nextWirable(n, -1, volts)).panels
+        expect([left < n, pick(volts, largest, nextWirable(n - 1, 1, volts)).panels >= n], at).toEqual([true, true])
+        // No count between what is left and n would have stayed as asked.
+        for (let k = left + 1; k < n; k++) expect(pick(volts, largest, k).panels, `${at} · ${k}`).not.toBe(k)
+      }
+      for (let roofM2 = SOLAR.ROOF_RANGE[0]; roofM2 <= largest; roofM2 += SOLAR.ROOF_STEP) {
+        const top = pick(volts, roofM2, null).wiredFit
+        expect(pick(volts, roofM2, nextWirable(top - 1, 1, volts)).panels, `${volts} V · top tile ${top} on ${roofM2} m²`).toBe(top)
       }
     }
   })
