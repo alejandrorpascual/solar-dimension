@@ -116,6 +116,32 @@ describe('tax shapes that once mis-priced or mis-checked a quote', () => {
     expect(v.cleanFit).toMatchObject({ optionId: 'o1', total: 7481.2 })
   })
 
+  // Review R5 on #234: at a document rate of 2% or less, both the bare lines and the lines at the rate fall within the
+  // total tolerance. The option's total is read as whichever it is nearest, so one written at just its lines leaves tax out.
+  describe('an option written at just its lines, in a quote whose document rate is 1%', () => {
+    const lowRate = (): QuoteExtraction => extraction([...kitLines(1100, 'o1'), ...kitLines(1200, 'o2')], {
+      subtotal: 6340, tax: 63.4, total: 0, options: [opt('o1', 6340), opt('o2', 6440)],
+    })
+
+    test('says it states no tax beside a quote at 7,953.20 that includes its tax', () => {
+      const taxed = extraction(kitLines(1500), { subtotal: 6740, tax: 1213.2, total: 7953.2 })
+      const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', lowRate()), view('b', taxed)])
+      expect(v.best).toMatchObject({ optionId: 'o1', total: 6340, caveats: [{ id: 'tax_unstated' }] })
+    })
+
+    test('leaves a cheaper quote at 6,240 that states no tax without a caveat, and names no clean fit', () => {
+      const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', lowRate()), view('c', extraction(kitLines(1000)))])
+      expect({ best: v.best?.quote.id, total: v.best?.total, caveats: v.best?.caveats?.map((c) => c.id), cleanFit: v.cleanFit?.optionId ?? null })
+        .toEqual({ best: 'c', total: 6240, caveats: [], cleanFit: null })
+    })
+  })
+
+  test('an option total exactly halfway between its lines and its lines plus its written tax counts as taxed', () => {
+    const halfway = extraction([...kitLines(1100, 'o1'), ...kitLines(1200, 'o2')], { total: 0, options: [opt('o1', 6370, 60), opt('o2', 6440)] })
+    const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', withTax()), view('b', halfway)])
+    expect(v.best).toMatchObject({ optionId: 'o1', total: 6370, caveats: [] })
+  })
+
   // QA #124 v1: a total the user types replaces the one read, so whether the total holds the tax has to follow it.
   describe('a reading whose total was read without its tax, once the user types the total with it', () => {
     const misread = (): QuoteExtraction => extraction(kitLines(1100), { subtotal: 6340, tax: 1141.2, total: 6340 })

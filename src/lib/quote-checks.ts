@@ -107,6 +107,17 @@ function quotePrice(x: QuoteExtraction, typedTotal: number | null): Price {
 interface Candidate { total: number; hasTax: boolean; rate: boolean }
 
 /**
+ * The candidate a written total is read as: the nearest one. At a low rate the bare lines and the lines with tax can both
+ * fall within the tolerance, and a total that is exactly its lines leaves the tax out. A tie goes to a taxed candidate.
+ */
+const nearestTo = (total: number, candidates: readonly Candidate[]): Candidate | undefined =>
+  candidates.reduce<Candidate | undefined>((best, c) => {
+    if (best === undefined) return c
+    const gap = Math.abs(total - c.total) - Math.abs(total - best.total)
+    return gap < 0 || (gap === 0 && c.hasTax && !best.hasTax) ? c : best
+  }, undefined)
+
+/**
  * An option's price. Its total is the one written for it, else its own included lines plus the shared ones, plus the tax
  * written for it, so an option stated as "subtotal + tax" ranks at what it costs. The document's own tax is not spread
  * over options: which option it belongs to is unknown. It can only explain a written total at the rate the document
@@ -130,7 +141,8 @@ function optionPrice(x: QuoteExtraction, o: QuoteOption): Price {
   const isPriced = own > 0
   if (hasTotal(o.total)) {
     const matches = isPriced ? candidates.filter((c) => near(o.total!, c.total, TOTAL_TOLERANCE)) : []
-    const taxed = matches.find((c) => c.hasTax)
+    const nearest = nearestTo(o.total, matches)
+    const taxed = nearest?.hasTax ? nearest : undefined
     const tax = lineTax ?? written ?? (taxed?.rate ? o.total - o.total / (1 + rate!) : null)
     return {
       base, tax, total: o.total,
