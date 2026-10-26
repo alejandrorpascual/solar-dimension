@@ -19,7 +19,7 @@ const taxLine = (amount: number, text: string, option: string | null = null): Qu
 
 let created = 0
 const view = (id: string, x: QuoteExtraction): QuoteView => ({
-  id, fileName: `${id}.pdf`, label: id, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: created++, retries: 0, pages: null,
+  id, fileName: `${id}.pdf`, label: id, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: created++, retries: 0, pages: null, fileHash: null,
 })
 /** The lines of a system that meets every must-have of the sample kit, with `labor` setting its price. */
 const kitLines = (labor: number, option: string | null = null): QuoteLine[] => [

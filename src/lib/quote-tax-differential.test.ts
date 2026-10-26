@@ -174,7 +174,7 @@ function view(x: QuoteExtraction): QuoteView {
   const id = `q${created}`
   const status = checkExtraction(x).length === 0 ? 'ready' : 'needs_review'
   const base: QuoteView = {
-    id, fileName: `${id}.pdf`, label: id, status, extraction: x, overrides: {}, totalOverride: null, createdAt: created++, retries: 0, pages: null,
+    id, fileName: `${id}.pdf`, label: id, status, extraction: x, overrides: {}, totalOverride: null, createdAt: created++, retries: 0, pages: null, fileHash: null,
   }
   if (rnd() < 0.6) return base
   const lines = sumOf(x.lines)

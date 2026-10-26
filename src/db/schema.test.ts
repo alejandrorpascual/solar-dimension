@@ -28,7 +28,7 @@ test('appliance sources default to none, so every row written before them reads 
 
 test('quotes table has the columns processing and the verdict need', () => {
   expect(Object.keys(getTableColumns(quotes)).sort()).toEqual([
-    'attempts', 'blobPathname', 'claimedAt', 'createdAt', 'error', 'extraction', 'fileName', 'id', 'mime', 'modelUsed',
+    'attempts', 'blobPathname', 'claimedAt', 'createdAt', 'error', 'extraction', 'fileHash', 'fileName', 'id', 'mime', 'modelUsed',
     'overrides', 'pages', 'processedAt', 'projectId', 'retries', 'seenAt', 'sizeBytes', 'status', 'totalOverride', 'usage', 'userId', 'vendorLabel',
   ])
 })

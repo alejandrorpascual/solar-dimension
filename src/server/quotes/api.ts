@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { db } from '../../db/client'
 import { projects, quotes, quoteSettings } from '../../db/schema'
 import { computeProject } from '../../lib/project-summary'
-import { MustInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, retryRefusal, TotalInput, uploadRejection } from '../../lib/quote-guards'
+import { fileFingerprint, MustInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, retryRefusal, TotalInput, uploadRejection } from '../../lib/quote-guards'
 import { quoteKit, resolveMusts, type Musts } from '../../lib/quote-items'
 import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quote-jobs'
 import { checkBasics, cleanFileName, type Rejection } from '../../lib/quote-limits'
@@ -19,7 +19,7 @@ import { AccountClaim, requireAccount, requireQuoteUser } from '../session'
 import { defaultStorage, emptyQuoteTrash } from './deps'
 import { inspectUpload } from './inspect-upload'
 import { kickQuotes } from './kick'
-import { dailyBudget, insertWithinLimits, quoteCounts, retryWithinBudget } from './limits'
+import { dailyBudget, insertWithinLimits, quoteCounts, quoteWithFile, retryWithinBudget } from './limits'
 import { quotePollMs } from './poll'
 import { recoverStaleQuotes, trashQuoteFiles } from './repo'
 import { quotePath } from './storage'
@@ -33,7 +33,7 @@ function toJobQuote(r: QuoteRow): JobQuote {
   return {
     id: r.id, fileName: r.fileName, label: r.vendorLabel, status: r.status, extraction: r.extraction ? withOptionDefaults(r.extraction) : null,
     overrides: r.overrides, totalOverride: r.totalOverride, createdAt: r.createdAt.getTime(), seenAt: r.seenAt?.getTime() ?? null,
-    retries: r.retries, pages: r.pages,
+    retries: r.retries, pages: r.pages, fileHash: r.fileHash,
   }
 }
 
@@ -60,7 +60,7 @@ function logSpentBudget(rejection: Rejection, userId: string, kind: 'upload' | '
 }
 
 /**
- * One file per call, only from an account that may start reads (requireQuoteUser). The counts are checked first so an over-limit upload is refused before any work; the real guard is
+ * One file per call, only from an account that may start reads (requireQuoteUser). The counts and the file's fingerprint are checked first so a repeat or over-limit upload is refused before it is inspected or stored; the real guard is
  * `insertWithinLimits`, which the server runs after the file is stored, so parallel uploads cannot exceed the limits.
  */
 export const uploadQuote = createServerFn({ method: 'POST' })
@@ -76,12 +76,18 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     const { userId } = access
     const basic = checkBasics(data.file)
     if (basic) return reject(basic)
+    const bytes = new Uint8Array(await data.file.arrayBuffer())
+    const fileHash = await fileFingerprint(bytes)
     const [project] = await db.select({ id: projects.id }).from(projects).where(ownProject(userId, data.projectId)).limit(1)
-    const [counts, daily] = await Promise.all([project ? quoteCounts(userId, data.projectId) : { project: 0, month: 0 }, dailyBudget()])
-    const blocked = uploadRejection({ ownsProject: project !== undefined, counts, daily })
+    // The same file is never a second quote of a project (#208): refused before it is stored, counted or read, and named ahead of any limit.
+    const [counts, daily, earlier] = await Promise.all([
+      project ? quoteCounts(userId, data.projectId) : { project: 0, month: 0 },
+      dailyBudget(),
+      project ? quoteWithFile(userId, data.projectId, fileHash) : null,
+    ])
+    const blocked = uploadRejection({ ownsProject: project !== undefined, counts, daily, earlier: earlier?.fileName ?? null })
     if (blocked) return reject(logSpentBudget(blocked, userId, 'upload'))
 
-    const bytes = new Uint8Array(await data.file.arrayBuffer())
     const inspected = await inspectUpload(bytes)
     if (!inspected.ok) return reject(inspected.rejection)
     const { mime, pages } = inspected
@@ -92,13 +98,13 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     try {
       await defaultStorage.put(blobPathname, bytes, mime)
       const added = await insertWithinLimits({
-        id, userId, projectId: data.projectId, fileName: cleanFileName(data.file.name), blobPathname, mime, sizeBytes: bytes.byteLength, pages,
+        id, userId, projectId: data.projectId, fileName: cleanFileName(data.file.name), blobPathname, mime, sizeBytes: bytes.byteLength, pages, fileHash,
       })
       if (!added) {
-        // Another upload took the last slot, or the day's last read, while this file was being read and stored.
+        // Another upload took the last slot, or the day's last read, or added this same file, while this file was being read and stored.
         await dropFile()
-        const [fresh, freshDaily] = await Promise.all([quoteCounts(userId, data.projectId), dailyBudget()])
-        return reject(logSpentBudget(refusedInsertRejection(fresh, freshDaily), userId, 'upload'))
+        const [fresh, freshDaily, freshEarlier] = await Promise.all([quoteCounts(userId, data.projectId), dailyBudget(), quoteWithFile(userId, data.projectId, fileHash)])
+        return reject(logSpentBudget(refusedInsertRejection(fresh, freshDaily, freshEarlier?.fileName ?? null), userId, 'upload'))
       }
     } catch (error) {
       console.error('[quotes] upload failed', { userId, id, error })

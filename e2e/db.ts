@@ -109,6 +109,14 @@ export async function setQuoteUploadsThisMonth(email: string, uploads: number): 
     on conflict (user_id, month) do update set uploads = excluded.uploads`
 }
 
+/** This UTC month's upload counter of the user, which the monthly limit reads. 0 when nothing was counted yet. */
+export async function quoteUploadsThisMonth(email: string): Promise<number> {
+  const rows = await testDb()`
+    select qu.uploads from quote_usage qu join "user" u on u.id = qu.user_id
+    where u.email = ${email} and qu.month = date_trunc('month', now() at time zone 'utc')::date`
+  return (rows[0]?.uploads as number | undefined) ?? 0
+}
+
 export async function countQuoteRows(email: string, projectId: string): Promise<number> {
   const rows = await testDb()`select count(*)::int as n from quotes q join "user" u on u.id = q.user_id where u.email = ${email} and q.project_id = ${projectId}`
   return rows[0].n as number
@@ -257,6 +265,13 @@ export async function quoteRetryStates(email: string, projectId: string): Promis
     select q.status, q.retries from quotes q join "user" u on u.id = q.user_id
     where u.email = ${email} and q.project_id = ${projectId} order by q.created_at`
   return rows.map((r) => ({ status: r.status as string, retries: r.retries as number }))
+}
+
+/** The file name and stored fingerprint (quotes.file_hash) of every quote of the user, oldest first. */
+export async function quoteFileHashes(email: string): Promise<{ fileName: string; fileHash: string | null }[]> {
+  const rows = await testDb()`
+    select q.file_name, q.file_hash from quotes q join "user" u on u.id = q.user_id where u.email = ${email} order by q.created_at`
+  return rows.map((r) => ({ fileName: r.file_name as string, fileHash: r.file_hash as string | null }))
 }
 
 /** Every quote of the user, with its project and the path of its file in storage. */

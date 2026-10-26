@@ -11,7 +11,7 @@ import { bestPill, fitLabel, reasonLine, verdictHeading } from './quote-text'
 
 let created = 0
 const view = (id: string, x: QuoteExtraction, over: Partial<QuoteView> = {}): QuoteView => ({
-  id, fileName: `${id}.pdf`, label: id, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: created++, retries: 0, pages: null, ...over,
+  id, fileName: `${id}.pdf`, label: id, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: created++, retries: 0, pages: null, fileHash: null, ...over,
 })
 const inverter = (specs: object = {}) => line('inverter', 2000, { specs: { watts: 5000, surgeWatts: 10000, hasCharger: true, ...specs } })
 const battery = (specs: object = { kWh: 5.12, chemistry: 'lifepo4' }, qty = 2) => line('battery', 3000, { qty, specs })

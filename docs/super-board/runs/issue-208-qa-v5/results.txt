@@ -1,0 +1,12 @@
+QA v5 · PR #237 · head 180e35b (tests added on top)
+unit            npm test                                   2184/2184
+typecheck       npm run typecheck                          clean
+test:db         npm run test:db                            19/19 (18 + 1 added: 4 parallel inserts of one file -> 1 row, month +1)
+  mutation      drop `not exists` in insertWithinLimits    red (4 of 4 inserted)
+  mutation      drop pg_advisory_xact_lock                 red 3/3 (2 of 4 inserted)
+e2e #208        -g "#208" desktop --repeat-each 3          21/21
+e2e full run 1  desktop + phone                            362 passed, 2 failed: quotes.spec.ts:140 read counter moved [2,1,1] (shared counter), my own label bug (fixed)
+e2e full run 2  desktop + phone                            362 passed, 2 failed: admin.spec.ts:46, :73 sign-in timeout; admin.spec alone 7/7; PR touches no admin file
+  mutation      drop `not exists`, e2e parallel test       red 1 of 2 runs (2 quote rows through HTTP)
+refusal shots   en + es at 1920, 1024, 390                 6/6: 1 row, 1 stored file, month 1, daily reads +0 (facts.jsonl)
+Read again      verdict of the earlier (ready) quote       0 Read again buttons in 6/6; card offers View original and Delete only
