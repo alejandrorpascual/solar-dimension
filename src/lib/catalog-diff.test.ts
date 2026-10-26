@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { assignSortOrders, diffAppliances, planUpsert, retireWrite, warnAppliances, writtenFields } from './catalog-diff'
+import { assignSortOrders, diffAppliances, planUpsert, retireWrite, revertWrite, warnAppliances, writtenFields } from './catalog-diff'
 import { ApplianceSchema } from './catalog-schema'
 import { APPLIANCE_SEED } from './catalog-snapshot'
 
@@ -136,4 +136,46 @@ test('a retire and a restore are each one write that flips only the retired flag
   expect(writtenFields(restored!)).toEqual([{ field: 'retired', from: true, to: false }])
 
   expect(retireWrite(fridge, false)).toBeNull()
+})
+
+describe('reverting a logged change', () => {
+  const stored = { ...fridgeInput, sortOrder: fridge.sortOrder, retired: false }
+
+  test('writes the row back to the entry\'s "before", every logged field included, as one write', () => {
+    const before = { ...stored, watts: 150, retired: true, sortOrder: 5, sources: {} }
+    const current = { ...stored, watts: 180, sources: {} }
+    const write = revertWrite(current, before)
+    expect(write).toEqual({ before: current, after: before })
+    expect(typeof write === 'object' && writtenFields(write)).toEqual([
+      { field: 'watts', from: 180, to: 150 },
+      { field: 'sortOrder', from: fridge.sortOrder, to: 5 },
+      { field: 'retired', from: false, to: true },
+    ])
+  })
+
+  test('a row that already holds the "before" values writes nothing', () => {
+    expect(revertWrite(stored, { ...stored })).toBe('unchanged')
+  })
+
+  test('an entry that created the appliance has no "before" to put back', () => {
+    expect(revertWrite(stored, null)).toBe('created')
+  })
+
+  test('a "before" logged without sources keeps the row\'s stored sources', () => {
+    const sources = { watts: [{ source: 'https://example.com/fridge', asWritten: '150 W' }] }
+    // `stored` has no `sources` key, like an entry logged before sources were.
+    const before = { ...stored, watts: 150 }
+    const current = { ...stored, watts: 180, sources }
+    const write = revertWrite(current, before)
+    expect(write).toEqual({ before: current, after: { ...before, sources } })
+    expect(typeof write === 'object' && writtenFields(write)).toEqual([{ field: 'watts', from: 180, to: 150 }])
+  })
+
+  test('a "before" logged without sources, matching the row otherwise, writes nothing', () => {
+    expect(revertWrite({ ...stored, sources: {} }, stored)).toBe('unchanged')
+  })
+
+  test('a "before" that fails the schema (a hand-edited row) is not put back', () => {
+    expect(revertWrite(stored, { ...stored, watts: 0 })).toBe('invalid')
+  })
 })
