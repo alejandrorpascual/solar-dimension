@@ -167,6 +167,22 @@ test('a file whose first upload was a reading duplicate is still a duplicate whe
   await expect(voltia).toContainText(quotesEn.duplicate)
 })
 
+test("a different file that reads like a file copy's second reading is a duplicate too (#208 R3)", async ({ page }) => {
+  await signUp(page)
+  // One file, then the same file under a name the stub reads as Voltia's quote, then a different file the stub also reads as Voltia's.
+  const [first, other] = await Promise.all(['solartec', 'voltia'].map(quotePdf))
+  await uploadQuotes(page, [first!, { ...first!, name: 'voltia.pdf' }, other!])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  // The copy is a duplicate by its file, the third upload by reading like the copy: neither ranks as Voltia's own quote.
+  const voltia = page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })
+  await expect(voltia).toHaveCount(2)
+  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(2)
+  for (const card of await voltia.all()) await expect(card).toContainText(quotesEn.duplicate)
+})
+
 test('a tie between currencies says on screen which one was compared (AI-28)', async ({ page }) => {
   const email = await signUp(page)
   await uploadQuotes(page, await Promise.all(['solartec', 'voltia'].map(quotePdf)))
