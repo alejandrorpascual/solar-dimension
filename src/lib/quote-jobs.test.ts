@@ -1,24 +1,28 @@
 import { describe, expect, test } from 'vitest'
 import { SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
-import { DEFAULT_MUSTS } from './quote-items'
+import { CATALOG_SNAPSHOT } from './catalog-snapshot'
+import { DEFAULT_MUSTS, quoteKit, type QuoteKit } from './quote-items'
 import {
   DEFAULT_POLL_MS, etaSeconds, finishedKey, MAX_POLL_MS, MIN_POLL_MS, nextPollDelay, parsePollMs, pickTray, summarizeProject,
   verdictReload, type JobQuote, type ProjectJobs,
 } from './quote-jobs'
+import { compute } from './sizing'
 
 const jq = (id: string, over: Partial<JobQuote> = {}): JobQuote => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES.solartec, overrides: {}, totalOverride: null,
   createdAt: 1, seenAt: null, retries: 0, pages: null, ...over,
 })
 const jobs = (over: Partial<ProjectJobs>): ProjectJobs => ({
-  projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null, ...over,
+  projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitHold: null, unseen: false, best: null, ...over,
 })
+
+const OK: QuoteKit = { hold: null, needs: KIT }
 
 describe('summarizeProject', () => {
   test('counts pending, done, failed and needs-review quotes', () => {
     const s = summarizeProject('p', 'Home', [
       jq('a'), jq('b', { status: 'processing', extraction: null }), jq('c', { status: 'failed', extraction: null }), jq('d', { status: 'needs_review' }),
-    ], KIT, DEFAULT_MUSTS)
+    ], OK, DEFAULT_MUSTS)
     expect(s).toMatchObject({ total: 4, done: 3, pending: 1, failed: 1, needsReview: 1 })
     expect(s.files.map((f) => f.status)).toEqual(['ready', 'processing', 'failed', 'needs_review'])
   })
@@ -27,37 +31,43 @@ describe('summarizeProject', () => {
     const s = summarizeProject('p', 'Home', [
       jq('a', { status: 'needs_review', totalOverride: 6000 }), jq('b', { status: 'needs_review', extraction: lineOff, totalOverride: 6000 }),
       jq('c', { status: 'needs_review', extraction: lineOff, totalOverride: 6000, retries: 1 }),
-    ], KIT, DEFAULT_MUSTS)
+    ], OK, DEFAULT_MUSTS)
     expect(s.needsReview).toBe(1)
   })
   test("each file carries its retries, so the hand-off dialog can hide Retry once they're used up", () => {
-    const s = summarizeProject('p', 'Home', [jq('a', { status: 'failed', extraction: null, retries: 3 })], KIT, DEFAULT_MUSTS)
+    const s = summarizeProject('p', 'Home', [jq('a', { status: 'failed', extraction: null, retries: 3 })], OK, DEFAULT_MUSTS)
     expect(s.files).toEqual([{ id: 'a', name: 'a.pdf', status: 'failed', retries: 3 }])
   })
   test('names the best quote only once nothing is pending', () => {
-    expect(summarizeProject('p', 'Home', [jq('a'), jq('b', { status: 'queued', extraction: null })], KIT, DEFAULT_MUSTS).best).toBeNull()
-    expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).best).toEqual({ name: 'SolarTec Caribe', optionLabel: null, total: 6480, currency: 'USD' })
+    expect(summarizeProject('p', 'Home', [jq('a'), jq('b', { status: 'queued', extraction: null })], OK, DEFAULT_MUSTS).best).toBeNull()
+    expect(summarizeProject('p', 'Home', [jq('a')], OK, DEFAULT_MUSTS).best).toEqual({ name: 'SolarTec Caribe', optionLabel: null, total: 6480, currency: 'USD' })
   })
   test('names the option when the best entry is one', () => {
     const musts = { ...DEFAULT_MUSTS, battery: false, charger: false, cables: false, fuse: false, installation: false }
     const suna = jq('suna', { extraction: SAMPLE_QUOTES.suna })
-    expect(summarizeProject('p', 'Home', [suna], KIT, musts).best).toEqual({ name: 'SUNA M.P.', optionLabel: 'Inversor 10 kW', total: 6200, currency: 'USD' })
+    expect(summarizeProject('p', 'Home', [suna], OK, musts).best).toEqual({ name: 'SUNA M.P.', optionLabel: 'Inversor 10 kW', total: 6200, currency: 'USD' })
   })
-  test('an empty kit (null) is flagged, has no best, and is never an unseen verdict', () => {
-    expect(summarizeProject('p', 'Home', [jq('a')], null, DEFAULT_MUSTS)).toMatchObject({ kitEmpty: true, best: null, unseen: false })
-    expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).kitEmpty).toBe(false)
+  test('a held kit is flagged, has no best, and is never an unseen verdict', () => {
+    const empty = quoteKit(compute({ qty: {}, hours: 8, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT))
+    expect(summarizeProject('p', 'Home', [jq('a')], empty, DEFAULT_MUSTS)).toMatchObject({ kitHold: 'empty', best: null, unseen: false })
+    expect(summarizeProject('p', 'Home', [jq('a')], OK, DEFAULT_MUSTS).kitHold).toBeNull()
+  })
+  test('a kit missing an appliance has no best and nothing unseen, as an empty kit (#204)', () => {
+    const qty = { fridge: 1, lights: 1, router: 1, tv: 1, 'no-such-thing': 1 }
+    const missing = quoteKit(compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT))
+    expect(summarizeProject('p', 'Home', [jq('a')], missing, DEFAULT_MUSTS)).toMatchObject({ kitHold: 'missing', best: null, unseen: false })
   })
   test('unseen while a finished quote has no seenAt', () => {
-    expect(summarizeProject('p', 'Home', [jq('a')], KIT, DEFAULT_MUSTS).unseen).toBe(true)
-    expect(summarizeProject('p', 'Home', [jq('a', { seenAt: 5 })], KIT, DEFAULT_MUSTS).unseen).toBe(false)
-    expect(summarizeProject('p', 'Home', [jq('a', { status: 'queued', extraction: null })], KIT, DEFAULT_MUSTS).unseen).toBe(false)
+    expect(summarizeProject('p', 'Home', [jq('a')], OK, DEFAULT_MUSTS).unseen).toBe(true)
+    expect(summarizeProject('p', 'Home', [jq('a', { seenAt: 5 })], OK, DEFAULT_MUSTS).unseen).toBe(false)
+    expect(summarizeProject('p', 'Home', [jq('a', { status: 'queued', extraction: null })], OK, DEFAULT_MUSTS).unseen).toBe(false)
   })
   test('failed-only project does not show unseen verdict ready', () => {
-    const s = summarizeProject('p', 'Home', [jq('a', { status: 'failed', extraction: null })], KIT, DEFAULT_MUSTS)
+    const s = summarizeProject('p', 'Home', [jq('a', { status: 'failed', extraction: null })], OK, DEFAULT_MUSTS)
     expect(s).toMatchObject({ unseen: false })
   })
   test('mixed ready and failed quotes shows unseen only for ready ones', () => {
-    const s = summarizeProject('p', 'Home', [jq('a', { status: 'ready' }), jq('b', { status: 'failed', extraction: null })], KIT, DEFAULT_MUSTS)
+    const s = summarizeProject('p', 'Home', [jq('a', { status: 'ready' }), jq('b', { status: 'failed', extraction: null })], OK, DEFAULT_MUSTS)
     expect(s).toMatchObject({ unseen: true })
   })
 })

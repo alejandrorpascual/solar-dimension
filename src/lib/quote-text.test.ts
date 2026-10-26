@@ -505,12 +505,15 @@ describe('items a quote mentions without enough to judge them', () => {
 
 describe('status and progress text', () => {
   const jobs = (over: Partial<ProjectJobs>): ProjectJobs => ({
-    projectId: 'p', projectName: 'Home', files: [], total: 4, done: 4, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null, ...over,
+    projectId: 'p', projectName: 'Home', files: [], total: 4, done: 4, pending: 0, failed: 0, needsReview: 0, kitHold: null, unseen: false, best: null, ...over,
   })
   test('project line', () => {
     expect(projectLine(en, jobs({ done: 2, pending: 2 }))).toBe('Reading quotes 2/4')
-    expect(projectLine(en, jobs({ kitEmpty: true }))).toBe('Add appliances to compare your quotes')
-    expect(projectLine(es, jobs({ kitEmpty: true }))).toBe('Agrega aparatos para comparar tus cotizaciones')
+    expect(projectLine(en, jobs({ kitHold: 'empty' }))).toBe('Add appliances to compare your quotes')
+    expect(projectLine(es, jobs({ kitHold: 'empty' }))).toBe('Agrega aparatos para comparar tus cotizaciones')
+    expect(projectLine(en, jobs({ kitHold: 'missing' }))).toBe('Your kit is missing appliances')
+    expect(projectLine(es, jobs({ kitHold: 'missing' }))).toBe('A tu kit le faltan aparatos')
+    expect(projectLine(en, jobs({ kitHold: 'missing', done: 2, pending: 2 }))).toBe('Reading quotes 2/4')
     expect(projectLine(en, jobs({ best: { name: 'SolarTec Caribe', optionLabel: null, total: 6480, currency: 'USD' } }))).toBe('Verdict ready · SolarTec Caribe · $6,480')
     expect(projectLine(en, jobs({ failed: 1 }))).toBe('Check 1 of your quotes')
     expect(projectLine(en, jobs({}))).toBe('Verdict ready · none fits yet')
@@ -571,7 +574,7 @@ describe('status and progress text', () => {
 const at = (ratio: number): Sizing => ({ have: ratio * 1000, need: 1000, ratio, zone: sizingZone(ratio), pos: gaugePos(ratio) })
 
 describe('a quote that offers two systems', () => {
-  const jobs = (): ProjectJobs => ({ projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null })
+  const jobs = (): ProjectJobs => ({ projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitHold: null, unseen: false, best: null })
   const suna: QuoteView = { ...view('suna', 9), fileName: 'suna.pdf' }
   const both = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', 0), suna])
   const o2 = both.ranked.find((r) => r.optionId === 'o2')!

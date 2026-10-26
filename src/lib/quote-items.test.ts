@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { CHEMISTRIES } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
-import { checkItems, DEFAULT_MUSTS, FIXED_MUSTS, itemsFor, kitNeeds, resolveMusts, setOverride, type ItemCheck, type ItemId, type KitNeeds } from './quote-items'
+import { checkItems, DEFAULT_MUSTS, FIXED_MUSTS, itemsFor, kitHoldReason, kitNeeds, quoteKit, resolveMusts, setOverride, type ItemCheck, type ItemId, type KitNeeds } from './quote-items'
 import type { LineRole, QuoteExtraction, QuoteLine } from './quote-schema'
 import { compute } from './sizing'
 
@@ -720,5 +720,24 @@ describe('overrides', () => {
   })
   test('returns the items in ITEM_IDS order', () => {
     expect(checkItems(SAMPLE_QUOTES.solartec, KIT).map((c) => c.id)).toEqual(['inverter', 'battery', 'charger', 'wifi', 'cables', 'fuse', 'installation', 'warranty'])
+  })
+})
+
+describe('whether quotes can be judged against a kit (#204)', () => {
+  const sized = (qty: Record<string, number>) => compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
+  const WHOLE = { fridge: 1, lights: 1, router: 1, tv: 1 }
+  test('a kit missing an appliance holds, even when nothing else is left', () => {
+    expect(kitHoldReason(sized({ ...WHOLE, 'no-such-thing': 1 }))).toBe('missing')
+    expect(kitHoldReason(sized({ 'no-such-thing': 2 }))).toBe('missing')
+  })
+  test('an empty kit holds, and a whole one does not', () => {
+    expect(kitHoldReason(sized({}))).toBe('empty')
+    expect(kitHoldReason(sized(WHOLE))).toBeNull()
+  })
+  test('quoteKit gives the needs only when nothing holds', () => {
+    const whole = sized(WHOLE)
+    expect(quoteKit(whole)).toEqual({ hold: null, needs: kitNeeds(whole) })
+    expect(quoteKit(sized({ ...WHOLE, 'no-such-thing': 1 }))).toEqual({ hold: 'missing', needs: null })
+    expect(quoteKit(sized({}))).toEqual({ hold: 'empty', needs: null })
   })
 })

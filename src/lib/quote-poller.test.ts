@@ -12,7 +12,7 @@ function deferred<T>() {
 
 const project = (unseen: boolean): ProjectJobs => ({
   projectId: 'p1', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0,
-  kitEmpty: false, unseen, best: null,
+  kitHold: null, unseen, best: null,
 })
 
 /** A poller whose loads and marks answer only when the test says so, with the list and the poll outcomes it produced. */

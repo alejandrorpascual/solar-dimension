@@ -21,7 +21,7 @@ vi.mock('@tanstack/react-router', () => ({
 function trayHtml(pending: number, done: number): string {
   page.jobs = [{
     projectId: 'p1', projectName: 'Home', files: [], total: pending + done, done, pending, failed: 0, needsReview: 0,
-    kitEmpty: false, unseen: done > 0, best: null,
+    kitHold: null, unseen: done > 0, best: null,
   }]
   return renderToStaticMarkup(createElement(QuoteTray))
 }
