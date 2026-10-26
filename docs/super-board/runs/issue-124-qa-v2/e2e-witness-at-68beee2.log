@@ -1,0 +1,275 @@
+[WebServer] ◇ injected env (0) from .env.local
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - import "./src/server/quotes/time-limits" without a file extension (vite.config.ts:8:41). Add the file extension
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] `output.codeSplitting.groups[0].name` is a function. Set `output.codeSplitting.groups[0].debugName` so the bundler timing report can identify this group.
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/index.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/index.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/utils.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/utils.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/ClientOnly.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/ClientOnly.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouter.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouter.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useMatch.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useMatch.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/HeadContent.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/HeadContent.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/RouterProvider.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/RouterProvider.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useBlocker.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useBlocker.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useNavigate.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useNavigate.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouterState.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouterState.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useLocation.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useLocation.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Asset.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Asset.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Match.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Match.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Matches.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Matches.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/link.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/link.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/routerContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/routerContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/matchContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/matchContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Transitioner.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Transitioner.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/Icon.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/Icon.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/context.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/context.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+
+Running 1 test using 1 worker
+
+  ✓  1 [desktop] › e2e/quotes.spec.ts:948:1 › a total typed with its tax counts as taxed, so a cheaper quote that states no tax is marked beside it (22.1s)
+
+  1 passed (31.0s)
