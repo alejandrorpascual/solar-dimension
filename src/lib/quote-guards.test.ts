@@ -12,25 +12,35 @@ const SPENT = { reads: 100, limit: 100 }
 
 describe('uploadRejection', () => {
   test('a project the user does not own is not_saved, whatever the counts', () => {
-    expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 }, daily: OPEN })).toEqual({ code: 'not_saved' })
-    expect(uploadRejection({ ownsProject: false, counts: { project: 10, month: 20 }, daily: OPEN })).toEqual({ code: 'not_saved' })
+    expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 }, daily: OPEN, earlier: null })).toEqual({ code: 'not_saved' })
+    expect(uploadRejection({ ownsProject: false, counts: { project: 10, month: 20 }, daily: OPEN, earlier: null })).toEqual({ code: 'not_saved' })
   })
   test('refuses at 10 quotes in the project and at 20 this month, the project first', () => {
     const { perProject, perMonth } = QUOTE_LIMITS
-    expect(uploadRejection({ ownsProject: true, counts: { project: perProject - 1, month: perMonth - 1 }, daily: OPEN })).toBeNull()
-    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 }, daily: OPEN })).toEqual({ code: 'project_limit' })
-    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: perMonth }, daily: OPEN })).toEqual({ code: 'month_limit' })
-    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: perMonth }, daily: OPEN })).toEqual({ code: 'project_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject - 1, month: perMonth - 1 }, daily: OPEN, earlier: null })).toBeNull()
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 }, daily: OPEN, earlier: null })).toEqual({ code: 'project_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: perMonth }, daily: OPEN, earlier: null })).toEqual({ code: 'month_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: perMonth }, daily: OPEN, earlier: null })).toEqual({ code: 'project_limit' })
+  })
+  // #208: naming the earlier quote tells the user more than a limit does, and it would stay refused once the limit lifts.
+  test('a file the project already has names the earlier quote before any limit, but only in a project the user owns', () => {
+    const { perProject, perMonth } = QUOTE_LIMITS
+    const earlier = 'solartec.pdf'
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: 0 }, daily: OPEN, earlier })).toEqual({ code: 'already_uploaded', fileName: earlier })
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 }, daily: OPEN, earlier })).toEqual({ code: 'already_uploaded', fileName: earlier })
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: perMonth }, daily: OPEN, earlier })).toEqual({ code: 'already_uploaded', fileName: earlier })
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: 0 }, daily: SPENT, earlier })).toEqual({ code: 'already_uploaded', fileName: earlier })
+    expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 }, daily: OPEN, earlier })).toEqual({ code: 'not_saved' })
   })
 })
 
 describe('the daily read budget', () => {
   const { perProject } = QUOTE_LIMITS
   test('an upload is refused before any work once today’s reads reach the limit, after the account’s own limits', () => {
-    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: 0 }, daily: { reads: 99, limit: 100 } })).toBeNull()
-    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: 0 }, daily: SPENT })).toEqual({ code: 'daily_limit' })
-    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 }, daily: SPENT })).toEqual({ code: 'project_limit' })
-    expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 }, daily: SPENT })).toEqual({ code: 'not_saved' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: 0 }, daily: { reads: 99, limit: 100 }, earlier: null })).toBeNull()
+    expect(uploadRejection({ ownsProject: true, counts: { project: 0, month: 0 }, daily: SPENT, earlier: null })).toEqual({ code: 'daily_limit' })
+    expect(uploadRejection({ ownsProject: true, counts: { project: perProject, month: 0 }, daily: SPENT, earlier: null })).toEqual({ code: 'project_limit' })
+    expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 }, daily: SPENT, earlier: null })).toEqual({ code: 'not_saved' })
   })
   test('a refused insert names the spent budget when the account’s own limits still allow it', () => {
     expect(refusedInsertRejection({ project: 0, month: 0 }, SPENT, null)).toEqual({ code: 'daily_limit' })

@@ -47,11 +47,12 @@ export function parseTotal(s: string): number | null {
 }
 
 /**
- * Whether an upload may go ahead: the project must be the user's own, the account's limits not reached, and today's
- * reads across every account still under the daily budget.
+ * Whether an upload may go ahead: the project must be the user's own, the file not already one of its quotes (`earlier`,
+ * that quote's file name), the account's limits not reached, and today's reads across every account still under the daily budget.
  */
-export function uploadRejection(input: { ownsProject: boolean; counts: { project: number; month: number }; daily: DailyBudget }): Rejection | null {
+export function uploadRejection(input: { ownsProject: boolean; counts: { project: number; month: number }; daily: DailyBudget; earlier: string | null }): Rejection | null {
   if (!input.ownsProject) return { code: 'not_saved' }
+  if (input.earlier !== null) return { code: 'already_uploaded', fileName: input.earlier }
   return limitRejection(input.counts) ?? dailyRejection(input.daily)
 }
 
