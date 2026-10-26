@@ -629,6 +629,24 @@ test('on the narrowest phone the quotes card wraps its long Spanish sign-in labe
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(NARROWEST_PHONE.width)
 })
 
+/** A chip row that scrolls sideways has a scrollable box wider than what it shows, and hides options past the edge. */
+const hiddenSideways = (row: Locator) => row.evaluate((el) => el.scrollWidth - el.clientWidth)
+
+for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }]) {
+  test(`at ${viewport.width} px the category chips and the hour presets all show without scrolling sideways`, PHONE, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await page.goto('/?step=1')
+    const categories = page.locator('.hs')
+    await expect(categories.getByRole('button', { name: 'Air conditioning' })).toBeVisible()
+    expect(await hiddenSideways(categories), 'category chips hidden past the right edge').toBeLessThanOrEqual(0)
+    await page.goto('/?step=2')
+    const presets = page.locator('.presets')
+    await expect(presets.getByRole('button', { name: '48 h' })).toBeVisible()
+    expect(await hiddenSideways(presets), 'hour presets hidden past the right edge').toBeLessThanOrEqual(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width)
+  })
+}
+
 test('motors starting together and a hot cable run change the inverter, the checks and the assumptions', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Air conditioning' }).click()

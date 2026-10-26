@@ -11,5 +11,5 @@ a:hover { color: var(--accent-hover); }
 .lab { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
 .muted { color: var(--muted); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.page { min-height: 100dvh; display: flex; flex-direction: column; gap: 16px; padding: 24px 16px 120px; max-width: 1280px; margin: 0 auto; }
+.page { min-height: 100dvh; display: flex; flex-direction: column; gap: 16px; padding: 24px 16px calc(var(--footer-h, 137px) + 7px); max-width: 1280px; margin: 0 auto; }
 @media (min-width: 1024px) { .page { padding: 36px 64px 40px; gap: 20px; } }

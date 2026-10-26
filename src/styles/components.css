@@ -61,12 +61,11 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 /* iOS Safari zooms the page in when a field under 16 px gets focus; zoomed, it scrolls the page under any open dialog
    (and react-aria stops tracking the keyboard), so the field you tapped ends up behind the keyboard. */
 @media (pointer: coarse) { .in { font-size: 16px; } }
-.hs { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px; scrollbar-width: none; }
-.hs::-webkit-scrollbar { display: none; }
+/* A row of chips wraps onto more lines rather than scrolling sideways, so every option shows at any width. */
+.hs { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (min-width: 1024px) {
   .btn { flex: 0 0 auto; min-height: 48px; padding: 0 22px; }
   .in { font-size: 14px; min-height: 40px; }
-  .hs { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 }
 
 
@@ -81,11 +80,12 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 }
 .footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px 28px; background: var(--ground); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
 .footer__line { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.footer__summary { min-width: 0; font-size: 13px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* On a phone the summary wraps to a second line rather than ending in an ellipsis, which cut "start-up power" off. */
+.footer__summary { min-width: 0; font-size: 13px; line-height: 20px; }
 .footer__actions { display: flex; gap: 8px; min-height: 50px; }
 @media (min-width: 1024px) {
   .footer { position: static; padding: 0; border: 0; flex-direction: row; justify-content: space-between; align-items: center; gap: 24px; }
-  .footer__summary { font-size: 15px; line-height: 1.45; white-space: normal; overflow: visible; }
+  .footer__summary { font-size: 15px; line-height: 1.45; }
   .footer__actions { gap: 10px; }
 }
 
@@ -220,6 +220,11 @@ input[type='range'] { accent-color: var(--accent); width: 100%; min-height: var(
 .elec__check-title { display: block; font-weight: 600; }
 .elec__check-help { display: block; font-size: 12px; }
 @media (min-width: 760px) { .elec__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* The glossary under the kit opens like the cable settings box; its terms take two columns from tablet width. */
+.gloss__list { display: grid; gap: 12px; margin: 0; padding: 2px 16px 16px; }
+.gloss__list dt { font-size: 13px; font-weight: 600; }
+.gloss__list dd { margin: 2px 0 0; font-size: 13px; line-height: 1.45; }
+@media (min-width: 760px) { .gloss__list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; } }
 @media (min-width: 1024px) {
   .window__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
   .window__hours { padding: 0; border: 0; background: transparent; gap: 16px; }

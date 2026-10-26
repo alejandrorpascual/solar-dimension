@@ -76,7 +76,7 @@ export function currencyTieText(t: Dictionary, v: Verdict): string | null {
  */
 export function kitHold(t: Dictionary, r: SizingResult): { title: string; note: string } | null {
   const missing = r.warnings.find((w) => w.code === 'missingAppliances')
-  if (missing) return { title: t.quotes.kitMissingTitle, note: warningText(t, missing, r.items, r.chemistry) }
+  if (missing) return { title: t.quotes.kitMissingTitle, note: warningText(t, missing, r) }
   return r.empty ? { title: t.quotes.kitEmptyTitle, note: t.quotes.kitEmptyNote } : null
 }
 
