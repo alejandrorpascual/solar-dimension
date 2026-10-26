@@ -1,0 +1,31 @@
+M1 spare = yield - daily use (PR #14 bug): exit=1 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+    FAIL  src/lib/solar.test.ts > the figures the solar flow prints > a clear day has what is left after refilling the bank to spare, not what is left after a day of use
+    FAIL  src/lib/solar.test.ts > the figures the solar flow prints > nothing is spare when a clear day does not refill the bank
+    × a clear day has what is left after refilling the bank to spare, not what is left after a day of use 14ms
+    × nothing is spare when a clear day does not refill the bank 1ms
+M2 chart limit from yield alone (PR #14 bug): exit=1 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+    FAIL  src/lib/solar.test.ts > the figures the solar flow prints > a small kit keeps the chart at its 26.4 kWh floor, and a large one rounds up to the next 2 kWh
+    FAIL  src/lib/solar.test.ts > the figures the solar flow prints > the bar fills with the use a clear day carries, against the day's-use mark
+    FAIL  src/lib/solar.test.ts > the figures the solar flow prints > the chart reaches a day's use when it is past the clear-day yield
+    × a small kit keeps the chart at its 26.4 kWh floor, and a large one rounds up to the next 2 kWh 1ms
+    × the bar fills with the use a clear day carries, against the day's-use mark 1ms
+    × the chart reaches a day's use when it is past the clear-day yield 10ms
+M3 cloudy share drops CLOUDY_SHARE: exit=1 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+    FAIL  src/lib/solar.test.ts > the figures the solar flow prints > a cloudy day covers 40% of what a clear day covers of a day's use
+    × a cloudy day covers 40% of what a clear day covers of a day's use 8ms
+M4 bar fill = yield, not use carried: exit=1 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+    FAIL  src/lib/solar.test.ts > the figures the solar flow prints > the bar fills with the use a clear day carries, against the day's-use mark
+    × the bar fills with the use a clear day carries, against the day's-use mark 3ms
+M5 battery-peak recomputes surge/volts/eff: exit=1 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+    FAIL  src/lib/kit-checks.test.ts > kitChecks > the battery-peak and fuse lines print the start-up current the engine worked out, with one run
+    FAIL  src/lib/kit-checks.test.ts > kitChecks > the battery-peak and fuse lines print the start-up current the engine worked out, with two runs of the 7 kW load
+    × the battery-peak and fuse lines print the start-up current the engine worked out, with one run 5ms
+    × the battery-peak and fuse lines print the start-up current the engine worked out, with two runs of the 7 kW load 1ms
+M6 fuse recomputes startupA / runs: exit=1 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+    FAIL  src/lib/kit-checks.test.ts > kitChecks > the battery-peak and fuse lines print the start-up current the engine worked out, with one run
+    FAIL  src/lib/kit-checks.test.ts > kitChecks > the battery-peak and fuse lines print the start-up current the engine worked out, with two runs of the 7 kW load
+    × the battery-peak and fuse lines print the start-up current the engine worked out, with one run 5ms
+    × the battery-peak and fuse lines print the start-up current the engine worked out, with two runs of the 7 kW load 1ms
+M7 engine per-run current not split: exit=1 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+    FAIL  src/lib/kit-checks.test.ts > kitChecks > inverters in parallel pass as a set: the lines name how many, what they give together and what each one draws
+    × inverters in parallel pass as a set: the lines name how many, what they give together and what each one draws 5ms

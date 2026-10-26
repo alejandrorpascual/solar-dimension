@@ -45,7 +45,7 @@ describe('extractRequest', () => {
     expect(req.text.format.schema).toMatchObject({ type: 'object', additionalProperties: false })
   })
   test('the answer is capped at MAX_OUTPUT_TOKENS, sized for the largest extraction the app keeps', () => {
-    expect(MAX_OUTPUT_TOKENS).toBe(12_500)
+    expect(MAX_OUTPUT_TOKENS).toBe(13_000)
     expect(req.max_output_tokens).toBe(MAX_OUTPUT_TOKENS)
   })
   test('it sends the model, the prompt and the file', () => {
@@ -72,6 +72,11 @@ describe('prompt, model names and stub', () => {
   test('the prompt asks for the page in the file, counting from 1, not a number printed on the page', () => {
     // A line's page is checked against the file's page count (isOffThePages in quote-checks.ts).
     expect(SYSTEM_PROMPT).toContain("source.page is the line's page in the file, counting from 1, not a page number printed on it")
+  })
+  test('the prompt asks what each wiring line connects, null when the document does not say', () => {
+    expect(SYSTEM_PROMPT).toContain('For a wiring line, set role to what the document says it connects')
+    expect(SYSTEM_PROMPT).toContain('Set role to null when the document does not say what a wiring line connects')
+    expect(JSON.stringify(req.text.format)).toContain('"role"')
   })
   test('the structured output asks for options and each line\'s option', () => {
     const schema = JSON.stringify(req.text.format)

@@ -1,0 +1,15 @@
+6: Test Files  135 passed (135)
+7:      Tests  2159 passed (2159)
+18:All files          |   90.38 |    90.84 |   90.63 |   90.57 |                   
+130:✓ built in 1.39s
+188:✓ built in 674ms
+515:✓ built in 2.31s
+--- earlier runs at load 42-57 (timeouts in files with no quote imports):
+qa184-verify.log:17:⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+qa184-verify.log:19: FAIL  src/lib/kit-conductors.test.ts > printed conductors > each main run and each string has a fuse of its own, and no string fuse is rated above its lead unless the fuse check says so
+qa184-verify.log:34:      Tests  1 failed | 2158 passed (2159)
+qa184-verify2.log:17:⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+qa184-verify2.log:19: FAIL  src/lib/kit-conductors.test.ts > printed conductors > every inverter of a kit gets the same whole number of runs, with a fuse on each run and a cable pair for it
+qa184-verify2.log:32: FAIL  src/lib/kit-conductors.test.ts > printed conductors > each main run and each string has a fuse of its own, and no string fuse is rated above its lead unless the fuse check says so
+qa184-verify2.log:45: FAIL  src/lib/solar.test.ts > controllers, breakers and taps > adding panel n lights it and removing it leaves the most panels below n that wire; every tile can light, on every voltage and roof
+qa184-verify2.log:60:      Tests  3 failed | 2156 passed (2159)

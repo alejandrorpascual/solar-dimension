@@ -78,7 +78,7 @@ export function kitHold(t: Dictionary, r: SizingResult): { title: string; note: 
   const hold = kitHoldReason(r)
   if (!hold) return null
   const missing = r.warnings.find((w) => w.code === 'missingAppliances')
-  return { title: holdTitle(t, hold), note: missing ? warningText(t, missing, r.items, r.chemistry) : t.quotes.kitEmptyNote }
+  return { title: holdTitle(t, hold), note: missing ? warningText(t, missing, r) : t.quotes.kitEmptyNote }
 }
 
 /** The heading for a held kit, on the verdict page and the cards. */

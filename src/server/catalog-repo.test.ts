@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { appliances } from '../db/schema'
 import type { ApplianceInput, ApplianceRecord } from '../lib/catalog-schema'
 import { APPLIANCE_SEED } from '../lib/catalog-snapshot'
-import { listRecords, recentChanges, setRetired, upsertAppliances } from './catalog-repo'
+import { listRecords, recentChanges, revertChange, setRetired, UPSERT_COLUMNS, UPSERT_SKIPPED_COLUMNS, upsertAppliances } from './catalog-repo'
 
 /** One statement as it reaches the database driver. */
 interface Sent { sql: string; params: unknown[] }
@@ -234,4 +234,80 @@ test('the recent changes are the 50 newest entries, newest first, with the email
     { id: 7, changedAt: '2026-10-22T15:04:05.123Z', actor: 'user-1', actorEmail: 'owner@example.com', before: storedFridge, after: { ...storedFridge, retired: true } },
     { id: 6, changedAt: '2026-10-22T15:00:00.000Z', actor: 'api-token', actorEmail: null, before: null, after: storedFridge },
   ])
+})
+
+describe('reverting a change', () => {
+  /** The appliances table holds `row`, and the change log one entry, id 7, whose "before" is `before`. */
+  function storeWithEntry(row: Row | null, before: ApplianceRecord | null) {
+    wire.answer = ({ sql, params }) => {
+      if (sql.includes('from "appliance_changes"')) return params[0] === 7 ? [['fridge', before]] : []
+      if (sql.startsWith('select') && sql.includes('from "appliances"')) return row && params[0] === row.id ? [onTheWire(row)] : []
+      return []
+    }
+  }
+
+  test('writes the entry\'s "before" back to the row and logs the revert as its own entry, in one transaction', async () => {
+    storeWithEntry(fridgeRow({ watts: 180, retiredAt: new Date('2026-10-20T00:00:00Z') }), storedFridge)
+
+    expect(await revertChange(7, 'admin-1')).toBe('reverted')
+
+    expect(wire.batches).toHaveLength(1)
+    const [write, log] = wire.batches[0]!
+    expect(write!.sql).toMatch(/^update "appliances" set/)
+    // Restored: the retired date is cleared, sent as a null param.
+    const retiredAt = write!.sql.match(/"retired_at" = \$(\d+)/)
+    expect(write!.params[Number(retiredAt![1]) - 1]).toBeNull()
+    expect(decoded(write!.params)).toContain(150)
+    expect(decoded(log!.params)).toEqual(['fridge', 'admin-1', { ...storedFridge, watts: 180, retired: true }, storedFridge])
+  })
+
+  test('putting back a retired "before" retires the row', async () => {
+    storeWithEntry(fridgeRow(), { ...storedFridge, retired: true })
+
+    expect(await revertChange(7, 'admin-1')).toBe('reverted')
+
+    expect(wire.batches[0]![0]!.sql).toMatch(/"retired_at" = coalesce\("appliances"\."retired_at", now\(\)\)/)
+  })
+
+  test('a "before" logged without sources keeps the row\'s stored sources in the write and in the log', async () => {
+    const sources = { watts: [{ source: 'https://example.com/fridge', asWritten: '150 W' }] }
+    storeWithEntry(fridgeRow({ watts: 180, sources }), storedFridge)
+
+    expect(await revertChange(7, 'admin-1')).toBe('reverted')
+
+    const [write, log] = wire.batches[0]!
+    expect(decoded(write!.params)).toContainEqual(sources)
+    expect(decoded(log!.params)).toEqual(['fridge', 'admin-1', { ...storedFridge, watts: 180, sources }, { ...storedFridge, sources }])
+  })
+
+  test('a row that already holds the "before" values writes and logs nothing', async () => {
+    storeWithEntry(fridgeRow(), storedFridge)
+
+    expect(await revertChange(7, 'admin-1')).toBe('unchanged')
+    expect(wire.batches).toEqual([])
+  })
+
+  test('an unknown entry, an entry whose appliance is gone, a creation and a "before" failing the schema write nothing', async () => {
+    storeWithEntry(fridgeRow({ watts: 180 }), storedFridge)
+    expect(await revertChange(8, 'admin-1')).toBe('not-found')
+
+    storeWithEntry(null, storedFridge)
+    expect(await revertChange(7, 'admin-1')).toBe('not-found')
+
+    storeWithEntry(fridgeRow({ watts: 180 }), null)
+    expect(await revertChange(7, 'admin-1')).toBe('created')
+
+    storeWithEntry(fridgeRow({ watts: 180 }), { ...storedFridge, watts: 0 })
+    expect(await revertChange(7, 'admin-1')).toBe('invalid')
+
+    expect(wire.batches).toEqual([])
+  })
+})
+
+describe('upsert column lists', () => {
+  test('names every appliances column as overwritten or as one an upsert never writes', () => {
+    const all = Object.keys(getTableColumns(appliances)).sort()
+    const named = [...UPSERT_COLUMNS, ...UPSERT_SKIPPED_COLUMNS].sort()
+    expect(named).toEqual(all)
+  })
 })

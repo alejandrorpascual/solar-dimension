@@ -25,13 +25,13 @@ export const REQUEST_TIMEOUT_MS = 60_000
 
 /**
  * The most the model may write for one quote, which bounds what a read can cost. Sized for the largest extraction the
- * app keeps (normalizeExtraction): a line of the sample quotes is ~440 characters of compact JSON with its option, ~125
- * tokens at ~3.5 characters per token for key-heavy JSON, so 80 lines are ~10,000; 20 notes of up to 300 characters
- * ~1,700; 5 options ~300; vendor, dates, totals and 10 warranties ~300. That is ~12,300, rounded up. Reasoning tokens
+ * app keeps (normalizeExtraction): a line of the sample quotes is ~455 characters of compact JSON with its option and
+ * role, ~130 tokens at ~3.5 characters per token for key-heavy JSON, so 80 lines are ~10,400; 20 notes of up to 300
+ * characters ~1,700; 5 options ~300; vendor, dates, totals and 10 warranties ~300. That is ~12,700, rounded up. Reasoning tokens
  * count against it too, so a reasoning model needs more. An answer cut short fails the parse and is refused
  * (readExtraction).
  */
-export const MAX_OUTPUT_TOKENS = 12_500
+export const MAX_OUTPUT_TOKENS = 13_000
 
 export const SYSTEM_PROMPT = [
   'You read quotes and budgets for home battery backup systems, sent by installers and sellers.',
@@ -44,6 +44,8 @@ export const SYSTEM_PROMPT = [
   'Warranties get option the same way: the id of the option a warranty covers, or null when it covers every option.',
   'When the document offers one system, options is empty and every option is null.',
   'When one line describes several components, such as an inverter that includes batteries or a solar charge controller, write one line per component, each with its own kind and specs, the same source and the same option. The first gets the written price; the others get lineTotal 0 and unitPrice null.',
+  'For a wiring line, set role to what the document says it connects: battery for cables between the battery bank and the inverter, its fuse, breaker or busbar; solar for the panels, their strings and the charge controller; ac for the inverter output, the grid service, a generator or the electrical panel; ground for a ground or bonding wire; fitting for lugs, terminals, connectors or conduit sold without cable; other for anything else.',
+  'Set role to null when the document does not say what a wiring line connects, and on every line that is not wiring.',
   'For an inverter, set hasCharger or hasWifi to true only when the document says it includes a battery charger or Wi-Fi monitoring, false only when it says it does not, and null otherwise.',
   "source.text is the words of the line as written; source.page is the line's page in the file, counting from 1, not a page number printed on it; null when unknown.",
   "Put anything you cannot place in notes, in the document's language.",

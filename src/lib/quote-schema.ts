@@ -4,6 +4,9 @@ export const LINE_KINDS = [
   'inverter', 'battery', 'panel', 'charge_controller', 'charger', 'monitoring', 'fuse', 'mounting', 'wiring', 'labor', 'other',
 ] as const
 export type LineKind = (typeof LINE_KINDS)[number]
+/** What a wiring line connects, as the document says: the battery bank, the solar array, the AC side, ground, or a fitting (lugs, conduit) that is no cable. */
+export const LINE_ROLES = ['battery', 'solar', 'ac', 'ground', 'fitting', 'other'] as const
+export type LineRole = (typeof LINE_ROLES)[number]
 export const WARRANTY_KINDS = ['inverter', 'battery', 'panel', 'labor', 'other'] as const
 
 export const QUOTE_STATUSES = ['queued', 'processing', 'ready', 'needs_review', 'failed'] as const
@@ -43,6 +46,8 @@ export const QuoteExtractionSchema = z.object({
       optional: z.boolean(),
       /** The id of the option the line belongs to; null when it applies to every option, or the quote offers one system. */
       option: z.string().nullable(),
+      /** What a wiring line connects; null for other kinds, or when the document doesn't say. */
+      role: z.enum(LINE_ROLES).nullable(),
       specs: z.object({
         watts: z.number().nullable(),
         surgeWatts: z.number().nullable(),
@@ -82,19 +87,22 @@ export type LineSpecs = QuoteLine['specs']
 export type QuoteOption = QuoteExtraction['options'][number]
 export type QuoteWarranty = QuoteExtraction['warranties'][number]
 
-/** A reading as stored: one saved before options has none of the option fields (jsonb is read as is). */
+/** A reading as stored: one saved before options has none of the option fields, one saved before roles no role (jsonb is read as is). */
 export type StoredExtraction = Omit<QuoteExtraction, 'options' | 'lines' | 'warranties'> & {
   options?: (Omit<QuoteOption, 'tax'> & { tax?: number | null })[]
-  lines: (Omit<QuoteLine, 'option'> & { option?: string | null })[]
+  lines: (Omit<QuoteLine, 'option' | 'role'> & { option?: string | null; role?: LineRole | null })[]
   warranties: (Omit<QuoteWarranty, 'option'> & { option?: string | null })[]
 }
 
-/** A stored reading with the option fields filled: a reading from before options offers one system. Returns a new object. */
+/**
+ * A stored reading with the option and role fields filled: a reading from before options offers one system, and a line
+ * from before roles has none. Returns a new object.
+ */
 export function withOptionDefaults(x: StoredExtraction): QuoteExtraction {
   return {
     ...x,
     options: (x.options ?? []).map((o) => ({ ...o, tax: o.tax ?? null })),
-    lines: x.lines.map((l) => ({ ...l, option: l.option ?? null })),
+    lines: x.lines.map((l) => ({ ...l, option: l.option ?? null, role: l.role ?? null })),
     warranties: x.warranties.map((w) => ({ ...w, option: w.option ?? null })),
   }
 }

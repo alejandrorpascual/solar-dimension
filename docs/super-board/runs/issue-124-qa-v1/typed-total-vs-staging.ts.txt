@@ -1,0 +1,39 @@
+import { expect, test } from 'vitest'
+import { compareQuotes as compareNow, type QuoteView } from './quote-compare'
+import { compareQuotes as compareOld } from './quote-compare.qaold'
+import { checkExtraction } from './quote-checks'
+import { extraction, line, SAMPLE_KIT } from './quote-fixtures'
+import { DEFAULT_MUSTS } from './quote-items'
+import type { QuoteExtraction, QuoteLine } from './quote-schema'
+
+const kitLines = (labor: number): QuoteLine[] => [
+  line('inverter', 2000, { specs: { watts: 5000, surgeWatts: 10000, hasCharger: true } }),
+  line('battery', 3000, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }),
+  line('wiring', 150, { specs: { awg: '2/0' } }), line('fuse', 90, { specs: { fuseAmps: 175, fuseClass: 'T' } }),
+  line('labor', labor),
+]
+const v = (id: string, x: QuoteExtraction, over: Partial<QuoteView> = {}): QuoteView => ({
+  id, fileName: `${id}.pdf`, label: id, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: id.charCodeAt(0), retries: 0, pages: null, ...over,
+})
+test('typed total on a reading whose read total left tax out', () => {
+  // A: lines 6,340 + tax 1,141.20 but the total was read as 6,340; the user typed 7,481.20.
+  const a = extraction(kitLines(1100), { subtotal: 6340, tax: 1141.2, total: 6340 })
+  // B: 7,600 with its tax included, read cleanly.
+  const b = extraction(kitLines(1100), { subtotal: 6340, tax: 1260, total: 7600 })
+  console.log('A checks', checkExtraction(a))
+  const qs = [v('a', a, { status: 'needs_review', totalOverride: 7481.2 }), v('b', b)]
+  const out = (r: ReturnType<typeof compareNow>) => ({ best: r.best?.quote.id, total: r.best?.total, caveats: r.best?.caveats?.map((c) => c.id), clean: r.cleanFit?.quote.id ?? null })
+  const now = out(compareNow(SAMPLE_KIT, DEFAULT_MUSTS, qs)); const old = out(compareOld(SAMPLE_KIT, DEFAULT_MUSTS, qs as never))
+  console.log('NOW', JSON.stringify(now)); console.log('OLD', JSON.stringify(old))
+  expect(now).toEqual(old)
+})
+
+test('AC4 shape: typed tax-inclusive total beside a cheaper quote that states no tax', () => {
+  const a = extraction(kitLines(1100), { subtotal: 6340, tax: 1141.2, total: 6340 })
+  const c = extraction([...kitLines(1500), line('other', 0, { description: 'Precios no incluyen ITBIS', source: { page: 1, text: 'Precios no incluyen ITBIS' } })])
+  const qs = [v('a', a, { status: 'needs_review', totalOverride: 7481.2 }), v('c', c)]
+  const out = (r: ReturnType<typeof compareNow>) => ({ best: r.best?.quote.id, total: r.best?.total, caveats: r.best?.caveats?.map((x) => x.id), clean: r.cleanFit?.quote.id ?? null })
+  const now = out(compareNow(SAMPLE_KIT, DEFAULT_MUSTS, qs)); const old = out(compareOld(SAMPLE_KIT, DEFAULT_MUSTS, qs as never))
+  console.log('NOW2', JSON.stringify(now)); console.log('OLD2', JSON.stringify(old))
+  expect(now).toEqual(old)
+})

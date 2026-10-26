@@ -1,0 +1,14 @@
+head-72a0e4d: written-tie {"o1":[],"o2":["tax_unstated"]}
+head-72a0e4d: rate-tie {"exactTie":false,"o1":["tax_unstated"]}
+head-72a0e4d:       Tests  2 passed (2)
+mutant-tie-to-untaxed: written-tie {"o1":["tax_unstated"],"o2":["tax_unstated"]}
+mutant-tie-to-untaxed: rate-tie {"exactTie":false,"o1":["tax_unstated"]}
+mutant-tie-to-untaxed: ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+mutant-tie-to-untaxed:      26|   console.log('written-tie', JSON.stringify({ o1: caveatsOf(v, 'b', 'o…
+mutant-tie-to-untaxed:       Tests  1 failed | 1 passed (2)
+mutant-tie-to-untaxed quote-tax-cases:      × an option total exactly halfway between its lines and its lines plus its written tax counts as taxed 5ms
+mutant-tie-to-untaxed quote-tax-cases: ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+mutant-tie-to-untaxed quote-tax-cases:       Tests  1 failed | 16 passed (17)
+staging-cfdba2b: written-tie {"o1":[],"o2":["tax_unstated"]}
+staging-cfdba2b: rate-tie {"exactTie":false,"o1":["tax_unstated"]}
+staging-cfdba2b:       Tests  2 passed (2)

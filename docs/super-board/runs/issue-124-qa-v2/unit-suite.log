@@ -1,0 +1,16 @@
+
+> test
+> vitest run
+
+
+ RUN  v5.0.1 /Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa
+
+
+ Test Files  140 passed (140)
+      Tests  2188 passed (2188)
+   Start at  21:55:35
+   Duration  23.16s (tests 46%, import 41%, transform 12%, worker 1%)
+
+    Isolate  140 workers spawned · ~168ms startup each (spawn + environment, per file)
+             at least ~2.45s faster with isolate: false — reuses workers across files instead of one per file
+

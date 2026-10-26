@@ -240,7 +240,7 @@ describe('string length against the charge voltage', () => {
         const fit = panelsFit(roofM2)
         const wirable = Array.from({ length: fit + 1 }, (_, n) => n).filter(wires)
         for (let tapped = 0; tapped <= fit; tapped++) {
-          const nearest = [...wirable].sort((a, b) => Math.abs(a - tapped) - Math.abs(b - tapped) || b - a)[0]
+          const nearest = wirable.reduce((best, n) => (Math.abs(n - tapped) <= Math.abs(best - tapped) ? n : best))
           const s = sizeSolar({ ...base, volts, solar: { roofM2, panels: tapped, sunHours: 5 } })!
           expect([s.panels, s.wiredFit], `${volts} V · ${tapped} tapped on ${roofM2} m²`).toEqual([nearest, wirable.at(-1)])
         }
@@ -280,15 +280,20 @@ describe('controllers, breakers and taps', () => {
   })
 
   test('adding panel n lights it and removing it leaves the most panels below n that wire; every tile can light, on every voltage and roof', () => {
+    // Up to its wired fit a roof changes no count that wires, so the largest roof walks every tile once; each roof adds only its own top tile.
+    const largest = SOLAR.ROOF_RANGE[1]
     for (const volts of VOLTAGES) {
-      for (let roofM2 = SOLAR.ROOF_RANGE[0]; roofM2 <= SOLAR.ROOF_RANGE[1]; roofM2 += SOLAR.ROOF_STEP) {
-        for (let n = 1; n <= pick(volts, roofM2, null).wiredFit; n++) {
-          const at = `${volts} V · panel ${n} on ${roofM2} m²`
-          const left = pick(volts, roofM2, nextWirable(n, -1, volts)).panels
-          expect([left < n, pick(volts, roofM2, nextWirable(n - 1, 1, volts)).panels >= n], at).toEqual([true, true])
-          // No count between what is left and n would have stayed as asked.
-          for (let k = left + 1; k < n; k++) expect(pick(volts, roofM2, k).panels, `${at} · ${k}`).not.toBe(k)
-        }
+      const { wiredFit } = pick(volts, largest, null)
+      for (let n = 1; n <= wiredFit; n++) {
+        const at = `${volts} V · panel ${n}`
+        const left = pick(volts, largest, nextWirable(n, -1, volts)).panels
+        expect([left < n, pick(volts, largest, nextWirable(n - 1, 1, volts)).panels >= n], at).toEqual([true, true])
+        // No count between what is left and n would have stayed as asked.
+        for (let k = left + 1; k < n; k++) expect(pick(volts, largest, k).panels, `${at} · ${k}`).not.toBe(k)
+      }
+      for (let roofM2 = SOLAR.ROOF_RANGE[0]; roofM2 <= largest; roofM2 += SOLAR.ROOF_STEP) {
+        const top = pick(volts, roofM2, null).wiredFit
+        expect(pick(volts, roofM2, nextWirable(top - 1, 1, volts)).panels, `${volts} V · top tile ${top} on ${roofM2} m²`).toBe(top)
       }
     }
   })
@@ -308,5 +313,47 @@ describe('controllers, breakers and taps', () => {
     }
     // 48 V on 35 m² holds 11 but wires 10; a bank that needs 11 is roof-limited.
     expect([pick(48, 35, null, 21_000)].map((s) => [s.fit, s.wiredFit, s.recommended, s.isRoofLimited])).toEqual([[11, 10, 10, true]])
+  })
+})
+
+describe('the figures the solar flow prints', () => {
+  test('a clear day has what is left after refilling the bank to spare, not what is left after a day of use', () => {
+    // 5 panels at 4.8 h: 2,750 × 4.8 × 0.75 = 9,900 Wh. Refilling a lossless 9,600 Wh bank leaves 300 Wh.
+    // Taking a day's use instead (100 W × 24 h = 2,400 Wh) would leave 7,500 Wh.
+    const s = sizeSolar({ solar: { roofM2: 40, panels: 5, sunHours: 4.8 }, bankWh: 9_600, chemistry: LOSSLESS, volts: 48, averageW: 100 })!
+    expect([s.panels, s.dailyWh, s.dailyUseWh, s.spareWh]).toEqual([5, 9_900, 2_400, 300])
+  })
+
+  test('nothing is spare when a clear day does not refill the bank', () => {
+    const s = sizeSolar({ solar: { roofM2: 40, panels: 2, sunHours: 4.8 }, bankWh: 9_600, chemistry: LOSSLESS, volts: 48, averageW: 100 })!
+    expect(s.spareWh).toBe(0)
+  })
+
+  test("the chart reaches a day's use when it is past the clear-day yield", () => {
+    // 1 panel at 4.8 h at 12 V yields 1,980 Wh; a 2,000 W load uses 48,000 Wh a day. A chart sized to the yield alone stops at 26,400 Wh.
+    const s = sizeSolar({ solar: { roofM2: 40, panels: 1, sunHours: 4.8 }, bankWh: 9_600, chemistry: LOSSLESS, volts: 12, averageW: 2_000 })!
+    expect([s.panels, s.dailyWh, s.dailyUseWh, s.chart.maxWh, s.chart.useShare]).toEqual([1, 1_980, 48_000, 48_000, 1])
+  })
+
+  test('a small kit keeps the chart at its 26.4 kWh floor, and a large one rounds up to the next 2 kWh', () => {
+    const small = sizeSolar({ solar: { roofM2: 40, panels: 5, sunHours: 4.8 }, bankWh: 9_600, chemistry: LOSSLESS, volts: 48, averageW: 100 })!
+    expect(small.chart.maxWh).toBe(26_400)
+    // 10 panels at 5 h yield 20,625 Wh; 1,100 W uses 26,400 Wh; 1,200 W uses 28,800 Wh, so the chart goes to 30,000 Wh.
+    const large = sizeSolar({ solar: { roofM2: 40, panels: null, sunHours: 5 }, bankWh: BANK_WH, chemistry: LOSSLESS, volts: 48, averageW: 1_200 })!
+    expect(large.chart.maxWh).toBe(30_000)
+  })
+
+  test("the bar fills with the use a clear day carries, against the day's-use mark", () => {
+    // 20,625 Wh into the bank carries 20,625 × 0.9 = 18,562.5 Wh of use; the day's use is 26,400 Wh, so the chart runs to 28,000 Wh.
+    const s = sizeSolar({ solar: { roofM2: 40, panels: null, sunHours: 5 }, bankWh: BANK_WH, chemistry: LOSSLESS, volts: 48, averageW: AVERAGE_W })!
+    expect(s.chart.maxWh).toBe(28_000)
+    expect(s.chart.carriedShare).toBeCloseTo(0.663, 3)
+    expect(s.chart.useShare).toBeCloseTo(0.943, 3)
+  })
+
+  test("a cloudy day covers 40% of what a clear day covers of a day's use", () => {
+    const s = sizeSolar({ solar: { roofM2: 40, panels: null, sunHours: 5 }, bankWh: BANK_WH, chemistry: LOSSLESS, volts: 48, averageW: AVERAGE_W })!
+    // 0.703 of a day's use on a clear day; 40% of that is 0.281.
+    expect(s.cloudyCoverRatio).toBeCloseTo(0.281, 3)
   })
 })

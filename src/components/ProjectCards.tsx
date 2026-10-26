@@ -74,7 +74,7 @@ function CardKit({ summary: s }: { summary: ProjectSummary }) {
         <div><dt className="lab">{t.ui.bank}</dt><dd className="num">{fmtKwh(r.battery.bankWh, locale)}</dd></div>
         <div><dt className="lab">{t.ui.inverter}</dt><dd className="num">{fmtInverter(r.inverter, locale)}</dd></div>
       </dl>
-      <div className="pcard__bar" aria-hidden="true"><span style={{ width: `${Math.max(LOAD_BAR_MIN_PERCENT, Math.round(s.loadShare * 100))}%` }} /></div>
+      <div className="pcard__bar" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(LOAD_BAR_MIN_PERCENT, Math.round(s.loadShare * 100)) / 100})` }} /></div>
       <p className="pcard__load num">{`${fmtW(r.runningW, locale)} ${t.ui.running} · ${batteryCount(t, r.battery.count)} · ${r.cable.gauge}`}</p>
       <p className="pcard__items">{heaviestLine(s, t)}</p>
     </>

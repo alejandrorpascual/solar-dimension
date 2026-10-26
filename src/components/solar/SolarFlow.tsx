@@ -1,31 +1,22 @@
 import { Battery, Home, Sun } from 'lucide-react'
 import { useLocale } from '../../hooks/useLocale'
 import { batteryCount, panelCount, tr } from '../../i18n'
-import { fmtDecimal, fmtHours, fmtKw, fmtKwh, fmtW } from '../../i18n/format'
-import { SOLAR } from '../../lib/solar'
+import { cssPercent, fmtDecimal, fmtHours, fmtKw, fmtKwh, fmtPercent, fmtW } from '../../i18n/format'
 import type { SizingResult } from '../../lib/sizing'
-
-const AXIS_MIN_WH = 26_400
-const AXIS_STEP_WH = 2_000
-const PERCENT = 100
 
 interface Props { result: SizingResult }
 
-/** Sun → panels → bank → home on a clear day, and how much of a day's use the array covers. */
+/** Sun → panels → bank → home on a clear day, and how much of a day's use the array covers. Every figure is the engine's; this only formats them. */
 export function SolarFlow({ result: r }: Props) {
   const { t, locale } = useLocale()
   const s = r.solar
   if (!s || !r.battery) return null
-  const axisWh = Math.max(AXIS_MIN_WH, Math.ceil(Math.max(s.dailyWh, s.dailyUseWh) / AXIS_STEP_WH) * AXIS_STEP_WH)
-  const pct = (wh: number) => `${Math.min(PERCENT, Math.round((wh / axisWh) * PERCENT))}%`
-  // The fill is the use a clear day's yield carries past the inverter, so it meets the day's-use mark at exactly 100%.
-  const carriedWh = s.dailyUseWh * s.coverRatio
   // A roof too small for a string that charges says why it has no panels instead of asking for a tap.
   const tooShort = r.warnings.find((w) => w.code === 'stringTooShort')
   const clearNote = tooShort ? t.warnings.stringTooShort(tooShort.params) : s.panels === 0
     ? t.ui.noPanelsYet
     : s.refillsInOneDay && s.refillHours !== null
-      ? tr(t, 'refillSameDay', { hours: fmtHours(s.refillHours, locale), spare: fmtKwh(Math.max(0, s.dailyWh - s.refillWh), locale) })
+      ? tr(t, 'refillSameDay', { hours: fmtHours(s.refillHours, locale), spare: fmtKwh(s.spareWh, locale) })
       : tr(t, 'refillDays', { days: fmtDecimal(s.refillDays ?? 0, 1, locale) })
   return (
     <div className="flow">
@@ -42,13 +33,13 @@ export function SolarFlow({ result: r }: Props) {
       <div className="cover">
         <div className="cover__head">
           <strong>{t.ui.coverHead}</strong>
-          <span className="num cover__pct">{`${Math.round(s.coverRatio * PERCENT)}%`}</span>
+          <span className="num cover__pct">{fmtPercent(s.coverRatio, locale)}</span>
         </div>
-        <div className="cover__bar"><div className="cover__fill" style={{ width: pct(carriedWh) }} /><div className="cover__mark" style={{ left: pct(s.dailyUseWh) }} aria-hidden="true" /></div>
-        <div className="muted cover__axis"><span>0</span><span className="num">{tr(t, 'coverAxis', { use: fmtKwh(s.dailyUseWh, locale) })}</span><span className="num">{fmtKwh(axisWh, locale)}</span></div>
+        <div className="cover__bar"><div className="cover__fill" style={{ width: cssPercent(s.chart.carriedShare) }} /><div className="cover__mark" style={{ left: cssPercent(s.chart.useShare) }} aria-hidden="true" /></div>
+        <div className="muted cover__axis"><span>0</span><span className="num">{tr(t, 'coverAxis', { use: fmtKwh(s.dailyUseWh, locale) })}</span><span className="num">{fmtKwh(s.chart.maxWh, locale)}</span></div>
         <div className="cover__notes">
           <div className="note-box note-box--sun"><strong>{t.ui.clearDay}</strong><br />{clearNote}</div>
-          <div className="note-box"><strong>{t.ui.cloudyDay}</strong><br />{s.panels === 0 ? '—' : tr(t, 'cloudyNote', { wh: fmtKwh(s.cloudyWh, locale), pct: Math.round(s.coverRatio * PERCENT * SOLAR.CLOUDY_SHARE) })}</div>
+          <div className="note-box"><strong>{t.ui.cloudyDay}</strong><br />{s.panels === 0 ? '—' : tr(t, 'cloudyNote', { wh: fmtKwh(s.cloudyWh, locale), pct: fmtPercent(s.cloudyCoverRatio, locale) })}</div>
         </div>
       </div>
       {s.panels > 0 && <p className="fine muted">{t.ui.solarAssumptions}</p>}

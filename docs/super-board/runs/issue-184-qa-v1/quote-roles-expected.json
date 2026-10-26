@@ -1,0 +1,5 @@
+{ "quote-a.pdf": [
+  { "text": "Acometida", "role": "ac" },
+  { "text": "baterías", "role": "battery" },
+  { "text": "módulos", "role": "ground" }
+] }
