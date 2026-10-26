@@ -142,6 +142,23 @@ describe('tax shapes that once mis-priced or mis-checked a quote', () => {
     expect(v.best).toMatchObject({ optionId: 'o1', total: 6370, caveats: [] })
   })
 
+  // QA #124 v4: the tie a real quote can write. A shared line the size of the option's own tax makes "own lines + tax"
+  // and "own + shared lines" the same 6,440. Staging reads the option as stating tax; so does the branch.
+  test('an option at 6,440 whose 100 tax equals the 100 shared line counts as taxed', () => {
+    const x = extraction([...kitLines(1100, 'o1'), ...kitLines(1200, 'o2'), line('labor', 100)], { total: 0, options: [opt('o1', 6440, 100), opt('o2', 6540)] })
+    const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', withTax()), view('b', x)])
+    expect(v.ranked.find((r) => r.quote.id === 'b' && r.optionId === 'o1')?.caveats?.map((c) => c.id)).toEqual([])
+  })
+
+  // QA #124 v4: a single-system quote keeps taxed-first (includedOf), as staging does. At a 1% rate a total of just its
+  // lines is also within tolerance of lines plus tax, so it counts as stating its tax, and an untaxed quote beside it says so.
+  test('a quote at 6,340 that states 63.40 tax (1%) counts as taxed, so one at 6,440 stating none beside it says so', () => {
+    const lowRate = extraction(kitLines(1100), { subtotal: 6340, tax: 63.4, total: 6340 })
+    const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', lowRate), view('b', extraction(kitLines(1200)))])
+    const caveats = (id: string) => v.ranked.find((r) => r.quote.id === id)?.caveats?.map((c) => c.id)
+    expect({ best: v.best?.quote.id, a: caveats('a'), b: caveats('b') }).toEqual({ best: 'a', a: [], b: ['tax_unstated'] })
+  })
+
   // QA #124 v1: a total the user types replaces the one read, so whether the total holds the tax has to follow it.
   describe('a reading whose total was read without its tax, once the user types the total with it', () => {
     const misread = (): QuoteExtraction => extraction(kitLines(1100), { subtotal: 6340, tax: 1141.2, total: 6340 })
