@@ -1,0 +1,295 @@
+[WebServer] ◇ injected env (0) from .env.local
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - import "./src/server/quotes/time-limits" without a file extension (vite.config.ts:8:41). Add the file extension
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] `output.codeSplitting.groups[0].name` is a function. Set `output.codeSplitting.groups[0].debugName` so the bundler timing report can identify this group.
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/index.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/index.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/link.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/link.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/RouterProvider.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/RouterProvider.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Match.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Match.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/utils.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/utils.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/ClientOnly.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/ClientOnly.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useMatch.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useMatch.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useBlocker.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useBlocker.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useLocation.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useLocation.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouterState.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouterState.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Matches.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Matches.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouter.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouter.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useNavigate.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useNavigate.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/HeadContent.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/HeadContent.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Asset.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Asset.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/matchContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/matchContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/routerContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/routerContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Transitioner.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Transitioner.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/Icon.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/Icon.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/context.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/context.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa5/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+
+Running 6 tests using 5 workers
+
+r7 mobile en: heading="SolarTec Caribe fits your kit for the least" taxCaveatOn=[] othersWithShortTax=0 others="How the others compare Voltia Instalaciones Option 1 of 2 · Plan A · voltia.pdf $8,500 Meets all $854 more than the best Also meets every must-have. Costs $854 more. Inverter 25.8× Battery 12.8× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 52.2 kWh against 4.1 kWh needed, oversized. About 127.9 h of backup at your load (you asked for 10 h) · $163 per usable kWh Includes charger, Wi-Fi, cables, fuse, and installation Show checks for Voltia Instalaciones · Plan A Voltia Instalaciones Option 2 of 2 · Plan B · voltia.pdf $8,600 Meets all $954 more than the best Also meets every must-have. Costs $954 more. Inverter 25.8× Battery 12.8× Inverter: 12.0 kW against 465 W needed, oversiz"
+r7 desktop en: heading="SolarTec Caribe fits your kit for the least" taxCaveatOn=[] othersWithShortTax=0 others="How the others compare Voltia Instalaciones Option 1 of 2 · Plan A · voltia.pdf $8,500 Meets all $854 more than the best Also meets every must-have. Costs $854 more. Inverter 25.8× Battery 12.8× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 52.2 kWh against 4.1 kWh needed, oversized. About 127.9 h of backup at your load (you asked for 10 h) · $163 per usable kWh Includes charger, Wi-Fi, cables, fuse, and installation Show checks for Voltia Instalaciones · Plan A Voltia Instalaciones Option 2 of 2 · Plan B · voltia.pdf $8,600 Meets all $954 more than the best Also meets every must-have. Costs $954 more. Inverter 25.8× Battery 12.8× Inverter: 12.0 kW against 465 W needed, oversiz"
+r8 desktop en: heading="Voltia Instalaciones fits your kit for the least" taxCaveatOn=[] othersWithShortTax=0 others="How the others compare SolarTec Caribe solartec.pdf $7,646 Meets all $212 more than the best Also meets every must-have. Costs $212 more. Inverter 25.8× Battery 8.5× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 34.8 kWh against 4.1 kWh needed, oversized. About 85.3 h of backup at your load (you asked for 10 h) · $220 per usable kWh Includes charger, Wi-Fi, cables, fuse, and installation Show checks for SolarTec Caribe"
+r6 desktop en: heading="Voltia Instalaciones · Plan A fits your kit for the least" taxCaveatOn=[] othersWithShortTax=0 others="How the others compare Voltia Instalaciones Option 2 of 2 · Plan B · voltia.pdf $7,400 Meets all $100 more than the best Also meets every must-have. Costs $100 more. Inverter 25.8× Battery 12.8× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 52.2 kWh against 4.1 kWh needed, oversized. About 127.9 h of backup at your load (you asked for 10 h) · $142 per usable kWh Includes charger, Wi-Fi, cables, fuse, and installation Show checks for Voltia Instalaciones · Plan B SolarTec Caribe solartec.pdf $7,646 Meets all $346 more than the best Also meets every must-have. Costs $346 more. Inverter 25.8× Battery 8.5× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 34.8 kWh against"
+r6 mobile en: heading="Voltia Instalaciones · Plan A fits your kit for the least" taxCaveatOn=[] othersWithShortTax=0 others="How the others compare Voltia Instalaciones Option 2 of 2 · Plan B · voltia.pdf $7,400 Meets all $100 more than the best Also meets every must-have. Costs $100 more. Inverter 25.8× Battery 12.8× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 52.2 kWh against 4.1 kWh needed, oversized. About 127.9 h of backup at your load (you asked for 10 h) · $142 per usable kWh Includes charger, Wi-Fi, cables, fuse, and installation Show checks for Voltia Instalaciones · Plan B SolarTec Caribe solartec.pdf $7,646 Meets all $346 more than the best Also meets every must-have. Costs $346 more. Inverter 25.8× Battery 8.5× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 34.8 kWh against"
+r7 mobile es: heading="SolarTec Caribe cumple con tu kit por menos" taxCaveatOn=[] othersWithShortTax=0 others="Cómo se comparan las demás Voltia Instalaciones Opción 1 de 2 · Plan A · voltia.pdf USD 8,500 Cumple todo USD 854 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 854 más. Inversor 25.8× Batería 12.8× Inversor: 12.0 kW frente a 465 W necesarios, de más. Batería: 52.2 kWh frente a 4.1 kWh necesarios, de más. Unas 127.9 h de respaldo con tu carga (pediste 10 h) · USD 163 por kWh útil Incluye cargador, Wi-Fi, cables, fusible e instalación Ver comprobaciones de Voltia Instalaciones · Plan A Voltia Instalaciones Opción 2 de 2 · Plan B · voltia.pdf USD 8,600 Cumple todo USD 954 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 954 más. Inversor 25.8"
+r7 desktop es: heading="SolarTec Caribe cumple con tu kit por menos" taxCaveatOn=[] othersWithShortTax=0 others="Cómo se comparan las demás Voltia Instalaciones Opción 1 de 2 · Plan A · voltia.pdf USD 8,500 Cumple todo USD 854 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 854 más. Inversor 25.8× Batería 12.8× Inversor: 12.0 kW frente a 465 W necesarios, de más. Batería: 52.2 kWh frente a 4.1 kWh necesarios, de más. Unas 127.9 h de respaldo con tu carga (pediste 10 h) · USD 163 por kWh útil Incluye cargador, Wi-Fi, cables, fusible e instalación Ver comprobaciones de Voltia Instalaciones · Plan A Voltia Instalaciones Opción 2 de 2 · Plan B · voltia.pdf USD 8,600 Cumple todo USD 954 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 954 más. Inversor 25.8"
+r8 desktop es: heading="Voltia Instalaciones cumple con tu kit por menos" taxCaveatOn=[] othersWithShortTax=0 others="Cómo se comparan las demás SolarTec Caribe solartec.pdf USD 7,646 Cumple todo USD 212 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 212 más. Inversor 25.8× Batería 8.5× Inversor: 12.0 kW frente a 465 W necesarios, de más. Batería: 34.8 kWh frente a 4.1 kWh necesarios, de más. Unas 85.3 h de respaldo con tu carga (pediste 10 h) · USD 220 por kWh útil Incluye cargador, Wi-Fi, cables, fusible e instalación Ver comprobaciones de SolarTec Caribe"
+r6 mobile es: heading="Voltia Instalaciones · Plan A cumple con tu kit por menos" taxCaveatOn=[] othersWithShortTax=0 others="Cómo se comparan las demás Voltia Instalaciones Opción 2 de 2 · Plan B · voltia.pdf USD 7,400 Cumple todo USD 100 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 100 más. Inversor 25.8× Batería 12.8× Inversor: 12.0 kW frente a 465 W necesarios, de más. Batería: 52.2 kWh frente a 4.1 kWh necesarios, de más. Unas 127.9 h de respaldo con tu carga (pediste 10 h) · USD 142 por kWh útil Incluye cargador, Wi-Fi, cables, fusible e instalación Ver comprobaciones de Voltia Instalaciones · Plan B SolarTec Caribe solartec.pdf USD 7,646 Cumple todo USD 346 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 346 más. Inversor 25.8× Batería 8.5× Inversor: 12."
+r6 desktop es: heading="Voltia Instalaciones · Plan A cumple con tu kit por menos" taxCaveatOn=[] othersWithShortTax=0 others="Cómo se comparan las demás Voltia Instalaciones Opción 2 de 2 · Plan B · voltia.pdf USD 7,400 Cumple todo USD 100 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 100 más. Inversor 25.8× Batería 12.8× Inversor: 12.0 kW frente a 465 W necesarios, de más. Batería: 52.2 kWh frente a 4.1 kWh necesarios, de más. Unas 127.9 h de respaldo con tu carga (pediste 10 h) · USD 142 por kWh útil Incluye cargador, Wi-Fi, cables, fusible e instalación Ver comprobaciones de Voltia Instalaciones · Plan B SolarTec Caribe solartec.pdf USD 7,646 Cumple todo USD 346 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 346 más. Inversor 25.8× Batería 8.5× Inversor: 12."
+  ✓  2 [phone] › e2e/qa-v5-r678.spec.ts:82:3 › QA #124 v5 r7: no tax caveat beside a taxed quote @phone (9.7s)
+r8 tablet en: heading="Voltia Instalaciones fits your kit for the least" taxCaveatOn=[] othersWithShortTax=0 others="How the others compare SolarTec Caribe solartec.pdf $7,646 Meets all $212 more than the best Also meets every must-have. Costs $212 more. Inverter 25.8× Battery 8.5× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 34.8 kWh against 4.1 kWh needed, oversized. About 85.3 h of backup at your load (you asked for 10 h) · $220 per usable kWh Includes charger, Wi-Fi, cables, fuse, and installation Show checks for SolarTec Caribe"
+r7 tablet en: heading="SolarTec Caribe fits your kit for the least" taxCaveatOn=[] othersWithShortTax=0 others="How the others compare Voltia Instalaciones Option 1 of 2 · Plan A · voltia.pdf $8,500 Meets all $854 more than the best Also meets every must-have. Costs $854 more. Inverter 25.8× Battery 12.8× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 52.2 kWh against 4.1 kWh needed, oversized. About 127.9 h of backup at your load (you asked for 10 h) · $163 per usable kWh Includes charger, Wi-Fi, cables, fuse, and installation Show checks for Voltia Instalaciones · Plan A Voltia Instalaciones Option 2 of 2 · Plan B · voltia.pdf $8,600 Meets all $954 more than the best Also meets every must-have. Costs $954 more. Inverter 25.8× Battery 12.8× Inverter: 12.0 kW against 465 W needed, oversiz"
+  ✓  3 [desktop] › e2e/qa-v5-r678.spec.ts:82:3 › QA #124 v5 r8: no tax caveat beside a taxed quote @phone (10.6s)
+  ✓  5 [desktop] › e2e/qa-v5-r678.spec.ts:82:3 › QA #124 v5 r7: no tax caveat beside a taxed quote @phone (10.7s)
+  ✓  4 [phone] › e2e/qa-v5-r678.spec.ts:82:3 › QA #124 v5 r6: no tax caveat beside a taxed quote @phone (11.0s)
+r6 tablet en: heading="Voltia Instalaciones · Plan A fits your kit for the least" taxCaveatOn=[] othersWithShortTax=0 others="How the others compare Voltia Instalaciones Option 2 of 2 · Plan B · voltia.pdf $7,400 Meets all $100 more than the best Also meets every must-have. Costs $100 more. Inverter 25.8× Battery 12.8× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 52.2 kWh against 4.1 kWh needed, oversized. About 127.9 h of backup at your load (you asked for 10 h) · $142 per usable kWh Includes charger, Wi-Fi, cables, fuse, and installation Show checks for Voltia Instalaciones · Plan B SolarTec Caribe solartec.pdf $7,646 Meets all $346 more than the best Also meets every must-have. Costs $346 more. Inverter 25.8× Battery 8.5× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 34.8 kWh against"
+  ✓  1 [desktop] › e2e/qa-v5-r678.spec.ts:82:3 › QA #124 v5 r6: no tax caveat beside a taxed quote @phone (11.9s)
+r8 mobile en: heading="Voltia Instalaciones fits your kit for the least" taxCaveatOn=[] othersWithShortTax=0 others="How the others compare SolarTec Caribe solartec.pdf $7,646 Meets all $212 more than the best Also meets every must-have. Costs $212 more. Inverter 25.8× Battery 8.5× Inverter: 12.0 kW against 465 W needed, oversized. Battery: 34.8 kWh against 4.1 kWh needed, oversized. About 85.3 h of backup at your load (you asked for 10 h) · $220 per usable kWh Includes charger, Wi-Fi, cables, fuse, and installation Show checks for SolarTec Caribe"
+r8 mobile es: heading="Voltia Instalaciones cumple con tu kit por menos" taxCaveatOn=[] othersWithShortTax=0 others="Cómo se comparan las demás SolarTec Caribe solartec.pdf USD 7,646 Cumple todo USD 212 más que la mejor También cumple con todos los imprescindibles. Cuesta USD 212 más. Inversor 25.8× Batería 8.5× Inversor: 12.0 kW frente a 465 W necesarios, de más. Batería: 34.8 kWh frente a 4.1 kWh necesarios, de más. Unas 85.3 h de respaldo con tu carga (pediste 10 h) · USD 220 por kWh útil Incluye cargador, Wi-Fi, cables, fusible e instalación Ver comprobaciones de SolarTec Caribe"
+  ✓  6 [phone] › e2e/qa-v5-r678.spec.ts:82:3 › QA #124 v5 r8: no tax caveat beside a taxed quote @phone (8.0s)
+
+  6 passed (25.1s)

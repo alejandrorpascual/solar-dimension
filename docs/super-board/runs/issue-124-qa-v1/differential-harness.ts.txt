@@ -1,0 +1,80 @@
+import { expect, test } from 'vitest'
+import * as now from './quote-checks'
+import * as old from './quote-checks.qaold'
+import { compareQuotes as compareNow, type QuoteView } from './quote-compare'
+import { compareQuotes as compareOld } from './quote-compare.qaold'
+import { extraction, line, SAMPLE_KIT } from './quote-fixtures'
+import { DEFAULT_MUSTS } from './quote-items'
+import type { QuoteExtraction, QuoteLine, QuoteOption } from './quote-schema'
+
+let seed = 12345
+const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff)
+const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rnd() * xs.length)]!
+const AMOUNTS = [0, 100, 160, 300, 1000, 1160, 1300, 1460, 2000, 2160, 2300]
+const TEXTS = ['IVA 16%', 'Flete a Valencia', 'ITBIS no incluido', 'GST 5%', 'I.V.A.', 'Impuestos']
+const kitLines = (labor: number, option: string | null): QuoteLine[] => [
+  line('inverter', 2000, { option, specs: { watts: 5000, surgeWatts: 10000, hasCharger: true } }),
+  line('battery', 3000, { option, qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }),
+  line('wiring', 150, { option, specs: { awg: '2/0' } }), line('fuse', 90, { option, specs: { fuseAmps: 175, fuseClass: 'T' } }),
+  line('labor', labor, { option }),
+]
+
+function gen(): QuoteExtraction {
+  const ids = pick([[], [], ['a'], ['a', 'b']])
+  const optOf = () => (ids.length === 0 ? null : pick([null, ...ids]))
+  const lines: QuoteLine[] = []
+  const useKit = rnd() < 0.4
+  if (useKit) for (const o of ids.length === 0 ? [null] : ids) lines.push(...kitLines(pick([1000, 1100, 1500]), o))
+  const n = Math.floor(rnd() * 4)
+  for (let i = 0; i < n; i++) {
+    if (rnd() < 0.5) lines.push(line(pick(['inverter', 'labor', 'battery'] as const), pick(AMOUNTS), { option: optOf(), optional: rnd() < 0.1 }))
+    else {
+      const t = pick(TEXTS)
+      lines.push(line('other', pick(AMOUNTS), { option: optOf(), description: t, source: { page: 1, text: t } }))
+    }
+  }
+  const sum = lines.filter((l) => !l.optional).reduce((a, l) => a + l.lineTotal, 0)
+  const tax = pick([null, null, 0, 160, 741, sum * 0.16])
+  const options: QuoteOption[] = ids.map((id) => ({ id, label: id, total: pick([null, ...AMOUNTS, 6740, 7481.2]), tax: pick([null, null, 160, 741]) }))
+  return extraction(lines, {
+    options, tax, subtotal: pick([null, sum, 1000, 6340]),
+    total: pick([sum, sum + (tax ?? 0), 0, 1160, 6740, 7481.2]),
+  })
+}
+
+let created = 0
+const view = (x: QuoteExtraction): QuoteView => ({
+  id: `q${created}`, fileName: 'q.pdf', label: `q${created}`, status: 'ready', extraction: x, overrides: {}, totalOverride: null,
+  createdAt: created++, retries: 0, pages: null,
+})
+const shape = (v: ReturnType<typeof compareNow>) => ({
+  ranked: v.ranked.map((r) => ({ id: r.quote.id, o: r.optionId, t: r.total, c: r.caveats?.map((c) => c.id) })),
+  unranked: v.unranked.map((u) => [u.quote.id, u.optionId, u.reason]),
+  best: v.best && [v.best.quote.id, v.best.optionId], clean: v.cleanFit && [v.cleanFit.quote.id, v.cleanFit.optionId],
+})
+
+test('new price record matches staging on generated readings', () => {
+  const diffs: Record<string, unknown[]> = { linesWithTax: [], optionPrices: [], checks: [], compare: [] }
+  for (let i = 0; i < 20000; i++) {
+    const x = gen()
+    if (Math.abs(now.linesWithTax(x) - old.linesWithTax(x)) > 1e-6) diffs.linesWithTax!.push(x)
+    if (JSON.stringify(now.optionPrices(x)) !== JSON.stringify(old.optionPrices(x))) diffs.optionPrices!.push(x)
+    if (JSON.stringify(now.checkExtraction(x)) !== JSON.stringify(old.checkExtraction(x))) diffs.checks!.push({ x, now: now.checkExtraction(x), old: old.checkExtraction(x) })
+    if (i % 4 === 0) {
+      const qs = [view(x), view(gen()), view(gen())]
+      const a = shape(compareNow(SAMPLE_KIT, DEFAULT_MUSTS, qs))
+      const b = shape(compareOld(SAMPLE_KIT, DEFAULT_MUSTS, qs as never))
+      if (JSON.stringify(a) !== JSON.stringify(b)) diffs.compare!.push({ qs: qs.map((q) => q.extraction), now: a, old: b })
+    }
+  }
+  console.log(JSON.stringify(Object.fromEntries(Object.entries(diffs).map(([k, v]) => [k, v.length]))))
+  const brief = (x: QuoteExtraction) => ({ st: x.subtotal, tax: x.tax, tot: x.total, o: x.options.map((o) => [o.id, o.total, o.tax]), l: x.lines.filter((l) => !['inverter','battery','wiring','fuse'].includes(l.kind) || l.lineTotal !== ({inverter:2000,battery:3000,wiring:150,fuse:90} as Record<string, number>)[l.kind]).map((l) => `${l.kind}:${l.option}:${l.lineTotal}:${l.description}${l.optional ? '?' : ''}`) })
+  const kinds: Record<string, number> = {}
+  for (const d of diffs.compare as { qs: QuoteExtraction[]; now: ReturnType<typeof shape>; old: ReturnType<typeof shape> }[]) {
+    const k = JSON.stringify(d.now.ranked.map((r) => r.t)) !== JSON.stringify(d.old.ranked.map((r) => r.t)) || JSON.stringify(d.now.unranked) !== JSON.stringify(d.old.unranked) ? 'rank/total' : 'caveat-only'
+    kinds[k] = (kinds[k] ?? 0) + 1
+    if ((kinds[k] ?? 0) <= 4) console.log(k, JSON.stringify(d.qs.map(brief)), '\nNOW', JSON.stringify(d.now), '\nOLD', JSON.stringify(d.old))
+  }
+  console.log(JSON.stringify(kinds))
+  expect(diffs.linesWithTax!.length + diffs.optionPrices!.length + diffs.checks!.length).toBe(0)
+}, 300000)

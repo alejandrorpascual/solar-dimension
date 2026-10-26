@@ -133,6 +133,11 @@ describe('withOptionDefaults', () => {
     const stored = { ...old, lines: old.lines, warranties: old.warranties.map(({ option: _w, ...w }) => w) }
     expect(withOptionDefaults(stored).warranties).toEqual([warranty('battery', 10)])
   })
+  test('a line stored before roles has none, so the keyword rules read it', () => {
+    const x = extraction([line('wiring', 10)])
+    const stored = { ...x, lines: x.lines.map(({ role: _r, ...l }) => l) }
+    expect(withOptionDefaults(stored).lines[0]!.role).toBeNull()
+  })
   test('a reading with options is kept as it is', () => {
     const x = extraction([line('inverter', 100, { option: 'a' })], { options: [opt('a'), opt('b')] })
     expect(withOptionDefaults(x)).toEqual(x)

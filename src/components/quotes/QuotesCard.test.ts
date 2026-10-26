@@ -28,7 +28,7 @@ vi.mock('@tanstack/react-router', () => ({
 function cardIcon(pending: number, done: number): string {
   page.jobs = {
     projectId: 'p1', projectName: 'Home', files: [], total: pending + done, done, pending, failed: 0, needsReview: 0,
-    kitEmpty: false, unseen: false, best: null,
+    kitHold: null, unseen: false, best: null,
   }
   const project = ProjectSchema.parse({ id: 'p1', name: 'Home', qty: { fridge: 1 }, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4' })
   const html = renderToStaticMarkup(createElement(QuotesCard, { project, isSaving: false }))
@@ -45,4 +45,15 @@ test('once every quote is read, the card shows the file icon again', () => {
   const icon = cardIcon(0, 2)
   expect(icon).toContain('lucide-file-text')
   expect(icon).not.toContain('qspin')
+})
+
+test('a kit missing an appliance titles the card with the hold, not a best quote (#204)', () => {
+  page.jobs = {
+    projectId: 'p1', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0,
+    kitHold: 'missing', unseen: false, best: null,
+  }
+  const project = ProjectSchema.parse({ id: 'p1', name: 'Home', qty: { fridge: 1 }, custom: [], hours: 10, volts: 48, chemistry: 'lifepo4' })
+  const html = renderToStaticMarkup(createElement(QuotesCard, { project, isSaving: false }))
+  expect(html).toContain('Your kit is missing appliances')
+  expect(html).not.toContain('Verdict ready')
 })

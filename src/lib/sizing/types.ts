@@ -230,6 +230,8 @@ export interface CablePick {
   dropPct: number
   /** Drop at the inverter's surge current. */
   startupDropPct: number
+  /** One run's share of the start-up current: what each main fuse holds while the load starts. */
+  startupPerRunA: number
   /** The lead pair and fuse of each parallel string; null when the bank is one string. */
   string: StringCable | null
 }
@@ -332,6 +334,8 @@ export interface SizingResult {
   runningW: number
   surgeW: number
   surgeSeconds: number
+  /** DC current at the battery while the load starts: the surge watts over the bank voltage and the inverter's losses. */
+  startupA: number
   surgeProfile: SurgeProfile
   simultaneousStarts: SimultaneousStarts
   largestSurgeName: string

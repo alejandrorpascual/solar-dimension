@@ -1,0 +1,165 @@
+// QA #124 v3 differential: staging's tax code (*.qaold.ts, copied from cfdba2b) against the branch on generated
+// readings. v2's generator is kept as is; v3 adds a rate generator that writes option totals at the lines times one
+// plus the document's rate (its tax over its subtotal), with no tax written for the option, which is review R2's shape.
+// Every difference is put in a named class; the run fails on any difference no class explains. Results go to QA_DIFF_OUT.
+import { writeFileSync } from 'node:fs'
+import { expect, test } from 'vitest'
+import * as now from './quote-checks'
+import * as old from './quote-checks.qaold'
+import { compareQuotes as compareNow, type QuoteView } from './quote-compare'
+import { compareQuotes as compareOld } from './quote-compare.qaold'
+import { extraction, line, SAMPLE_KIT } from './quote-fixtures'
+import { DEFAULT_MUSTS } from './quote-items'
+import { hasOptions, optionLines } from './quote-options'
+import type { QuoteExtraction, QuoteLine, QuoteOption } from './quote-schema'
+
+const N = Number(process.env.QA_DIFF_N ?? 20000)
+const TYPED = process.env.QA_DIFF_TYPED === '1'
+const RATE_SHARE = Number(process.env.QA_DIFF_RATE_SHARE ?? 0.5)
+
+let seed = 12345
+const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff)
+const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rnd() * xs.length)]!
+const AMOUNTS = [0, 100, 160, 300, 1000, 1160, 1300, 1460, 2000, 2160, 2300]
+const TEXTS = ['IVA 16%', 'Flete a Valencia', 'ITBIS no incluido', 'GST 5%', 'I.V.A.', 'Impuestos']
+const kitLines = (labor: number, option: string | null): QuoteLine[] => [
+  line('inverter', 2000, { option, specs: { watts: 5000, surgeWatts: 10000, hasCharger: true } }),
+  line('battery', 3000, { option, qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }),
+  line('wiring', 150, { option, specs: { awg: '2/0' } }), line('fuse', 90, { option, specs: { fuseAmps: 175, fuseClass: 'T' } }),
+  line('labor', labor, { option }),
+]
+const sumOf = (ls: readonly QuoteLine[]) => ls.filter((l) => !l.optional).reduce((a, l) => a + l.lineTotal, 0)
+
+// v2's generator (docs/super-board/runs/issue-124-qa-v2/differential-harness-v2.ts.txt), unchanged.
+function gen(): QuoteExtraction {
+  const ids = pick([[], [], ['a'], ['a', 'b']])
+  const optOf = () => (ids.length === 0 ? null : pick([null, ...ids]))
+  const lines: QuoteLine[] = []
+  const useKit = rnd() < 0.4
+  if (useKit) for (const o of ids.length === 0 ? [null] : ids) lines.push(...kitLines(pick([1000, 1100, 1500]), o))
+  const n = Math.floor(rnd() * 4)
+  for (let i = 0; i < n; i++) {
+    if (rnd() < 0.5) lines.push(line(pick(['inverter', 'labor', 'battery'] as const), pick(AMOUNTS), { option: optOf(), optional: rnd() < 0.1 }))
+    else {
+      const t = pick(TEXTS)
+      lines.push(line('other', pick(AMOUNTS), { option: optOf(), description: t, source: { page: 1, text: t } }))
+    }
+  }
+  const sum = sumOf(lines)
+  const tax = pick([null, null, 0, 160, 741, sum * 0.16])
+  const options: QuoteOption[] = ids.map((id) => ({ id, label: id, total: pick([null, ...AMOUNTS, 6740, 7481.2]), tax: pick([null, null, 160, 741]) }))
+  return extraction(lines, {
+    options, tax, subtotal: pick([null, sum, 1000, 6340]),
+    total: pick([sum, sum + (tax ?? 0), 0, 1160, 6740, 7481.2]),
+  })
+}
+
+/**
+ * R2's shape: a quote with 2 or 3 options, a document tax and subtotal (so a rate), and option totals written at the
+ * option's own or own-plus-shared lines times one plus that rate, at the bare lines, or off both. Option tax is mostly
+ * not written. Rates include small ones (1%, 1.5%) where "lines" and "lines at the rate" are within the 2% total tolerance.
+ */
+function genRate(): QuoteExtraction {
+  const ids = pick([['a', 'b'], ['a', 'b'], ['a', 'b', 'c']])
+  const lines: QuoteLine[] = ids.flatMap((id) => kitLines(pick([1000, 1100, 1200, 1500]), id))
+  if (rnd() < 0.4) lines.push(line('labor', pick([100, 300]), { option: null }))
+  if (rnd() < 0.15) { const t = pick(TEXTS); lines.push(line('other', pick([0, 160]), { option: pick([null, ...ids]), description: t, source: { page: 1, text: t } })) }
+  const rate = pick([0.07, 0.16, 0.18, 1141.2 / 6340, 0.01, 0.015])
+  const subtotal = pick([6340, 1000, sumOf(lines.filter((l) => l.option === ids[0] || l.option === null))])
+  const tax = Math.round(subtotal * rate * 100) / 100
+  const options: QuoteOption[] = ids.map((id) => {
+    const own = sumOf(lines.filter((l) => l.option === id))
+    const withShared = sumOf(optionLines({ lines } as QuoteExtraction, id))
+    const total = pick([own * (1 + rate), withShared * (1 + rate), Math.round(own * (1 + rate)), own, withShared, own + 100, null])
+    return { id, label: id, total: total === null ? null : Math.round(total * 100) / 100, tax: pick([null, null, null, null, Math.round(own * rate)]) }
+  })
+  return extraction(lines, { options, subtotal, tax, total: pick([0, 0, sumOf(lines)]) })
+}
+
+const anyGen = (): QuoteExtraction => (rnd() < RATE_SHARE ? genRate() : gen())
+
+function typedFor(x: QuoteExtraction): Pick<QuoteView, 'totalOverride' | 'status' | 'retries'> {
+  if (!TYPED || rnd() < 0.5) return { totalOverride: null, status: 'ready', retries: 0 }
+  const lines = sumOf(x.lines)
+  return {
+    totalOverride: pick([lines, lines + (x.tax ?? 0), lines * 1.16, 6340, 7481.2, 1160]),
+    status: pick(['ready', 'needs_review'] as const), retries: pick([0, 1]),
+  }
+}
+
+let created = 0
+const view = (x: QuoteExtraction): QuoteView => ({
+  id: `q${created}`, fileName: 'q.pdf', label: `q${created}`, extraction: x, overrides: {}, createdAt: created++, pages: null, ...typedFor(x),
+})
+const shape = (v: ReturnType<typeof compareNow>) => ({
+  ranked: v.ranked.map((r) => ({ id: r.quote.id, o: r.optionId, t: r.total, c: r.caveats?.map((c) => c.id) })),
+  unranked: v.unranked.map((u) => [u.quote.id, u.optionId, u.reason]),
+  best: v.best && [v.best.quote.id, v.best.optionId], clean: v.cleanFit && [v.cleanFit.quote.id, v.cleanFit.optionId],
+})
+type Shape = ReturnType<typeof shape>
+const noTax = (s: Shape) => ({ ...s, ranked: s.ranked.map((r) => ({ ...r, c: r.c?.filter((c) => c !== 'tax_unstated') })) })
+
+/** v2's classes, plus the rate class split by whether the written total also sits within tolerance of the bare lines. */
+function flagClass(q: QuoteView, optionId: string | null): string | null {
+  const x = q.extraction!
+  const was = old.statesTax(x, optionId)
+  const untyped = now.includesTax(now.priceOf(x, optionId))
+  const is = now.includesTax(now.priceOf(x, optionId, q.totalOverride))
+  const p = now.priceOf(x, optionId)!
+  const kind = optionId === null ? 'quote' : 'option'
+  if (is !== untyped) return was === is ? `typed:${kind}:typed-total-restores-staging` : `typed:${kind}:${is ? 'typed-total-holds-tax' : 'typed-total-leaves-tax-out'}`
+  if (was === is) return null
+  if (was && p.tax !== null && p.taxIncluded === 'no') return `untyped:${kind}:stated-tax-left-out-of-total`
+  if (was && p.tax === null && optionId === null && x.options.some((o) => now.hasTotal(o.tax)) && !hasOptions(x)) return 'untyped:quote:lone-option-tax-not-the-quotes'
+  if (!was && p.from.tax === 'rate') {
+    const o = x.options.find((v) => v.id === optionId)!
+    const own = sumOf(x.lines.filter((l) => l.option === optionId))
+    const bare = [own, sumOf(optionLines(x, optionId!))].some((b) => Math.abs(o.total! - b) <= Math.max(1, b * 0.02))
+    return `untyped:${kind}:tax-at-document-rate${bare ? ':also-at-bare-lines' : ''}`
+  }
+  return `untyped:${kind}:UNEXPLAINED`
+}
+
+const entryIds = (q: QuoteView): (string | null)[] =>
+  hasOptions(q.extraction!) && q.status === 'ready' ? q.extraction!.options.map((o) => o.id) : [null]
+
+test('branch price record against staging on generated readings, R2 shape included', () => {
+  const counts: Record<string, number> = {}
+  const add = (k: string) => (counts[k] = (counts[k] ?? 0) + 1)
+  const samples: Record<string, unknown[]> = {}
+  const keep = (k: string, v: unknown) => { const s = (samples[k] ??= []); if (s.length < 3) s.push(v) }
+  for (let i = 0; i < N; i++) {
+    const x = anyGen()
+    if (Math.abs(now.linesWithTax(x) - old.linesWithTax(x)) > 1e-6) add('linesWithTax')
+    if (JSON.stringify(now.optionPrices(x)) !== JSON.stringify(old.optionPrices(x))) add('optionPrices')
+    if (JSON.stringify(now.checkExtraction(x)) !== JSON.stringify(old.checkExtraction(x))) add('checkExtraction')
+    // How many readings carry an option in R2's shape at all, ranked or not.
+    if (hasOptions(x) && x.options.some((o) => !old.statesTax(x, o.id) && now.priceOf(x, o.id)!.from.tax === 'rate')) add('readings:with-rate-option')
+    if (i % 4 !== 0) continue
+    // One quote alone (R2's probe ranks options of one quote against each other), or three side by side.
+    const qs = rnd() < 0.3 ? [view(x)] : [view(x), view(anyGen()), view(anyGen())]
+    add('comparisons')
+    const a = shape(compareNow(SAMPLE_KIT, DEFAULT_MUSTS, qs))
+    const b = shape(compareOld(SAMPLE_KIT, DEFAULT_MUSTS, qs as never))
+    if (JSON.stringify(a) === JSON.stringify(b)) continue
+    add('compare-differs')
+    const sorted = (s: Shape) => noTax(s).ranked.map(({ id, o, t, c }) => ({ id, o, t, c })).sort((p, q) => `${p.id}${p.o}`.localeCompare(`${q.id}${q.o}`))
+    const sameElse = JSON.stringify(sorted(a)) === JSON.stringify(sorted(b)) && JSON.stringify(a.unranked) === JSON.stringify(b.unranked)
+    if (!sameElse) { add('compare:NOT-TAX-CAVEAT'); keep('compare:NOT-TAX-CAVEAT', { qs: qs.map((q) => [q.extraction, q.totalOverride, q.status]), a, b }); continue }
+    const rankedKeys = new Set(a.ranked.map((r) => `${r.id}|${r.o}`))
+    const classes = [...new Set(qs.flatMap((q) => entryIds(q).filter((o) => rankedKeys.has(`${q.id}|${o}`)).map((o) => flagClass(q, o)))
+      .filter((c): c is string => c !== null))].sort()
+    if (classes.length === 0) { add('compare:NO-FLAG-DIFF'); keep('compare:NO-FLAG-DIFF', { qs: qs.map((q) => [q.extraction, q.totalOverride, q.status]), a, b }); continue }
+    for (const c of classes) add(`compare-explained-by:${c}`)
+    add(`compare-classes:${classes.join('+')}`)
+    const moved = a.best?.join() !== b.best?.join() || a.clean?.join() !== b.clean?.join()
+    if (moved) add('compare:best-or-clean-moved')
+    const onlyRate = classes.every((c) => c.includes('tax-at-document-rate'))
+    if (onlyRate) add('compare:rate-only')
+    if (onlyRate && moved) add('compare:rate-only:best-or-clean-moved')
+    if (onlyRate && a.best?.join() !== b.best?.join()) add('compare:rate-only:best-moved')
+    for (const c of classes) keep(c, { qs: qs.map((q) => ({ st: q.extraction!.subtotal, tax: q.extraction!.tax, typed: q.totalOverride, opts: q.extraction!.options.map((o) => [o.id, o.total, o.tax]), lines: q.extraction!.lines.map((l) => [l.option, l.lineTotal]) })), now: { ranked: a.ranked, best: a.best, clean: a.clean }, old: { ranked: b.ranked, best: b.best, clean: b.clean } })
+  }
+  writeFileSync(process.env.QA_DIFF_OUT ?? '/tmp/qa-diff.json', JSON.stringify({ N, TYPED, RATE_SHARE, counts, samples }, null, 1))
+  expect(Object.keys(counts).filter((k) => /UNEXPLAINED|NOT-TAX|NO-FLAG|^linesWithTax|^optionPrices|^checkExtraction/.test(k))).toEqual([])
+}, 600000)

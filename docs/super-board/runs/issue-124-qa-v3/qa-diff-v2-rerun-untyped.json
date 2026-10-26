@@ -1,0 +1,864 @@
+{
+ "N": 20000,
+ "TYPED": false,
+ "counts": {
+  "comparisons": 5000,
+  "compare-differs": 1110,
+  "compare-explained-by:untyped:quote:stated-tax-left-out-of-total": 720,
+  "compare-classes:untyped:quote:stated-tax-left-out-of-total": 706,
+  "compare-explained-by:untyped:option:stated-tax-left-out-of-total": 14,
+  "compare-classes:untyped:option:stated-tax-left-out-of-total": 14,
+  "compare:best-or-clean-moved": 123,
+  "compare-explained-by:untyped:quote:lone-option-tax-not-the-quotes": 390,
+  "compare-classes:untyped:quote:lone-option-tax-not-the-quotes": 376,
+  "compare-classes:untyped:quote:lone-option-tax-not-the-quotes+untyped:quote:stated-tax-left-out-of-total": 14
+ },
+ "samples": {
+  "untyped:quote:stated-tax-left-out-of-total": [
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 160,
+      "tot": 7060,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": 6340,
+      "tax": 741,
+      "tot": 7900,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        160,
+        null
+       ]
+      ]
+     },
+     {
+      "st": 1300,
+      "tax": 0,
+      "tot": 0,
+      "typed": null,
+      "opts": []
+     }
+    ],
+    "now": [
+     {
+      "id": "q6",
+      "o": null,
+      "t": 7060,
+      "c": []
+     },
+     {
+      "id": "q7",
+      "o": null,
+      "t": 7900,
+      "c": [
+       "tax_unstated"
+      ]
+     }
+    ],
+    "old": [
+     {
+      "id": "q6",
+      "o": null,
+      "t": 7060,
+      "c": []
+     },
+     {
+      "id": "q7",
+      "o": null,
+      "t": 7900,
+      "c": []
+     }
+    ]
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 741,
+      "tot": 2300,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": 1000,
+      "tax": null,
+      "tot": 100,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": 1000,
+      "tax": null,
+      "tot": 1300,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        300,
+        null
+       ],
+       [
+        "b",
+        0,
+        null
+       ]
+      ]
+     }
+    ],
+    "now": [
+     {
+      "id": "q91",
+      "o": null,
+      "t": 100,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q92",
+      "o": "a",
+      "t": 300,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q92",
+      "o": "b",
+      "t": 1300,
+      "c": []
+     },
+     {
+      "id": "q90",
+      "o": null,
+      "t": 2300,
+      "c": [
+       "tax_unstated"
+      ]
+     }
+    ],
+    "old": [
+     {
+      "id": "q91",
+      "o": null,
+      "t": 100,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q92",
+      "o": "a",
+      "t": 300,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q92",
+      "o": "b",
+      "t": 1300,
+      "c": []
+     },
+     {
+      "id": "q90",
+      "o": null,
+      "t": 2300,
+      "c": []
+     }
+    ]
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 741,
+      "tot": 3160,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": 200,
+      "tax": 0,
+      "tot": 0,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": 8200,
+      "tax": null,
+      "tot": 8200,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        1460,
+        null
+       ]
+      ]
+     }
+    ],
+    "now": [
+     {
+      "id": "q98",
+      "o": null,
+      "t": 8200,
+      "c": []
+     },
+     {
+      "id": "q96",
+      "o": null,
+      "t": 3160,
+      "c": []
+     }
+    ],
+    "old": [
+     {
+      "id": "q98",
+      "o": null,
+      "t": 8200,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q96",
+      "o": null,
+      "t": 3160,
+      "c": []
+     }
+    ]
+   }
+  ],
+  "untyped:option:stated-tax-left-out-of-total": [
+   {
+    "qs": [
+     {
+      "st": 12980,
+      "tax": null,
+      "tot": 12980,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        2300,
+        null
+       ],
+       [
+        "b",
+        6740,
+        160
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": null,
+      "tot": 400,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": 1000,
+      "tax": 741,
+      "tot": 0,
+      "typed": null,
+      "opts": []
+     }
+    ],
+    "now": [
+     {
+      "id": "q12",
+      "o": "a",
+      "t": 2300,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q12",
+      "o": "b",
+      "t": 6740,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q13",
+      "o": null,
+      "t": 400,
+      "c": []
+     }
+    ],
+    "old": [
+     {
+      "id": "q12",
+      "o": "a",
+      "t": 2300,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q12",
+      "o": "b",
+      "t": 6740,
+      "c": []
+     },
+     {
+      "id": "q13",
+      "o": null,
+      "t": 400,
+      "c": []
+     }
+    ]
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 0,
+      "tot": 6540,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": 13580,
+      "tax": null,
+      "tot": 7481.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7481.2,
+        741
+       ],
+       [
+        "b",
+        160,
+        null
+       ]
+      ]
+     },
+     {
+      "st": null,
+      "tax": 160,
+      "tot": 1160,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        160,
+        null
+       ],
+       [
+        "b",
+        1460,
+        160
+       ]
+      ]
+     }
+    ],
+    "now": [
+     {
+      "id": "q758",
+      "o": "a",
+      "t": 160,
+      "c": []
+     },
+     {
+      "id": "q757",
+      "o": "b",
+      "t": 160,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q758",
+      "o": "b",
+      "t": 1460,
+      "c": []
+     },
+     {
+      "id": "q756",
+      "o": null,
+      "t": 6540,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q757",
+      "o": "a",
+      "t": 7481.2,
+      "c": [
+       "chemistry_unstated",
+       "tax_unstated"
+      ]
+     }
+    ],
+    "old": [
+     {
+      "id": "q758",
+      "o": "a",
+      "t": 160,
+      "c": []
+     },
+     {
+      "id": "q757",
+      "o": "b",
+      "t": 160,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q758",
+      "o": "b",
+      "t": 1460,
+      "c": []
+     },
+     {
+      "id": "q756",
+      "o": null,
+      "t": 6540,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q757",
+      "o": "a",
+      "t": 7481.2,
+      "c": [
+       "chemistry_unstated"
+      ]
+     }
+    ]
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 0,
+      "tot": 6540,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": 13580,
+      "tax": null,
+      "tot": 7481.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7481.2,
+        741
+       ],
+       [
+        "b",
+        160,
+        null
+       ]
+      ]
+     },
+     {
+      "st": null,
+      "tax": 160,
+      "tot": 1160,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        160,
+        null
+       ],
+       [
+        "b",
+        1460,
+        160
+       ]
+      ]
+     }
+    ],
+    "now": [
+     {
+      "id": "q1859",
+      "o": "a",
+      "t": 160,
+      "c": []
+     },
+     {
+      "id": "q1858",
+      "o": "b",
+      "t": 160,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q1859",
+      "o": "b",
+      "t": 1460,
+      "c": []
+     },
+     {
+      "id": "q1857",
+      "o": null,
+      "t": 6540,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q1858",
+      "o": "a",
+      "t": 7481.2,
+      "c": [
+       "chemistry_unstated",
+       "tax_unstated"
+      ]
+     }
+    ],
+    "old": [
+     {
+      "id": "q1859",
+      "o": "a",
+      "t": 160,
+      "c": []
+     },
+     {
+      "id": "q1858",
+      "o": "b",
+      "t": 160,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q1859",
+      "o": "b",
+      "t": 1460,
+      "c": []
+     },
+     {
+      "id": "q1857",
+      "o": null,
+      "t": 6540,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q1858",
+      "o": "a",
+      "t": 7481.2,
+      "c": [
+       "chemistry_unstated"
+      ]
+     }
+    ]
+   }
+  ],
+  "untyped:quote:lone-option-tax-not-the-quotes": [
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 160,
+      "tot": 7481.2,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": 6340,
+      "tax": null,
+      "tot": 0,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        1300,
+        160
+       ]
+      ]
+     },
+     {
+      "st": 1000,
+      "tax": null,
+      "tot": 6740,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        300,
+        741
+       ]
+      ]
+     }
+    ],
+    "now": [
+     {
+      "id": "q122",
+      "o": null,
+      "t": 6740,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q120",
+      "o": null,
+      "t": 7481.2,
+      "c": []
+     }
+    ],
+    "old": [
+     {
+      "id": "q122",
+      "o": null,
+      "t": 6740,
+      "c": []
+     },
+     {
+      "id": "q120",
+      "o": null,
+      "t": 7481.2,
+      "c": []
+     }
+    ]
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": null,
+      "tot": 1160,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        1160,
+        741
+       ]
+      ]
+     },
+     {
+      "st": 1000,
+      "tax": 741,
+      "tot": 7481.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        160,
+        null
+       ],
+       [
+        "b",
+        1000,
+        null
+       ]
+      ]
+     },
+     {
+      "st": null,
+      "tax": 741,
+      "tot": 6740,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        1160,
+        741
+       ],
+       [
+        "b",
+        0,
+        null
+       ]
+      ]
+     }
+    ],
+    "now": [
+     {
+      "id": "q124",
+      "o": "a",
+      "t": 160,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q124",
+      "o": "b",
+      "t": 1000,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q123",
+      "o": null,
+      "t": 1160,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q125",
+      "o": "a",
+      "t": 1160,
+      "c": []
+     },
+     {
+      "id": "q125",
+      "o": "b",
+      "t": 2100,
+      "c": []
+     }
+    ],
+    "old": [
+     {
+      "id": "q124",
+      "o": "a",
+      "t": 160,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q124",
+      "o": "b",
+      "t": 1000,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q123",
+      "o": null,
+      "t": 1160,
+      "c": []
+     },
+     {
+      "id": "q125",
+      "o": "a",
+      "t": 1160,
+      "c": []
+     },
+     {
+      "id": "q125",
+      "o": "b",
+      "t": 2100,
+      "c": []
+     }
+    ]
+   },
+   {
+    "qs": [
+     {
+      "st": 15640,
+      "tax": 741,
+      "tot": 16381,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        100,
+        160
+       ],
+       [
+        "b",
+        null,
+        null
+       ]
+      ]
+     },
+     {
+      "st": 0,
+      "tax": 741,
+      "tot": 1160,
+      "typed": null,
+      "opts": []
+     },
+     {
+      "st": null,
+      "tax": null,
+      "tot": 6740,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        1160,
+        160
+       ]
+      ]
+     }
+    ],
+    "now": [
+     {
+      "id": "q309",
+      "o": "a",
+      "t": 100,
+      "c": []
+     },
+     {
+      "id": "q311",
+      "o": null,
+      "t": 6740,
+      "c": [
+       "tax_unstated"
+      ]
+     },
+     {
+      "id": "q309",
+      "o": "b",
+      "t": 8900,
+      "c": []
+     },
+     {
+      "id": "q310",
+      "o": null,
+      "t": 1160,
+      "c": []
+     }
+    ],
+    "old": [
+     {
+      "id": "q309",
+      "o": "a",
+      "t": 100,
+      "c": []
+     },
+     {
+      "id": "q311",
+      "o": null,
+      "t": 6740,
+      "c": []
+     },
+     {
+      "id": "q309",
+      "o": "b",
+      "t": 8900,
+      "c": []
+     },
+     {
+      "id": "q310",
+      "o": null,
+      "t": 1160,
+      "c": []
+     }
+    ]
+   }
+  ]
+ }
+}

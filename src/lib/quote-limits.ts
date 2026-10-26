@@ -18,6 +18,8 @@ export type Rejection =
   | { code: 'unverified' }
   /** Today's reads across every account reached QUOTES_DAILY_READS. */
   | { code: 'daily_limit' }
+  /** The project already has a quote of this very file (the same file_hash), uploaded as `fileName` (#208). */
+  | { code: 'already_uploaded'; fileName: string }
 
 export const isQuoteMime = (v: string): v is QuoteMime => (QUOTE_MIMES as readonly string[]).includes(v)
 export const toMb = (bytes: number): number => Math.round((bytes / MB) * 10) / 10

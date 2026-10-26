@@ -131,8 +131,15 @@
     {
       "idx": 18,
       "version": "7",
-      "when": 1792904311622,
-      "tag": "0018_product_verification",
+      "when": 1792904958366,
+      "tag": "0018_quote_file_hash",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793057772741,
+      "tag": "0019_product_verification",
       "breakpoints": true
     }
   ]

@@ -1,12 +1,12 @@
-import { randomUUID } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { createHash, randomUUID } from 'node:crypto'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
 import { quotesEs } from '../src/i18n/quotes-es'
 import {
-  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFiles, quoteRetryStates, seedFailedQuote,
+  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTaxedTotal, misreadQuoteTotal, quoteFileHashes, quoteFiles, quoteRetryStates, quoteUploadsThisMonth, seedFailedQuote,
   seedQuoteRows, setQuoteCurrency, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
@@ -127,6 +127,148 @@ test('the same quote uploaded twice ranks once with a warning, and inverter and 
     await expect(fixed).toHaveAttribute('aria-checked', 'true')
     await expect(fixed).toBeDisabled()
   }
+})
+
+/** The hand-off dialog's refusal of a file the project already has, uploaded before as `name` (#208). */
+const alreadyUploaded = (q: typeof quotesEn | typeof quotesEs, name: string) => q.errAlreadyUploaded.replace('{name}', name)
+/** A quote id, as the upload call answers when it stores a file and starts its read. */
+const QUOTE_ID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+
+test('the same file uploaded again is refused before it is stored or read, naming the earlier quote (#208)', async ({ page }) => {
+  // Sign-up, a batch of two and up to three more uploads, each followed by database reads over Neon's HTTP driver.
+  test.slow()
+  const { email, projectId } = await signUpWithProject(page)
+  // One file sent twice under two names: the second is the same bytes, so it is refused whatever its name.
+  const file = await quotePdf('solartec')
+  await uploadQuotes(page, [file, { ...file, name: 'voltia.pdf' }])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'voltia.pdf' })).toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
+
+  // Only the first upload is a quote, with the SHA-256 of the bytes sent, worked out here on its own; the second was
+  // never counted against the month.
+  const sha256 = createHash('sha256').update(file.buffer).digest('hex')
+  expect(await quoteFileHashes(email)).toEqual([{ fileName: 'solartec.pdf', fileHash: sha256 }])
+  expect(await quoteUploadsThisMonth(email)).toBe(1)
+
+  // Sent again on its own, the file is refused with no quote id: a read starts only for a quote the call stored.
+  await dialog.getByRole('button', { name: 'Ok, got it' }).click()
+  const reply = page.waitForResponse((r) => r.url().includes('/_serverFn/') && (r.request().headers()['content-type'] ?? '').includes('multipart/form-data'))
+  await pickQuoteFiles(page, [{ ...file, name: 'again.pdf' }], quotesEn.cardAddMore)
+  const refused = page.getByRole('dialog', { name: quotesEn.handoffNone })
+  await expect(refused.getByRole('listitem')).toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
+  const body = await (await reply).text()
+  expect(body).toContain('already_uploaded')
+  expect(body).not.toMatch(QUOTE_ID)
+  expect(await countQuoteRows(email, projectId)).toBe(1)
+  expect(await quoteUploadsThisMonth(email)).toBe(1)
+})
+
+test('a file already in the project is refused in Spanish too, naming the earlier quote (#208)', async ({ page }) => {
+  const { email } = await signUpWithProject(page)
+  await switchLanguageOnLoad(page, 'Español')
+  const file = await quotePdf('solartec')
+  await pickQuoteFiles(page, [file, { ...file, name: 'copia.pdf' }], quotesEs.cardUpload)
+  const row = page.getByRole('dialog').getByRole('listitem').filter({ hasText: 'copia.pdf' })
+  await expect(row).toContainText(alreadyUploaded(quotesEs, 'solartec.pdf'))
+  expect((await quoteFileHashes(email)).map((q) => q.fileName)).toEqual(['solartec.pdf'])
+})
+
+test('a file uploaded again after a reading duplicate of it is refused, and the reading duplicate stays listed (#208)', async ({ page }) => {
+  await signUp(page)
+  // Two different files the stub reads as SolarTec's quote, then the second file again under a name the stub reads as Voltia's.
+  const [first, copy] = await Promise.all(['solartec', 'solartec-copy'].map(quotePdf))
+  await uploadQuotes(page, [first!, copy!, { ...copy!, name: 'voltia.pdf' }])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'voltia.pdf' })).toContainText(alreadyUploaded(quotesEn, 'solartec-copy.pdf'))
+  await dialog.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  // #55's rule still lists the different file that reads the same; the refused copy is not a quote at all.
+  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(1)
+  await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toHaveCount(0)
+})
+
+test('once a copy is refused, a different file read as the same installer ranks as its own quote (#208)', async ({ page }) => {
+  await signUp(page)
+  // One file, then the same file under a name the stub reads as Voltia's quote, then Voltia's own file.
+  const [first, other] = await Promise.all(['solartec', 'voltia'].map(quotePdf))
+  await uploadQuotes(page, [first!, { ...first!, name: 'voltia.pdf' }, other!])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: alreadyUploaded(quotesEn, 'solartec.pdf') })).toHaveCount(1)
+  await dialog.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
+  // The copy was refused, so nothing earlier reads like Voltia's file: it ranks as Voltia's own quote.
+  const voltia = page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })
+  await expect(voltia).toHaveCount(1)
+  await expect(voltia).not.toContainText(quotesEn.duplicate)
+  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(0)
+})
+
+test('the same file sent four times at once makes one quote and keeps one stored file (#208)', async ({ page }) => {
+  // Sign-up and four parallel uploads, each followed by database reads over Neon's HTTP driver.
+  test.slow()
+  const { email, projectId } = await signUpWithProject(page)
+  const file = await quotePdf('solartec')
+  const call = captureUploadCall(page)
+  await pickQuoteFiles(page, [file])
+  const upload = await call
+
+  // Sent at once, the uploads can all pass the check before storing; the insert lets only one of them in.
+  const replies = await Promise.all(['a', 'b', 'c', 'd'].map(async (n) => (await postUpload(page, upload, projectId, { ...file, name: `${n}.pdf` })).text()))
+
+  const kept = await quoteFiles(email)
+  expect(kept).toHaveLength(1)
+  const [{ fileName }] = await quoteFileHashes(email)
+  const refused = replies.filter((r) => r.includes('already_uploaded'))
+  expect(refused).toHaveLength(3)
+  for (const reply of refused) expect(reply).toContain(fileName)
+  // The refused uploads dropped the files they had stored: the account's folder holds the one quote's file.
+  const folder = path.dirname(path.resolve(QUOTE_FILES_DIR, kept[0]!.path))
+  expect(readdirSync(folder)).toEqual([path.basename(kept[0]!.path)])
+  expect(await quoteUploadsThisMonth(email)).toBe(1)
+})
+
+test("a deleted quote's file can be uploaded again (#208)", async ({ page }) => {
+  test.slow()
+  const email = await signUp(page)
+  const file = await quotePdf('solartec')
+  await uploadQuotes(page, [file])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+  const best = page.getByRole('region').filter({ has: page.getByText('Best fit', { exact: true }) })
+  await best.getByRole('button', { name: 'Delete', exact: true }).click()
+  await best.getByRole('button', { name: 'Delete it' }).click()
+  await expect(page.getByRole('article')).toHaveCount(0)
+  await expect.poll(async () => (await quoteFiles(email)).length).toBe(0)
+
+  // With no quote left the card offers Upload quotes again, not Add quotes.
+  await uploadQuotes(page, [{ ...file, name: 'again.pdf' }])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'again.pdf' })).toBeVisible()
+  await expect(dialog).not.toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
+  await expect.poll(async () => (await quoteFileHashes(email)).map((q) => q.fileName)).toEqual(['again.pdf'])
+})
+
+test('another project takes a file the first project already has (#208)', async ({ page }) => {
+  test.slow()
+  const email = await signUp(page)
+  const file = await quotePdf('solartec')
+  await uploadQuotes(page, [file])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await expect.poll(async () => (await quoteFiles(email)).length).toBe(1)
+
+  await page.goto('/')
+  await showProjects(page)
+  await page.getByRole('button', { name: '+ New project' }).click()
+  await hideProjects(page)
+  await uploadQuotes(page, [file])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'solartec.pdf' })).toBeVisible()
+  await expect(dialog).not.toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
+  await expect.poll(async () => new Set((await quoteFiles(email)).map((q) => q.projectId)).size).toBe(2)
 })
 
 test('a tie between currencies says on screen which one was compared (AI-28)', async ({ page }) => {
@@ -942,6 +1084,32 @@ test('a typed total can be changed from its ranked card, which re-ranks the quot
   await expect(verdictHeading(page)).toHaveText(/^Voltia Instalaciones is the cheapest that fits: confirm/)
   await expect(card('SolarTec Caribe')).toContainText('$700 more than the best')
   await expect(card('SolarTec Caribe')).toContainText(quotesEn.totalTyped)
+})
+
+// QA #124: a typed total replaces the one read, so whether that total holds the quote's tax has to follow it.
+test('a total typed with its tax counts as taxed, so a cheaper quote that states no tax is marked beside it', async ({ page }) => {
+  const email = await signUp(page)
+  await uploadQuotes(page, await Promise.all(['solartec', 'voltia'].map(quotePdf)))
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+  await page.goto(`/projects/${projectId}/quotes`)
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least', { timeout: 30_000 })
+
+  // SolarTec's lines make 6,480 and it writes 18% tax, but its total was read as 6,480. The user types 7,646.40.
+  await misreadQuoteTaxedTotal(email, projectId, 'solartec.pdf', { subtotal: 6480, tax: 1166.4 })
+  await page.reload()
+  const solartec = page.getByRole('article').filter({ hasText: 'SolarTec Caribe' })
+  await expect(solartec).toContainText('We read $6,480, but its lines and tax add up to $7,646.')
+  await solartec.getByRole('textbox', { name: quotesEn.totalInQuote }).fill('7,646.40')
+  await solartec.getByRole('button', { name: quotesEn.save, exact: true }).click()
+
+  // Voltia, 7,300 and no tax stated, is now the cheaper one: it is only the cheapest fit once its tax is confirmed.
+  await expect(verdictHeading(page)).toHaveText('Voltia Instalaciones is the cheapest that fits: confirm 1 thing first')
+  const voltia = page.getByRole('region', { name: 'Voltia Instalaciones' })
+  await expect(voltia.getByText(quotesEn.bestFitToConfirm, { exact: true })).toBeVisible()
+  await expect(voltia.getByRole('note')).toContainText(quotesEn.caveatTax)
+  await expect(solartec).toContainText(quotesEn.totalTyped)
+  await expect(solartec).not.toContainText(quotesEn.caveatTax)
 })
 
 test('a ranked quote whose reading needs a check can be read again from its card', async ({ page }) => {

@@ -1,0 +1,385 @@
+[WebServer] ◇ injected env (0) from .env.local
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - import "./src/server/quotes/time-limits" without a file extension (vite.config.ts:8:41). Add the file extension
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] [plugin builtin:vite-reporter] 
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] `output.codeSplitting.groups[0].name` is a function. Set `output.codeSplitting.groups[0].debugName` so the bundler timing report can identify this group.
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/index.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/index.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/utils.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/utils.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouter.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouter.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useMatch.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useMatch.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useNavigate.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useNavigate.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useBlocker.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useBlocker.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/link.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/link.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Match.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Match.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useLocation.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useLocation.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/RouterProvider.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/RouterProvider.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouterState.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouterState.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Matches.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Matches.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/HeadContent.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/HeadContent.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Asset.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Asset.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/ClientOnly.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/ClientOnly.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/routerContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/routerContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/matchContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/matchContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Transitioner.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Transitioner.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/context.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/context.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/Icon.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/Icon.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_ssr/ssr.mjs:2096:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_ssr/ssr.mjs:2024:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_ssr/ssr.mjs:2010:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_ssr/catalog-repo-D8nkZt-9.mjs:233:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_ssr/catalog-repo-D8nkZt-9.mjs:240:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_ssr/catalog-repo-D8nkZt-9.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_ssr/catalog-repo-D8nkZt-9.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/.output/server/_ssr/ssr.mjs:2096:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+
+Running 16 tests using 5 workers
+
+[WebServer] [catalog-api] rejected a request with a missing or wrong token { ip: 'unknown', path: '/api/catalog/appliances' }
+[WebServer] [catalog-api] refused a POST that names no database { method: 'POST', path: '/api/catalog/appliances' }
+[WebServer] [catalog-api] rejected a request with a missing or wrong token { ip: 'unknown', path: '/api/catalog/appliances' }
+[WebServer] [catalog-api] refused a request meant for another database {
+[WebServer]   expected: 'ep-not-this-one-12345678',
+[WebServer]   actual: 'ep-crimson-rain-au38702t',
+[WebServer]   method: 'POST',
+[WebServer]   path: '/api/catalog/appliances'
+[WebServer] }
+[WebServer] [catalog-api] rejected a request with a missing or wrong token { ip: 'unknown', path: '/api/catalog/database' }
+  ✓   2 [desktop] › e2e/catalog-api.spec.ts:10:1 › the catalog API needs the token (887ms)
+  ✓   4 [desktop] › e2e/catalog-api.spec.ts:15:1 › says which database it is on, as a test one, and only to a request with the token (515ms)
+  ✓   1 [desktop] › e2e/catalog-api.spec.ts:55:1 › a mistyped flag answers 400 naming it, and nothing is written (3.4s)
+  ✓   3 [desktop] › e2e/catalog-api.spec.ts:30:1 › writes only when the POST names this database, and writes to the database it names (3.0s)
+  ✓   5 [desktop] › e2e/catalog-api.spec.ts:70:1 › the dry run and the write both carry plausibility warnings, and a warning never stops the write (3.7s)
+  ✓   8 [desktop] › e2e/catalog-api.spec.ts:136:1 › every write to an appliance is logged with the row before and after; an unchanged write logs nothing (3.4s)
+[WebServer] 2026-10-25T16:41:05.068Z WARN [Better Auth]: User not found
+  ✓   6 [desktop] › e2e/catalog-api.spec.ts:101:1 › dry run, create, show in the picker in both languages, then retire (25.5s)
+[WebServer] 2026-10-25T16:41:11.418Z WARN [Better Auth]: User not found
+  ✘   7 [desktop] › e2e/admin.spec.ts:37:3 › non-admins get a 404 at /admin/appliances (24.4s)
+  ✓   9 [desktop] › e2e/qa-106-evidence.spec.ts:45:1 › qa-106 evidence: Revert in the admin change log (47.6s)
+[WebServer] 2026-10-25T16:41:35.567Z WARN [Better Auth]: User not found
+  ✓  10 [desktop] › e2e/admin.spec.ts:37:3 › non-admins get a 404 at /admin/quotes (10.4s)
+[WebServer] [quotes] a quote could not be read {
+[WebServer]   id: '60520af2-0df9-4034-b363-378e3e5b5b54',
+[WebServer]   error: 'invalid: No stub fixture matches unreadable-1792946502328.pdf | invalid: No stub fixture matches unreadable-1792946502328.pdf'
+[WebServer] }
+  ✓  11 [desktop] › e2e/admin.spec.ts:46:1 › a quote the model could not read shows on /admin/quotes with its file name, account, project, error and time (31.1s)
+  ✓  12 [desktop] › e2e/admin.spec.ts:73:1 › an admin adds an appliance, sees it in the picker, and retires it (29.1s)
+  ✓  13 [desktop] › e2e/admin.spec.ts:117:1 › sources sent with a token write read back, show in the admin row, and survive later writes that send none (14.2s)
+  ✘  14 [desktop] › e2e/admin.spec.ts:167:1 › a momentary row shows each figure's sources in that figure's own cell (18.9s)
+  ✓  15 [desktop] › e2e/admin.spec.ts:206:1 › "New appliance" refuses an id that already belongs to another appliance (12.8s)
+  ✓  16 [desktop] › e2e/admin.spec.ts:236:1 › a token change shows in the admin log, and Revert puts a saved project's kit back to the earlier numbers (11.8s)
+
+
+  1) [desktop] › e2e/admin.spec.ts:37:3 › non-admins get a 404 at /admin/appliances ────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Signed in as e2e-1792946450597@example.com' }).or(getByText('That did not work. Check the email and password.'))
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Signed in as e2e-1792946450597@example.com' }).or(getByText('That did not work. Check the email and password.')) with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Signed in as e2e-1792946450597@example.com' }).or(getByText('That did not work. Check the email and password.'))
+
+
+      16 |   const signedIn = page.getByRole('button', { name: `Signed in as ${email}` })
+      17 |   const failed = page.getByText('That did not work. Check the email and password.')
+    > 18 |   await expect(signedIn.or(failed)).toBeVisible()
+         |                                     ^
+      19 |   if (await signedIn.isVisible()) return
+      20 |   await page.getByRole('button', { name: 'No account yet? Create one' }).click()
+      21 |   await page.getByLabel('Email').fill(email)
+        at signInOrUp (/Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/e2e/admin.spec.ts:18:37)
+        at /Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/e2e/admin.spec.ts:40:5
+
+    Error Context: test-results/admin-non-admins-get-a-404-at-admin-appliances-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-non-admins-get-a-404-at-admin-appliances-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-non-admins-get-a-404-at-admin-appliances-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [desktop] › e2e/admin.spec.ts:167:1 › a momentary row shows each figure's sources in that figure's own cell 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Signed in as e2e-admin-41972013-f89d-4266-8f13-8013aa078f94@example.com' }).or(getByText('That did not work. Check the email and password.'))
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Signed in as e2e-admin-41972013-f89d-4266-8f13-8013aa078f94@example.com' }).or(getByText('That did not work. Check the email and password.')) with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Signed in as e2e-admin-41972013-f89d-4266-8f13-8013aa078f94@example.com' }).or(getByText('That did not work. Check the email and password.'))
+
+
+      16 |   const signedIn = page.getByRole('button', { name: `Signed in as ${email}` })
+      17 |   const failed = page.getByText('That did not work. Check the email and password.')
+    > 18 |   await expect(signedIn.or(failed)).toBeVisible()
+         |                                     ^
+      19 |   if (await signedIn.isVisible()) return
+      20 |   await page.getByRole('button', { name: 'No account yet? Create one' }).click()
+      21 |   await page.getByLabel('Email').fill(email)
+        at signInOrUp (/Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/e2e/admin.spec.ts:18:37)
+        at signInAsAdmin (/Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/e2e/admin.spec.ts:33:3)
+        at /Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/e2e/admin.spec.ts:186:5
+
+    Error Context: test-results/admin-a-momentary-row-show-be321-s-in-that-figure-s-own-cell-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/admin-a-momentary-row-show-be321-s-in-that-figure-s-own-cell-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/admin-a-momentary-row-show-be321-s-in-that-figure-s-own-cell-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [desktop] › e2e/admin.spec.ts:37:3 › non-admins get a 404 at /admin/appliances ─────────────────
+    [desktop] › e2e/admin.spec.ts:167:1 › a momentary row shows each figure's sources in that figure's own cell 
+  14 passed (5.0m)

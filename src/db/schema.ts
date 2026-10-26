@@ -148,6 +148,8 @@ export const quotes = pgTable(
     mime: text('mime').notNull(),
     sizeBytes: integer('size_bytes').notNull(),
     pages: integer('pages'),
+    /** SHA-256 of the uploaded file, hex: the same file uploaded to the project again is refused (insertWithinLimits). Null on older quotes. */
+    fileHash: text('file_hash'),
     status: text('status').$type<QuoteStatus>().notNull().default('queued'),
     attempts: integer('attempts').notNull().default(0),
     /** Retries the user asked for; capped at MAX_RETRIES (quote-guards), because retries don't count against the monthly limit. */

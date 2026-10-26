@@ -1,0 +1,53 @@
+differential + tax cases with src/lib/quote-checks.ts at a1c4f35 (tests from this branch):
+     × an option and a quote that each write a 60 tax and total 6,340 both hold it, beside one at 7,953.20 6ms
+     × options that write a 1,000 tax listed once as a shared IVA line, totalled with it, hold their tax 1ms
+     × a quote whose one option writes 1,141.20 tax in its 7,481.20 total holds it, so it is best fit with no caveat 1ms
+     × agrees on 2400 generated readings (seed 124), outside the classes #124 changed 176ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: 104 divergences: expected 'q53 gets tax_unstated (staging: lacks…' to be '' // Object.is equality
++ q53 gets tax_unstated (staging: lacks)
++ q140:b lacks tax_unstated (staging: gets)
++ q177:b lacks tax_unstated (staging: gets); q175 lacks tax_unstated (staging: gets); q177:a lacks tax_unstated (staging: lacks)
++ q240:a gets tax_unstated (staging: lacks)
++ q290:a gets tax_unstated (staging: lacks)
+      Tests  4 failed | 19 passed (23)
+
+mutant R6 (readTotal reads every total as its nearest candidate, as a1c4f35 did for options):
+     × a quote at 6,340 that states 63.40 tax (1%) counts as taxed, so one at 6,440 stating none beside it says so 4ms
+     × an option and a quote that each write a 60 tax and total 6,340 both hold it, beside one at 7,953.20 1ms
+     × agrees on 2400 generated readings (seed 124), outside the classes #124 changed 204ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: 89 divergences: expected 'q0 gets tax_unstated (staging: lacks)…' to be '' // Object.is equality
++ q0 gets tax_unstated (staging: lacks)
++ q140:b lacks tax_unstated (staging: gets)
++ q290:a gets tax_unstated (staging: lacks)
++ q310:b gets tax_unstated (staging: lacks); q310:a gets tax_unstated (staging: lacks)
++ q315 gets tax_unstated (staging: lacks)
+      Tests  3 failed | 20 passed (23)
+
+mutant R7 (an option with a written tax looks for tax lines among its own lines only):
+     × options that write a 1,000 tax listed once as a shared IVA line, totalled with it, hold their tax 4ms
+     × agrees on 2400 generated readings (seed 124), outside the classes #124 changed 171ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: 11 divergences: expected 'q360:a gets tax_unstated (staging: la…' to be '' // Object.is equality
++ q360:a gets tax_unstated (staging: lacks)
++ q683:a gets tax_unstated (staging: lacks)
++ q1585:a gets tax_unstated (staging: lacks)
++ q3168:a gets tax_unstated (staging: lacks)
++ q4182:b gets tax_unstated (staging: lacks)
+      Tests  2 failed | 21 passed (23)
+
+mutant R8 (a quote with one option drops that option's tax):
+     × a quote whose one option writes 1,141.20 tax in its 7,481.20 total holds it, so it is best fit with no caveat 4ms
+     × agrees on 2400 generated readings (seed 124), outside the classes #124 changed 179ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: 29 divergences: expected 'q53 gets tax_unstated (staging: lacks…' to be '' // Object.is equality
++ q53 gets tax_unstated (staging: lacks)
++ q177:b lacks tax_unstated (staging: gets); q175 lacks tax_unstated (staging: gets); q177:a lacks tax_unstated (staging: lacks)
++ q315 gets tax_unstated (staging: lacks)
++ q465 gets tax_unstated (staging: lacks)
++ q660 gets tax_unstated (staging: lacks)
+      Tests  2 failed | 21 passed (23)
+
+fixed:
+      Tests  23 passed (23)

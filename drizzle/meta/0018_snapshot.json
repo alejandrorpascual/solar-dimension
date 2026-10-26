@@ -1,5 +1,5 @@
 {
-  "id": "0b0e94b1-5e99-449f-8345-c7ba603c9a49",
+  "id": "c9cb50ea-6791-41c4-a515-e5dcc80da6a7",
   "prevId": "be176876-22de-4966-983c-0c3ad3945a26",
   "version": "7",
   "dialect": "postgresql",
@@ -325,18 +325,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "verified_at": {
-          "name": "verified_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "verified_by": {
-          "name": "verified_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -709,6 +697,12 @@
         "pages": {
           "name": "pages",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_hash": {
+          "name": "file_hash",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
