@@ -1,0 +1,59 @@
+import fs from 'node:fs'
+import { execSync } from 'node:child_process'
+const F = 'src/lib/quote-checks.ts'
+const orig = fs.readFileSync(F, 'utf8')
+const M = [
+  ['M1 readTotal: nearest always (R6 revert)', 'const read = isStated ? matches.find((c) => c.hasTax) : nearestTo(total, matches)', 'const read = nearestTo(total, matches)'],
+  ['M2 readTotal: first taxed always (R5 revert)', 'const read = isStated ? matches.find((c) => c.hasTax) : nearestTo(total, matches)', 'const read = matches.find((c) => c.hasTax)'],
+  ['M3 readTotal: stated -> first match', 'const read = isStated ? matches.find((c) => c.hasTax) : nearestTo(total, matches)', 'const read = isStated ? matches[0] : nearestTo(total, matches)'],
+  ['M4 nearestTo tie -> untaxed', '(gap === 0 && c.hasTax && !best.hasTax)', '(gap === 0 && !c.hasTax && best.hasTax)'],
+  ['M5 nearestTo gap<0 -> gap<=0', 'return gap < 0 ||', 'return gap <= 0 ||'],
+  ['M6 nearestTo keeps first', 'return gap < 0 || (gap === 0 && c.hasTax && !best.hasTax) ? c : best', 'return best'],
+  ['M7 option listsTax own lines only (R7 revert)', 'const listsTax = systemLines.some(isTaxLine)', 'const listsTax = ownLines.some(isTaxLine)'],
+  ['M8 option isStated drops listsTax', 'readTotal(o.total, candidates, written !== null || listsTax)', 'readTotal(o.total, candidates, written !== null)'],
+  ['M9 option isStated drops written', 'readTotal(o.total, candidates, written !== null || listsTax)', 'readTotal(o.total, candidates, listsTax)'],
+  ['M10 lone option tax dropped (R8 revert)', 'const tax = docTax ?? lone', 'const tax = docTax'],
+  ['M11 lone tax overrides doc tax', 'const tax = docTax ?? lone', 'const tax = lone ?? docTax'],
+  ['M12 lone ignored in quote candidates', 'quoteCandidates(x, lone), true)', 'quoteCandidates(x, null), true)'],
+  ['M13 lone any option count', 'x.options.length === 1 && hasTotal', 'x.options.length >= 1 && hasTotal'],
+  ['M14 quote isStated false (nearest)', 'quoteCandidates(x, lone), true)', 'quoteCandidates(x, lone), false)'],
+  ['M15 quote cand drop lines+t', '[untaxed + t, lines + t].map', '[untaxed + t].map'],
+  ['M16 quote cand drop untaxed+t', '[untaxed + t, lines + t].map', '[lines + t].map'],
+  ['M17 quote cand drop taxLines candidate', '...(taxLines.length > 0 ? [{ total: lines, hasTax: true, rate: false }] : []),', ''],
+  ['M18 documentTax: any tax line regardless of written', 'const taxLine = taxLineOf(x.lines, written)', 'const taxLine = taxLineOf(x.lines, null)'],
+  ['M19 taxLineOf LINE->TOTAL tolerance', 'near(l.lineTotal, written, LINE_TOLERANCE)', 'near(l.lineTotal, written, TOTAL_TOLERANCE)'],
+  ['M20 option taxLine with written searches system lines', 'taxLineOf(ownLines, written)', 'taxLineOf(systemLines, written)'],
+  ['M21 rate candidate untaxed', '{ total: b * (1 + rate), hasTax: true, rate: true }', '{ total: b * (1 + rate), hasTax: false, rate: true }'],
+  ['M22 rate candidates dropped', '...(rate !== null ? [{ total: b * (1 + rate), hasTax: true, rate: true }] : []),', ''],
+  ['M23 option bare candidate always untaxed', '{ total: b, hasTax: listsTax, rate: false }', '{ total: b, hasTax: false, rate: false }'],
+  ['M24 option bases own only', '[own, withShared].flatMap', '[own].flatMap'],
+  ['M25 includesTax yes only', "p.tax !== null && p.taxIncluded !== 'no'", "p.tax !== null && p.taxIncluded === 'yes'"],
+  ['M26 taxIncludedOf no-match -> no', "read.matches.length > 0 && tax !== null ? 'no' : 'unknown'", "tax !== null ? 'no' : 'unknown'"],
+  ['M27 option unpriced still read', 'const read = isPriced ? readTotal', 'const read = true ? readTotal'],
+  ['M28 option no-written-total taxIncluded yes->no', "taxIncluded: isPriced && tax !== null ? 'yes' : 'unknown'", "taxIncluded: isPriced && tax !== null ? 'no' : 'unknown'"],
+  ['M29 option rate tax not derived', "(read.taxed?.rate ? o.total - o.total / (1 + rate!) : null)", 'null'],
+  ['M30 quote typed total ignored in taxIncluded', 'const total = isTyped ? typedTotal : read', 'const total = read'],
+  ['M31 option taxLine none-written ignores shared', 'written === null ? taxLineOf(systemLines, null)', 'written === null ? taxLineOf(ownLines, null)'],
+  ['M32 near tolerance for matches LINE', 'const matches = candidates.filter((c) => near(total, c.total, TOTAL_TOLERANCE))', 'const matches = candidates.filter((c) => near(total, c.total, LINE_TOLERANCE))'],
+  ['M33 computed option price at doc rate reads taxed', "taxIncluded: isPriced && tax !== null ? 'yes' : 'unknown',", "taxIncluded: isPriced && tax !== null ? 'yes' : 'unknown', ...(tax === null && rate !== null && [own, withShared].some((b) => Math.abs(base - b * (1 + rate)) <= Math.abs(base - b) && near(base, b * (1 + rate), TOTAL_TOLERANCE)) ? { tax: 0.01, taxIncluded: 'yes' as const } : {}),"],
+]
+const only = process.argv[2]
+const run = (files) => { try { return { ok: true, out: execSync(`npx vitest run ${files} 2>&1`, { encoding: 'utf8' }) } } catch (e) { return { ok: false, out: e.stdout } } }
+const rows = []
+try {
+  for (const [name, find, repl] of M) {
+    if (only && !name.startsWith(only + ' ')) continue
+    const n = orig.split(find).length - 1
+    if (n !== 1) { rows.push(`${name}: SKIP (pattern found ${n}x)`); continue }
+    fs.writeFileSync(F, orig.replace(find, repl))
+    const d = run('src/lib/quote-tax-differential.test.ts')
+    const cnt = /(\d+) divergences/.exec(d.out)?.[1]
+    const tc = /AssertionError: ([^\n]*)/.exec(d.out)?.[1]
+    const rest = run('src/lib/quote-tax-cases.test.ts src/lib/quote-prices.test.ts src/lib/quote-checks.test.ts src/lib/quote-compare.test.ts src/lib/quote-caveats.test.ts')
+    const failed = /Tests\s+(\d+) failed/.exec(rest.out)?.[1] ?? (rest.ok ? '0' : '?')
+    const tsc = /error TS/.test(d.out) ? ' (TS?)' : ''
+    rows.push(`${name}: differential ${d.ok ? 'SURVIVED' : 'KILLED' + (cnt ? ` (${cnt} div)` : ` (${tc})`)} · other tax tests failed ${failed}${tsc}`)
+    console.error(rows.at(-1))
+  }
+} finally { fs.writeFileSync(F, orig) }
+console.log(rows.join('\n'))

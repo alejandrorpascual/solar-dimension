@@ -11,7 +11,8 @@ import * as staging from './quote-tax-oracle.test-helper'
  * Issue #124 replaced staging's tax rules with one price record. This test runs staging's rules (the frozen oracle in
  * quote-tax-oracle.test-helper.ts) beside the record on seeded, generated readings: QA's staging-shaped and
  * rate-shaped readings (docs/super-board/runs/issue-124-qa-v2, -v3, -v4), plus options writing their own tax, tax lines
- * shared by every option, single-option quotes, typed totals and totals read as 0. Prices, checks and rank totals must
+ * shared by every option, single-option quotes, typed totals and totals read as 0, and QA v5's edges: a total only the
+ * tie rule decides, a tax line near the 1% line tolerance, and options with no lines of their own. Prices, checks and rank totals must
  * match staging on every reading. The tax caveat must match too, except where the reading falls in one of the classes
  * the issue and its review decided to change (`leavesTaxOut`, `taxedAtDocumentRate`). Any other divergence fails with
  * the reading printed.
@@ -123,7 +124,46 @@ function singleTaxShaped(): QuoteExtraction {
   return extraction(lines, { subtotal: pick([null, base]), tax: pick([tax, tax, null]), total: pick([base, base + tax, sumOf(lines), 0]) })
 }
 
-const anyReading = (): QuoteExtraction => pick([stagingShaped, rateShaped, ownTaxShaped, singleTaxShaped])()
+/**
+ * An option whose total is exactly both its own lines at the document's rate and its own lines plus a shared non-tax
+ * line of the same size (1,000 × 1.16 = 1,000 + 160), so only the tie rule decides it (QA v5).
+ */
+function tieShaped(): QuoteExtraction {
+  const own = pick([1000, 2000, 6340])
+  const rate = pick([0.02, 0.1, 0.16, 0.18])
+  const extra = cents(own * rate)
+  const lines = [line('inverter', own, { option: 'a' }), line('labor', extra, { option: null }), line('inverter', pick([own, own + 500]), { option: 'b' })]
+  const total = pick([own + extra, cents(own * (1 + rate))])
+  const options: QuoteOption[] = [{ id: 'a', label: 'a', total, tax: null }, { id: 'b', label: 'b', total: pick([null, own + 500]), tax: null }]
+  return extraction(lines, { options, subtotal: own, tax: extra, total: 0 })
+}
+
+/**
+ * A tax line just inside or just outside the 1% that makes it the same tax as the one written, or a different tax beside a
+ * low written one, where the bare lines and the lines with the written tax both fall within the total tolerance (QA v5).
+ */
+function nearTaxLineShaped(): QuoteExtraction {
+  const lines = kitLines(pick([1000, 1100, 1500]), null)
+  const base = sumOf(lines)
+  const tax = cents(base * pick([0.01, 0.015, 0.07, 0.16, 0.18]))
+  const listed = cents(tax * pick([0.97, 0.985, 0.995, 1, 1.005, 1.015, 1.03, 5]))
+  lines.push(textLine(listed, pick(['IVA', 'ITBIS 18%']), null))
+  return extraction(lines, { subtotal: pick([null, base]), tax, total: pick([base, base + tax, base + listed, base + tax + listed, 0]) })
+}
+
+/** An option with no lines of its own, so no price to check, that writes a total and maybe a tax (QA v5). */
+function unpricedOptionShaped(): QuoteExtraction {
+  const shared = pick([300, 1000])
+  const lines = [...kitLines(pick([1000, 1500]), 'a'), line('labor', shared, { option: null })]
+  const options: QuoteOption[] = [
+    { id: 'a', label: 'a', total: null, tax: pick([null, 160]) },
+    { id: 'b', label: 'b', total: pick([300, 1000, shared + 160, cents(shared * 1.16)]), tax: pick([null, 160]) },
+  ]
+  return extraction(lines, { options, subtotal: pick([null, 1000]), tax: pick([null, 160]), total: 0 })
+}
+
+const anyReading = (): QuoteExtraction =>
+  pick([stagingShaped, rateShaped, ownTaxShaped, singleTaxShaped, stagingShaped, rateShaped, ownTaxShaped, singleTaxShaped, tieShaped, nearTaxLineShaped, unpricedOptionShaped])()
 
 let created = 0
 /**
@@ -138,7 +178,8 @@ function view(x: QuoteExtraction): QuoteView {
   }
   if (rnd() < 0.6) return base
   const lines = sumOf(x.lines)
-  const typed = pick([lines, lines + (x.tax ?? 0), cents(lines * 1.16), cents(lines * 1.01), 6340, 7481.2])
+  const untaxed = sumOf(x.lines.filter((l) => !staging.isTaxLine(l)))
+  const typed = pick([lines, lines + (x.tax ?? 0), untaxed + (x.tax ?? 0), cents(lines * 1.16), cents(lines * 1.01), 6340, 7481.2])
   return { ...base, totalOverride: typed, retries: pick([0, 1]) }
 }
 /** A quote at 7,481.20 that holds its tax, so an entry ranked beside it that holds none gets the caveat. */
@@ -182,13 +223,14 @@ function leavesTaxOut(r: Reading): boolean {
 
 /**
  * Review R2 on #234 (PR #7, b2c3922): an option that writes no tax, lists no tax line and whose own lines carry a price, whose total is nearest its
- * lines at the document's rate (a tie counts as taxed), holds tax. Staging said it states none.
+ * lines at the document's rate (a tie counts as taxed), holds tax. Staging said it states none. Only a total written for the option: one priced
+ * from its lines is those lines, whatever rate they happen to match.
  */
 function taxedAtDocumentRate(r: Reading): boolean {
   const { x, optionId, total } = r
   const option = x.options.find((o) => o.id === optionId)
   const rate = documentRate(x)
-  if (optionId === null || rate === null || hasTotal(option?.tax) || linesOf(r).some(staging.isTaxLine) || !isPriced(x, optionId)) return false
+  if (optionId === null || rate === null || !hasTotal(option?.total) || hasTotal(option?.tax) || linesOf(r).some(staging.isTaxLine) || !isPriced(x, optionId)) return false
   const gaps = (ts: number[]) => ts.filter((t) => near(total, t)).map((t) => Math.abs(total - t))
   const bases = basesOf(r)
   const atRate = gaps(bases.map((b) => b * (1 + rate)))
