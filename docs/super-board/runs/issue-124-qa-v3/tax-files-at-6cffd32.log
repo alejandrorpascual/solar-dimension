@@ -1,0 +1,9 @@
+
+ RUN  v5.0.1 /Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3
+
+
+ Test Files  5 passed (5)
+      Tests  148 passed (148)
+   Start at  22:40:42
+   Duration  386ms (transform 62%, import 30%, tests 6%, worker 2%)
+

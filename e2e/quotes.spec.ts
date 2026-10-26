@@ -6,7 +6,7 @@ import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
 import { quotesEs } from '../src/i18n/quotes-es'
 import {
-  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFileHashes, quoteFiles, quoteRetryStates, quoteUploadsThisMonth, seedFailedQuote,
+  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTaxedTotal, misreadQuoteTotal, quoteFileHashes, quoteFiles, quoteRetryStates, quoteUploadsThisMonth, seedFailedQuote,
   seedQuoteRows, setQuoteCurrency, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
@@ -1084,6 +1084,32 @@ test('a typed total can be changed from its ranked card, which re-ranks the quot
   await expect(verdictHeading(page)).toHaveText(/^Voltia Instalaciones is the cheapest that fits: confirm/)
   await expect(card('SolarTec Caribe')).toContainText('$700 more than the best')
   await expect(card('SolarTec Caribe')).toContainText(quotesEn.totalTyped)
+})
+
+// QA #124: a typed total replaces the one read, so whether that total holds the quote's tax has to follow it.
+test('a total typed with its tax counts as taxed, so a cheaper quote that states no tax is marked beside it', async ({ page }) => {
+  const email = await signUp(page)
+  await uploadQuotes(page, await Promise.all(['solartec', 'voltia'].map(quotePdf)))
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+  await page.goto(`/projects/${projectId}/quotes`)
+  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least', { timeout: 30_000 })
+
+  // SolarTec's lines make 6,480 and it writes 18% tax, but its total was read as 6,480. The user types 7,646.40.
+  await misreadQuoteTaxedTotal(email, projectId, 'solartec.pdf', { subtotal: 6480, tax: 1166.4 })
+  await page.reload()
+  const solartec = page.getByRole('article').filter({ hasText: 'SolarTec Caribe' })
+  await expect(solartec).toContainText('We read $6,480, but its lines and tax add up to $7,646.')
+  await solartec.getByRole('textbox', { name: quotesEn.totalInQuote }).fill('7,646.40')
+  await solartec.getByRole('button', { name: quotesEn.save, exact: true }).click()
+
+  // Voltia, 7,300 and no tax stated, is now the cheaper one: it is only the cheapest fit once its tax is confirmed.
+  await expect(verdictHeading(page)).toHaveText('Voltia Instalaciones is the cheapest that fits: confirm 1 thing first')
+  const voltia = page.getByRole('region', { name: 'Voltia Instalaciones' })
+  await expect(voltia.getByText(quotesEn.bestFitToConfirm, { exact: true })).toBeVisible()
+  await expect(voltia.getByRole('note')).toContainText(quotesEn.caveatTax)
+  await expect(solartec).toContainText(quotesEn.totalTyped)
+  await expect(solartec).not.toContainText(quotesEn.caveatTax)
 })
 
 test('a ranked quote whose reading needs a check can be read again from its card', async ({ page }) => {

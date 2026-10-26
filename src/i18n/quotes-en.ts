@@ -213,7 +213,7 @@ export const quotesEn = {
   caveatChemistryDiffers: '{chemistry} batteries, while your kit is planned for {kitChemistry}',
   caveatBankVoltage: "Its {volts} V batteries don't make up your kit's {kitVolts} V",
   caveatInverterVoltage: 'Its inverter is for {volts} V; your kit is {kitVolts} V',
-  caveatTax: 'States no tax while another quote does: this total may leave it out',
+  caveatTax: 'Tax not stated or left out of this total, while another quote includes it',
   caveatTyped: 'Ranked on the total you entered: its reading needs checking',
   caveatShortSurge: 'surge rating',
   caveatShortHeadroom: 'inverter headroom',

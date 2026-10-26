@@ -1,0 +1,19 @@
+
+> test
+> vitest run
+
+
+ RUN  v5.0.1 .
+
+ ❯ src/lib/kit-conductors.test.ts (14 tests | 1 failed) 9893ms
+   ❯ printed conductors (10)
+     × every inverter of a kit gets the same whole number of runs, with a fuse on each run and a cable pair for it 5702ms
+
+ Test Files  1 failed | 136 passed (137)
+      Tests  1 failed | 2165 passed (2166)
+   Start at  01:23:54
+   Duration  27.89s (tests 51%, import 37%, transform 11%, worker 1%)
+
+    Isolate  137 workers spawned · ~224ms startup each (spawn + environment, per file)
+             at least ~3.19s faster with isolate: false — reuses workers across files instead of one per file
+

@@ -1,0 +1,38 @@
+Running 16 tests using 1 worker
+[1/16] [desktop] › e2e/admin.spec.ts:37:3 › non-admins get a 404 at /admin/appliances
+[2/16] [desktop] › e2e/admin.spec.ts:37:3 › non-admins get a 404 at /admin/quotes
+[3/16] [desktop] › e2e/admin.spec.ts:46:1 › a quote the model could not read shows on /admin/quotes with its file name, account, project, error and time
+[4/16] [desktop] › e2e/admin.spec.ts:73:1 › an admin adds an appliance, sees it in the picker, and retires it
+[5/16] [desktop] › e2e/admin.spec.ts:117:1 › sources sent with a token write read back, show in the admin row, and survive later writes that send none
+[6/16] [desktop] › e2e/admin.spec.ts:167:1 › a momentary row shows each figure's sources in that figure's own cell
+[7/16] [desktop] › e2e/admin.spec.ts:206:1 › "New appliance" refuses an id that already belongs to another appliance
+[8/16] [desktop] › e2e/admin.spec.ts:236:1 › a token change shows in the admin log, and Revert puts a saved project's kit back to the earlier numbers
+[9/16] [desktop] › e2e/catalog-api.spec.ts:10:1 › the catalog API needs the token
+[10/16] [desktop] › e2e/catalog-api.spec.ts:15:1 › says which database it is on, as a test one, and only to a request with the token
+[11/16] [desktop] › e2e/catalog-api.spec.ts:30:1 › writes only when the POST names this database, and writes to the database it names
+[12/16] [desktop] › e2e/catalog-api.spec.ts:55:1 › a mistyped flag answers 400 naming it, and nothing is written
+[13/16] [desktop] › e2e/catalog-api.spec.ts:70:1 › the dry run and the write both carry plausibility warnings, and a warning never stops the write
+[14/16] [desktop] › e2e/catalog-api.spec.ts:101:1 › dry run, create, show in the picker in both languages, then retire
+[15/16] [desktop] › e2e/catalog-api.spec.ts:136:1 › every write to an appliance is logged with the row before and after; an unchanged write logs nothing
+[16/16] [desktop] › e2e/qa-106-evidence.spec.ts:40:1 › qa-106 evidence: Revert in the admin change log
+  1) [desktop] › e2e/qa-106-evidence.spec.ts:40:1 › qa-106 evidence: Revert in the admin change log 
+    Error: refusing to delete "qa-106-1792905913011": not an e2e appliance id
+       at db.ts:25
+      23 |  */
+      24 | export async function deleteTestAppliance(id: string): Promise<void> {
+    > 25 |   if (!id.startsWith(TEST_APPLIANCE_PREFIX)) throw new Error(`refusing to delete "${id}": not an e2e appliance id`)
+         |                                                    ^
+      26 |   await testDb()`delete from appliances where id = ${id}`
+      27 |   await testDb()`delete from appliance_changes where appliance_id = ${id}`
+      28 | }
+        at deleteTestAppliance (/Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/e2e/db.ts:25:52)
+        at /Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-106-qa/e2e/qa-106-evidence.spec.ts:79:11
+    Error Context: test-results/qa-106-evidence-qa-106-evi-6dfd0-ert-in-the-admin-change-log-desktop/error-context.md
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/qa-106-evidence-qa-106-evi-6dfd0-ert-in-the-admin-change-log-desktop/trace.zip
+    Usage:
+        npx playwright show-trace test-results/qa-106-evidence-qa-106-evi-6dfd0-ert-in-the-admin-change-log-desktop/trace.zip
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+  1 failed
+    [desktop] › e2e/qa-106-evidence.spec.ts:40:1 › qa-106 evidence: Revert in the admin change log ─
+  15 passed (1.3m)

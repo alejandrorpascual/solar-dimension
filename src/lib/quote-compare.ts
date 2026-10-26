@@ -1,5 +1,5 @@
 import { caveatsOf, type Caveat } from './quote-caveats'
-import { checkExtraction, hasTotal, isFixedByTotal, optionPrices, statesTax } from './quote-checks'
+import { checkExtraction, hasTotal, includesTax, isFixedByTotal, priceOf, pricesOf } from './quote-checks'
 import { checkItems, includedArrayW, itemsFor, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
 import { hasOptions, optionExtraction } from './quote-options'
 import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
@@ -83,8 +83,8 @@ export const entryName = (e: { name: string; optionLabel: string | null }): stri
 /** One thing to rank: a whole quote, or one of the systems a quote offers, with the lines and price of that system. */
 interface Entry extends EntryOption { quote: QuoteView; extraction: QuoteExtraction | null; total: number | null }
 
-/** The total a quote ranks by: the user's, else the one read. */
-const totalOf = (q: QuoteView): number | null => q.totalOverride ?? q.extraction?.total ?? null
+/** The total a single-system quote ranks by: the user's, else the one read (pricesOf). */
+const totalOf = (q: QuoteView): number | null => q.totalOverride ?? (q.extraction === null ? null : pricesOf(q.extraction).quote.total)
 
 /**
  * Whether the user's total can rank a reading that needs review: when its total was all that failed, or once it has been
@@ -112,9 +112,9 @@ function entriesOf(q: QuoteView): Entry[] {
   if (x === null || optionCount === 0 || q.status !== 'ready') {
     return [{ quote: q, extraction: x, total: optionCount === 0 ? totalOf(q) : null, optionId: null, optionLabel: null, optionCount }]
   }
-  const prices = optionPrices(x)
+  const prices = pricesOf(x).options
   return x.options.map((o, i) => ({
-    quote: q, extraction: optionExtraction(x, o.id), total: prices[i]!.total, optionId: o.id, optionLabel: o.label, optionCount,
+    quote: q, extraction: optionExtraction(x, o.id), total: prices[i]!.price.total, optionId: o.id, optionLabel: o.label, optionCount,
   }))
 }
 
@@ -229,9 +229,9 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
     .filter((e) => !inCurrency.includes(e))
     .map((e) => ({ quote: e.quote, name: quoteName(e.quote), ...optionOf(e), reason: unrankedReason(e, rankable), currency: e.extraction?.currency ?? null }))
 
-  // Whether another entry ranked beside one states tax, another quote or another option of its own: then one that
-  // states none may be priced without it.
-  const taxed = inCurrency.filter((e) => statesTax(e.quote.extraction!, e.optionId)).map(entryKey)
+  // Whether another entry ranked beside one includes tax in its total, another quote or another option of its own: then
+  // one whose total holds none may be priced without it.
+  const taxed = inCurrency.filter((e) => includesTax(priceOf(e.quote.extraction!, e.optionId, e.quote.totalOverride))).map(entryKey)
   const taxElsewhere = (e: Entry): boolean => taxed.some((key) => key !== entryKey(e))
   const scored = currency === null ? [] : inCurrency.map((e) => score(e, kit, musts, currency, taxElsewhere(e)))
   const fits = scored.filter((s) => s.fit === 'fits').sort(byFitsOrder)

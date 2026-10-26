@@ -3,7 +3,7 @@ import { checkExtraction, hasTotal, isFixedByTotal, linesWithTax, type CheckFail
 import { fmtDecimal, fmtKwh, fmtList, fmtMoney, fmtNumber, fmtW } from '../i18n/format'
 import { failingChecks, warningText } from './kit-checks'
 import { entryKey, entryName, nothingRead, quoteSubtitle, type EntryOption, type QuoteView, type RankedQuote, type UnrankedQuote, type Verdict } from './quote-compare'
-import { HIGHEST_DOD_CHEMISTRY, LOWEST_DOD_CHEMISTRY, STRIP_ITEMS, type ItemCheck, type ItemFacts, type ItemId, type ItemStatus, type KitNeeds, type Term } from './quote-items'
+import { HIGHEST_DOD_CHEMISTRY, kitHoldReason, LOWEST_DOD_CHEMISTRY, STRIP_ITEMS, type ItemCheck, type ItemFacts, type ItemId, type ItemStatus, type KitHold, type KitNeeds, type Term } from './quote-items'
 import type { ProjectJobs } from './quote-jobs'
 import { MAX_MB, QUOTE_LIMITS, type Rejection } from './quote-limits'
 import type { QuoteExtraction, QuoteStatus } from './quote-schema'
@@ -75,9 +75,15 @@ export function currencyTieText(t: Dictionary, v: Verdict): string | null {
  * not the real one, or it has no appliances at all. Null when quotes can be judged against it.
  */
 export function kitHold(t: Dictionary, r: SizingResult): { title: string; note: string } | null {
+  const hold = kitHoldReason(r)
+  if (!hold) return null
   const missing = r.warnings.find((w) => w.code === 'missingAppliances')
-  if (missing) return { title: t.quotes.kitMissingTitle, note: warningText(t, missing, r) }
-  return r.empty ? { title: t.quotes.kitEmptyTitle, note: t.quotes.kitEmptyNote } : null
+  return { title: holdTitle(t, hold), note: missing ? warningText(t, missing, r) : t.quotes.kitEmptyNote }
+}
+
+/** The heading for a held kit, on the verdict page and the cards. */
+function holdTitle(t: Dictionary, hold: KitHold): string {
+  return hold === 'missing' ? t.quotes.kitMissingTitle : t.quotes.kitEmptyTitle
 }
 
 /** One line when the kit the quotes are judged against fails its own checks; null when it passes them all. */
@@ -423,7 +429,7 @@ export function rejectionText(t: Dictionary, r: Rejection): string {
 /** One line for a project's quotes, on the kit card and the project card. */
 export function projectLine(t: Dictionary, j: ProjectJobs): string {
   if (j.pending > 0) return trq(t, 'lineReading', { done: j.done, total: j.total })
-  if (j.kitEmpty) return t.quotes.kitEmptyTitle
+  if (j.kitHold) return holdTitle(t, j.kitHold)
   if (j.best) return trq(t, 'lineReady', { best: `${entryName(j.best)} · ${money(t, j.best.total, j.best.currency)}` })
   const toCheck = j.failed + j.needsReview
   return toCheck > 0 ? trq(t, 'lineCheck', { count: toCheck }) : t.quotes.lineNoFit

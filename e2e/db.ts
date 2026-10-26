@@ -131,6 +131,16 @@ export async function savedProject(email: string, name: string): Promise<{ hours
   return row ? { hours: row.hours as number, volts: row.volts as number, chemistry: row.chemistry as string, solar: row.solar } : null
 }
 
+/**
+ * Sets the appliances a saved project counts, as a save would. A count whose appliance is in neither the catalog nor
+ * the project's custom list is what a custom appliance that no longer loads leaves behind: the kit leaves it out.
+ */
+export async function setProjectQty(email: string, projectId: string, qty: Record<string, number>): Promise<void> {
+  await testDb()`
+    update projects p set qty = ${JSON.stringify(qty)}::jsonb, custom = '[]'::jsonb
+    from "user" u where u.id = p.user_id and u.email = ${email} and p.id = ${projectId}`
+}
+
 /** Adds a copy of the user's first project under a new id, so a test has a project only this account can open. */
 export async function cloneProject(email: string, newId: string): Promise<void> {
   await testDb()`
@@ -177,6 +187,19 @@ export async function misreadQuoteTotal(email: string, projectId: string, total:
   await testDb()`
     update quotes q set status = 'needs_review', extraction = jsonb_set(q.extraction, '{total}', to_jsonb(${total}::numeric))
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
+/**
+ * Turns one quote of a project, picked by its file name, into a reading that states a subtotal and a tax but whose total
+ * was read as the subtotal, so it needs review until the user types the total with the tax.
+ */
+export async function misreadQuoteTaxedTotal(
+  email: string, projectId: string, fileName: string, { subtotal, tax }: { subtotal: number; tax: number },
+): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review',
+      extraction = q.extraction || jsonb_build_object('subtotal', ${subtotal}::numeric, 'tax', ${tax}::numeric, 'total', ${subtotal}::numeric)
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${fileName}`
 }
 
 /** Same, because its first line's unit price was read as `unitPrice`, which that line's amount doesn't match. */

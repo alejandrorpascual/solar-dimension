@@ -367,6 +367,28 @@ describe('solar panels', () => {
   })
 })
 
+describe('the Main cables check reads the reader\'s tag on each cable (#184)', () => {
+  const cable = (text: string, awg: string, role: QuoteLine['role']): QuoteLine => ({
+    ...line('wiring', 1, { description: text, source: { page: 1, text }, specs: { awg } }), role,
+  })
+  const reading = (lines: QuoteLine[]) => {
+    const c = checkItems(extraction(lines), KIT).find((i) => i.id === 'cables')!
+    return `${markLabel(en, c)} · ${itemText(en, c, KIT, 'USD').label}`
+  }
+  const thinBattery = cable('Cable 6 AWG baterías', '6', null)
+  test('an AC feed tagged ac beside a thin battery cable reads Too small on the battery cable', () => {
+    expect(reading([cable('Acometida eléctrica 4/0 AWG', '4/0', 'ac'), thinBattery])).toBe('Too small · 6 AWG')
+  })
+  test('a cable tagged battery reads Meets it, whatever its words', () => {
+    expect(reading([cable('Cable 4/0 AWG para el inversor solar desde las baterías', '4/0', 'battery')])).toBe('Meets it · 4/0 AWG')
+    // Untagged, the keyword rules set "solar" wiring aside and the quote would name no battery cable.
+    expect(reading([cable('Cable solar 4/0 AWG', '4/0', 'battery')])).toBe('Meets it · 4/0 AWG')
+  })
+  test('the same AC feed with no tag reads as before the tags: Meets it on 4/0 AWG', () => {
+    expect(reading([cable('Acometida eléctrica 4/0 AWG', '4/0', null), thinBattery])).toBe('Meets it · 4/0 AWG')
+  })
+})
+
 describe('items a quote mentions without enough to judge them', () => {
   const judged = (lines: Parameters<typeof extraction>[0], id: string, kit: KitNeeds = KIT) => checkItems(extraction(lines), kit).find((c) => c.id === id)!
   const wiring = (awg: string | null, qty = 1) => line('wiring', 1, { qty, specs: { awg } })
@@ -483,12 +505,15 @@ describe('items a quote mentions without enough to judge them', () => {
 
 describe('status and progress text', () => {
   const jobs = (over: Partial<ProjectJobs>): ProjectJobs => ({
-    projectId: 'p', projectName: 'Home', files: [], total: 4, done: 4, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null, ...over,
+    projectId: 'p', projectName: 'Home', files: [], total: 4, done: 4, pending: 0, failed: 0, needsReview: 0, kitHold: null, unseen: false, best: null, ...over,
   })
   test('project line', () => {
     expect(projectLine(en, jobs({ done: 2, pending: 2 }))).toBe('Reading quotes 2/4')
-    expect(projectLine(en, jobs({ kitEmpty: true }))).toBe('Add appliances to compare your quotes')
-    expect(projectLine(es, jobs({ kitEmpty: true }))).toBe('Agrega aparatos para comparar tus cotizaciones')
+    expect(projectLine(en, jobs({ kitHold: 'empty' }))).toBe('Add appliances to compare your quotes')
+    expect(projectLine(es, jobs({ kitHold: 'empty' }))).toBe('Agrega aparatos para comparar tus cotizaciones')
+    expect(projectLine(en, jobs({ kitHold: 'missing' }))).toBe('Your kit is missing appliances')
+    expect(projectLine(es, jobs({ kitHold: 'missing' }))).toBe('A tu kit le faltan aparatos')
+    expect(projectLine(en, jobs({ kitHold: 'missing', done: 2, pending: 2 }))).toBe('Reading quotes 2/4')
     expect(projectLine(en, jobs({ best: { name: 'SolarTec Caribe', optionLabel: null, total: 6480, currency: 'USD' } }))).toBe('Verdict ready · SolarTec Caribe · $6,480')
     expect(projectLine(en, jobs({ failed: 1 }))).toBe('Check 1 of your quotes')
     expect(projectLine(en, jobs({}))).toBe('Verdict ready · none fits yet')
@@ -556,7 +581,7 @@ describe('status and progress text', () => {
 const at = (ratio: number): Sizing => ({ have: ratio * 1000, need: 1000, ratio, zone: sizingZone(ratio), pos: gaugePos(ratio) })
 
 describe('a quote that offers two systems', () => {
-  const jobs = (): ProjectJobs => ({ projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null })
+  const jobs = (): ProjectJobs => ({ projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitHold: null, unseen: false, best: null })
   const suna: QuoteView = { ...view('suna', 9), fileName: 'suna.pdf' }
   const both = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', 0), suna])
   const o2 = both.ranked.find((r) => r.optionId === 'o2')!

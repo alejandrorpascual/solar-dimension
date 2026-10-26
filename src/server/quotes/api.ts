@@ -7,7 +7,7 @@ import { db } from '../../db/client'
 import { projects, quotes, quoteSettings } from '../../db/schema'
 import { computeProject } from '../../lib/project-summary'
 import { fileFingerprint, MustInput, OverrideInput, ProjectId, QuoteId, refusedInsertRejection, retryRefusal, TotalInput, uploadRejection } from '../../lib/quote-guards'
-import { kitNeeds, resolveMusts, type Musts } from '../../lib/quote-items'
+import { quoteKit, resolveMusts, type Musts } from '../../lib/quote-items'
 import { summarizeProject, type JobQuote, type ProjectJobs } from '../../lib/quote-jobs'
 import { checkBasics, cleanFileName, type Rejection } from '../../lib/quote-limits'
 import { FINISHED, withOptionDefaults } from '../../lib/quote-schema'
@@ -137,7 +137,7 @@ export const getQuoteJobs = createServerFn({ method: 'GET' })
       const result = computeProject(toProject(p), catalog)
       const musts = resolveMusts(settingRows.find((s) => s.projectId === p.id)?.musts)
       const own = rows.filter((q) => q.projectId === p.id).map(toJobQuote)
-      return summarizeProject(p.id, p.name, own, result.empty ? null : kitNeeds(result), musts)
+      return summarizeProject(p.id, p.name, own, quoteKit(result), musts)
     })
   })
 

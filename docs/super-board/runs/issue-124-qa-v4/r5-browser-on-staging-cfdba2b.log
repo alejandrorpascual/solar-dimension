@@ -1,0 +1,5 @@
+staging-cfdba2b-p1-beside-taxed desktop en: heading="Voltia Instalaciones · Plan A is the cheapest that fits: confirm 1 thing first" taxCaveatOnBest=["Voltia Instalaciones"] othersWithShortTax=1
+staging-cfdba2b-p2-beside-cheaper-untaxed desktop en: heading="SolarTec Caribe fits your kit for the least" taxCaveatOnBest=[] othersWithShortTax=0
+staging-cfdba2b-p2-beside-cheaper-untaxed desktop es: heading="SolarTec Caribe cumple con tu kit por menos" taxCaveatOnBest=[] othersWithShortTax=0
+staging-cfdba2b-p1-beside-taxed desktop es: heading="Voltia Instalaciones · Plan A es la más barata que cumple: confirma 1 cosa antes" taxCaveatOnBest=["Voltia Instalaciones"] othersWithShortTax=1
+  2 passed (15.1s)

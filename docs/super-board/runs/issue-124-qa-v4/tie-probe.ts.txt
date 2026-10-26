@@ -1,0 +1,34 @@
+// QA #124 v4 probe: can an exact taxed/untaxed tie happen on a real shape, and does the tie rule decide anything?
+import { expect, test } from 'vitest'
+import { compareQuotes, type QuoteView } from './quote-compare'
+import { extraction, line, SAMPLE_KIT } from './quote-fixtures'
+import { DEFAULT_MUSTS } from './quote-items'
+import type { QuoteExtraction, QuoteLine, QuoteOption } from './quote-schema'
+
+let created = 0
+const opt = (id: string, total: number | null, tax: number | null = null): QuoteOption => ({ id, label: id.toUpperCase(), total, tax })
+const view = (id: string, x: QuoteExtraction): QuoteView => ({
+  id, fileName: `${id}.pdf`, label: id, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: created++, retries: 0, pages: null,
+})
+const kitLines = (labor: number, option: string | null = null): QuoteLine[] => [
+  line('inverter', 2000, { option, specs: { watts: 5000, surgeWatts: 10000, hasCharger: true } }),
+  line('battery', 3000, { option, qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }),
+  line('wiring', 150, { option, specs: { awg: '2/0' } }), line('fuse', 90, { option, specs: { fuseAmps: 175, fuseClass: 'T' } }),
+  line('labor', labor, { option }),
+]
+const withTax = (): QuoteExtraction => extraction(kitLines(1100), { subtotal: 6340, tax: 1141.2, total: 7481.2 })
+const caveatsOf = (v: ReturnType<typeof compareQuotes>, id: string, o: string | null) =>
+  v.ranked.find((r) => r.quote.id === id && r.optionId === o)?.caveats?.map((c) => c.id) ?? 'unranked'
+
+test('written-tax tie: a shared line the size of the option tax (6,340 + 100 tax = 6,340 + 100 shared)', () => {
+  const x = extraction([...kitLines(1100, 'o1'), ...kitLines(1200, 'o2'), line('labor', 100)], { total: 0, options: [opt('o1', 6440, 100), opt('o2', 6540)] })
+  const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', withTax()), view('b', x)])
+  console.log('written-tie', JSON.stringify({ o1: caveatsOf(v, 'b', 'o1'), o2: caveatsOf(v, 'b', 'o2') }))
+  expect(caveatsOf(v, 'b', 'o1')).toEqual([])
+})
+
+test('rate tie: own lines at the rate equal own plus a shared line (6,340 x 1.10 = 6,340 + 634)', () => {
+  const x = extraction([...kitLines(1100, 'o1'), ...kitLines(1200, 'o2'), line('labor', 634)], { subtotal: 6340, tax: 634, total: 0, options: [opt('o1', 6974), opt('o2', 7074)] })
+  const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', withTax()), view('b', x)])
+  console.log('rate-tie', JSON.stringify({ exactTie: Math.abs(6974 - 6340 * (1 + 634 / 6340)) === Math.abs(6974 - 6974), o1: caveatsOf(v, 'b', 'o1') }))
+})
