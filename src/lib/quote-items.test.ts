@@ -575,6 +575,31 @@ describe('cables and fuse', () => {
       expect(untagged.role).toBeNull()
       expect(judge(KIT, [untagged, thinBattery], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
     })
+    describe('a plain cable whose end the quote never states', () => {
+      const plain = (role: LineRole | null) => ({ ...line('wiring', 1, { description: 'Cable 4/0 AWG', source: { page: 1, text: 'Cable 4/0 AWG' }, specs: { awg: '4/0' } }), role })
+      test('with no tag it could still be the battery cable, so its 4/0 AWG counts', () => {
+        expect(judge(KIT, [plain(null), thinBattery], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+        expect(judge(KIT, [plain(null)], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+      })
+      test('tagged other it is set aside, so the quote is judged on the battery cable or names none', () => {
+        expect(judge(KIT, [plain('other'), thinBattery], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+        expect(judge(KIT, [plain('other')], 'cables')).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
+      })
+    })
+    test('lines split from one quote line are judged each on its own tag', () => {
+      // Untagged, "Acometida" names no side, so the split 4/0 AWG feeder would pass as the battery cable.
+      const bundle = 'Cableado: acometida eléctrica 4/0 AWG y cable de baterías 6 AWG'
+      const split = (role: LineRole, description: string, awg: string): QuoteLine => ({
+        ...line('wiring', 0, { description, source: { page: 1, text: bundle }, specs: { awg } }), role,
+      })
+      const lines = [split('ac', 'Acometida eléctrica 4/0 AWG', '4/0'), split('battery', 'Cable de baterías 6 AWG', '6')]
+      expect(judge(KIT, lines, 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+      expect(judge(KIT, [...lines, fuse(250)], 'fuse')).toMatchObject({ status: 'short', facts: { amps: 250, gauge: '6 AWG' } })
+    })
+    test('a tag on a line that is not wiring makes it no cable', () => {
+      const notWiring = { ...line('other', 1, { description: 'Cable 4/0 AWG', source: { page: 1, text: 'Cable 4/0 AWG' }, specs: { awg: '4/0' } }), role: 'battery' as const }
+      expect(judge(KIT, [notWiring, thinBattery], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+    })
   })
 })
 
