@@ -196,7 +196,7 @@ test('a file uploaded again after a reading duplicate of it is refused, and the 
   await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toHaveCount(0)
 })
 
-test("a different file that reads like a refused copy's name is its own quote (#208)", async ({ page }) => {
+test('once a copy is refused, a different file read as the same installer ranks as its own quote (#208)', async ({ page }) => {
   await signUp(page)
   // One file, then the same file under a name the stub reads as Voltia's quote, then Voltia's own file.
   const [first, other] = await Promise.all(['solartec', 'voltia'].map(quotePdf))
