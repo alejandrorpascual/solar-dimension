@@ -185,7 +185,7 @@ export const quotesEn = {
   otherCurrency: 'In {currency}, so not compared',
   noPrice: 'No price for this option',
   duplicate: 'Uploaded twice',
-  duplicateHelp: 'It is the same quote as one you uploaded before, so it is left out. You can delete this copy.',
+  duplicateHelp: 'It is the same quote as another one you uploaded, so it is left out. You can delete this copy.',
   currencyTie: '{currencies} have the same number of quotes to compare. Only the ones in {currency} are compared, as the earliest of those quotes is in {currency}.',
   included: 'Included',
   notIncluded: 'Not included',

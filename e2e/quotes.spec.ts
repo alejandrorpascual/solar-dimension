@@ -142,7 +142,7 @@ test('the same file uploaded again is a duplicate even when its second reading d
   await expect(copy).toHaveCount(1)
   await expect(copy).toContainText('Voltia Instalaciones')
   // The copy read differently, so its help must not claim it reads the same (R1).
-  await expect(copy).toContainText('It is the same quote as one you uploaded before, so it is left out.')
+  await expect(copy).toContainText('It is the same quote as another one you uploaded, so it is left out.')
   await expect(copy).not.toContainText('reads the same')
   await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toHaveCount(1)
 
@@ -181,6 +181,30 @@ test("a different file that reads like a file copy's second reading is a duplica
   await expect(voltia).toHaveCount(2)
   await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(2)
   for (const card of await voltia.all()) await expect(card).toContainText(quotesEn.duplicate)
+})
+
+test('an untouched re-upload of a file stays a duplicate once the user confirms an item on the first upload (#208 R4)', async ({ page }) => {
+  await signUp(page)
+  // One file sent twice under two names: the stub reads the copy as Voltia's quote.
+  const file = await quotePdf('grupoluz')
+  await uploadQuotes(page, [file, { ...file, name: 'voltia.pdf' }])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+  const voltia = page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })
+  await expect(voltia).toContainText(quotesEn.duplicate)
+
+  const grupo = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
+  await grupo.getByRole('button', { name: 'Show checks for Grupo Luz', exact: true }).click()
+  const save = saved(page, 'item')
+  await grupo.getByRole('group', { name: 'Battery charger', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
+  await save
+
+  // The copy carries nothing the user entered, so hiding it hides nothing: it is still listed once, as a duplicate.
+  await page.reload()
+  await expect(verdictHeading(page)).not.toContainText('Voltia Instalaciones')
+  await expect(voltia).toHaveCount(1)
+  await expect(voltia).toContainText(quotesEn.duplicate)
+  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(1)
 })
 
 test('a tie between currencies says on screen which one was compared (AI-28)', async ({ page }) => {

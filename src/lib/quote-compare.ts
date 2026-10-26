@@ -131,13 +131,24 @@ const isRankable = (e: Entry): boolean =>
 
 const byUpload = (a: { quote: QuoteView }, b: { quote: QuoteView }) => a.quote.createdAt - b.quote.createdAt
 
+/** Whether the user typed a total or confirmed an item on a quote. */
+const isTouched = (q: QuoteView): boolean => q.totalOverride !== null || Object.keys(q.overrides).length > 0
+
+/** The files with at least one upload the user changed. */
+const touchedFiles = (entries: readonly Entry[]): Set<string> =>
+  new Set(entries.flatMap((e) => (e.quote.fileHash !== null && isTouched(e.quote) ? [e.quote.fileHash] : [])))
+
 /**
- * The entries left once a file uploaded twice counts once. An entry is an earlier upload's duplicate when its quote is
- * the same file (the same fileHash), whatever its reading says, or reads exactly like it (the same reading and the same
- * option of it); either way only when nothing the user typed or confirmed differs. A copy the user changed is its own
- * quote, so what they entered is never hidden. Kept in the order given.
+ * The entries left once a quote uploaded twice counts once. Uploads of the same file (the same fileHash) are matched
+ * whatever their readings say: when the user changed none of them, the earliest is kept; once they typed a total or
+ * confirmed an item on any, every untouched upload of that file is a duplicate, and of those they changed the earliest
+ * of each set of entries is kept, so two copies they changed differently both stay and what they entered is never
+ * hidden. Apart from that, an entry is a duplicate when it reads exactly like an earlier one (the same reading, the
+ * same entries and the same option). Matching is per quote, so a quote's options are kept or hidden together. Kept in
+ * the order given.
  */
 function withoutDuplicates(entries: readonly Entry[]): Entry[] {
+  const changedFiles = touchedFiles(entries)
   const seenReadings = new Set<string>()
   const firstFile = new Map<string, string>()
   const kept = new Set<Entry>()
@@ -148,7 +159,8 @@ function withoutDuplicates(entries: readonly Entry[]): Entry[] {
     const fileKey = fileHash === null ? null : `${fileHash}|${entered}`
     const fileOwner = fileKey === null ? undefined : firstFile.get(fileKey)
     const isReadingCopy = seenReadings.has(readingKey)
-    const isFileCopy = fileOwner !== undefined && fileOwner !== id
+    const isUntouchedCopy = fileHash !== null && changedFiles.has(fileHash) && !isTouched(e.quote)
+    const isFileCopy = isUntouchedCopy || (fileOwner !== undefined && fileOwner !== id)
     // Both recorded even for a duplicate, so a later upload of its file, or one that reads like it, is matched too.
     if (fileKey !== null && fileOwner === undefined) firstFile.set(fileKey, id)
     seenReadings.add(readingKey)
