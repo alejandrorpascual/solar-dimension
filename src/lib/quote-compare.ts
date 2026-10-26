@@ -204,7 +204,7 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
 
   // Whether another entry ranked beside one includes tax in its total, another quote or another option of its own: then
   // one whose total holds none may be priced without it.
-  const taxed = inCurrency.filter((e) => includesTax(priceOf(e.quote.extraction!, e.optionId))).map(entryKey)
+  const taxed = inCurrency.filter((e) => includesTax(priceOf(e.quote.extraction!, e.optionId, e.quote.totalOverride))).map(entryKey)
   const taxElsewhere = (e: Entry): boolean => taxed.some((key) => key !== entryKey(e))
   const scored = currency === null ? [] : inCurrency.map((e) => score(e, kit, musts, currency, taxElsewhere(e)))
   const fits = scored.filter((s) => s.fit === 'fits').sort(byFitsOrder)

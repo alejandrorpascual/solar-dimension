@@ -121,7 +121,7 @@ export function caveatsOf(e: CaveatInput, kit: KitNeeds, musts: Musts, taxElsewh
     ...batteryCaveats(e, kit),
     ...voltageCaveats(e.extraction.lines, kit),
     ...confirmedCaveats(e.items, musts),
-    ...(taxElsewhere && !includesTax(priceOf(whole, e.optionId)) ? [{ id: 'tax_unstated' as const }] : []),
+    ...(taxElsewhere && !includesTax(priceOf(whole, e.optionId, e.quote.totalOverride)) ? [{ id: 'tax_unstated' as const }] : []),
     ...(e.optionId === null && e.quote.totalOverride !== null ? [{ id: 'total_typed' as const }] : []),
   ]
 }

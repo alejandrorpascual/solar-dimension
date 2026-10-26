@@ -20,6 +20,15 @@ describe('pricesOf: one price record per system', () => {
     expect(priceOf(extraction([line('inverter', 1000)], { tax: 160, total: 1000 }), null)).toMatchObject({ taxIncluded: 'no', isMismatch: true })
     expect(priceOf(extraction([line('inverter', 1000)], { total: 0 }), null)).toMatchObject({ tax: null, total: null, taxIncluded: 'unknown' })
   })
+  test('a typed total replaces the read one and decides whether the tax is in; the check stays on the read total', () => {
+    const x = extraction([line('inverter', 1000)], { subtotal: 1000, tax: 160, total: 1000 })
+    expect(priceOf(x, null, 1160)).toMatchObject({ total: 1160, taxIncluded: 'yes', from: { total: 'typed' }, isMismatch: true })
+    expect(priceOf(x, null)).toMatchObject({ total: 1000, taxIncluded: 'no', from: { total: 'written' } })
+  })
+  test('a typed total leaves the options their own totals', () => {
+    const x = extraction(kits, { options: [opt('a', 1300, 160), opt('b', null)] })
+    expect(priceOf(x, 'a', 1460)).toEqual(priceOf(x, 'a'))
+  })
   test('an option priced from its lines and its own tax includes it', () => {
     expect(priceOf(extraction(kits, { options: [opt('a', null, 160), opt('b', null)] }), 'a')).toEqual({
       base: 1300, tax: 160, total: 1460, taxIncluded: 'yes', from: { tax: 'written', total: 'lines' }, isMismatch: false,

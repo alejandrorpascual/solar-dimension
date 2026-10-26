@@ -55,7 +55,7 @@ export interface Price {
   /** Null when the reading states no price for this system. */
   total: number | null
   taxIncluded: TaxIncluded
-  from: { tax: 'written' | 'line' | 'rate' | null; total: 'written' | 'lines' | null }
+  from: { tax: 'written' | 'line' | 'rate' | null; total: 'written' | 'typed' | 'lines' | null }
   /** A written total that disagrees with the lines and tax: the reading needs checking. */
   isMismatch: boolean
 }
@@ -83,20 +83,23 @@ const includedOf = (total: number | null, base: number, tax: number | null): Tax
 /**
  * A single-system quote. With a subtotal or tax stated, the lines plus tax must make the total. With neither, the total
  * may be above the lines (tax or freight the quote doesn't itemise), never below them: that is a misread total, a dropped
- * digit or a decimal point read as a thousands one, and as the lowest price it would win.
+ * digit or a decimal point read as a thousands one, and as the lowest price it would win. A total the user typed is
+ * the one it ranks by, so whether that total holds the tax follows it; the check stays on the total the document wrote.
  */
-function quotePrice(x: QuoteExtraction): Price {
+function quotePrice(x: QuoteExtraction, typedTotal: number | null): Price {
   const written = hasTotal(x.tax) ? x.tax : null
   const taxLine = taxLineOf(x.lines, written)
   const base = includedSum(x.lines) - (taxLine?.lineTotal ?? 0)
   const tax = taxLine?.lineTotal ?? written
   const sum = base + (tax ?? 0)
-  const total = hasTotal(x.total) ? x.total : null
+  const read = hasTotal(x.total) ? x.total : null
+  const isTyped = hasTotal(typedTotal)
+  const total = isTyped ? typedTotal : read
   const isOff = !near(sum, x.total, TOTAL_TOLERANCE)
   return {
     base, tax, total, taxIncluded: includedOf(total, base, tax),
-    from: { tax: taxLine ? 'line' : written === null ? null : 'written', total: total === null ? null : 'written' },
-    isMismatch: x.subtotal !== null || x.tax !== null ? isOff : total !== null && total < sum && isOff,
+    from: { tax: taxLine ? 'line' : written === null ? null : 'written', total: isTyped ? 'typed' : read === null ? null : 'written' },
+    isMismatch: x.subtotal !== null || x.tax !== null ? isOff : read !== null && read < sum && isOff,
   }
 }
 
@@ -146,16 +149,17 @@ function optionPrice(x: QuoteExtraction, o: QuoteOption): Price {
 
 /**
  * The one place a reading's tax is worked out: the price of the quote as a single system, and of each option it offers.
- * Every total check, rank price and tax caveat reads these.
+ * Every total check, rank price and tax caveat reads these. A total the user typed prices the quote as a single system
+ * only: options keep the totals written for them.
  */
-export const pricesOf = (x: QuoteExtraction): QuotePrices => ({
-  quote: quotePrice(x),
+export const pricesOf = (x: QuoteExtraction, typedTotal: number | null = null): QuotePrices => ({
+  quote: quotePrice(x, typedTotal),
   options: x.options.map((o) => ({ id: o.id, price: optionPrice(x, o) })),
 })
 
 /** The price of the quote (optionId null) or of one option of it. An option not in the reading has none. */
-export function priceOf(x: QuoteExtraction, optionId: string | null): Price | null {
-  const prices = pricesOf(x)
+export function priceOf(x: QuoteExtraction, optionId: string | null, typedTotal: number | null = null): Price | null {
+  const prices = pricesOf(x, typedTotal)
   return optionId === null ? prices.quote : prices.options.find((p) => p.id === optionId)?.price ?? null
 }
 
