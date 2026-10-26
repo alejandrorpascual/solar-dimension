@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { appliances } from '../db/schema'
 import type { ApplianceInput, ApplianceRecord } from '../lib/catalog-schema'
 import { APPLIANCE_SEED } from '../lib/catalog-snapshot'
-import { listRecords, recentChanges, setRetired, upsertAppliances } from './catalog-repo'
+import { listRecords, recentChanges, setRetired, UPSERT_COLUMNS, UPSERT_SKIPPED_COLUMNS, upsertAppliances } from './catalog-repo'
 
 /** One statement as it reaches the database driver. */
 interface Sent { sql: string; params: unknown[] }
@@ -234,4 +234,12 @@ test('the recent changes are the 50 newest entries, newest first, with the email
     { id: 7, changedAt: '2026-10-22T15:04:05.123Z', actor: 'user-1', actorEmail: 'owner@example.com', before: storedFridge, after: { ...storedFridge, retired: true } },
     { id: 6, changedAt: '2026-10-22T15:00:00.000Z', actor: 'api-token', actorEmail: null, before: null, after: storedFridge },
   ])
+})
+
+describe('upsert column lists', () => {
+  test('names every appliances column as overwritten or as one an upsert never writes', () => {
+    const all = Object.keys(getTableColumns(appliances)).sort()
+    const named = [...UPSERT_COLUMNS, ...UPSERT_SKIPPED_COLUMNS].sort()
+    expect(named).toEqual(all)
+  })
 })
