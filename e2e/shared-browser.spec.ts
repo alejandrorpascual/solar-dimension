@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Response } from '@playwright/test'
+import { quotesEn } from '../src/i18n/quotes-en'
 import { cloneProject, countQuoteRows, firstProjectId, markEmailVerified, seedFailedQuote } from './db'
 import { accountAction } from './header'
 import { acceptNewProjectName, hideProjects, showProjects, startNewProject } from './projects'
@@ -196,10 +197,14 @@ async function anaAndBeaShareAProjectId(page: Page): Promise<{ ana: string; bea:
   return { ana, bea, projectId }
 }
 
-/** Ana's page loads again on the step that uploads quotes, so it knows she may upload. */
+/**
+ * Ana's page loads again on the step that uploads quotes, so it knows she may upload. The button reads "Saving the
+ * project…" until the page has loaded her projects, then "Upload quotes", or "Add quotes" once her quotes have loaded.
+ */
 async function openQuotesStep(page: Page): Promise<void> {
   await page.goto('/?step=4')
-  await expect(page.getByRole('button', { name: 'Upload quotes' })).toBeEnabled({ timeout: 15_000 })
+  const upload = new RegExp(`^(${quotesEn.cardUpload}|${quotesEn.cardAddMore})$`)
+  await expect(page.getByRole('button', { name: upload })).toBeEnabled({ timeout: 15_000 })
 }
 
 const isUpload = (r: Response) => r.url().includes('/_serverFn/') && (r.request().headers()['content-type'] ?? '').includes('multipart/form-data')
