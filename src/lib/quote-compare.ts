@@ -138,7 +138,7 @@ const byUpload = (a: { quote: QuoteView }, b: { quote: QuoteView }) => a.quote.c
  * quote, so what they entered is never hidden. Kept in the order given.
  */
 function withoutDuplicates(entries: readonly Entry[]): Entry[] {
-  const firstReading = new Map<string, Entry>()
+  const seenReadings = new Set<string>()
   const firstFile = new Map<string, string>()
   const kept = new Set<Entry>()
   for (const e of [...entries].sort(byUpload)) {
@@ -147,10 +147,12 @@ function withoutDuplicates(entries: readonly Entry[]): Entry[] {
     const readingKey = `${JSON.stringify(extraction)}|${entered}|${e.optionId}`
     const fileKey = fileHash === null ? null : `${fileHash}|${entered}`
     const fileOwner = fileKey === null ? undefined : firstFile.get(fileKey)
-    // Recorded even when this entry is a reading duplicate, so a later upload of its file is matched too.
+    const isReadingCopy = seenReadings.has(readingKey)
+    const isFileCopy = fileOwner !== undefined && fileOwner !== id
+    // Both recorded even for a duplicate, so a later upload of its file, or one that reads like it, is matched too.
     if (fileKey !== null && fileOwner === undefined) firstFile.set(fileKey, id)
-    if (firstReading.has(readingKey) || (fileOwner !== undefined && fileOwner !== id)) continue
-    firstReading.set(readingKey, e)
+    seenReadings.add(readingKey)
+    if (isReadingCopy || isFileCopy) continue
     kept.add(e)
   }
   return entries.filter((e) => kept.has(e))
