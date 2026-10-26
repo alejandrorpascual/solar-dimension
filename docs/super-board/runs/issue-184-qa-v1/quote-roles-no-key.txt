@@ -1,0 +1,2 @@
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not set. Pass --env-file=<file> to tsx.')
+Error: OPENAI_API_KEY is not set. Pass --env-file=<file> to tsx.
