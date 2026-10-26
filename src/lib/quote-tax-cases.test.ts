@@ -33,19 +33,19 @@ const withTax = (): QuoteExtraction => extraction(kitLines(1100), { subtotal: 63
 const PRIOR_CASES: TaxCase[] = [
   {
     name: "an option total that includes the document's tax rate passes the option total check",
-    thread: 'PR #7, quote-checks.ts thread: option total with tax failed option_total_mismatch', fixedIn: 'b2c3922',
+    thread: 'PR #7, quote-checks.ts thread: option total with tax failed option_total_mismatch', fixedIn: 'b2c3922 (squashed into 00296f1)',
     actual: () => checkExtraction(extraction(twoKits, { options: [opt('a', 1160), opt('b', null)], subtotal: 1000, tax: 160 })),
     expected: [],
   },
   {
     name: "the document's flat tax amount never explains another option's total",
-    thread: 'PR #7, quote-checks.ts thread: a flat tax from one option was accepted on another', fixedIn: '10ee1dd',
+    thread: 'PR #7, quote-checks.ts thread: a flat tax from one option was accepted on another', fixedIn: '10ee1dd (squashed into 00296f1)',
     actual: () => checkExtraction(extraction(twoKits, { options: [opt('a', null), opt('b', 2160)], subtotal: 1000, tax: 160 })),
     expected: ['option_total_mismatch'],
   },
   {
     name: 'an option with its own tax and a tax-inclusive total, but no subtotal, passes and is priced',
-    thread: 'PR #7, quote-checks.ts thread: option with own tax and no subtotal stayed unranked', fixedIn: 'd10b3fb',
+    thread: 'PR #7, quote-checks.ts thread: option with own tax and no subtotal stayed unranked', fixedIn: 'd10b3fb (squashed into 00296f1)',
     actual: () => {
       const x = extraction(twoKits, { options: [opt('a', 1160, 160), opt('b', null)] })
       return { failures: checkExtraction(x), prices: optionPrices(x) }
@@ -85,7 +85,7 @@ const PRIOR_CASES: TaxCase[] = [
 
 /** The tax words from #55: each is a tax line, so a quote that also writes the amount as its tax counts it once. */
 const TAX_WORD_CASES: TaxCase[] = ['ITBMS 7%', 'IGV 18%', 'GST 5%', 'IVU 11.5%'].map((word) => ({
-  name: `${word} is a tax line, counted once`, thread: '#55, tax words', fixedIn: 'AI-22',
+  name: `${word} is a tax line, counted once`, thread: '#55, tax words', fixedIn: 'cf86c0b (#205)',
   actual: () => {
     const x = extraction([line('battery', 1000), taxLine(70, word)], { tax: 70, total: 1070 })
     return { sum: linesWithTax(x), failures: checkExtraction(x) }
@@ -104,6 +104,16 @@ describe('tax shapes that once mis-priced or mis-checked a quote', () => {
     const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', withTax()), view('b', leftOut)])
     expect(v.best).toMatchObject({ optionId: 'o1', total: 6740, caveats: [{ id: 'tax_unstated' }] })
     expect(v.cleanFit?.quote.id).toBe('a')
+  })
+
+  // Review R2 on #234: PR #7 (b2c3922) reads an option total at the document's rate as including tax, so it does here too.
+  test("an option priced at the document's tax rate counts as taxed, so a cheaper option beside it that states no tax says so", () => {
+    const x = extraction([...kitLines(1100, 'o1'), ...kitLines(1200, 'o2')], {
+      subtotal: 6340, tax: 1141.2, total: 0, options: [opt('o1', 7481.2), opt('o2', 6440)],
+    })
+    const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', x)])
+    expect(v.best).toMatchObject({ optionId: 'o2', total: 6440, caveats: [{ id: 'tax_unstated' }] })
+    expect(v.cleanFit).toMatchObject({ optionId: 'o1', total: 7481.2 })
   })
 
   // QA #124 v1: a total the user types replaces the one read, so whether the total holds the tax has to follow it.
