@@ -66,4 +66,18 @@ describe('insertWithinLimits on the test database (#208)', () => {
     expect(await limits.quoteWithFile(userId, 'first', other)).toBeNull()
     expect(await limits.insertWithinLimits(quote('first', 'enerhogar.pdf', other))).toBe(true)
   })
+
+  // QA v5: the insert alone holds when uploads of one file all pass the check before it, as parallel ones can.
+  it('takes exactly one of several inserts of the same file sent at once, and counts it once', async () => {
+    const same = 'd'.repeat(64)
+    const before = await uploadsThisMonth()
+    const sent = ['one', 'two', 'three', 'four'].map((n) => quote('first', `${n}.pdf`, same))
+
+    const taken = await Promise.all(sent.map((q) => limits.insertWithinLimits(q)))
+
+    expect(taken.filter(Boolean)).toHaveLength(1)
+    const rows = await db.select({ id: quotes.id }).from(quotes).where(and(eq(quotes.userId, userId), eq(quotes.fileHash, same)))
+    expect(rows).toHaveLength(1)
+    expect(await uploadsThisMonth()).toBe(before + 1)
+  })
 })

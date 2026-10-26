@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { fmtKwh } from '../src/i18n/format'
@@ -212,6 +212,70 @@ test('once a copy is refused, a different file read as the same installer ranks 
   await expect(voltia).toHaveCount(1)
   await expect(voltia).not.toContainText(quotesEn.duplicate)
   await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(0)
+})
+
+test('the same file sent four times at once makes one quote and keeps one stored file (#208)', async ({ page }) => {
+  // Sign-up and four parallel uploads, each followed by database reads over Neon's HTTP driver.
+  test.slow()
+  const { email, projectId } = await signUpWithProject(page)
+  const file = await quotePdf('solartec')
+  const call = captureUploadCall(page)
+  await pickQuoteFiles(page, [file])
+  const upload = await call
+
+  // Sent at once, the uploads can all pass the check before storing; the insert lets only one of them in.
+  const replies = await Promise.all(['a', 'b', 'c', 'd'].map(async (n) => (await postUpload(page, upload, projectId, { ...file, name: `${n}.pdf` })).text()))
+
+  const kept = await quoteFiles(email)
+  expect(kept).toHaveLength(1)
+  const [{ fileName }] = await quoteFileHashes(email)
+  const refused = replies.filter((r) => r.includes('already_uploaded'))
+  expect(refused).toHaveLength(3)
+  for (const reply of refused) expect(reply).toContain(fileName)
+  // The refused uploads dropped the files they had stored: the account's folder holds the one quote's file.
+  const folder = path.dirname(path.resolve(QUOTE_FILES_DIR, kept[0]!.path))
+  expect(readdirSync(folder)).toEqual([path.basename(kept[0]!.path)])
+  expect(await quoteUploadsThisMonth(email)).toBe(1)
+})
+
+test("a deleted quote's file can be uploaded again (#208)", async ({ page }) => {
+  test.slow()
+  const email = await signUp(page)
+  const file = await quotePdf('solartec')
+  await uploadQuotes(page, [file])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+  const best = page.getByRole('region').filter({ has: page.getByText('Best fit', { exact: true }) })
+  await best.getByRole('button', { name: 'Delete', exact: true }).click()
+  await best.getByRole('button', { name: 'Delete it' }).click()
+  await expect(page.getByRole('article')).toHaveCount(0)
+  await expect.poll(async () => (await quoteFiles(email)).length).toBe(0)
+
+  // With no quote left the card offers Upload quotes again, not Add quotes.
+  await uploadQuotes(page, [{ ...file, name: 'again.pdf' }])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'again.pdf' })).toBeVisible()
+  await expect(dialog).not.toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
+  await expect.poll(async () => (await quoteFileHashes(email)).map((q) => q.fileName)).toEqual(['again.pdf'])
+})
+
+test('another project takes a file the first project already has (#208)', async ({ page }) => {
+  test.slow()
+  const email = await signUp(page)
+  const file = await quotePdf('solartec')
+  await uploadQuotes(page, [file])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await expect.poll(async () => (await quoteFiles(email)).length).toBe(1)
+
+  await page.goto('/')
+  await showProjects(page)
+  await page.getByRole('button', { name: '+ New project' }).click()
+  await hideProjects(page)
+  await uploadQuotes(page, [file])
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'solartec.pdf' })).toBeVisible()
+  await expect(dialog).not.toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
+  await expect.poll(async () => new Set((await quoteFiles(email)).map((q) => q.projectId)).size).toBe(2)
 })
 
 test('a tie between currencies says on screen which one was compared (AI-28)', async ({ page }) => {
