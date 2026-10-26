@@ -6,7 +6,7 @@ import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
 import { quotesEs } from '../src/i18n/quotes-es'
 import {
-  cloneProject, countQuoteRows, dailyReads, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFileHashes, quoteFiles, quoteRetryStates, quoteUploadsThisMonth, seedFailedQuote,
+  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFileHashes, quoteFiles, quoteRetryStates, quoteUploadsThisMonth, seedFailedQuote,
   seedQuoteRows, setQuoteCurrency, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
@@ -130,12 +130,9 @@ test('the same quote uploaded twice ranks once with a warning, and inverter and 
 })
 
 /** The hand-off dialog's refusal of a file the project already has, uploaded before as `name` (#208). */
-const alreadyUploaded = (q: typeof quotesEn | typeof quotesEs, name: string) => q.errAlreadyUploaded.replace('{name}', name).replace('{action}', q.readAgain)
-/**
- * The day's read counter is shared with every other test on this database, so a read another test takes can land
- * between this test's two readings of it. Any try that sees the counter unmoved proves the refused upload took none.
- */
-const UNMOVED_TRIES = 3
+const alreadyUploaded = (q: typeof quotesEn | typeof quotesEs, name: string) => q.errAlreadyUploaded.replace('{name}', name)
+/** A quote id, as the upload call answers when it stores a file and starts its read. */
+const QUOTE_ID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
 
 test('the same file uploaded again is refused before it is stored or read, naming the earlier quote (#208)', async ({ page }) => {
   // Sign-up, a batch of two and up to three more uploads, each followed by database reads over Neon's HTTP driver.
@@ -153,18 +150,15 @@ test('the same file uploaded again is refused before it is stored or read, namin
   expect(await quoteFileHashes(email)).toEqual([{ fileName: 'solartec.pdf', fileHash: sha256 }])
   expect(await quoteUploadsThisMonth(email)).toBe(1)
 
-  // Sent again on its own, the file takes none of the day's reads.
+  // Sent again on its own, the file is refused with no quote id: a read starts only for a quote the call stored.
   await dialog.getByRole('button', { name: 'Ok, got it' }).click()
-  const moves: number[] = []
-  for (let n = 0; n < UNMOVED_TRIES && !moves.includes(0); n++) {
-    const before = await dailyReads()
-    await pickQuoteFiles(page, [{ ...file, name: `again-${n}.pdf` }], quotesEn.cardAddMore)
-    const refused = page.getByRole('dialog', { name: quotesEn.handoffNone })
-    await expect(refused.getByRole('listitem')).toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
-    moves.push((await dailyReads()) - before)
-    await refused.getByRole('button', { name: 'Ok, got it' }).click()
-  }
-  expect(moves).toContain(0)
+  const reply = page.waitForResponse((r) => r.url().includes('/_serverFn/') && (r.request().headers()['content-type'] ?? '').includes('multipart/form-data'))
+  await pickQuoteFiles(page, [{ ...file, name: 'again.pdf' }], quotesEn.cardAddMore)
+  const refused = page.getByRole('dialog', { name: quotesEn.handoffNone })
+  await expect(refused.getByRole('listitem')).toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
+  const body = await (await reply).text()
+  expect(body).toContain('already_uploaded')
+  expect(body).not.toMatch(QUOTE_ID)
   expect(await countQuoteRows(email, projectId)).toBe(1)
   expect(await quoteUploadsThisMonth(email)).toBe(1)
 })
@@ -176,7 +170,6 @@ test('a file already in the project is refused in Spanish too, naming the earlie
   await pickQuoteFiles(page, [file, { ...file, name: 'copia.pdf' }], quotesEs.cardUpload)
   const row = page.getByRole('dialog').getByRole('listitem').filter({ hasText: 'copia.pdf' })
   await expect(row).toContainText(alreadyUploaded(quotesEs, 'solartec.pdf'))
-  await expect(row).toContainText(quotesEs.readAgain)
   expect((await quoteFileHashes(email)).map((q) => q.fileName)).toEqual(['solartec.pdf'])
 })
 

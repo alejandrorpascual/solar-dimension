@@ -528,11 +528,11 @@ describe('status and progress text', () => {
       expect(new Set(texts).size).toBe(all.length)
     }
   })
-  // #208: the same file is never uploaded twice to a project; Read again on the earlier quote reads it afresh.
-  test('a file already in the project is refused with the earlier quote named and Read again offered, in both languages', () => {
+  // #208: the same file is never uploaded twice to a project; the refusal names the earlier quote and stops there.
+  test('a file already in the project is refused with the earlier quote named, in both languages', () => {
     const r: Rejection = { code: 'already_uploaded', fileName: 'solartec.pdf' }
-    expect(rejectionText(en, r)).toBe('You already uploaded this file as solartec.pdf. For a fresh reading, use Read again on that quote.')
-    expect(rejectionText(es, r)).toBe('Ya subiste este archivo como solartec.pdf. Para una lectura nueva, usa Leer de nuevo en esa cotización.')
+    expect(rejectionText(en, r)).toBe('You already uploaded this file as solartec.pdf.')
+    expect(rejectionText(es, r)).toBe('Ya subiste este archivo como solartec.pdf.')
   })
   test('a spent daily budget pauses reading until tomorrow, in both languages', () => {
     expect(rejectionText(en, { code: 'daily_limit' })).toBe('Quote reading is paused for today. Try again tomorrow.')
