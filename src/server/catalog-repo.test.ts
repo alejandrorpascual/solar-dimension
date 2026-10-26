@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { appliances } from '../db/schema'
 import type { ApplianceInput, ApplianceRecord } from '../lib/catalog-schema'
 import { APPLIANCE_SEED } from '../lib/catalog-snapshot'
-import { listRecords, recentChanges, revertChange, setRetired, upsertAppliances } from './catalog-repo'
+import { listRecords, recentChanges, revertChange, setRetired, UPSERT_COLUMNS, UPSERT_SKIPPED_COLUMNS, upsertAppliances } from './catalog-repo'
 
 /** One statement as it reaches the database driver. */
 interface Sent { sql: string; params: unknown[] }
@@ -301,5 +301,13 @@ describe('reverting a change', () => {
     expect(await revertChange(7, 'admin-1')).toBe('invalid')
 
     expect(wire.batches).toEqual([])
+  })
+})
+
+describe('upsert column lists', () => {
+  test('names every appliances column as overwritten or as one an upsert never writes', () => {
+    const all = Object.keys(getTableColumns(appliances)).sort()
+    const named = [...UPSERT_COLUMNS, ...UPSERT_SKIPPED_COLUMNS].sort()
+    expect(named).toEqual(all)
   })
 })

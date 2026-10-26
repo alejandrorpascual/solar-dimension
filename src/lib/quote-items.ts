@@ -1,6 +1,6 @@
 import { CHEMISTRIES, GAUGES, SIZING, type ChemistryId, type FuseClass } from './catalog'
 import { lineSize, MM2_TOLERANCE, tableGauge, type CableSize } from './quote-gauge'
-import { CODE_LENGTH, type LineKind, type QuoteExtraction, type QuoteLine } from './quote-schema'
+import { CODE_LENGTH, type LineKind, type LineRole, type QuoteExtraction, type QuoteLine } from './quote-schema'
 import type { SizingResult } from './sizing'
 import { correctedAmpacity, microAmps } from './sizing/cable'
 
@@ -263,7 +263,7 @@ function thickest(lines: readonly QuoteLine[]): { line: QuoteLine; size: CableSi
 
 const lineText = (l: QuoteLine): string => `${l.description} ${l.source.text}`
 
-/** What a wiring line is for. Only a battery line or a plain cable can be the battery cable. */
+/** What a wiring line is for. Only a battery line or a plain cable (an untagged line whose words name no role) can be the battery cable. */
 type WiringRole = 'ground' | 'fitting' | 'battery' | 'offBattery' | 'cable'
 /**
  * A wiring line's role from its words: the first rule that matches, else a plain cable. A battery word beats a solar or
@@ -278,12 +278,19 @@ const ROLE_RULES: readonly (readonly [WiringRole, (text: string) => boolean])[] 
 ]
 const roleIn = (text: string): WiringRole => ROLE_RULES.find(([, matches]) => matches(text))?.[0] ?? 'cable'
 
+/** The role a reader's tag gives a wiring line: anything that connects other than the battery is set aside. */
+const TAGGED_ROLE: Readonly<Record<LineRole, WiringRole>> = {
+  battery: 'battery', solar: 'offBattery', ac: 'offBattery', ground: 'ground', fitting: 'fitting', other: 'offBattery',
+}
+
 /**
- * A wiring line's role, read from its own description. Its source text decides only when the description names no role
- * and no other line shares that source: lines split from one quote line keep its words as their source
+ * A wiring line's role: the reader's tag when it gave one, since it read the whole document. Untagged, it is read from
+ * the line's own description, and its source text decides only when the description names no role and no other line
+ * shares that source: lines split from one quote line keep its words as their source
  * ("alimentador CA 4/0 AWG y cable de baterías 6 AWG"), and one "baterías" there names no feeder.
  */
 function roleOf(l: QuoteLine, all: readonly QuoteLine[]): WiringRole {
+  if (l.role !== null) return TAGGED_ROLE[l.role]
   const own = roleIn(l.description)
   if (own !== 'cable') return own
   const isSplit = all.some((o) => o !== l && o.source.page === l.source.page && o.source.text === l.source.text)

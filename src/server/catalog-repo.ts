@@ -1,4 +1,4 @@
-import { asc, desc, eq, sql } from 'drizzle-orm'
+import { asc, desc, eq, getTableColumns, sql } from 'drizzle-orm'
 import { db } from '../db/client'
 import { applianceChanges, appliances, user } from '../db/schema'
 import type { CatalogItem } from '../lib/catalog'
@@ -11,13 +11,18 @@ export const catalogCache = ttlCache<CatalogItem[]>(CATALOG_TTL_MS)
 
 type Row = typeof appliances.$inferSelect
 
-/** A row that no longer passes the schema (edited by hand in the console) is skipped and logged, not served. */
-function toRecord(row: Row): ApplianceRecord | null {
-  const parsed = ApplianceSchema.safeParse({
+/** The stored fields of a row that make up an `ApplianceRecord`, apart from its retired state. */
+function rowFields(row: Row) {
+  return {
     id: row.id, category: row.category, watts: row.watts, surge: row.surge, duty: row.duty,
     tons: row.tons, acType: row.acType, labels: row.labels, sortOrder: row.sortOrder,
     kind: row.kind, surgeClass: row.surgeClass, burstSeconds: row.burstSeconds, cyclesPerHour: row.cyclesPerHour, sources: row.sources,
-  })
+  }
+}
+
+/** A row that no longer passes the schema (edited by hand in the console) is skipped and logged, not served. */
+function toRecord(row: Row): ApplianceRecord | null {
+  const parsed = ApplianceSchema.safeParse(rowFields(row))
   if (!parsed.success) {
     console.error('[catalog] skipping invalid appliance row', { id: row.id, issues: parsed.error.issues })
     return null
@@ -27,12 +32,26 @@ function toRecord(row: Row): ApplianceRecord | null {
 
 /** A row as stored, with the schema check skipped: the "before" of a write that replaces a row failing the schema. */
 function storedRecord(row: Row): ApplianceRecord {
+  return { ...rowFields(row), retired: row.retiredAt !== null } as ApplianceRecord
+}
+
+type ApplianceColumn = keyof Row
+
+/** Columns an upsert overwrites with the incoming value when the row already exists. */
+export const UPSERT_COLUMNS = [
+  'category', 'watts', 'surge', 'duty', 'tons', 'acType', 'kind', 'surgeClass', 'burstSeconds', 'cyclesPerHour',
+  'sources', 'labels', 'sortOrder', 'updatedBy',
+] as const satisfies readonly ApplianceColumn[]
+
+/** Columns an upsert never overwrites: the key, the retired state, and the two timestamps (`updatedAt` is set to now). */
+export const UPSERT_SKIPPED_COLUMNS = ['id', 'retiredAt', 'createdAt', 'updatedAt'] as const satisfies readonly ApplianceColumn[]
+
+const conflictSet = () => {
+  const columns = getTableColumns(appliances)
   return {
-    id: row.id, category: row.category, watts: row.watts, surge: row.surge, duty: row.duty,
-    tons: row.tons, acType: row.acType, labels: row.labels, sortOrder: row.sortOrder,
-    kind: row.kind, surgeClass: row.surgeClass, burstSeconds: row.burstSeconds, cyclesPerHour: row.cyclesPerHour, sources: row.sources,
-    retired: row.retiredAt !== null,
-  } as ApplianceRecord
+    ...Object.fromEntries(UPSERT_COLUMNS.map((key) => [key, sql.raw(`excluded.${columns[key].name}`)])),
+    updatedAt: sql`now()`,
+  }
 }
 
 const selectRows = () => db.select().from(appliances).orderBy(asc(appliances.sortOrder), asc(appliances.id))
@@ -95,12 +114,7 @@ export async function upsertAppliances(items: readonly ApplianceInput[], actor: 
         })))
         .onConflictDoUpdate({
           target: appliances.id,
-          set: {
-            category: sql`excluded.category`, watts: sql`excluded.watts`, surge: sql`excluded.surge`, duty: sql`excluded.duty`,
-            tons: sql`excluded.tons`, acType: sql`excluded.ac_type`, labels: sql`excluded.labels`, sortOrder: sql`excluded.sort_order`,
-            kind: sql`excluded.kind`, surgeClass: sql`excluded.surge_class`, burstSeconds: sql`excluded.burst_seconds`, cyclesPerHour: sql`excluded.cycles_per_hour`,
-            sources: sql`excluded.sources`, updatedAt: sql`now()`, updatedBy: sql`excluded.updated_by`,
-          },
+          set: conflictSet(),
         }),
       logStatement(writes, actor),
     ])

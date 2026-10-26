@@ -3,7 +3,7 @@ import { CHEMISTRIES } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { extraction, line, SAMPLE_KIT as KIT, SAMPLE_QUOTES } from './quote-fixtures'
 import { checkItems, DEFAULT_MUSTS, FIXED_MUSTS, itemsFor, kitNeeds, resolveMusts, setOverride, type ItemCheck, type ItemId, type KitNeeds } from './quote-items'
-import type { QuoteExtraction, QuoteLine } from './quote-schema'
+import type { LineRole, QuoteExtraction, QuoteLine } from './quote-schema'
 import { compute } from './sizing'
 
 const item = (x: QuoteExtraction, id: ItemId, overrides = {}): ItemCheck => checkItems(x, KIT, overrides).find((c) => c.id === id)!
@@ -539,6 +539,66 @@ describe('cables and fuse', () => {
       for (const array of [named('Cable solar 4/0 AWG', '4/0'), acFeeder]) {
         expect(judge(KIT, [array, ground, fuse(250)], 'fuse').status).toBe('ok')
       }
+    })
+  })
+
+  describe('a wiring line the reader tags is judged on its tag, not its words (#184)', () => {
+    const tagged = (role: LineRole, text: string, awg: string | null = null): QuoteLine => ({
+      ...line('wiring', 1, { description: text, source: { page: 1, text }, specs: { awg } }), role,
+    })
+    const thinBattery = line('wiring', 1, { description: 'Cable 6 AWG baterías', source: { page: 1, text: 'Cable 6 AWG baterías' }, specs: { awg: '6' } })
+
+    test('a line tagged ac or solar is never the battery cable, whatever its words', () => {
+      // The keyword rules read "Acometida eléctrica" as a plain cable, so 4/0 AWG would pass.
+      expect(judge(KIT, [tagged('ac', 'Acometida eléctrica 4/0 AWG', '4/0'), thinBattery], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+      expect(judge(KIT, [tagged('solar', 'Cable 4/0 AWG baterías', '4/0'), thinBattery], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+      // Alone, a panel cable leaves the battery cable unstated instead of failing the quote.
+      expect(judge(KIT, [tagged('solar', 'Cable para módulos 4 mm² (12 AWG)', '12')], 'cables')).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
+    })
+    test('a line tagged battery is the battery cable, whatever its words', () => {
+      expect(judge(KIT, [tagged('battery', 'Cable 4/0 AWG para el inversor solar desde las baterías', '4/0')], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+      // The keyword rules set "solar" wiring aside, so this quote would name no battery cable.
+      expect(judge(KIT, [tagged('battery', 'Cable solar 4/0 AWG', '4/0')], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+    })
+    test('a line tagged ground, fitting or other is no battery cable', () => {
+      for (const role of ['ground', 'fitting', 'other'] as const) {
+        expect(judge(KIT, [tagged(role, 'Zapatas para cable 4/0 AWG', '4/0'), thinBattery], 'cables'), role).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+      }
+    })
+    test('the fuse reads the tagged battery cable too', () => {
+      expect(judge(KIT, [tagged('ac', 'Acometida eléctrica 4/0 AWG', '4/0'), thinBattery, fuse(250)], 'fuse')).toMatchObject({ status: 'short', facts: { amps: 250, gauge: '6 AWG' } })
+      expect(judge(KIT, [tagged('solar', 'Cable para módulos 4 mm² (12 AWG)', '12'), fuse(250)], 'fuse').status).toBe('ok')
+    })
+    test('a line with no tag keeps the keyword rules', () => {
+      // "Acometida" names neither side, so untagged it is a plain cable and 4/0 AWG passes, as before.
+      const untagged = line('wiring', 1, { description: 'Acometida eléctrica 4/0 AWG', source: { page: 1, text: 'Acometida eléctrica 4/0 AWG' }, specs: { awg: '4/0' } })
+      expect(untagged.role).toBeNull()
+      expect(judge(KIT, [untagged, thinBattery], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+    })
+    describe('a plain cable whose end the quote never states', () => {
+      const plain = (role: LineRole | null) => ({ ...line('wiring', 1, { description: 'Cable 4/0 AWG', source: { page: 1, text: 'Cable 4/0 AWG' }, specs: { awg: '4/0' } }), role })
+      test('with no tag it could still be the battery cable, so its 4/0 AWG counts', () => {
+        expect(judge(KIT, [plain(null), thinBattery], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+        expect(judge(KIT, [plain(null)], 'cables')).toMatchObject({ status: 'ok', facts: { gauge: '4/0 AWG' } })
+      })
+      test('tagged other it is set aside, so the quote is judged on the battery cable or names none', () => {
+        expect(judge(KIT, [plain('other'), thinBattery], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+        expect(judge(KIT, [plain('other')], 'cables')).toMatchObject({ status: 'unknown', facts: { batteryCableUnstated: true } })
+      })
+    })
+    test('lines split from one quote line are judged each on its own tag', () => {
+      // Untagged, "Acometida" names no side, so the split 4/0 AWG feeder would pass as the battery cable.
+      const bundle = 'Cableado: acometida eléctrica 4/0 AWG y cable de baterías 6 AWG'
+      const split = (role: LineRole, description: string, awg: string): QuoteLine => ({
+        ...line('wiring', 0, { description, source: { page: 1, text: bundle }, specs: { awg } }), role,
+      })
+      const lines = [split('ac', 'Acometida eléctrica 4/0 AWG', '4/0'), split('battery', 'Cable de baterías 6 AWG', '6')]
+      expect(judge(KIT, lines, 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
+      expect(judge(KIT, [...lines, fuse(250)], 'fuse')).toMatchObject({ status: 'short', facts: { amps: 250, gauge: '6 AWG' } })
+    })
+    test('a tag on a line that is not wiring makes it no cable', () => {
+      const notWiring = { ...line('other', 1, { description: 'Cable 4/0 AWG', source: { page: 1, text: 'Cable 4/0 AWG' }, specs: { awg: '4/0' } }), role: 'battery' as const }
+      expect(judge(KIT, [notWiring, thinBattery], 'cables')).toMatchObject({ status: 'short', facts: { gauge: '6 AWG' } })
     })
   })
 })
