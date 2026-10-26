@@ -229,6 +229,8 @@ describe('the same quote uploaded twice (AI-28)', () => {
     const withConfirmation = compareQuotes(KIT, DEFAULT_MUSTS, [copy('first', 'grupoluz', 1), confirmed])
     expect(ids(withConfirmation.ranked).sort()).toEqual(['again', 'first'])
   })
+  // #208: uploading a file the project already has is now refused (uploadQuote, insertWithinLimits), so the file-copy
+  // cases below can no longer be made through the app. They stay as the safety net for quotes uploaded before that.
   test('the same file uploaded again is a duplicate even when its second reading words an item differently', () => {
     const reworded = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, description: `${l.description} (reworded)` } : l)) }
     const v = compareQuotes(KIT, DEFAULT_MUSTS, [

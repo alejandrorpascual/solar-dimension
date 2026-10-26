@@ -55,8 +55,12 @@ export function uploadRejection(input: { ownsProject: boolean; counts: { project
   return limitRejection(input.counts) ?? dailyRejection(input.daily)
 }
 
-/** Why the atomic insert took no row: the limit the fresh counts show, or a plain failure if a slot has opened since. */
-export function refusedInsertRejection(counts: { project: number; month: number }, daily: DailyBudget): Rejection {
+/**
+ * Why the atomic insert took no row: the file is already a quote of the project (`earlier`, that quote's file name),
+ * else the limit the fresh counts show, or a plain failure if a slot has opened since.
+ */
+export function refusedInsertRejection(counts: { project: number; month: number }, daily: DailyBudget, earlier: string | null): Rejection {
+  if (earlier !== null) return { code: 'already_uploaded', fileName: earlier }
   return limitRejection(counts) ?? dailyRejection(daily) ?? { code: 'upload' }
 }
 
@@ -70,8 +74,8 @@ export function retryRefusal(r: { retried: boolean; retryable: boolean; admitted
 }
 
 /**
- * The file's fingerprint: the hex SHA-256 of its bytes. Stored on the quote (quotes.file_hash) so the same file uploaded
- * again is spotted as a duplicate whatever its reading says; the bytes themselves are kept only in the quote's blob.
+ * The file's fingerprint: the hex SHA-256 of its bytes. Stored on the quote (quotes.file_hash) so the same file is
+ * refused when it is uploaded to the project again; the bytes themselves are kept only in the quote's blob.
  */
 export async function fileFingerprint(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))

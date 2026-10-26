@@ -416,6 +416,7 @@ export function rejectionText(t: Dictionary, r: Rejection): string {
     case 'upload': return t.quotes.errUpload
     case 'unverified': return t.quotes.lockedNote
     case 'daily_limit': return t.quotes.errDailyLimit
+    case 'already_uploaded': return trq(t, 'errAlreadyUploaded', { name: r.fileName, action: t.quotes.readAgain })
   }
 }
 

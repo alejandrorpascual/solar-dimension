@@ -27,6 +27,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   errNotSaved: 'El proyecto todavía se está guardando. Inténtalo de nuevo en un momento.',
   errUpload: 'No se pudo subir. Inténtalo de nuevo.',
   errDailyLimit: 'La lectura de cotizaciones está en pausa por hoy. Vuelve a intentarlo mañana.',
+  errAlreadyUploaded: 'Ya subiste este archivo como {name}. Para una lectura nueva, usa {action} en esa cotización.',
   handoffTitle: 'Nosotros nos encargamos',
   handoffNone: 'No se pudo subir ninguno de estos archivos',
   handoffBody: 'Leer {count} cotizaciones y compararlas con el kit de {project} toma unos {minutes} min. Cierra esto y sigue trabajando. El veredicto te estará esperando en el proyecto.',

@@ -145,7 +145,9 @@ const touchedFiles = (entries: readonly Entry[]): Set<string> =>
  * of each set of entries is kept, so two copies they changed differently both stay and what they entered is never
  * hidden. Apart from that, an entry is a duplicate when it reads exactly like an earlier one (the same reading, the
  * same entries and the same option). Matching is per quote, so a quote's options are kept or hidden together. Kept in
- * the order given.
+ * the order given. An upload of a file the project already has is refused (uploadQuote, insertWithinLimits), so the
+ * file matching here is the safety net: for quotes uploaded before that refusal, and for older quotes with no
+ * fingerprint, which only the reading rule can match.
  */
 function withoutDuplicates(entries: readonly Entry[]): Entry[] {
   const changedFiles = touchedFiles(entries)

@@ -109,6 +109,14 @@ export async function setQuoteUploadsThisMonth(email: string, uploads: number): 
     on conflict (user_id, month) do update set uploads = excluded.uploads`
 }
 
+/** This UTC month's upload counter of the user, which the monthly limit reads. 0 when nothing was counted yet. */
+export async function quoteUploadsThisMonth(email: string): Promise<number> {
+  const rows = await testDb()`
+    select qu.uploads from quote_usage qu join "user" u on u.id = qu.user_id
+    where u.email = ${email} and qu.month = date_trunc('month', now() at time zone 'utc')::date`
+  return (rows[0]?.uploads as number | undefined) ?? 0
+}
+
 export async function countQuoteRows(email: string, projectId: string): Promise<number> {
   const rows = await testDb()`select count(*)::int as n from quotes q join "user" u on u.id = q.user_id where u.email = ${email} and q.project_id = ${projectId}`
   return rows[0].n as number
@@ -148,13 +156,6 @@ export async function stripQuoteOptions(email: string, projectId: string): Promi
       extraction = jsonb_set(q.extraction - 'options', '{lines}',
         coalesce((select jsonb_agg(l - 'option') from jsonb_array_elements(q.extraction -> 'lines') l), '[]'::jsonb))
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
-}
-
-/** Sets the items the user confirmed on one quote of theirs, picked by its file name, as if they had saved them on its card. */
-export async function setQuoteOverrides(email: string, fileName: string, overrides: Record<string, string>): Promise<void> {
-  await testDb()`
-    update quotes q set overrides = ${JSON.stringify(overrides)}::jsonb
-    from "user" u where u.id = q.user_id and u.email = ${email} and q.file_name = ${fileName}`
 }
 
 /** Renames the vendor on every quote of a project, as a reading of a quote with a longer vendor name would have it. */

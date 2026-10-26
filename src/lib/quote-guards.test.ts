@@ -33,8 +33,13 @@ describe('the daily read budget', () => {
     expect(uploadRejection({ ownsProject: false, counts: { project: 0, month: 0 }, daily: SPENT })).toEqual({ code: 'not_saved' })
   })
   test('a refused insert names the spent budget when the account’s own limits still allow it', () => {
-    expect(refusedInsertRejection({ project: 0, month: 0 }, SPENT)).toEqual({ code: 'daily_limit' })
-    expect(refusedInsertRejection({ project: perProject, month: 0 }, SPENT)).toEqual({ code: 'project_limit' })
+    expect(refusedInsertRejection({ project: 0, month: 0 }, SPENT, null)).toEqual({ code: 'daily_limit' })
+    expect(refusedInsertRejection({ project: perProject, month: 0 }, SPENT, null)).toEqual({ code: 'project_limit' })
+  })
+  // #208: the insert refuses a file the project already has, in the same statement as the limits.
+  test('a refused insert names the earlier quote when the project already has the file, whatever the limits say', () => {
+    expect(refusedInsertRejection({ project: 0, month: 0 }, { reads: 0, limit: 100 }, 'solartec.pdf')).toEqual({ code: 'already_uploaded', fileName: 'solartec.pdf' })
+    expect(refusedInsertRejection({ project: perProject, month: 0 }, SPENT, 'solartec.pdf')).toEqual({ code: 'already_uploaded', fileName: 'solartec.pdf' })
   })
 })
 
@@ -54,12 +59,12 @@ describe('retryRefusal', () => {
 describe('refusedInsertRejection', () => {
   const { perProject, perMonth } = QUOTE_LIMITS
   test('names the limit the counts show, the project first', () => {
-    expect(refusedInsertRejection({ project: perProject, month: 0 }, OPEN)).toEqual({ code: 'project_limit' })
-    expect(refusedInsertRejection({ project: 0, month: perMonth }, OPEN)).toEqual({ code: 'month_limit' })
-    expect(refusedInsertRejection({ project: perProject, month: perMonth }, OPEN)).toEqual({ code: 'project_limit' })
+    expect(refusedInsertRejection({ project: perProject, month: 0 }, OPEN, null)).toEqual({ code: 'project_limit' })
+    expect(refusedInsertRejection({ project: 0, month: perMonth }, OPEN, null)).toEqual({ code: 'month_limit' })
+    expect(refusedInsertRejection({ project: perProject, month: perMonth }, OPEN, null)).toEqual({ code: 'project_limit' })
   })
   test('is a plain upload failure when the counts no longer show a limit', () => {
-    expect(refusedInsertRejection({ project: 0, month: 0 }, OPEN)).toEqual({ code: 'upload' })
+    expect(refusedInsertRejection({ project: 0, month: 0 }, OPEN, null)).toEqual({ code: 'upload' })
   })
 })
 

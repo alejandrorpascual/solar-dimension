@@ -6,8 +6,8 @@ import { fmtKwh } from '../src/i18n/format'
 import { quotesEn } from '../src/i18n/quotes-en'
 import { quotesEs } from '../src/i18n/quotes-es'
 import {
-  cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFileHashes, quoteFiles, quoteRetryStates, seedFailedQuote,
-  seedQuoteRows, setQuoteCurrency, setQuoteOverrides, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
+  cloneProject, countQuoteRows, dailyReads, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFileHashes, quoteFiles, quoteRetryStates, quoteUploadsThisMonth, seedFailedQuote,
+  seedQuoteRows, setQuoteCurrency, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage, switchLanguageOnLoad } from './header'
@@ -129,109 +129,89 @@ test('the same quote uploaded twice ranks once with a warning, and inverter and 
   }
 })
 
-test('the same file uploaded again is a duplicate even when its second reading differs, and only its fingerprint is stored (#208)', async ({ page }) => {
-  const email = await signUp(page)
-  // One file sent twice under two names: the stub reads a file by its name, so the copy reads as Voltia's quote.
+/** The hand-off dialog's refusal of a file the project already has, uploaded before as `name` (#208). */
+const alreadyUploaded = (q: typeof quotesEn | typeof quotesEs, name: string) => q.errAlreadyUploaded.replace('{name}', name).replace('{action}', q.readAgain)
+/**
+ * The day's read counter is shared with every other test on this database, so a read another test takes can land
+ * between this test's two readings of it. Any try that sees the counter unmoved proves the refused upload took none.
+ */
+const UNMOVED_TRIES = 3
+
+test('the same file uploaded again is refused before it is stored or read, naming the earlier quote (#208)', async ({ page }) => {
+  // Sign-up, a batch of two and up to three more uploads, each followed by database reads over Neon's HTTP driver.
+  test.slow()
+  const { email, projectId } = await signUpWithProject(page)
+  // One file sent twice under two names: the second is the same bytes, so it is refused whatever its name.
   const file = await quotePdf('solartec')
   await uploadQuotes(page, [file, { ...file, name: 'voltia.pdf' }])
-  await page.getByRole('button', { name: 'Ok, got it' }).click()
-  await openVerdictFromTray(page)
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'voltia.pdf' })).toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
 
-  await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
-  const copy = page.getByRole('article').filter({ hasText: quotesEn.duplicate })
-  await expect(copy).toHaveCount(1)
-  await expect(copy).toContainText('Voltia Instalaciones')
-  // The copy read differently, so its help must not claim it reads the same (R1).
-  await expect(copy).toContainText('It is the same quote as another one you uploaded, so it is left out.')
-  await expect(copy).not.toContainText('reads the same')
-  await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toHaveCount(1)
-
-  // Both rows hold the SHA-256 of the bytes sent, worked out here on its own, and nothing else of the file.
+  // Only the first upload is a quote, with the SHA-256 of the bytes sent, worked out here on its own; the second was
+  // never counted against the month.
   const sha256 = createHash('sha256').update(file.buffer).digest('hex')
-  expect(await quoteFileHashes(email)).toEqual([{ fileName: 'solartec.pdf', fileHash: sha256 }, { fileName: 'voltia.pdf', fileHash: sha256 }])
+  expect(await quoteFileHashes(email)).toEqual([{ fileName: 'solartec.pdf', fileHash: sha256 }])
+  expect(await quoteUploadsThisMonth(email)).toBe(1)
+
+  // Sent again on its own, the file takes none of the day's reads.
+  await dialog.getByRole('button', { name: 'Ok, got it' }).click()
+  const moves: number[] = []
+  for (let n = 0; n < UNMOVED_TRIES && !moves.includes(0); n++) {
+    const before = await dailyReads()
+    await pickQuoteFiles(page, [{ ...file, name: `again-${n}.pdf` }], quotesEn.cardAddMore)
+    const refused = page.getByRole('dialog', { name: quotesEn.handoffNone })
+    await expect(refused.getByRole('listitem')).toContainText(alreadyUploaded(quotesEn, 'solartec.pdf'))
+    moves.push((await dailyReads()) - before)
+    await refused.getByRole('button', { name: 'Ok, got it' }).click()
+  }
+  expect(moves).toContain(0)
+  expect(await countQuoteRows(email, projectId)).toBe(1)
+  expect(await quoteUploadsThisMonth(email)).toBe(1)
 })
 
-test('a file whose first upload was a reading duplicate is still a duplicate when uploaded a third time and read differently (#208)', async ({ page }) => {
+test('a file already in the project is refused in Spanish too, naming the earlier quote (#208)', async ({ page }) => {
+  const { email } = await signUpWithProject(page)
+  await switchLanguageOnLoad(page, 'Español')
+  const file = await quotePdf('solartec')
+  await pickQuoteFiles(page, [file, { ...file, name: 'copia.pdf' }], quotesEs.cardUpload)
+  const row = page.getByRole('dialog').getByRole('listitem').filter({ hasText: 'copia.pdf' })
+  await expect(row).toContainText(alreadyUploaded(quotesEs, 'solartec.pdf'))
+  await expect(row).toContainText(quotesEs.readAgain)
+  expect((await quoteFileHashes(email)).map((q) => q.fileName)).toEqual(['solartec.pdf'])
+})
+
+test('a file uploaded again after a reading duplicate of it is refused, and the reading duplicate stays listed (#208)', async ({ page }) => {
   await signUp(page)
   // Two different files the stub reads as SolarTec's quote, then the second file again under a name the stub reads as Voltia's.
   const [first, copy] = await Promise.all(['solartec', 'solartec-copy'].map(quotePdf))
   await uploadQuotes(page, [first!, copy!, { ...copy!, name: 'voltia.pdf' }])
-  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: 'voltia.pdf' })).toContainText(alreadyUploaded(quotesEn, 'solartec-copy.pdf'))
+  await dialog.getByRole('button', { name: 'Ok, got it' }).click()
   await openVerdictFromTray(page)
 
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
-  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(2)
-  // The third upload is the second file again: listed as a duplicate, never ranked as Voltia's own quote.
-  const voltia = page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })
-  await expect(voltia).toHaveCount(1)
-  await expect(voltia).toContainText(quotesEn.duplicate)
+  // #55's rule still lists the different file that reads the same; the refused copy is not a quote at all.
+  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(1)
+  await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toHaveCount(0)
 })
 
-test("a different file that reads like a file copy's second reading is a duplicate too (#208 R3)", async ({ page }) => {
+test("a different file that reads like a refused copy's name is its own quote (#208)", async ({ page }) => {
   await signUp(page)
-  // One file, then the same file under a name the stub reads as Voltia's quote, then a different file the stub also reads as Voltia's.
+  // One file, then the same file under a name the stub reads as Voltia's quote, then Voltia's own file.
   const [first, other] = await Promise.all(['solartec', 'voltia'].map(quotePdf))
   await uploadQuotes(page, [first!, { ...first!, name: 'voltia.pdf' }, other!])
-  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const dialog = page.getByRole('dialog', { name: "We've got it from here" })
+  await expect(dialog.getByRole('listitem').filter({ hasText: alreadyUploaded(quotesEn, 'solartec.pdf') })).toHaveCount(1)
+  await dialog.getByRole('button', { name: 'Ok, got it' }).click()
   await openVerdictFromTray(page)
 
   await expect(verdictHeading(page)).toHaveText('SolarTec Caribe fits your kit for the least')
-  // The copy is a duplicate by its file, the third upload by reading like the copy: neither ranks as Voltia's own quote.
+  // The copy was refused, so nothing earlier reads like Voltia's file: it ranks as Voltia's own quote.
   const voltia = page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })
-  await expect(voltia).toHaveCount(2)
-  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(2)
-  for (const card of await voltia.all()) await expect(card).toContainText(quotesEn.duplicate)
-})
-
-test('an untouched re-upload of a file stays a duplicate once the user confirms an item on the first upload (#208 R4)', async ({ page }) => {
-  await signUp(page)
-  // One file sent twice under two names: the stub reads the copy as Voltia's quote.
-  const file = await quotePdf('grupoluz')
-  await uploadQuotes(page, [file, { ...file, name: 'voltia.pdf' }])
-  await page.getByRole('button', { name: 'Ok, got it' }).click()
-  await openVerdictFromTray(page)
-  const voltia = page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })
-  await expect(voltia).toContainText(quotesEn.duplicate)
-
-  const grupo = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
-  await grupo.getByRole('button', { name: 'Show checks for Grupo Luz', exact: true }).click()
-  const save = saved(page, 'item')
-  await grupo.getByRole('group', { name: 'Battery charger', exact: true }).getByRole('button', { name: 'Included', exact: true }).click()
-  await save
-
-  // The copy carries nothing the user entered, so hiding it hides nothing: it is still listed once, as a duplicate.
-  await page.reload()
-  await expect(verdictHeading(page)).not.toContainText('Voltia Instalaciones')
   await expect(voltia).toHaveCount(1)
-  await expect(voltia).toContainText(quotesEn.duplicate)
-  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(1)
-})
-
-test('an untouched first upload of a file is the duplicate once the user confirmed an item on a later one, in both languages (#208 R4)', async ({ page }) => {
-  const email = await signUp(page)
-  // One file sent twice under two names: the stub reads the copy as Voltia's quote.
-  const file = await quotePdf('grupoluz')
-  await uploadQuotes(page, [file, { ...file, name: 'voltia.pdf' }])
-  await page.getByRole('button', { name: 'Ok, got it' }).click()
-  await openVerdictFromTray(page)
-  await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toContainText(quotesEn.duplicate)
-
-  // The second upload carries an item the user confirmed, the first nothing: only the second ranks.
-  await setQuoteOverrides(email, 'voltia.pdf', { charger: 'included' })
-  await page.reload()
-  await expect(verdictHeading(page)).toContainText('Voltia Instalaciones')
-  const grupo = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
-  await expect(grupo).toHaveCount(1)
-  await expect(grupo).toContainText(quotesEn.duplicate)
-  await expect(grupo).toContainText(quotesEn.duplicateHelp)
-  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(1)
-
-  await switchLanguage(page, 'Español')
-  const grupoEs = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
-  await expect(grupoEs).toContainText(quotesEs.duplicate)
-  await expect(grupoEs).toContainText(quotesEs.duplicateHelp)
-  await expect(grupoEs).toContainText('otra que subiste')
-  await expect(page.getByRole('article').filter({ hasText: quotesEs.duplicate })).toHaveCount(1)
+  await expect(voltia).not.toContainText(quotesEn.duplicate)
+  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(0)
 })
 
 test('a tie between currencies says on screen which one was compared (AI-28)', async ({ page }) => {

@@ -19,7 +19,7 @@ import { AccountClaim, requireAccount, requireQuoteUser } from '../session'
 import { defaultStorage, emptyQuoteTrash } from './deps'
 import { inspectUpload } from './inspect-upload'
 import { kickQuotes } from './kick'
-import { dailyBudget, insertWithinLimits, quoteCounts, retryWithinBudget } from './limits'
+import { dailyBudget, insertWithinLimits, quoteCounts, quoteWithFile, retryWithinBudget } from './limits'
 import { quotePollMs } from './poll'
 import { recoverStaleQuotes, trashQuoteFiles } from './repo'
 import { quotePath } from './storage'
@@ -86,6 +86,9 @@ export const uploadQuote = createServerFn({ method: 'POST' })
     if (!inspected.ok) return reject(inspected.rejection)
     const { mime, pages } = inspected
     const fileHash = await fileFingerprint(bytes)
+    // The same file is never a second quote of a project (#208): refused before it is stored, counted or read.
+    const earlier = await quoteWithFile(userId, data.projectId, fileHash)
+    if (earlier) return reject({ code: 'already_uploaded', fileName: earlier.fileName })
 
     const id = crypto.randomUUID()
     const blobPathname = quotePath(userId, id, mime)
@@ -96,10 +99,10 @@ export const uploadQuote = createServerFn({ method: 'POST' })
         id, userId, projectId: data.projectId, fileName: cleanFileName(data.file.name), blobPathname, mime, sizeBytes: bytes.byteLength, pages, fileHash,
       })
       if (!added) {
-        // Another upload took the last slot, or the day's last read, while this file was being read and stored.
+        // Another upload took the last slot, or the day's last read, or added this same file, while this file was being read and stored.
         await dropFile()
-        const [fresh, freshDaily] = await Promise.all([quoteCounts(userId, data.projectId), dailyBudget()])
-        return reject(logSpentBudget(refusedInsertRejection(fresh, freshDaily), userId, 'upload'))
+        const [fresh, freshDaily, earlier] = await Promise.all([quoteCounts(userId, data.projectId), dailyBudget(), quoteWithFile(userId, data.projectId, fileHash)])
+        return reject(logSpentBudget(refusedInsertRejection(fresh, freshDaily, earlier?.fileName ?? null), userId, 'upload'))
       }
     } catch (error) {
       console.error('[quotes] upload failed', { userId, id, error })
