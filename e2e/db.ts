@@ -150,6 +150,13 @@ export async function stripQuoteOptions(email: string, projectId: string): Promi
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/** Sets the items the user confirmed on one quote of theirs, picked by its file name, as if they had saved them on its card. */
+export async function setQuoteOverrides(email: string, fileName: string, overrides: Record<string, string>): Promise<void> {
+  await testDb()`
+    update quotes q set overrides = ${JSON.stringify(overrides)}::jsonb
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.file_name = ${fileName}`
+}
+
 /** Renames the vendor on every quote of a project, as a reading of a quote with a longer vendor name would have it. */
 export async function renameQuoteVendor(email: string, projectId: string, name: string): Promise<void> {
   await testDb()`

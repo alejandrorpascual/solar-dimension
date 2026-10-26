@@ -327,6 +327,18 @@ describe('the same quote uploaded twice (AI-28)', () => {
     expect(v.ranked.map(entryKey).sort()).toEqual(['first:o1', 'first:o2'])
     expect(v.unranked.map((u) => [entryKey(u), u.reason])).toEqual([['again:o1', 'duplicate'], ['again:o2', 'duplicate']])
   })
+  test('when the only upload of a file the user changed cannot rank, the earliest untouched upload still ranks', () => {
+    // The changed upload waits for a total, so it is not in the ranking: hiding every untouched upload would rank none.
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.grupoluz, fileHash: 'a1', createdAt: 1 }),
+      view('changed', { status: 'needs_review', extraction: SAMPLE_QUOTES.grupoluz, overrides: { charger: 'included' }, fileHash: 'a1', createdAt: 2 }),
+      view('again', { extraction: SAMPLE_QUOTES.grupoluz, fileHash: 'a1', createdAt: 3 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['first'])
+    const reasons = Object.fromEntries(v.unranked.map((u) => [u.quote.id, u.reason]))
+    expect(reasons.again).toBe('duplicate')
+    expect(reasons.changed).not.toBe('duplicate')
+  })
   test('the same file read well the second time ranks when the first reading failed', () => {
     const v = compareQuotes(KIT, DEFAULT_MUSTS, [
       view('first', { status: 'failed', extraction: null, fileHash: 'a1', createdAt: 1 }),

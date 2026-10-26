@@ -1,0 +1,105 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Running 74 tests using 5 workers
+
+[1/74] [phone] › e2e/account.spec.ts:6:1 › sign up, keep a project across reload and sign-out/sign-in @phone
+[2/74] [phone] › e2e/a11y-states.spec.ts:113:1 › Next and Back from the keyboard focus the new step heading, on a phone too @phone
+[3/74] [phone] › e2e/download.spec.ts:70:1 › the kit downloads as a CSV parts list and a PDF spec sheet @phone
+[4/74] [phone] › e2e/download.spec.ts:241:1 › the preview opens larger, page by page as the PDF prints, or as one image for PNG @phone
+[5/74] [phone] › e2e/download.spec.ts:336:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (en) @phone
+[6/74] [phone] › e2e/download.spec.ts:336:3 › the downloaded image has the estimate sentence printed on it, with every Include box unticked (es) @phone
+[7/74] [phone] › e2e/duty.spec.ts:78:3 › the duty picker stays inside its appliance card and clear of the quantity buttons at every width, in English @phone
+[8/74] [phone] › e2e/duty.spec.ts:91:3 › the duty picker stays inside its quick-edit row and clear of the quantity buttons at every width, in English @phone
+[9/74] [phone] › e2e/duty.spec.ts:78:3 › the duty picker stays inside its appliance card and clear of the quantity buttons at every width, in Español @phone
+[10/74] [phone] › e2e/duty.spec.ts:91:3 › the duty picker stays inside its quick-edit row and clear of the quantity buttons at every width, in Español @phone
+[11/74] [phone] › e2e/duty.spec.ts:107:1 › on a touch screen the duty picker is at least 16 px, so iOS Safari does not zoom in when it is tapped @phone
+[12/74] [phone] › e2e/duty.spec.ts:120:1 › on a touch screen the quantity fields are at least 16 px, so iOS Safari does not zoom in when one is tapped @phone
+[13/74] [phone] › e2e/duty.spec.ts:134:1 › on a touch screen the quantity field in another project's quick edit is at least 16 px too @phone
+[14/74] [phone] › e2e/kit-attention.spec.ts:38:3 › a kit with 2 failing checks says so under its summary and in the footer, and the line moves to the checks, in English @phone
+[15/74] [phone] › e2e/kit-attention.spec.ts:38:3 › a kit with 2 failing checks says so under its summary and in the footer, and the line moves to the checks, in Español @phone
+[16/74] [phone] › e2e/kit-builder.spec.ts:9:1 › shell renders the stepper, a Home project and step navigation @phone
+[17/74] [phone] › e2e/kit-builder.spec.ts:145:1 › a new project can be created, renamed and deleted @phone
+[18/74] [phone] › e2e/kit-builder.spec.ts:164:1 › project names can be erased with backspace and replaced @phone
+[19/74] [phone] › e2e/kit-builder.spec.ts:221:1 › clicking another project's card away from its name opens that project @phone
+[20/74] [phone] › e2e/kit-builder.spec.ts:235:1 › quick edit on another project's card shows its steppers without opening it @phone
+[21/74] [phone] › e2e/kit-builder.spec.ts:244:1 › with quick edit open, a click between stepper rows opens nothing @phone
+[22/74] [phone] › e2e/kit-builder.spec.ts:481:3 › the kit says it is an estimate between the parts list and the checks, in English @phone
+[23/74] [phone] › e2e/kit-builder.spec.ts:481:3 › the kit says it is an estimate between the parts list and the checks, in Español @phone
+[24/74] [phone] › e2e/kit-builder.spec.ts:522:1 › full flow: appliances → window → kit, and the project survives a reload @phone
+[25/74] [phone] › e2e/kit-builder.spec.ts:617:1 › on the narrowest phone the quotes card wraps its long Spanish sign-in label instead of widening the page @phone
+[26/74] [phone] › e2e/kit-builder.spec.ts:636:3 › at 360 px the category chips and the hour presets all show without scrolling sideways @phone
+[27/74] [phone] › e2e/kit-builder.spec.ts:636:3 › at 390 px the category chips and the hour presets all show without scrolling sideways @phone
+[28/74] [phone] › e2e/kit-footer.spec.ts:8:1 › on the kit step Download is the footer's primary button and Start over a secondary one, at this device's width @phone
+[29/74] [phone] › e2e/kit-footer.spec.ts:57:1 › the Cable run summary on step 2 shows a chevron @phone
+[30/74] [phone] › e2e/kit-glossary.spec.ts:49:1 › the Glossary reads in Spanish @phone
+[31/74] [phone] › e2e/legal-links.spec.ts:9:3 › /: the Privacy and Terms links each have a hit area at least 24 px tall @phone
+[32/74] [phone] › e2e/legal-links.spec.ts:9:3 › /login: the Privacy and Terms links each have a hit area at least 24 px tall @phone
+[33/74] [phone] › e2e/project-card.spec.ts:62:3 › Rename chosen from the ··· menu by mouse lands in the name field, ready to type @phone
+[34/74] [phone] › e2e/project-card.spec.ts:62:3 › Rename chosen from the ··· menu by touch lands in the name field, ready to type @phone
+[35/74] [phone] › e2e/project-card.spec.ts:62:3 › Rename chosen from the ··· menu by keyboard lands in the name field, ready to type @phone
+[36/74] [phone] › e2e/project-card.spec.ts:81:3 › Duplicate from the ··· menu puts focus on the title of the project it opens @phone
+[37/74] [phone] › e2e/project-card.spec.ts:81:3 › Delete from the ··· menu puts focus on the title of the project it opens @phone
+[38/74] [phone] › e2e/project-card.spec.ts:99:1 › Delete from the ··· menu asks on the card first, and Cancel keeps the project, with focus back on its title @phone
+[39/74] [phone] › e2e/project-card.spec.ts:156:1 › Escape puts back the name the rename started with, though every keystroke was saved @phone
+[40/74] [phone] › e2e/project-card.spec.ts:179:1 › Enter and Escape that an input method is using leave the name field open with what was typed @phone
+[41/74] [phone] › e2e/project-card.spec.ts:198:1 › a rename ends when another project is opened, even if the name field never blurred @phone
+[42/74] [phone] › e2e/project-card.spec.ts:227:1 › Enter in a new project's name field closes the phone's sheet @phone
+[43/74] [phone] › e2e/project-card.spec.ts:240:1 › leaving a new project's name field keeps the sheet open @phone
+[44/74] [phone] › e2e/project-card.spec.ts:250:1 › Escape in a new project's name field keeps the sheet open, and so does renaming it afterwards @phone
+[45/74] [phone] › e2e/project-card.spec.ts:263:1 › renaming an existing project with Enter keeps the sheet open @phone
+[46/74] [phone] › e2e/project-card.spec.ts:274:1 › a card's controls scroll under the sheet's header, never over its Close button @phone
+[47/74] [phone] › e2e/project-card.spec.ts:309:1 › another project's card still shows its focus ring around the whole card @phone
+[48/74] [phone] › e2e/project-card.spec.ts:358:1 › while a project is renamed, the name field and its focus ring stay above the line under it @phone
+[49/74] [phone] › e2e/quote-dialog-exit.spec.ts:89:3 › the hand-off dialog plays a short exit when it closes, as a dialog and as a phone sheet @phone
+[50/74] [phone] › e2e/quote-dialog-exit.spec.ts:113:3 › with Reduce Motion on, the hand-off dialog closes with no animation @phone
+[51/74] [phone] › e2e/quote-dialog-exit.spec.ts:89:3 › the must-haves sheet plays a short exit when it closes, as a dialog and as a phone sheet @phone
+[52/74] [phone] › e2e/quote-dialog-exit.spec.ts:113:3 › with Reduce Motion on, the must-haves sheet closes with no animation @phone
+[53/74] [phone] › e2e/quote-evidence.spec.ts:13:1 › a check quotes every line it read and shows its arithmetic, in English and Spanish (AI-18) @phone
+[54/74] [phone] › e2e/quote-lines.spec.ts:12:1 › Show checks lists every line read, and a misread card names the check that failed (AI-10) @phone
+[55/74] [phone] › e2e/quote-reading-progress.spec.ts:93:1 › with Reduce Motion on, the upload dialog and the tray each change within 2 s while nothing animates @phone
+[56/74] [phone] › e2e/quote-reading-progress.spec.ts:106:1 › with Reduce Motion on, Watch progress changes within 2 s while nothing animates @phone
+[57/74] [phone] › e2e/quote-tray.spec.ts:38:1 › on a phone, the tray leaves the quotes card buttons clear while a quote is read and once its verdict is ready @phone
+[58/74] [phone] › e2e/quote-tray.spec.ts:50:1 › on a phone, a long project name that wraps the tray taller still leaves the quotes card buttons clear @phone
+[59/74] [phone] › e2e/quotes.spec.ts:27:1 › quotes upload, are read in the background, and end in a verdict @phone
+[60/74] [phone] › e2e/quotes.spec.ts:893:1 › on a phone, every card keeps its name, total, reason and gauge labels apart @phone
+[61/74] [phone] › e2e/requester.spec.ts:98:1 › the form explains a bad RIF, caps long text, and Escape closes only the form @phone
+[62/74] [phone] › e2e/requester.spec.ts:216:1 › with a long list of saved clients, "Use on the sheet" stays on screen @phone
+[63/74] [phone] › e2e/requester.spec.ts:305:1 › a client with every field at its longest still leaves the parts list whole on page one @phone
+[64/74] [phone] › e2e/requester.spec.ts:351:3 › the longest client in Spanish: the estimate block prints whole, and the load schedule never takes a third page @phone
+[65/74] [phone] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one: the estimate block prints whole, and the load schedule never takes a third page @phone
+[66/74] [phone] › e2e/requester.spec.ts:351:3 › the longest client with a parts list too long for page one, in Spanish: the estimate block prints whole, and the load schedule never takes a third page @phone
+[67/74] [phone] › e2e/requester.spec.ts:399:1 › with the phone keyboard open, the form sheet ends above it and its last field can be reached @phone
+[68/74] [phone] › e2e/requester.spec.ts:414:1 › on a touch screen the form fields are at least 16 px, so iOS Safari does not zoom in when one is tapped @phone
+[69/74] [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (English) @phone
+[70/74] [phone] › e2e/split-phase.spec.ts:57:3 › 1.5-ton and larger AC cards say they need 240 V and the well pump asks for a nameplate check (Español) @phone
+[71/74] [phone] › e2e/stepper.spec.ts:198:3 › English: the stepper fits the header at this device's own width @phone
+[72/74] [phone] › e2e/stepper.spec.ts:198:3 › Español: the stepper fits the header at this device's own width @phone
+[73/74] [phone] › e2e/stepper.spec.ts:222:1 › without the rail, steps 2 and 3 name the open project beside the Projects button @phone
+[74/74] [phone] › e2e/stepper.spec.ts:246:1 › a long project name beside the Projects button is cut with an ellipsis instead of widening the page @phone
+  74 passed (51.9s)

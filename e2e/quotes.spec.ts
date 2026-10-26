@@ -7,7 +7,7 @@ import { quotesEn } from '../src/i18n/quotes-en'
 import { quotesEs } from '../src/i18n/quotes-es'
 import {
   cloneProject, countQuoteRows, firstProjectId, linkGoogleAccount, misreadQuoteLine, misreadQuoteTotal, quoteFileHashes, quoteFiles, quoteRetryStates, seedFailedQuote,
-  seedQuoteRows, setQuoteCurrency, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
+  seedQuoteRows, setQuoteCurrency, setQuoteOverrides, setQuoteRetries, setQuoteUploadsThisMonth, setQuoteTotalOverride, stripQuoteOptions, trashedPaths,
 } from './db'
 import { captureGoogleRedirect, expectOurGoogleRequest } from './google'
 import { switchLanguage, switchLanguageOnLoad } from './header'
@@ -205,6 +205,33 @@ test('an untouched re-upload of a file stays a duplicate once the user confirms 
   await expect(voltia).toHaveCount(1)
   await expect(voltia).toContainText(quotesEn.duplicate)
   await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(1)
+})
+
+test('an untouched first upload of a file is the duplicate once the user confirmed an item on a later one, in both languages (#208 R4)', async ({ page }) => {
+  const email = await signUp(page)
+  // One file sent twice under two names: the stub reads the copy as Voltia's quote.
+  const file = await quotePdf('grupoluz')
+  await uploadQuotes(page, [file, { ...file, name: 'voltia.pdf' }])
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  await openVerdictFromTray(page)
+  await expect(page.getByRole('article').filter({ hasText: 'Voltia Instalaciones' })).toContainText(quotesEn.duplicate)
+
+  // The second upload carries an item the user confirmed, the first nothing: only the second ranks.
+  await setQuoteOverrides(email, 'voltia.pdf', { charger: 'included' })
+  await page.reload()
+  await expect(verdictHeading(page)).toContainText('Voltia Instalaciones')
+  const grupo = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
+  await expect(grupo).toHaveCount(1)
+  await expect(grupo).toContainText(quotesEn.duplicate)
+  await expect(grupo).toContainText(quotesEn.duplicateHelp)
+  await expect(page.getByRole('article').filter({ hasText: quotesEn.duplicate })).toHaveCount(1)
+
+  await switchLanguage(page, 'Español')
+  const grupoEs = page.getByRole('article').filter({ hasText: 'Grupo Luz' })
+  await expect(grupoEs).toContainText(quotesEs.duplicate)
+  await expect(grupoEs).toContainText(quotesEs.duplicateHelp)
+  await expect(grupoEs).toContainText('otra que subiste')
+  await expect(page.getByRole('article').filter({ hasText: quotesEs.duplicate })).toHaveCount(1)
 })
 
 test('a tie between currencies says on screen which one was compared (AI-28)', async ({ page }) => {
