@@ -99,7 +99,7 @@ export function QuoteTray() {
         </button>
       </div>
       <div className="qtray__bar" role="progressbar" aria-label={t.quotes.trayLabel} aria-valuemin={0} aria-valuemax={p.total} aria-valuenow={p.done}>
-        <span style={{ width: `${percent}%` }} />
+        <span style={{ transform: `scaleX(${percent / 100})` }} />
       </div>
       {isOpen && (
         <ul className="qtray__files">

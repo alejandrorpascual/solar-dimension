@@ -1,9 +1,8 @@
 import { z } from 'zod'
 import { parseAmount } from './parse-amount'
 import { dailyRejection, type DailyBudget } from './quote-budget'
-import { pdfInfo } from './pdf-info'
 import { ITEM_IDS, OVERRIDES } from './quote-items'
-import { limitRejection, QUOTE_LIMITS, sniffMime, type QuoteMime, type Rejection } from './quote-limits'
+import { limitRejection, type Rejection } from './quote-limits'
 import type { QuoteStatus } from './quote-schema'
 
 /**
@@ -68,19 +67,6 @@ export function refusedInsertRejection(counts: { project: number; month: number 
 export function retryRefusal(r: { retried: boolean; retryable: boolean; admitted: boolean }): Rejection | 'not_found' | null {
   if (r.retried) return null
   return r.retryable && !r.admitted ? { code: 'daily_limit' } : 'not_found'
-}
-
-export type Inspection = { ok: true; mime: QuoteMime; pages: number | null } | { ok: false; rejection: Rejection }
-
-/** What the file really is, from its first bytes, and for a PDF its page count. The browser's checks are only a hint. */
-export async function inspectUpload(bytes: Uint8Array): Promise<Inspection> {
-  const mime = sniffMime(bytes)
-  if (!mime) return { ok: false, rejection: { code: 'type' } }
-  if (mime !== 'application/pdf') return { ok: true, mime, pages: null }
-  const info = await pdfInfo(bytes)
-  if (!info.ok) return { ok: false, rejection: info.reason === 'encrypted' ? { code: 'encrypted' } : { code: 'type' } }
-  if (info.pages > QUOTE_LIMITS.maxPages) return { ok: false, rejection: { code: 'pages', pages: info.pages } }
-  return { ok: true, mime, pages: info.pages }
 }
 
 /**

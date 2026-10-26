@@ -3,7 +3,7 @@ import { getDictionary } from '../i18n'
 import { GAUGES, INVERTERS, SIZING, VOLTAGES, type ChemistryId } from './catalog'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { kitChecks } from './kit-checks'
-import { buildParts } from './kit-parts'
+import { buildParts, type Part } from './kit-parts'
 import { compute, type CableConditions, type SizingInput, type SizingResult } from './sizing'
 
 const en = getDictionary('en')
@@ -20,10 +20,9 @@ interface PrintedConductor { row: ConductorRow; gauge: string; sideBySide: numbe
  * The cable rows as a supplier reads them. Deliberately independent of the engine's helpers: the gauge comes from the
  * spec text, the pieces from the quantity, and the ampacity from the NEC table and the result's stated factors.
  */
-function printedConductors(r: SizingResult): PrintedConductor[] {
+function printedConductors(r: SizingResult, parts = buildParts(r, en, 'en')): PrintedConductor[] {
   const b = r.battery!
   const c = r.cable
-  const parts = buildParts(r, en, 'en')
   const stringA = r.inverter.continuousA / b.parallel
   const read = (row: ConductorRow, paths: number, pathA: number, bundleFactor: number): PrintedConductor[] => {
     const part = parts.find((p) => p.id === row)
@@ -59,7 +58,7 @@ const WINDOWS_H = [1, 2, 4, 8, 12, 24]
  */
 const SET_LOADS_W = [10000, 12800, 16000, 16500, 19200, 24000, 28800]
 
-interface Kit { label: string; cable: Partial<CableConditions>; r: SizingResult; printed: PrintedConductor[] }
+interface Kit { label: string; cable: Partial<CableConditions>; r: SizingResult; parts: Part[]; printed: PrintedConductor[] }
 
 const layoutOf = (k: Kit) => `${k.r.battery!.series > 1 ? 'S' : ''}${k.r.battery!.parallel > 1 ? 'P' : ''}`
 /** The layout the defect lived in: batteries in series on one string, behind a main cable split into runs. */
@@ -87,7 +86,8 @@ function stockKits(): Kit[] {
       const r = compute({ ...input, batteryUnit }, CATALOG_SNAPSHOT)
       const where = `${input.cable?.ambientC ?? 30} °C${input.cable?.bundled ? ' bundled' : ''}`
       const label = `${input.volts} V ${r.inverter.w} W ${input.chemistry} ${input.hours} h ${batteryUnit ?? 'auto'} ${r.battery!.config}, ${r.cable.runs} runs, ${where}`
-      return { label, cable: input.cable ?? {}, r, printed: printedConductors(r) }
+      const parts = buildParts(r, en, 'en')
+      return { label, cable: input.cable ?? {}, r, parts, printed: printedConductors(r, parts) }
     })
   })
 }
@@ -153,8 +153,7 @@ describe('printed conductors', () => {
   test('every inverter of a kit gets the same whole number of runs, with a fuse on each run and a cable pair for it', () => {
     const wrong = kits.flatMap((k) => {
       const { runs } = k.r.cable
-      const parts = buildParts(k.r, en, 'en')
-      const qty = (id: string) => Number(parts.find((p) => p.id === id)!.qty)
+      const qty = (id: string) => Number(k.parts.find((p) => p.id === id)!.qty)
       const inStep = Number.isInteger(runs / k.r.inverter.count) && runs >= k.r.inverter.count
       return inStep && qty('inverter') === k.r.inverter.count && qty('fuse') === runs && qty('mainCable') === 2 * runs ? [] : [k.label]
     })
@@ -165,9 +164,8 @@ describe('printed conductors', () => {
 
   test('a link that copies the main cable prints the design current of the main run it copies', () => {
     const differ = kits.filter((k) => layoutOf(k) === 'S').flatMap((k) => {
-      const parts = buildParts(k.r, en, 'en')
-      const main = designCurrent(parts.find((p) => p.id === 'mainCable')?.note)
-      const link = designCurrent(parts.find((p) => p.id === 'interconnects')?.note)
+      const main = designCurrent(k.parts.find((p) => p.id === 'mainCable')?.note)
+      const link = designCurrent(k.parts.find((p) => p.id === 'interconnects')?.note)
       return main && main === link ? [] : [`${k.label} | main ${main} A, link ${link} A`]
     })
     expect(differ).toEqual([])
@@ -175,11 +173,10 @@ describe('printed conductors', () => {
 
   test('each main run and each string has a fuse of its own, and no string fuse is rated above its lead unless the fuse check says so', () => {
     const wrong = kits.flatMap((k) => {
-      const parts = buildParts(k.r, en, 'en')
       const parallel = k.r.battery!.parallel
-      const qty = (id: string) => parts.find((p) => p.id === id)?.qty ?? null
+      const qty = (id: string) => k.parts.find((p) => p.id === id)?.qty ?? null
       const lead = k.printed.find((x) => x.row === 'stringLeads')
-      const stringFuseA = Number.parseInt(parts.find((p) => p.id === 'stringFuses')?.spec ?? '', 10)
+      const stringFuseA = Number.parseInt(k.parts.find((p) => p.id === 'stringFuses')?.spec ?? '', 10)
       const isWarned = k.r.warnings.some((w) => w.code === 'fuseAboveCable')
       const problems = [
         qty('fuse') !== String(k.r.cable.runs) ? `${qty('fuse')} main fuses` : '',

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { fmtDate, fmtDecimal, fmtHours, fmtInt, fmtInverter, fmtKw, fmtKwh, fmtList, fmtMoney, fmtW } from './format'
+import { cssPercent, fmtDate, fmtDecimal, fmtHours, fmtInt, fmtInverter, fmtKw, fmtKwh, fmtList, fmtMoney, fmtPercent, fmtW } from './format'
 
 test('formats numbers per locale', () => {
   expect(fmtInt(1234, 'en')).toBe('1,234')
@@ -62,4 +62,13 @@ test('fmtInverter names one unit by its size and a parallel set by its count', (
   expect(fmtInverter({ count: 1, unitW: 3000 }, 'en')).toBe('3,000 W')
   expect(fmtInverter({ count: 2, unitW: 8000 }, 'en')).toBe('2 × 8,000 W')
   expect(fmtInverter({ count: 3, unitW: 12000 }, 'es')).toBe('3 × 12.0 kW')
+})
+
+test('fmtPercent prints a share as a whole percent, and cssPercent as a width capped at 0 to 100%', () => {
+  expect(fmtPercent(0.703, 'en')).toBe('70%')
+  expect(fmtPercent(0.281, 'es')).toBe('28%')
+  expect(fmtPercent(10.05, 'en')).toBe('1,005%')
+  expect(cssPercent(0.663)).toBe('66%')
+  expect(cssPercent(1.4)).toBe('100%')
+  expect(cssPercent(-0.2)).toBe('0%')
 })

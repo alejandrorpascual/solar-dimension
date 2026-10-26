@@ -1,6 +1,6 @@
 import { applianceName, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtInt, fmtList, fmtW } from '../i18n/format'
-import { SIZING, type ChemistryId } from './catalog'
+import type { ChemistryId } from './catalog'
 import { shareLabel } from './kit-parts'
 import type { SelectedItem, SizingResult, Warning, WarningCode } from './sizing'
 
@@ -28,11 +28,15 @@ export interface KitCheck { id: CheckId; name: string; status: CheckStatus; line
 
 const KA = 1000
 
+/** What a warning's wording needs from the kit: its appliances, and its chemistry, which decides whether the bank has a BMS to name. */
+export interface WarningKit { items: readonly SelectedItem[]; chemistry: ChemistryId }
+
 /**
  * The warning in the user's language, with the appliance, or each one a note covers, named as the catalog names it
- * there, and the bank worded for the kit's chemistry (without it, as a bank with a BMS).
+ * there, and the bank worded for the kit's chemistry. The kit is required whole, so no caller can leave the chemistry out.
  */
-export function warningText(t: Dictionary, w: Warning, items: readonly SelectedItem[], chemistry?: ChemistryId): string {
+export function warningText(t: Dictionary, w: Warning, kit: WarningKit): string {
+  const { items, chemistry } = kit
   const { itemId, itemIds } = w.params
   const item = items.find((i) => i.id === itemId)
   const listed = itemIds ? fmtList(items.filter((i) => itemIds.includes(i.id)).map((i) => applianceName(t, i)), t.locale) : undefined
@@ -50,7 +54,7 @@ export function uncheckedWarnings(r: SizingResult): Warning[] {
 }
 
 /** Those notes in the reader's language: they travel with the kit onto the sheet, the image and the CSV. */
-export const kitNotes = (t: Dictionary, r: SizingResult): string[] => uncheckedWarnings(r).map((w) => warningText(t, w, r.items, r.chemistry))
+export const kitNotes = (t: Dictionary, r: SizingResult): string[] => uncheckedWarnings(r).map((w) => warningText(t, w, r))
 
 export const isFailing = (c: KitCheck): boolean => c.status === 'warn'
 
@@ -70,7 +74,6 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
   const inv = r.inverter
   const w = (n: number) => fmtW(n, locale)
   const a = (n: number) => fmtInt(Math.round(n), locale)
-  const startupA = r.surgeW / r.volts / SIZING.INVERTER_EFF
   // No appliance starts above its running watts: there is no surge, so no seconds to print.
   const hasSurge = r.surgeSeconds > 0
   switch (id) {
@@ -81,11 +84,11 @@ function passLine(t: Dictionary, r: SizingResult, id: CheckId, locale: Locale): 
     case 'batteryContinuous':
       return tr(t, inv.count > 1 ? 'checkBatteryContinuousOkMany' : 'checkBatteryContinuousOk', { bankA: a(b.bankContinuousA), needA: a(inv.continuousA), count: inv.count })
     case 'batteryPeak':
-      return tr(t, hasSurge ? 'checkBatteryPeakOk' : 'checkBatteryPeakOkNoStart', { bankA: a(b.bankPeakA), needA: a(startupA), seconds: r.surgeSeconds })
+      return tr(t, hasSurge ? 'checkBatteryPeakOk' : 'checkBatteryPeakOkNoStart', { bankA: a(b.bankPeakA), needA: a(r.startupA), seconds: r.surgeSeconds })
     case 'parallel':
       return tr(t, b.parallel > 1 ? 'checkParallelOk' : 'checkParallelSingle', { parallel: b.parallel, max: b.unit.maxParallel })
     case 'fuse':
-      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, fault: a(b.bankShortCircuitA), startA: a(startupA / c.runs) })
+      return tr(t, 'checkFuseOk', { amps: r.fuse.a, class: r.fuse.class, ampacity: a(c.ampacity), aic: r.fuse.aicA / KA, fault: a(b.bankShortCircuitA), startA: a(c.startupPerRunA) })
     case 'cable':
       return tr(t, 'checkCableOk', {
         gauge: c.runs > 1 ? `${c.runs} × ${c.gauge}` : c.gauge, ampacity: a(c.ampacity), ambient: c.ambientC, bundled: c.bundled ? t.ui.cableBundledShort : '',
@@ -114,7 +117,7 @@ export function kitChecks(t: Dictionary, r: SizingResult, locale: Locale): KitCh
   return CHECK_IDS.map((id) => {
     const failing = failingWarnings(r, id)
     const status: CheckStatus = failing.length > 0 ? 'warn' : 'pass'
-    const main = status === 'pass' ? [passLine(t, r, id, locale)] : failing.map((w) => warningText(t, w, r.items, r.chemistry))
+    const main = status === 'pass' ? [passLine(t, r, id, locale)] : failing.map((w) => warningText(t, w, r))
     const extra = id === 'surge' ? contributorsLine(t, r, locale) : null
     return { id, name: t.ui[NAME_KEY[id]], status, lines: extra ? [...main, extra] : main }
   })
