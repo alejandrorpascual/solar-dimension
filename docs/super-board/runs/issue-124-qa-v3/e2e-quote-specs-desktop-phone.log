@@ -1,0 +1,363 @@
+[WebServer] ◇ injected env (0) from .env.local
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - import "./src/server/quotes/time-limits" without a file extension (vite.config.ts:8:41). Add the file extension
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] `output.codeSplitting.groups[0].name` is a function. Set `output.codeSplitting.groups[0].debugName` so the bundler timing report can identify this group.
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/index.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/index.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/utils.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/utils.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouter.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouter.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/ClientOnly.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/ClientOnly.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/RouterProvider.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/RouterProvider.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useMatch.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useMatch.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useBlocker.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useBlocker.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Matches.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Matches.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Match.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Match.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouterState.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouterState.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useLocation.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useLocation.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Asset.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Asset.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/HeadContent.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/HeadContent.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useNavigate.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useNavigate.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/link.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/link.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/routerContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/routerContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/matchContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/matchContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Transitioner.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Transitioner.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/Icon.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/Icon.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/context.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/context.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+
+Running 66 tests using 5 workers
+
+  ✓   4 [desktop] › e2e/quote-dialog-exit.spec.ts:89:3 › the hand-off dialog plays a short exit when it closes, as a dialog and as a phone sheet @phone (4.5s)
+[WebServer] [quotes] the daily read budget is spent; a read was refused { userId: 'FnAQPZDXEidbFrKomgxyod2qiCbrcL0r', kind: 'retry' }
+[WebServer] [quotes] the daily read budget is spent; a read was refused { userId: 'KvDw4j5jo6vQr3suwwYsVqzxgNYf5wdg', kind: 'upload' }
+  ✓   2 [desktop] › e2e/quote-budget.spec.ts:37:1 › with the day’s reads spent, a retry is refused with the reason and the quote stays as it was (5.5s)
+  ✓   3 [desktop] › e2e/quote-budget.spec.ts:13:1 › an admitted upload takes one of the day’s reads (5.6s)
+  ✓   5 [desktop] › e2e/quote-budget.spec.ts:25:1 › with the day’s reads spent, an upload is refused with the reason and nothing is stored (5.8s)
+  ✓   1 [desktop] › e2e/quote-budget.spec.ts:84:1 › two retries of the same quote at once take one read and re-queue it once (7.0s)
+  ✓   6 [desktop] › e2e/quote-dialog-exit.spec.ts:113:3 › with Reduce Motion on, the hand-off dialog closes with no animation @phone (2.9s)
+  ✓   7 [desktop] › e2e/quote-dialog-exit.spec.ts:89:3 › the must-haves sheet plays a short exit when it closes, as a dialog and as a phone sheet @phone (5.2s)
+  ✓   8 [desktop] › e2e/quote-dialog-exit.spec.ts:113:3 › with Reduce Motion on, the must-haves sheet closes with no animation @phone (5.2s)
+  ✓   9 [desktop] › e2e/quote-evidence.spec.ts:13:1 › a check quotes every line it read and shows its arithmetic, in English and Spanish (AI-18) @phone (6.1s)
+  ✓  11 [desktop] › e2e/quote-plausibility.spec.ts:11:1 › a reading that cites a page past the end of its file shows the misread card, read again or not (5.8s)
+  ✓  10 [desktop] › e2e/quote-lines.spec.ts:12:1 › Show checks lists every line read, and a misread card names the check that failed (AI-10) @phone (6.7s)
+  -  16 [desktop] › e2e/quote-tray.spec.ts:38:1 › on a phone, the tray leaves the quotes card buttons clear while a quote is read and once its verdict is ready @phone
+  -  17 [desktop] › e2e/quote-tray.spec.ts:50:1 › on a phone, a long project name that wraps the tray taller still leaves the quotes card buttons clear @phone
+  ✓  12 [desktop] › e2e/quote-plausibility.spec.ts:33:1 › a 5,120 kWh battery shows the misread card: a typed total does not rank it, read again or not (5.4s)
+  ✓  15 [desktop] › e2e/quote-reading-progress.spec.ts:106:1 › with Reduce Motion on, Watch progress changes within 2 s while nothing animates @phone (6.0s)
+  ✓  13 [desktop] › e2e/quote-reading-progress.spec.ts:69:1 › mid-read, the tray changes within 2 s at 1440 and 390 px, and the quotes card shows a spinner, not the file icon (8.6s)
+  ✓  14 [desktop] › e2e/quote-reading-progress.spec.ts:93:1 › with Reduce Motion on, the upload dialog and the tray each change within 2 s while nothing animates @phone (7.5s)
+  ✓  18 [desktop] › e2e/quotes.spec.ts:27:1 › quotes upload, are read in the background, and end in a verdict @phone (7.3s)
+  ✓  19 [desktop] › e2e/quotes.spec.ts:53:1 › a cheaper quote that leaves a chemistry, a size and a fuse class open is worth asking, not the best fit (5.6s)
+  ✓  20 [desktop] › e2e/quotes.spec.ts:86:1 › a kit with solar panels asks quotes for them, and panels can be made a nice-to-have (5.7s)
+  ✓  21 [desktop] › e2e/quotes.spec.ts:110:1 › the same quote uploaded twice ranks once with a warning, and inverter and battery stay must-haves (AI-28) (6.4s)
+  ✓  22 [desktop] › e2e/quotes.spec.ts:132:1 › a tie between currencies says on screen which one was compared (AI-28) (6.5s)
+  ✓  24 [desktop] › e2e/quotes.spec.ts:192:1 › a must-have that fails to save goes back, and one saved meanwhile is kept, on screen and on the server (6.2s)
+  ✓  23 [desktop] › e2e/quotes.spec.ts:148:1 › must-haves and confirmations change the winner, and stick (9.5s)
+  ✓  27 [desktop] › e2e/quotes.spec.ts:345:1 › a verdict that finished while away shows once in the tray (4.9s)
+  ✓  25 [desktop] › e2e/quotes.spec.ts:233:1 › a reload that lands while a must-have is saving keeps the change on screen (7.9s)
+  ✓  29 [desktop] › e2e/quotes.spec.ts:386:1 › a file of the wrong type is refused before upload, with the reason (2.3s)
+  ✓  26 [desktop] › e2e/quotes.spec.ts:277:1 › a reload that read the data before a must-have saved, but answers after the save, keeps the change (7.4s)
+[WebServer] Trying to parse invalid object: {"line":62,"column":6,"offset":2209})
+[WebServer] Invalid object ref: 8 0 R
+  ✓  28 [desktop] › e2e/quotes.spec.ts:359:1 › another project's verdict opened from the tray is read once, not again on the first poll (6.1s)
+  ✓  30 [desktop] › e2e/quotes.spec.ts:393:1 › a password-protected PDF is refused as locked, not as the wrong type, and the reason says how to fix it (3.1s)
+[WebServer] Trying to parse invalid object: {"line":62,"column":6,"offset":2209})
+[WebServer] Invalid object ref: 8 0 R
+  ✓  31 [desktop] › e2e/quotes.spec.ts:401:1 › the dialog for a password-protected PDF gives the reason and the one-file hint in Spanish (3.7s)
+  ✓  32 [desktop] › e2e/quotes.spec.ts:412:1 › both upload buttons and the dialog say one file per quote, in English and Spanish (6.6s)
+  ✓  36 [desktop] › e2e/quotes.spec.ts:533:1 › a project that already has 10 quotes refuses an eleventh, with the reason (4.2s)
+  ✓  33 [desktop] › e2e/quotes.spec.ts:436:1 › another account gets 404 for the file and the verdict (9.0s)
+[WebServer] [quotes] a quote could not be read {
+[WebServer]   id: '37e738e4-be53-43c2-aa3e-37edd6e58949',
+[WebServer]   error: 'invalid: No stub fixture matches unreadable-slow.pdf | invalid: No stub fixture matches unreadable-slow.pdf'
+[WebServer] }
+[WebServer] [quotes] a quote could not be read {
+[WebServer]   id: 'bcce4ff5-58c8-488f-9d4e-897e44b8e755',
+[WebServer]   error: 'invalid: No stub fixture matches unreadable-slow.pdf | invalid: No stub fixture matches unreadable-slow.pdf'
+[WebServer] }
+  ✓  37 [desktop] › e2e/quotes.spec.ts:547:1 › an account that used its 20 uploads this month is refused, with the reason (3.7s)
+  ✓  34 [desktop] › e2e/quotes.spec.ts:467:1 › the hand-off dialog shows each file reading, then lets a file that could not be read be retried from there (11.6s)
+  ✓  38 [desktop] › e2e/quotes.spec.ts:573:1 › deleting a project asks first, naming its quotes, and Cancel keeps the project and its quotes (5.2s)
+  ✓  39 [desktop] › e2e/quotes.spec.ts:589:1 › until the account's quotes are read, the delete question says any quotes go too, then names them once read (5.8s)
+  ✓  40 [desktop] › e2e/quotes.spec.ts:607:1 › deleting a project removes its quotes and their files (5.9s)
+[WebServer] [quotes] a quote could not be read {
+[WebServer]   id: 'bcce4ff5-58c8-488f-9d4e-897e44b8e755',
+[WebServer]   error: 'invalid: No stub fixture matches unreadable-slow.pdf | invalid: No stub fixture matches unreadable-slow.pdf'
+[WebServer] }
+[WebServer] [quotes] a quote could not be read {
+[WebServer]   id: '37e738e4-be53-43c2-aa3e-37edd6e58949',
+[WebServer]   error: 'invalid: No stub fixture matches unreadable-slow.pdf | invalid: No stub fixture matches unreadable-slow.pdf'
+[WebServer] }
+  ✓  41 [desktop] › e2e/quotes.spec.ts:625:1 › deleting a quote removes its file and leaves nothing in the trash (5.5s)
+  ✓  42 [desktop] › e2e/quotes.spec.ts:643:1 › Delete on a quote asks with focus on Cancel, and Cancel gives focus back to Delete, on the verdict and progress rows (5.2s)
+  ✓  44 [desktop] › e2e/quotes.spec.ts:710:1 › on the verdict page, an unverified account gets Connect Google instead of Add another quote, and no Retry (2.7s)
+  ✓  35 [desktop] › e2e/quotes.spec.ts:491:1 › a quote that could not be read can be retried, until its retries are used up, on the page and on the server (18.5s)
+  ✓  46 [desktop] › e2e/quotes.spec.ts:744:1 › a Google account whose email Google did not verify does not unlock uploads (2.0s)
+  ✓  45 [desktop] › e2e/quotes.spec.ts:734:1 › a password account with a Google account whose token verifies its email can upload, though its email was never marked verified (2.1s)
+  ✓  43 [desktop] › e2e/quotes.spec.ts:669:1 › an unverified account sees a note and Connect Google instead of the Upload button, and the server refuses its upload (5.5s)
+  ✓  47 [desktop] › e2e/quotes.spec.ts:755:1 › a project whose quotes all failed says none could be read, not that a verdict is ready (2.7s)
+  ✓  49 [desktop] › e2e/quotes.spec.ts:825:1 › a quote that offers two systems shows a card for each, priced on its own, and asks for no total (5.1s)
+  ✓  50 [desktop] › e2e/quotes.spec.ts:846:1 › a quote read before options can be read again, and then shows a card per option (5.9s)
+  ✓  51 [desktop] › e2e/quotes.spec.ts:867:1 › a total that failed its check is asked for in an empty field; a misread line is read again before its total can be typed (7.6s)
+  ✓  48 [desktop] › e2e/quotes.spec.ts:788:1 › on a phone, every card keeps its name, total, reason and gauge labels apart @phone (9.5s)
+  ✓  52 [desktop] › e2e/quotes.spec.ts:911:1 › a typed total can be changed from its ranked card, which re-ranks the quotes; a sum is refused (8.4s)
+  ✓  53 [desktop] › e2e/quotes.spec.ts:948:1 › a total typed with its tax counts as taxed, so a cheaper quote that states no tax is marked beside it (6.5s)
+  ✓  54 [desktop] › e2e/quotes.spec.ts:973:1 › a ranked quote whose reading needs a check can be read again from its card (7.1s)
+  ✓  55 [phone] › e2e/quote-dialog-exit.spec.ts:89:3 › the hand-off dialog plays a short exit when it closes, as a dialog and as a phone sheet @phone (4.2s)
+  ✓  56 [phone] › e2e/quote-dialog-exit.spec.ts:113:3 › with Reduce Motion on, the hand-off dialog closes with no animation @phone (3.5s)
+  ✓  57 [phone] › e2e/quote-dialog-exit.spec.ts:89:3 › the must-haves sheet plays a short exit when it closes, as a dialog and as a phone sheet @phone (5.8s)
+  ✓  58 [phone] › e2e/quote-dialog-exit.spec.ts:113:3 › with Reduce Motion on, the must-haves sheet closes with no animation @phone (5.8s)
+  ✓  59 [phone] › e2e/quote-evidence.spec.ts:13:1 › a check quotes every line it read and shows its arithmetic, in English and Spanish (AI-18) @phone (6.7s)
+  ✓  60 [phone] › e2e/quote-lines.spec.ts:12:1 › Show checks lists every line read, and a misread card names the check that failed (AI-10) @phone (7.3s)
+  ✓  61 [phone] › e2e/quote-reading-progress.spec.ts:93:1 › with Reduce Motion on, the upload dialog and the tray each change within 2 s while nothing animates @phone (7.7s)
+  ✓  62 [phone] › e2e/quote-reading-progress.spec.ts:106:1 › with Reduce Motion on, Watch progress changes within 2 s while nothing animates @phone (6.4s)
+  ✓  63 [phone] › e2e/quote-tray.spec.ts:38:1 › on a phone, the tray leaves the quotes card buttons clear while a quote is read and once its verdict is ready @phone (7.0s)
+  ✓  64 [phone] › e2e/quote-tray.spec.ts:50:1 › on a phone, a long project name that wraps the tray taller still leaves the quotes card buttons clear @phone (4.9s)
+  ✓  65 [phone] › e2e/quotes.spec.ts:27:1 › quotes upload, are read in the background, and end in a verdict @phone (7.0s)
+  ✓  66 [phone] › e2e/quotes.spec.ts:788:1 › on a phone, every card keeps its name, total, reason and gauge labels apart @phone (8.8s)
+
+  2 skipped
+  64 passed (1.5m)

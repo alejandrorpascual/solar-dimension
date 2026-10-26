@@ -213,7 +213,7 @@ export const quotesEs: Record<QuoteKey, string> = {
   caveatChemistryDiffers: 'Baterías {chemistry}, y tu kit está pensado para {kitChemistry}',
   caveatBankVoltage: 'Sus baterías de {volts} V no forman los {kitVolts} V de tu kit',
   caveatInverterVoltage: 'Su inversor es de {volts} V; tu kit es de {kitVolts} V',
-  caveatTax: 'No indica impuestos y otra cotización sí: este total puede no incluirlos',
+  caveatTax: 'No indica impuestos o los deja fuera de este total, y otra cotización sí los incluye',
   caveatTyped: 'Se compara con el total que escribiste: su lectura necesita revisión',
   caveatShortSurge: 'potencia pico',
   caveatShortHeadroom: 'margen del inversor',

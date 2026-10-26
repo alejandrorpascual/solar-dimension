@@ -1,0 +1,86 @@
+
+ RUN  v5.0.1 .
+
+A checks [ 'total_mismatch' ]
+NOW {"best":"a","total":7481.2,"caveats":["tax_unstated","total_typed"],"clean":"b"}
+OLD {"best":"a","total":7481.2,"caveats":["total_typed"],"clean":"b"}
+NOW2 {"best":"c","total":6740,"caveats":[],"clean":null}
+OLD2 {"best":"c","total":6740,"caveats":["tax_unstated"],"clean":null}
+ ❯ src/lib/qa-typed.qaold.test.ts (2 tests | 2 failed) 11ms
+   × typed total on a reading whose read total left tax out 9ms
+   × AC4 shape: typed tax-inclusive total beside a cheaper quote that states no tax 2ms
+{"linesWithTax":0,"optionPrices":0,"checks":0,"compare":1110}
+caveat-only [{"st":6340,"tax":160,"tot":7060,"o":[],"l":["labor:null:1500:labor","other:null:160:Flete a Valencia"]},{"st":6340,"tax":741,"tot":7900,"o":[["a",160,null]],"l":["labor:a:1500:labor","other:a:1160:I.V.A."]},{"st":1300,"tax":0,"tot":0,"o":[],"l":["battery:null:1300:battery"]}] 
+NOW {"ranked":[{"id":"q6","o":null,"t":7060,"c":[]},{"id":"q7","o":null,"t":7900,"c":["tax_unstated"]}],"unranked":[["q8",null,"no_total"]],"best":["q6",null],"clean":null} 
+OLD {"ranked":[{"id":"q6","o":null,"t":7060,"c":[]},{"id":"q7","o":null,"t":7900,"c":[]}],"unranked":[["q8",null,"no_total"]],"best":["q6",null],"clean":null}
+caveat-only [{"st":12980,"tax":null,"tot":12980,"o":[["a",2300,null],["b",6740,160]],"l":["labor:a:1000:labor","labor:b:1500:labor"]},{"st":6340,"tax":null,"tot":400,"o":[],"l":["other:null:300:IVA 16%","inverter:null:100:inverter"]},{"st":1000,"tax":741,"tot":0,"o":[],"l":[]}] 
+NOW {"ranked":[{"id":"q12","o":"a","t":2300,"c":["tax_unstated"]},{"id":"q12","o":"b","t":6740,"c":["tax_unstated"]},{"id":"q13","o":null,"t":400,"c":[]}],"unranked":[["q14",null,"no_total"]],"best":["q12","a"],"clean":null} 
+OLD {"ranked":[{"id":"q12","o":"a","t":2300,"c":["tax_unstated"]},{"id":"q12","o":"b","t":6740,"c":[]},{"id":"q13","o":null,"t":400,"c":[]}],"unranked":[["q14",null,"no_total"]],"best":["q12","a"],"clean":["q12","b"]}
+caveat-only [{"st":6340,"tax":741,"tot":2300,"o":[],"l":["other:null:2300:Flete a Valencia","battery:null:100:battery?"]},{"st":1000,"tax":null,"tot":100,"o":[],"l":["battery:null:100:battery"]},{"st":1000,"tax":null,"tot":1300,"o":[["a",300,null],["b",0,null]],"l":["other:b:1300:I.V.A."]}] 
+NOW {"ranked":[{"id":"q91","o":null,"t":100,"c":["tax_unstated"]},{"id":"q92","o":"a","t":300,"c":["tax_unstated"]},{"id":"q92","o":"b","t":1300,"c":[]},{"id":"q90","o":null,"t":2300,"c":["tax_unstated"]}],"unranked":[],"best":null,"clean":null} 
+OLD {"ranked":[{"id":"q91","o":null,"t":100,"c":["tax_unstated"]},{"id":"q92","o":"a","t":300,"c":["tax_unstated"]},{"id":"q92","o":"b","t":1300,"c":[]},{"id":"q90","o":null,"t":2300,"c":[]}],"unranked":[],"best":null,"clean":null}
+caveat-only [{"st":6340,"tax":741,"tot":3160,"o":[],"l":["labor:null:1160:labor","battery:null:2000:battery","battery:null:0:battery"]},{"st":200,"tax":0,"tot":0,"o":[],"l":["battery:null:100:battery","other:null:100:GST 5%"]},{"st":8200,"tax":null,"tot":8200,"o":[["a",1460,null]],"l":["labor:a:1500:labor","labor:null:1460:labor"]}] 
+NOW {"ranked":[{"id":"q98","o":null,"t":8200,"c":[]},{"id":"q96","o":null,"t":3160,"c":[]}],"unranked":[["q97",null,"no_total"]],"best":["q98",null],"clean":null} 
+OLD {"ranked":[{"id":"q98","o":null,"t":8200,"c":["tax_unstated"]},{"id":"q96","o":null,"t":3160,"c":[]}],"unranked":[["q97",null,"no_total"]],"best":["q98",null],"clean":null}
+{"caveat-only":1110}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/qa-typed.qaold.test.ts > typed total on a reading whose read total left tax out
+AssertionError: expected { best: 'a', total: 7481.2, …(2) } to deeply equal { best: 'a', total: 7481.2, …(2) }
+
+- Expected
++ Received
+
+  {
+    "best": "a",
+    "caveats": [
++     "tax_unstated",
+      "total_typed",
+    ],
+    "clean": "b",
+    "total": 7481.2,
+  }
+
+ ❯ src/lib/qa-typed.qaold.test.ts:28:15
+     26|   const now = out(compareNow(SAMPLE_KIT, DEFAULT_MUSTS, qs)); const ol…
+     27|   console.log('NOW', JSON.stringify(now)); console.log('OLD', JSON.str…
+     28|   expect(now).toEqual(old)
+       |               ^
+     29| })
+     30|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/lib/qa-typed.qaold.test.ts > AC4 shape: typed tax-inclusive total beside a cheaper quote that states no tax
+AssertionError: expected { best: 'c', total: 6740, …(2) } to deeply equal { best: 'c', total: 6740, …(2) }
+
+- Expected
++ Received
+
+  {
+    "best": "c",
+-   "caveats": [
+-     "tax_unstated",
+-   ],
++   "caveats": [],
+    "clean": null,
+    "total": 6740,
+  }
+
+ ❯ src/lib/qa-typed.qaold.test.ts:38:15
+     36|   const now = out(compareNow(SAMPLE_KIT, DEFAULT_MUSTS, qs)); const ol…
+     37|   console.log('NOW2', JSON.stringify(now)); console.log('OLD2', JSON.s…
+     38|   expect(now).toEqual(old)
+       |               ^
+     39| })
+     40|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 1 passed (3)
+   Start at  01:27:21
+   Duration  916ms (tests 72%, transform 16%, import 12%)
+

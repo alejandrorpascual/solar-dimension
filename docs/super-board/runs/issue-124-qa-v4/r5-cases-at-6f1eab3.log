@@ -1,0 +1,23 @@
+4: ❯ src/lib/quote-tax-cases.test.ts (17 tests | 2 failed) 18ms
+7:       × says it states no tax beside a quote at 7,953.20 that includes its tax 8ms
+8:       × leaves a cheaper quote at 6,240 that states no tax without a caveat, and names no clean fit 1ms
+12: FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option written at just its lines, in a quote whose document rate is 1% > says it states no tax beside a quote at 7,953.20 that includes its tax
+16:- Expected
+17:+ Received
+20:-   "caveats": [
+21:-     {
+22:-       "id": "tax_unstated",
+23:-     },
+24:-   ],
+25:+   "caveats": [],
+40: FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option written at just its lines, in a quote whose document rate is 1% > leaves a cheaper quote at 6,240 that states no tax without a caveat, and names no clean fit
+43:- Expected
+44:+ Received
+48:-   "caveats": [],
+49:-   "cleanFit": null,
+50:+   "caveats": [
+51:+     "tax_unstated",
+52:+   ],
+53:+   "cleanFit": "o1",
+68: Test Files  1 failed (1)
+69:      Tests  2 failed | 15 passed (17)

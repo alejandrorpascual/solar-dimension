@@ -1,0 +1,72 @@
+
+ RUN  v5.0.1 pr234-r5
+
+ ❯ src/lib/quote-tax-cases.test.ts (17 tests | 2 failed) 14ms
+   ❯ tax shapes that once mis-priced or mis-checked a quote (17)
+     ❯ an option written at just its lines, in a quote whose document rate is 1% (2)
+       × says it states no tax beside a quote at 7,953.20 that includes its tax 5ms
+       × leaves a cheaper quote at 6,240 that states no tax without a caveat, and names no clean fit 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option written at just its lines, in a quote whose document rate is 1% > says it states no tax beside a quote at 7,953.20 that includes its tax
+AssertionError: expected { quote: { id: 'a', …(9) }, …(16) } to match object { optionId: 'o1', total: 6340, …(1) }
+(24 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "caveats": [
+-     {
+-       "id": "tax_unstated",
+-     },
+-   ],
++   "caveats": [],
+    "optionId": "o1",
+    "total": 6340,
+  }
+
+ ❯ src/lib/quote-tax-cases.test.ts:129:22
+    127|       const taxed = extraction(kitLines(1500), { subtotal: 6740, tax: …
+    128|       const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', lo…
+    129|       expect(v.best).toMatchObject({ optionId: 'o1', total: 6340, cave…
+       |                      ^
+    130|     })
+    131|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option written at just its lines, in a quote whose document rate is 1% > leaves a cheaper quote at 6,240 that states no tax without a caveat, and names no clean fit
+AssertionError: expected { best: 'c', total: 6240, …(2) } to deeply equal { best: 'c', total: 6240, …(2) }
+
+- Expected
++ Received
+
+  {
+    "best": "c",
+-   "caveats": [],
+-   "cleanFit": null,
++   "caveats": [
++     "tax_unstated",
++   ],
++   "cleanFit": "o1",
+    "total": 6240,
+  }
+
+ ❯ src/lib/quote-tax-cases.test.ts:135:10
+    133|       const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', lo…
+    134|       expect({ best: v.best?.quote.id, total: v.best?.total, caveats: …
+    135|         .toEqual({ best: 'c', total: 6240, caveats: [], cleanFit: null…
+       |          ^
+    136|     })
+    137|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 15 passed (17)
+   Start at  23:01:40
+   Duration  244ms (transform 55%, import 35%, tests 9%, worker 1%)
+

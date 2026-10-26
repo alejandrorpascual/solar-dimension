@@ -1,0 +1,112 @@
+// QA #124 v4 capture script (evidence only, not part of the suite): review R5 in the browser. Voltia is re-read as two
+// options in a quote whose document rate is 1% (subtotal 7,300, tax 73), each option written at just its lines (7,300 and
+// 7,400). Pairing 1 sets SolarTec to include 18% tax (7,646.40): Voltia's cheaper option should carry the tax caveat.
+// Pairing 2 leaves SolarTec at 6,480 with no tax stated: no entry includes tax, so nothing should carry it and there is
+// no separate clean fit. English and Spanish, at 1920 px desktop, 1024 px tablet and the 390 px phone project.
+import { neon } from '@neondatabase/serverless'
+import { expect, test, type Page } from '@playwright/test'
+import { quotesEn } from '../src/i18n/quotes-en'
+import { quotesEs } from '../src/i18n/quotes-es'
+import { SAMPLE_QUOTES } from '../src/lib/quote-fixtures'
+import type { QuoteExtraction } from '../src/lib/quote-schema'
+import { firstProjectId } from './db'
+import { switchLanguageOnLoad } from './header'
+import { PHONE } from './phone'
+import { quotePdf, signUp, uploadQuotes, verdictHeading } from './quotes'
+
+const OUT = process.env.QA_OUT ?? 'docs/super-board/runs/issue-124-qa-v4'
+const TAG = process.env.QA_TAG ?? ''
+
+/** Voltia's lines, once per option; option B's labour is 100 more. Each option is written at just its own lines. */
+function lowRateVoltia(): QuoteExtraction {
+  const v = SAMPLE_QUOTES.voltia
+  const of = (id: string, extra: number) => v.lines.map((l) => ({ ...l, option: id, lineTotal: l.kind === 'labor' ? l.lineTotal + extra : l.lineTotal }))
+  return {
+    ...v, lines: [...of('o1', 0), ...of('o2', 100)], subtotal: 7300, tax: 73, total: 0,
+    options: [{ id: 'o1', label: 'Plan A', total: 7300, tax: null }, { id: 'o2', label: 'Plan B', total: 7400, tax: null }],
+  }
+}
+
+async function setExtraction(email: string, projectId: string, file: string, x: QuoteExtraction) {
+  await neon(process.env.DATABASE_URL!)`
+    update quotes q set extraction = ${JSON.stringify(x)}::jsonb
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${file}`
+}
+
+async function setTax(email: string, projectId: string, file: string, t: { subtotal: number; tax: number; total: number }) {
+  await neon(process.env.DATABASE_URL!)`
+    update quotes q set extraction = q.extraction || jsonb_build_object('subtotal', ${t.subtotal}::numeric, 'tax', ${t.tax}::numeric, 'total', ${t.total}::numeric)
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${file}`
+}
+
+/** Every ranked card on the verdict: its name and the caveat notes it shows. */
+async function cards(page: Page): Promise<{ name: string; notes: string[] }[]> {
+  return page.getByRole('region').evaluateAll((els) => els
+    .filter((el) => el.getAttribute('aria-label') || el.getAttribute('aria-labelledby'))
+    .map((el) => {
+      const id = el.getAttribute('aria-labelledby')
+      const name = el.getAttribute('aria-label') ?? (id ? document.getElementById(id)?.textContent ?? '' : '')
+      return { name: name.trim(), notes: [...el.querySelectorAll('[role="note"]')].map((n) => (n.textContent ?? '').trim()) }
+    }))
+}
+
+const views = (isPhone: boolean): ['desktop' | 'tablet' | 'mobile', number, number][] =>
+  isPhone ? [['mobile', 0, 0]] : [['desktop', 1920, 1080], ['tablet', 1024, 768]]
+
+async function shoot(page: Page, name: string, vp: string, crop: string | null) {
+  await page.screenshot({ path: `${OUT}/${TAG}${name}-${vp}.png`, fullPage: false })
+  if (vp !== 'mobile' && crop) {
+    const card = page.getByRole('region', { name: crop }).first()
+    await card.scrollIntoViewIfNeeded()
+    await card.screenshot({ path: `${OUT}/${TAG}${name}-${vp}-crop.png` })
+  }
+}
+
+for (const pairing of ['p1-beside-taxed', 'p2-beside-cheaper-untaxed'] as const) {
+  test(`QA #124 v4 R5 ${pairing}: options written at just their lines at a 1% document rate`, PHONE, async ({ page }, info) => {
+    test.slow()
+    const isPhone = info.project.name === 'phone'
+    const email = await signUp(page)
+    await uploadQuotes(page, await Promise.all(['solartec', 'voltia'].map(quotePdf)))
+    await page.getByRole('button', { name: 'Ok, got it' }).click()
+    const projectId = await firstProjectId(email)
+    await setExtraction(email, projectId, 'voltia.pdf', lowRateVoltia())
+    if (pairing === 'p1-beside-taxed') await setTax(email, projectId, 'solartec.pdf', { subtotal: 6480, tax: 1166.4, total: 7646.4 })
+
+    for (const [vp, w, h] of views(isPhone)) {
+      if (w) await page.setViewportSize({ width: w, height: h })
+      await page.goto(`/projects/${projectId}/quotes`)
+      await expect(page.getByText(/Plan A/).first()).toBeVisible({ timeout: 30_000 })
+      for (const [lang, copy] of [['en', quotesEn], ['es', quotesEs]] as const) {
+        if (lang === 'es' && vp === 'tablet') continue
+        if (lang === 'es') await switchLanguageOnLoad(page, 'Español')
+        // Wait for the page to be in this language: the kit card's heading is the first to change.
+        await expect(page.getByRole('region', { name: lang === 'es' ? 'Lo que necesita tu kit' : 'What your kit needs' })).toBeVisible()
+        const heading = (await verdictHeading(page).textContent())?.trim() ?? ''
+        const all = await cards(page)
+        const others = (await page.getByRole('region', { name: lang === 'es' ? 'Cómo se comparan las demás' : 'How the others compare' }).innerText()).replace(/\s+/g, ' ')
+        const taxOn = all.filter((c) => c.notes.some((n) => n.includes(copy.caveatTax))).map((c) => c.name)
+        const shortTax = `${copy.caveatsLine.replace('{items}', copy.caveatShortTax)}`
+        console.log(`${TAG}${pairing} ${vp} ${lang}: heading=${JSON.stringify(heading)} taxCaveatOnBest=${JSON.stringify(taxOn)} othersWithShortTax=${(others.match(new RegExp(shortTax, 'g')) ?? []).length} others=${JSON.stringify(others.slice(0, 600))}`)
+        if (!TAG) {
+          if (pairing === 'p1-beside-taxed') {
+            expect(heading).toContain('Voltia Instalaciones · Plan A')
+            expect(taxOn).toEqual(['Voltia Instalaciones'])
+            expect(others).toContain(shortTax)
+            expect(others).toContain(copy.reasonFitsClean.split(' {delta}')[0].replace(/ Costs$| Cuesta$/, ''))
+          } else {
+            expect(heading).toContain('SolarTec Caribe')
+            expect(taxOn).toEqual([])
+            expect(others).not.toContain(shortTax)
+          }
+        }
+        const crop = all.find((c) => c.name === 'Voltia Instalaciones' || c.name === 'SolarTec Caribe')?.name ?? null
+        await shoot(page, `r5-${pairing}-${lang}`, vp, crop)
+        if (lang === 'es') {
+          await switchLanguageOnLoad(page, 'English')
+          await expect(page.getByRole('region', { name: 'What your kit needs' })).toBeVisible()
+        }
+      }
+    }
+  })
+}

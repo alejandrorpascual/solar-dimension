@@ -171,6 +171,19 @@ export async function misreadQuoteTotal(email: string, projectId: string, total:
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
 }
 
+/**
+ * Turns one quote of a project, picked by its file name, into a reading that states a subtotal and a tax but whose total
+ * was read as the subtotal, so it needs review until the user types the total with the tax.
+ */
+export async function misreadQuoteTaxedTotal(
+  email: string, projectId: string, fileName: string, { subtotal, tax }: { subtotal: number; tax: number },
+): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review',
+      extraction = q.extraction || jsonb_build_object('subtotal', ${subtotal}::numeric, 'tax', ${tax}::numeric, 'total', ${subtotal}::numeric)
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${fileName}`
+}
+
 /** Same, because its first line's unit price was read as `unitPrice`, which that line's amount doesn't match. */
 export async function misreadQuoteLine(email: string, projectId: string, unitPrice: number): Promise<void> {
   await testDb()`
