@@ -41,3 +41,12 @@ test('every field is the app\'s field: a .field label around an .in control, wit
   expect(html).not.toMatch(/admin__field/)
   expect(html).toMatch(/<label class="field"><span class="lab">Name \(EN\)<\/span>/)
 })
+
+test('a form warning is the app\'s .warn box, not colored text of its own', () => {
+  // 6000 W is over the 5 kW one-appliance check, so the form warns before Save.
+  const heavy = { ...airConditioner!, watts: 6000, surge: 6000 }
+  const html = renderToStaticMarkup(createElement(ApplianceForm, {
+    initial: heavy, existingIds: new Set<string>(), onSaved: () => {}, onCancel: () => {},
+  }))
+  expect(html).toMatch(/<p class="warn admin__warn">Over 5 kW: check this is one appliance, not a whole circuit\.<\/p>/)
+})

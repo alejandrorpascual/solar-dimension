@@ -1,0 +1,134 @@
+[
+  {
+    "path": "/admin/appliances",
+    "width": 390,
+    "pageOverflow": 0,
+    "boxes": [
+      {
+        "scrollWidth": 664,
+        "clientWidth": 356,
+        "overflowX": "auto"
+      },
+      {
+        "scrollWidth": 547,
+        "clientWidth": 356,
+        "overflowX": "auto"
+      }
+    ],
+    "minButtonHeight": 44,
+    "buttonsWithoutBtn": [],
+    "buttonCount": 98
+  },
+  {
+    "path": "/admin/quotes",
+    "width": 390,
+    "pageOverflow": 0,
+    "boxes": [
+      {
+        "scrollWidth": 664,
+        "clientWidth": 356,
+        "overflowX": "auto"
+      }
+    ],
+    "minButtonHeight": null,
+    "buttonsWithoutBtn": [],
+    "buttonCount": 0
+  },
+  {
+    "path": "/admin/products",
+    "width": 390,
+    "pageOverflow": 0,
+    "boxes": [],
+    "minButtonHeight": null,
+    "buttonsWithoutBtn": [],
+    "buttonCount": 0
+  },
+  {
+    "path": "/admin/appliances",
+    "width": 768,
+    "pageOverflow": 0,
+    "boxes": [
+      {
+        "scrollWidth": 734,
+        "clientWidth": 734,
+        "overflowX": "auto"
+      },
+      {
+        "scrollWidth": 734,
+        "clientWidth": 734,
+        "overflowX": "auto"
+      }
+    ],
+    "minButtonHeight": 44,
+    "buttonsWithoutBtn": [],
+    "buttonCount": 98
+  },
+  {
+    "path": "/admin/quotes",
+    "width": 768,
+    "pageOverflow": 0,
+    "boxes": [
+      {
+        "scrollWidth": 734,
+        "clientWidth": 734,
+        "overflowX": "auto"
+      }
+    ],
+    "minButtonHeight": null,
+    "buttonsWithoutBtn": [],
+    "buttonCount": 0
+  },
+  {
+    "path": "/admin/products",
+    "width": 768,
+    "pageOverflow": 0,
+    "boxes": [],
+    "minButtonHeight": null,
+    "buttonsWithoutBtn": [],
+    "buttonCount": 0
+  },
+  {
+    "path": "/admin/appliances",
+    "width": 1280,
+    "pageOverflow": 0,
+    "boxes": [
+      {
+        "scrollWidth": 926,
+        "clientWidth": 926,
+        "overflowX": "auto"
+      },
+      {
+        "scrollWidth": 926,
+        "clientWidth": 926,
+        "overflowX": "auto"
+      }
+    ],
+    "minButtonHeight": 44,
+    "buttonsWithoutBtn": [],
+    "buttonCount": 98
+  },
+  {
+    "path": "/admin/quotes",
+    "width": 1280,
+    "pageOverflow": 0,
+    "boxes": [
+      {
+        "scrollWidth": 926,
+        "clientWidth": 926,
+        "overflowX": "auto"
+      }
+    ],
+    "minButtonHeight": null,
+    "buttonsWithoutBtn": [],
+    "buttonCount": 0
+  },
+  {
+    "path": "/admin/products",
+    "width": 1280,
+    "pageOverflow": 0,
+    "boxes": [],
+    "minButtonHeight": null,
+    "buttonsWithoutBtn": [],
+    "buttonCount": 0
+  }
+]
