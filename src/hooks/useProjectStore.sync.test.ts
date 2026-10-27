@@ -294,3 +294,20 @@ test("a load after a save failed offline sends only the hours edited here, and t
   expect(home(account(ANA))).toMatchObject({ hours: 24, volts: VOLTS })
   expect(home(reloaded.store.projects)).toMatchObject({ hours: 24, volts: VOLTS })
 })
+
+test('a load after two saves of different fields failed offline sends both, and the chemistry another device saved since stays', async () => {
+  session.user = ANA
+  await mount()
+  net.offline = true
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 24 })))
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
+  net.offline = false
+  const there = home(account(ANA))
+  const later = Date.now() + 1
+  await saveProjects({ data: { account: ANA.id, projects: [{ ...there, chemistry: 'agm', updatedAt: later }], named: { [there.id]: { chemistry: later } } } })
+
+  const reloaded = await mount()
+
+  expect(home(account(ANA))).toMatchObject({ hours: 24, volts: VOLTS, chemistry: 'agm' })
+  expect(home(reloaded.store.projects)).toMatchObject({ hours: 24, volts: VOLTS, chemistry: 'agm' })
+})
