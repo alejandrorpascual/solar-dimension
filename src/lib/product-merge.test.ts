@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { mergeProduct, summarize } from './product-merge'
-import { battery, inverter, NONE, SHEET, stated } from './product-fixtures'
-import { productKey, type ProductInput, type ProductRecord } from './product-schema'
+import { changesStoredValues, mergeProduct, summarize } from './product-merge'
+import { battery, inverter, NONE, SHEET, stated, storedRecord } from './product-fixtures'
+import type { ProductInput, ProductRecord } from './product-schema'
 
 const NOW = '2026-10-09T12:00:00.000Z'
-const record = (p: ProductInput, conflicts: ProductRecord['conflicts'] = []): ProductRecord =>
-  ({ ...p, id: 'id-1', key: productKey(p), origin: 'admin', conflicts, retired: false })
+const record = storedRecord
 const merge = (stored: ProductRecord | null, incoming: ProductInput, replace = false) => mergeProduct(stored, incoming, { replace, now: NOW })
 const extraLine = (name: string, value: string) => ({ name, value, source: SHEET })
 const OLD = '2026-10-01T00:00:00.000Z'
@@ -254,5 +253,24 @@ describe('summarize', () => {
 
   test('gives an empty summary for no changes', () => {
     expect(summarize([])).toEqual({ created: [], updated: [], unchanged: [], conflicts: [] })
+  })
+})
+
+describe('changesStoredValues', () => {
+  test.each([
+    ['a fill', () => merge(record(inverter({ chargerA: NONE })), inverter({ chargerA: stated(125, 'MAX. CHARGE CURRENT 125A') }))],
+    ['a replaced value', () => merge(record(inverter()), inverter({ continuousW: stated(5000, '5000W') }), true)],
+    ['a new price', () => merge(record(inverter()), { ...inverter(), price: PRICE })],
+  ])('is true for %s', (_, write) => {
+    expect(changesStoredValues(write().change)).toBe(true)
+  })
+
+  test.each([
+    ['the same values', () => merge(record(inverter()), inverter())],
+    ['a conflict kept aside', () => merge(record(inverter()), inverter({ continuousW: stated(5000, '5000W') }))],
+    ['a replace with the stored value that clears a conflict', () =>
+      merge(record(inverter(), [{ field: 'specs.continuousW', found: 5500, source: SHEET, seenAt: OLD }]), inverter(), true)],
+  ])('is false for %s', (_, write) => {
+    expect(changesStoredValues(write().change)).toBe(false)
   })
 })

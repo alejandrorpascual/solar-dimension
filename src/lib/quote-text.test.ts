@@ -18,7 +18,7 @@ import {
 } from './quote-text'
 
 const view = (id: SampleQuoteId, i: number): QuoteView => ({
-  id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES[id], overrides: {}, totalOverride: null, createdAt: i, retries: 0, pages: null,
+  id, fileName: `${id}.pdf`, label: null, status: 'ready', extraction: SAMPLE_QUOTES[id], overrides: {}, totalOverride: null, createdAt: i, retries: 0, pages: null, fileHash: null,
 })
 const v = compareQuotes(KIT, DEFAULT_MUSTS, (['solartec', 'voltia', 'grupoluz', 'enerhogar'] as const).map(view))
 const [solartec, voltia, grupoluz, enerhogar] = v.ranked as [RankedQuote, RankedQuote, RankedQuote, RankedQuote]
@@ -341,7 +341,7 @@ describe('solar panels', () => {
   const item = (lines: Parameters<typeof extraction>[0]) => checkItems(extraction(lines), solar).find((c) => c.id === 'panels')!
   test('a short array says what the kit needs, and its gap is the watts missing', () => {
     expect(itemText(en, item([panels(6, 550)]), solar, 'USD')).toEqual({ label: fmtW(3300, 'en'), detail: `Your kit needs ${fmtW(4400, 'en')}` })
-    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([panels(6, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null }
+    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([panels(6, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null, fileHash: null }
     const verdict = compareQuotes(solar, { ...DEFAULT_MUSTS, inverter: false, battery: false, charger: false, cables: false, fuse: false, installation: false }, [quote])
     expect(reasonLine(en, verdict.ranked[0]!, verdict, solar)).toBe(`Doesn't fit: its solar array is ${fmtW(1100, 'en')} short.`)
     expect(reasonLine(es, verdict.ranked[0]!, verdict, solar)).toBe(`No cumple: a los paneles les faltan ${fmtW(1100, 'es')}.`)
@@ -350,7 +350,7 @@ describe('solar panels', () => {
     expect(itemText(en, item([panels(8, null)]), solar, 'USD')).toEqual({ label: 'Included', detail: 'Size not stated' })
   })
   test("a battery-only kit's card says when a quote includes panels anyway", () => {
-    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, panels(8, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null }
+    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, panels(8, 550)]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null, fileHash: null }
     const r = compareQuotes(KIT, DEFAULT_MUSTS, [quote]).ranked[0]!
     expect(extraPanelsText(en, r, KIT)).toBe(`Also includes ${fmtW(4400, 'en')} of solar panels`)
     expect(extraPanelsText(es, r, KIT)).toBe(`También incluye ${fmtW(4400, 'es')} de paneles solares`)
@@ -359,11 +359,33 @@ describe('solar panels', () => {
   })
   test('panels that state no wattage still explain the price, with no figure that would undercount them', () => {
     const ranked = (extra: Parameters<typeof extraction>[0]) => compareQuotes(KIT, DEFAULT_MUSTS, [{
-      id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, ...extra]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null,
+      id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: extraction([...SAMPLE_QUOTES.solartec.lines, ...extra]), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null, fileHash: null,
     }]).ranked[0]!
     expect(extraPanelsText(en, ranked([panels(8, null)]), KIT)).toBe('Also includes solar panels')
     expect(extraPanelsText(es, ranked([panels(8, null)]), KIT)).toBe('También incluye paneles solares')
     expect(extraPanelsText(en, ranked([panels(6, 550), panels(2, null)]), KIT)).toBe('Also includes solar panels')
+  })
+})
+
+describe('the Main cables check reads the reader\'s tag on each cable (#184)', () => {
+  const cable = (text: string, awg: string, role: QuoteLine['role']): QuoteLine => ({
+    ...line('wiring', 1, { description: text, source: { page: 1, text }, specs: { awg } }), role,
+  })
+  const reading = (lines: QuoteLine[]) => {
+    const c = checkItems(extraction(lines), KIT).find((i) => i.id === 'cables')!
+    return `${markLabel(en, c)} · ${itemText(en, c, KIT, 'USD').label}`
+  }
+  const thinBattery = cable('Cable 6 AWG baterías', '6', null)
+  test('an AC feed tagged ac beside a thin battery cable reads Too small on the battery cable', () => {
+    expect(reading([cable('Acometida eléctrica 4/0 AWG', '4/0', 'ac'), thinBattery])).toBe('Too small · 6 AWG')
+  })
+  test('a cable tagged battery reads Meets it, whatever its words', () => {
+    expect(reading([cable('Cable 4/0 AWG para el inversor solar desde las baterías', '4/0', 'battery')])).toBe('Meets it · 4/0 AWG')
+    // Untagged, the keyword rules set "solar" wiring aside and the quote would name no battery cable.
+    expect(reading([cable('Cable solar 4/0 AWG', '4/0', 'battery')])).toBe('Meets it · 4/0 AWG')
+  })
+  test('the same AC feed with no tag reads as before the tags: Meets it on 4/0 AWG', () => {
+    expect(reading([cable('Acometida eléctrica 4/0 AWG', '4/0', null), thinBattery])).toBe('Meets it · 4/0 AWG')
   })
 })
 
@@ -404,7 +426,7 @@ describe('items a quote mentions without enough to judge them', () => {
   test('a fuse too big for its thin cable is short, and the gap names both', () => {
     const kit: KitNeeds = { ...KIT, fuseA: 125, cableMm2: 42.4, cableGauge: '1 AWG' }
     const x = extraction([line('inverter', 1, { specs: { watts: 5000, surgeWatts: 10000, hasCharger: true } }), line('battery', 1, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }), wiring('1'), fuse(250), line('labor', 1)])
-    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null }
+    const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: null, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null, fileHash: null }
     const r = compareQuotes(kit, DEFAULT_MUSTS, [quote]).ranked[0]!
     const c = r.items.find((i) => i.id === 'fuse')!
     expect(itemText(en, c, kit, 'USD')).toEqual({ label: '250 A', detail: 'Too big for 1 AWG, which carries 130 A' })
@@ -437,7 +459,7 @@ describe('items a quote mentions without enough to judge them', () => {
   describe('reason, ask and question', () => {
     const good = [line('inverter', 2000, { specs: { watts: 5000, surgeWatts: 10000 } }), line('battery', 3000, { qty: 2, specs: { kWh: 5.12, chemistry: 'lifepo4' } }), fuse(175, 1, 'T'), line('labor', 1000)]
     const rank = (lines: Parameters<typeof extraction>[0], kit: KitNeeds = KIT) => {
-      const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: 'Luz', status: 'ready', extraction: extraction(lines), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null }
+      const quote: QuoteView = { id: 'q', fileName: 'q.pdf', label: 'Luz', status: 'ready', extraction: extraction(lines), overrides: {}, totalOverride: null, createdAt: 0, retries: 0, pages: null, fileHash: null }
       const verdict = compareQuotes(kit, DEFAULT_MUSTS, [quote])
       return { r: verdict.ranked[0]!, verdict }
     }
@@ -483,12 +505,15 @@ describe('items a quote mentions without enough to judge them', () => {
 
 describe('status and progress text', () => {
   const jobs = (over: Partial<ProjectJobs>): ProjectJobs => ({
-    projectId: 'p', projectName: 'Home', files: [], total: 4, done: 4, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null, ...over,
+    projectId: 'p', projectName: 'Home', files: [], total: 4, done: 4, pending: 0, failed: 0, needsReview: 0, kitHold: null, unseen: false, best: null, ...over,
   })
   test('project line', () => {
     expect(projectLine(en, jobs({ done: 2, pending: 2 }))).toBe('Reading quotes 2/4')
-    expect(projectLine(en, jobs({ kitEmpty: true }))).toBe('Add appliances to compare your quotes')
-    expect(projectLine(es, jobs({ kitEmpty: true }))).toBe('Agrega aparatos para comparar tus cotizaciones')
+    expect(projectLine(en, jobs({ kitHold: 'empty' }))).toBe('Add appliances to compare your quotes')
+    expect(projectLine(es, jobs({ kitHold: 'empty' }))).toBe('Agrega aparatos para comparar tus cotizaciones')
+    expect(projectLine(en, jobs({ kitHold: 'missing' }))).toBe('Your kit is missing appliances')
+    expect(projectLine(es, jobs({ kitHold: 'missing' }))).toBe('A tu kit le faltan aparatos')
+    expect(projectLine(en, jobs({ kitHold: 'missing', done: 2, pending: 2 }))).toBe('Reading quotes 2/4')
     expect(projectLine(en, jobs({ best: { name: 'SolarTec Caribe', optionLabel: null, total: 6480, currency: 'USD' } }))).toBe('Verdict ready · SolarTec Caribe · $6,480')
     expect(projectLine(en, jobs({ failed: 1 }))).toBe('Check 1 of your quotes')
     expect(projectLine(en, jobs({}))).toBe('Verdict ready · none fits yet')
@@ -520,12 +545,19 @@ describe('status and progress text', () => {
     const all: Rejection[] = [
       { code: 'type' }, { code: 'size', mb: 5 }, { code: 'pages', pages: 6 }, { code: 'encrypted' }, { code: 'project_limit' },
       { code: 'month_limit' }, { code: 'not_saved' }, { code: 'upload' }, { code: 'unverified' }, { code: 'daily_limit' },
+      { code: 'already_uploaded', fileName: 'solartec.pdf' },
     ]
     for (const t of [en, es]) {
       const texts = all.map((r) => rejectionText(t, r))
       expect(texts.every((x) => x.length > 0)).toBe(true)
       expect(new Set(texts).size).toBe(all.length)
     }
+  })
+  // #208: the same file is never uploaded twice to a project; the refusal names the earlier quote and stops there.
+  test('a file already in the project is refused with the earlier quote named, in both languages', () => {
+    const r: Rejection = { code: 'already_uploaded', fileName: 'solartec.pdf' }
+    expect(rejectionText(en, r)).toBe('You already uploaded this file as solartec.pdf.')
+    expect(rejectionText(es, r)).toBe('Ya subiste este archivo como solartec.pdf.')
   })
   test('a spent daily budget pauses reading until tomorrow, in both languages', () => {
     expect(rejectionText(en, { code: 'daily_limit' })).toBe('Quote reading is paused for today. Try again tomorrow.')
@@ -549,7 +581,7 @@ describe('status and progress text', () => {
 const at = (ratio: number): Sizing => ({ have: ratio * 1000, need: 1000, ratio, zone: sizingZone(ratio), pos: gaugePos(ratio) })
 
 describe('a quote that offers two systems', () => {
-  const jobs = (): ProjectJobs => ({ projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitEmpty: false, unseen: false, best: null })
+  const jobs = (): ProjectJobs => ({ projectId: 'p', projectName: 'Home', files: [], total: 1, done: 1, pending: 0, failed: 0, needsReview: 0, kitHold: null, unseen: false, best: null })
   const suna: QuoteView = { ...view('suna', 9), fileName: 'suna.pdf' }
   const both = compareQuotes(KIT, DEFAULT_MUSTS, [view('solartec', 0), suna])
   const o2 = both.ranked.find((r) => r.optionId === 'o2')!

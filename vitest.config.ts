@@ -9,7 +9,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.ts', 'src/i18n/**/*.ts', 'src/server/**/*.ts'],
-      exclude: ['src/**/*.test.ts'],
+      // A *.test-helper.ts module only serves tests (quote-tax-oracle.test-helper.ts, the differential test's oracle).
+      exclude: ['src/**/*.test.ts', 'src/**/*.test-helper.ts'],
       // Per folder, because Vitest counts every included file into the top-level thresholds: there the server code,
       // tested less, would count toward the 80 that lib and i18n hold.
       thresholds: {

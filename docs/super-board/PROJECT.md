@@ -59,7 +59,7 @@ Env var names (never values): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH
 | Checks | surge (inverter size), batteryContinuous, batteryPeak, parallel, fuse, cable: pass or warn |
 | Solar | Panels (550 W), roof m2, sun hours, strings, controller, breaker |
 | Requester | Who the kit is for, printed on the sheet; saved clients are kept in the browser |
-| Product | Library row for an inverter or battery from its datasheet (`products`); written through the token API |
+| Product | Library row for an inverter or battery from its datasheet (`products`); written through the token API; unverified until an admin verifies it, and a token write that changes a value makes it unverified again |
 | Quote | Uploaded file plus reading job (queued to done/failed), extraction, overrides, optional total override |
 | Quote settings / musts | Per-project must-have items (inverter, battery, charger, wifi, cables, fuse, installation, warranty) |
 | Verdict | Ranked quotes: cheapest that meets every must-have; fit is fits/unclear/short; options inside one quote rank separately |
@@ -89,8 +89,8 @@ CI (`.github/workflows/ci.yml`, job `verify`, Node read from `engines.node` in `
 - No payments, checkout, subscriptions or store; the app does not sell hardware. No payment dependency exists.
 - No email delivery: sign-up does not verify the address, and no password reset or verification mail is configured.
 - No grid-tied or hybrid-export sizing; bus bars are not sized or listed; conductor sizes are advice to verify against local code.
-- Product library is data and API only: no UI, and the sizing engine does not read it (it uses typed constants in `src/lib/catalog.ts`).
+- Product library is data and API only, plus one admin page (`/admin/products`) for verifying products; users never see it, and the sizing engine does not read it (it uses typed constants in `src/lib/catalog.ts`).
 - Quote ranking is deterministic code; the model only extracts. It does not negotiate, contact vendors or accept quotes.
-- Only two languages (EN, ES-LATAM); only the admin role exists (`ADMIN_EMAILS`), and the admin UI covers appliances and failed quote reads only.
+- Only two languages (EN, ES-LATAM); only the admin role exists (`ADMIN_EMAILS`), and the admin UI covers appliances, failed quote reads and product verification only.
 - Analytics, error-tracking SDKs and multi-tenant teams are not present. No native mobile app.
 - Currency conversion is not done: quotes in another currency than the verdict's are listed unranked.

@@ -1,0 +1,80 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Running 41 tests using 5 workers
+
+[1/41] [desktop] › e2e/quotes.spec.ts:110:1 › the same quote uploaded twice ranks once with a warning, and inverter and battery stay must-haves (AI-28)
+[2/41] [desktop] › e2e/quotes.spec.ts:53:1 › a cheaper quote that leaves a chemistry, a size and a fuse class open is worth asking, not the best fit
+[3/41] [desktop] › e2e/quotes.spec.ts:86:1 › a kit with solar panels asks quotes for them, and panels can be made a nice-to-have
+[4/41] [desktop] › e2e/quotes.spec.ts:132:1 › the same file uploaded again is a duplicate even when its second reading differs, and only its fingerprint is stored (#208)
+[5/41] [desktop] › e2e/quotes.spec.ts:27:1 › quotes upload, are read in the background, and end in a verdict @phone
+[6/41] [desktop] › e2e/quotes.spec.ts:154:1 › a file whose first upload was a reading duplicate is still a duplicate when uploaded a third time and read differently (#208)
+[7/41] [desktop] › e2e/quotes.spec.ts:170:1 › a different file that reads like a file copy's second reading is a duplicate too (#208 R3)
+[8/41] [desktop] › e2e/quotes.spec.ts:186:1 › an untouched re-upload of a file stays a duplicate once the user confirms an item on the first upload (#208 R4)
+[9/41] [desktop] › e2e/quotes.spec.ts:210:1 › an untouched first upload of a file is the duplicate once the user confirmed an item on a later one, in both languages (#208 R4)
+[10/41] [desktop] › e2e/quotes.spec.ts:237:1 › a tie between currencies says on screen which one was compared (AI-28)
+[11/41] [desktop] › e2e/quotes.spec.ts:253:1 › must-haves and confirmations change the winner, and stick
+[12/41] [desktop] › e2e/quotes.spec.ts:297:1 › a must-have that fails to save goes back, and one saved meanwhile is kept, on screen and on the server
+[13/41] [desktop] › e2e/quotes.spec.ts:338:1 › a reload that lands while a must-have is saving keeps the change on screen
+[14/41] [desktop] › e2e/quotes.spec.ts:382:1 › a reload that read the data before a must-have saved, but answers after the save, keeps the change
+[15/41] [desktop] › e2e/quotes.spec.ts:450:1 › a verdict that finished while away shows once in the tray
+[16/41] [desktop] › e2e/quotes.spec.ts:464:1 › another project's verdict opened from the tray is read once, not again on the first poll
+[17/41] [desktop] › e2e/quotes.spec.ts:491:1 › a file of the wrong type is refused before upload, with the reason
+[18/41] [desktop] › e2e/quotes.spec.ts:498:1 › a password-protected PDF is refused as locked, not as the wrong type, and the reason says how to fix it
+[19/41] [desktop] › e2e/quotes.spec.ts:506:1 › the dialog for a password-protected PDF gives the reason and the one-file hint in Spanish
+[20/41] [desktop] › e2e/quotes.spec.ts:517:1 › both upload buttons and the dialog say one file per quote, in English and Spanish
+[21/41] [desktop] › e2e/quotes.spec.ts:541:1 › another account gets 404 for the file and the verdict
+
+
+[22/41] [desktop] › e2e/quotes.spec.ts:572:1 › the hand-off dialog shows each file reading, then lets a file that could not be read be retried from there
+[23/41] [desktop] › e2e/quotes.spec.ts:596:1 › a quote that could not be read can be retried, until its retries are used up, on the page and on the server
+[24/41] [desktop] › e2e/quotes.spec.ts:638:1 › a project that already has 10 quotes refuses an eleventh, with the reason
+[25/41] [desktop] › e2e/quotes.spec.ts:652:1 › an account that used its 20 uploads this month is refused, with the reason
+[26/41] [desktop] › e2e/quotes.spec.ts:678:1 › deleting a project asks first, naming its quotes, and Cancel keeps the project and its quotes
+[27/41] [desktop] › e2e/quotes.spec.ts:694:1 › until the account's quotes are read, the delete question says any quotes go too, then names them once read
+[28/41] [desktop] › e2e/quotes.spec.ts:712:1 › deleting a project removes its quotes and their files
+
+
+[29/41] [desktop] › e2e/quotes.spec.ts:730:1 › deleting a quote removes its file and leaves nothing in the trash
+[30/41] [desktop] › e2e/quotes.spec.ts:748:1 › Delete on a quote asks with focus on Cancel, and Cancel gives focus back to Delete, on the verdict and progress rows
+[31/41] [desktop] › e2e/quotes.spec.ts:774:1 › an unverified account sees a note and Connect Google instead of the Upload button, and the server refuses its upload
+[32/41] [desktop] › e2e/quotes.spec.ts:815:1 › on the verdict page, an unverified account gets Connect Google instead of Add another quote, and no Retry
+[33/41] [desktop] › e2e/quotes.spec.ts:839:1 › a password account with a Google account whose token verifies its email can upload, though its email was never marked verified
+
+[34/41] [desktop] › e2e/quotes.spec.ts:849:1 › a Google account whose email Google did not verify does not unlock uploads
+[35/41] [desktop] › e2e/quotes.spec.ts:860:1 › a project whose quotes all failed says none could be read, not that a verdict is ready
+
+[36/41] [desktop] › e2e/quotes.spec.ts:893:1 › on a phone, every card keeps its name, total, reason and gauge labels apart @phone
+[37/41] [desktop] › e2e/quotes.spec.ts:930:1 › a quote that offers two systems shows a card for each, priced on its own, and asks for no total
+[38/41] [desktop] › e2e/quotes.spec.ts:951:1 › a quote read before options can be read again, and then shows a card per option
+[39/41] [desktop] › e2e/quotes.spec.ts:972:1 › a total that failed its check is asked for in an empty field; a misread line is read again before its total can be typed
+[40/41] [desktop] › e2e/quotes.spec.ts:1016:1 › a typed total can be changed from its ranked card, which re-ranks the quotes; a sum is refused
+[41/41] [desktop] › e2e/quotes.spec.ts:1052:1 › a ranked quote whose reading needs a check can be read again from its card
+  41 passed (1.1m)

@@ -1,0 +1,14 @@
+head 72a0e4d:
+      Tests  2 passed | 17 skipped (19)
+mutant: quote-level includedOf picks the nearest:
+     × a quote at 6,340 that states 63.40 tax (1%) counts as taxed, so one at 6,440 stating none beside it says so 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { best: 'a', a: [], b: [] } to deeply equal { best: 'a', a: [], …(1) }
+      Tests  1 failed | 18 passed (19)
+mutant: an exact tie goes to the untaxed candidate:
+     × an option total exactly halfway between its lines and its lines plus its written tax counts as taxed 4ms
+     × an option at 6,440 whose 100 tax equals the 100 shared line counts as taxed 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 17 passed (19)
+staging cfdba2b tax code:
+      Tests  2 passed | 17 skipped (19)

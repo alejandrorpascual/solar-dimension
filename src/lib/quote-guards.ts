@@ -47,16 +47,21 @@ export function parseTotal(s: string): number | null {
 }
 
 /**
- * Whether an upload may go ahead: the project must be the user's own, the account's limits not reached, and today's
- * reads across every account still under the daily budget.
+ * Whether an upload may go ahead: the project must be the user's own, the file not already one of its quotes (`earlier`,
+ * that quote's file name), the account's limits not reached, and today's reads across every account still under the daily budget.
  */
-export function uploadRejection(input: { ownsProject: boolean; counts: { project: number; month: number }; daily: DailyBudget }): Rejection | null {
+export function uploadRejection(input: { ownsProject: boolean; counts: { project: number; month: number }; daily: DailyBudget; earlier: string | null }): Rejection | null {
   if (!input.ownsProject) return { code: 'not_saved' }
+  if (input.earlier !== null) return { code: 'already_uploaded', fileName: input.earlier }
   return limitRejection(input.counts) ?? dailyRejection(input.daily)
 }
 
-/** Why the atomic insert took no row: the limit the fresh counts show, or a plain failure if a slot has opened since. */
-export function refusedInsertRejection(counts: { project: number; month: number }, daily: DailyBudget): Rejection {
+/**
+ * Why the atomic insert took no row: the file is already a quote of the project (`earlier`, that quote's file name),
+ * else the limit the fresh counts show, or a plain failure if a slot has opened since.
+ */
+export function refusedInsertRejection(counts: { project: number; month: number }, daily: DailyBudget, earlier: string | null): Rejection {
+  if (earlier !== null) return { code: 'already_uploaded', fileName: earlier }
   return limitRejection(counts) ?? dailyRejection(daily) ?? { code: 'upload' }
 }
 
@@ -67,4 +72,13 @@ export function refusedInsertRejection(counts: { project: number; month: number 
 export function retryRefusal(r: { retried: boolean; retryable: boolean; admitted: boolean }): Rejection | 'not_found' | null {
   if (r.retried) return null
   return r.retryable && !r.admitted ? { code: 'daily_limit' } : 'not_found'
+}
+
+/**
+ * The file's fingerprint: the hex SHA-256 of its bytes. Stored on the quote (quotes.file_hash) so the same file is
+ * refused when it is uploaded to the project again; the bytes themselves are kept only in the quote's blob.
+ */
+export async function fileFingerprint(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+  return Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('')
 }

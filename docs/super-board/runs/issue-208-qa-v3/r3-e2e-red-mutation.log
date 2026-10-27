@@ -1,0 +1,8 @@
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+  ✘  1 [desktop] › e2e/quotes.spec.ts:170:1 › a different file that reads like a file copy's second reading is a duplicate too (#208 R3) (30.3s)
+  1) [desktop] › e2e/quotes.spec.ts:170:1 › a different file that reads like a file copy's second reading is a duplicate too (#208 R3) 
+    Error: expect(locator).toHaveCount(expected) failed
+  1 failed
+    [desktop] › e2e/quotes.spec.ts:170:1 › a different file that reads like a file copy's second reading is a duplicate too (#208 R3) 

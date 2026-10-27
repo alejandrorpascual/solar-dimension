@@ -1,0 +1,70 @@
+# 33 mutants of src/lib/quote-checks.ts, differential at eddc053 (before QA v5's test changes)
+M1 readTotal: nearest always (R6 revert): differential KILLED (89 div) · other tax tests failed 2
+M2 readTotal: first taxed always (R5 revert): differential KILLED (72 div) · other tax tests failed 2
+M3 readTotal: stated -> first match: differential KILLED (151 div) · other tax tests failed 4
+M4 nearestTo tie -> untaxed: differential SURVIVED · other tax tests failed 0
+M5 nearestTo gap<0 -> gap<=0: differential SURVIVED · other tax tests failed 0
+M6 nearestTo keeps first: differential KILLED (74 div) · other tax tests failed 0
+M7 option listsTax own lines only (R7 revert): differential KILLED (25 div) · other tax tests failed 1
+M8 option isStated drops listsTax: differential SURVIVED · other tax tests failed 0
+M9 option isStated drops written: differential KILLED (46 div) · other tax tests failed 1
+M10 lone option tax dropped (R8 revert): differential KILLED (29 div) · other tax tests failed 1
+M11 lone tax overrides doc tax: differential SURVIVED · other tax tests failed 0
+M12 lone ignored in quote candidates: differential KILLED (16 div) · other tax tests failed 0
+M13 lone any option count: differential SURVIVED · other tax tests failed 0
+M14 quote isStated false (nearest): differential KILLED (45 div) · other tax tests failed 2
+M15 quote cand drop lines+t: differential SURVIVED · other tax tests failed 0
+M16 quote cand drop untaxed+t: differential KILLED (1 div) · other tax tests failed 0
+M17 quote cand drop taxLines candidate: differential KILLED (5 div) · other tax tests failed 0
+M18 documentTax: any tax line regardless of written: differential KILLED (225 div) · other tax tests failed 0
+M19 taxLineOf LINE->TOTAL tolerance: differential SURVIVED · other tax tests failed 0
+M20 option taxLine with written searches system lines: differential KILLED (56 div) · other tax tests failed 0
+M21 rate candidate untaxed: differential KILLED (253 div) · other tax tests failed 2
+M22 rate candidates dropped: differential KILLED (343 div) · other tax tests failed 4
+M23 option bare candidate always untaxed: differential KILLED (29 div) · other tax tests failed 1
+M24 option bases own only: differential KILLED (135 div) · other tax tests failed 3
+M25 includesTax yes only: differential KILLED (102 div) · other tax tests failed 0
+M26 taxIncludedOf no-match -> no: differential KILLED (102 div) · other tax tests failed 0
+M27 option unpriced still read: differential SURVIVED · other tax tests failed 0
+M28 option no-written-total taxIncluded yes->no: differential KILLED (78 div) · other tax tests failed 2
+M29 option rate tax not derived: differential KILLED (251 div) · other tax tests failed 2
+M30 quote typed total ignored in taxIncluded: differential KILLED (111 div) · other tax tests failed 3
+M31 option taxLine none-written ignores shared: differential KILLED (32 div) · other tax tests failed 1
+M32 near tolerance for matches LINE: differential KILLED (164 div) · other tax tests failed 0
+
+# same mutants, differential after QA v5's test changes (M33 added)
+M1 readTotal: nearest always (R6 revert): differential KILLED (54 div) · other tax tests failed 2
+M2 readTotal: first taxed always (R5 revert): differential KILLED (78 div) · other tax tests failed 2
+M3 readTotal: stated -> first match: differential KILLED (123 div) · other tax tests failed 4
+M4 nearestTo tie -> untaxed: differential KILLED (129 div) · other tax tests failed 0
+M5 nearestTo gap<0 -> gap<=0: differential KILLED (129 div) · other tax tests failed 0
+M6 nearestTo keeps first: differential KILLED (98 div) · other tax tests failed 0
+M7 option listsTax own lines only (R7 revert): differential KILLED (26 div) · other tax tests failed 1
+M8 option isStated drops listsTax: differential SURVIVED · other tax tests failed 0
+M9 option isStated drops written: differential KILLED (23 div) · other tax tests failed 1
+M10 lone option tax dropped (R8 revert): differential KILLED (27 div) · other tax tests failed 1
+M11 lone tax overrides doc tax: differential SURVIVED · other tax tests failed 0
+M12 lone ignored in quote candidates: differential KILLED (13 div) · other tax tests failed 0
+M13 lone any option count: differential SURVIVED · other tax tests failed 0
+M14 quote isStated false (nearest): differential KILLED (31 div) · other tax tests failed 2
+M15 quote cand drop lines+t: differential SURVIVED · other tax tests failed 0
+M16 quote cand drop untaxed+t: differential KILLED (1 div) · other tax tests failed 0
+M17 quote cand drop taxLines candidate: differential KILLED (6 div) · other tax tests failed 0
+M18 documentTax: any tax line regardless of written: differential KILLED (346 div) · other tax tests failed 0
+M19 taxLineOf LINE->TOTAL tolerance: differential KILLED (61 div) · other tax tests failed 0
+M20 option taxLine with written searches system lines: differential KILLED (39 div) · other tax tests failed 0
+M21 rate candidate untaxed: differential KILLED (312 div) · other tax tests failed 2
+M22 rate candidates dropped: differential KILLED (382 div) · other tax tests failed 4
+M23 option bare candidate always untaxed: differential KILLED (36 div) · other tax tests failed 1
+M24 option bases own only: differential KILLED (132 div) · other tax tests failed 3
+M25 includesTax yes only: differential KILLED (172 div) · other tax tests failed 0
+M26 taxIncludedOf no-match -> no: differential KILLED (172 div) · other tax tests failed 0
+M27 option unpriced still read: differential KILLED (38 div) · other tax tests failed 0
+M28 option no-written-total taxIncluded yes->no: differential KILLED (161 div) · other tax tests failed 2
+M29 option rate tax not derived: differential KILLED (304 div) · other tax tests failed 2
+M30 quote typed total ignored in taxIncluded: differential KILLED (106 div) · other tax tests failed 3
+M31 option taxLine none-written ignores shared: differential KILLED (26 div) · other tax tests failed 1
+M32 near tolerance for matches LINE: differential KILLED (126 div) · other tax tests failed 0
+M33 computed option price at doc rate reads taxed: differential KILLED (106 div) · other tax tests failed 0
+
+# M15 brute force: includesTax(priceOf) on 196,056 typed totals x tax-line/written-tax grid: 0 differences (equivalent)

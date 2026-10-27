@@ -45,7 +45,7 @@ function verdictHtml(locale: Locale, qty: Record<string, number>, over: Partial<
     project, musts: DEFAULT_MUSTS, readAt: 0,
     quotes: [{
       id: 'solartec', fileName: 'solartec.pdf', label: null, status: 'ready', extraction: SAMPLE_QUOTES.solartec, overrides: {},
-      totalOverride: null, createdAt: 0, seenAt: 0, retries: 0, pages: 2, ...over,
+      totalOverride: null, createdAt: 0, seenAt: 0, retries: 0, pages: 2, fileHash: null, ...over,
     }],
   }
   return renderToStaticMarkup(createElement(VerdictView, { data, progress: null, onReload: async () => {} }))

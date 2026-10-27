@@ -1,5 +1,5 @@
 import { SIZING, type ChemistryId } from './catalog'
-import { statesTax } from './quote-checks'
+import { includesTax, priceOf } from './quote-checks'
 import type { ItemCheck, ItemId, KitNeeds, Musts } from './quote-items'
 import type { QuoteExtraction, QuoteLine } from './quote-schema'
 
@@ -21,7 +21,7 @@ export type Caveat =
   /** Battery units that can't make up the kit's voltage, or an inverter stated for another. */
   | { id: 'bank_voltage'; volts: number }
   | { id: 'inverter_voltage'; volts: number }
-  /** The entry states no tax while another ranked beside it does, so the two totals may not be alike. */
+  /** The entry's total holds no tax (none stated, or stated and left out) while another ranked beside it does: they may not be alike. */
   | { id: 'tax_unstated' }
   /** It ranks on the total the user typed, because its reading needs checking. */
   | { id: 'total_typed' }
@@ -112,7 +112,7 @@ const confirmedCaveats = (items: readonly ItemCheck[], musts: Musts): Caveat[] =
 
 /**
  * Every caveat of one entry, in the order the card lists them. `taxElsewhere` says whether another entry ranked beside
- * it states tax.
+ * it includes tax in its total.
  */
 export function caveatsOf(e: CaveatInput, kit: KitNeeds, musts: Musts, taxElsewhere: boolean): Caveat[] {
   const whole = e.quote.extraction ?? e.extraction
@@ -121,7 +121,7 @@ export function caveatsOf(e: CaveatInput, kit: KitNeeds, musts: Musts, taxElsewh
     ...batteryCaveats(e, kit),
     ...voltageCaveats(e.extraction.lines, kit),
     ...confirmedCaveats(e.items, musts),
-    ...(taxElsewhere && !statesTax(whole, e.optionId) ? [{ id: 'tax_unstated' as const }] : []),
+    ...(taxElsewhere && !includesTax(priceOf(whole, e.optionId, e.quote.totalOverride)) ? [{ id: 'tax_unstated' as const }] : []),
     ...(e.optionId === null && e.quote.totalOverride !== null ? [{ id: 'total_typed' as const }] : []),
   ]
 }

@@ -11,7 +11,7 @@ import { bestPill, fitLabel, reasonLine, verdictHeading } from './quote-text'
 
 let created = 0
 const view = (id: string, x: QuoteExtraction, over: Partial<QuoteView> = {}): QuoteView => ({
-  id, fileName: `${id}.pdf`, label: id, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: created++, retries: 0, pages: null, ...over,
+  id, fileName: `${id}.pdf`, label: id, status: 'ready', extraction: x, overrides: {}, totalOverride: null, createdAt: created++, retries: 0, pages: null, fileHash: null, ...over,
 })
 const inverter = (specs: object = {}) => line('inverter', 2000, { specs: { watts: 5000, surgeWatts: 10000, hasCharger: true, ...specs } })
 const battery = (specs: object = { kWh: 5.12, chemistry: 'lifepo4' }, qty = 2) => line('battery', 3000, { qty, specs })
@@ -145,7 +145,8 @@ describe('caveat text', () => {
     expect(caveatText(es, { id: 'confirmed', item: 'battery' }, KIT)).toBe('Banco de baterías: lo confirmaste tú, la cotización no lo dice')
     expect(caveatText(en, { id: 'chemistry_differs', chemistry: 'agm' }, KIT)).toBe('AGM lead-acid batteries, while your kit is planned for LiFePO₄ lithium')
     expect(caveatText(en, { id: 'bank_voltage', volts: 12 }, KIT)).toBe("Its 12 V batteries don't make up your kit's 48 V")
-    expect(caveatText(es, { id: 'tax_unstated' }, KIT)).toBe('No indica impuestos y otra cotización sí: este total puede no incluirlos')
+    expect(caveatText(es, { id: 'tax_unstated' }, KIT)).toBe('No indica impuestos o los deja fuera de este total, y otra cotización sí los incluye')
+    expect(caveatText(en, { id: 'tax_unstated' }, KIT)).toBe('Tax not stated or left out of this total, while another quote includes it')
   })
   test("a row's line names each kind once", () => {
     expect(caveatsLine(en, [{ id: 'chemistry_unstated' }, { id: 'tax_unstated' }, { id: 'confirmed', item: 'inverter' }])).toBe('Confirm first: battery chemistry, tax, and inverter (confirmed by you)')
