@@ -3,7 +3,7 @@
 | AC | Result | Proof |
 |---|---|---|
 | 1 per-field accuracy and invented-value count per model | pass | `ac1-dry-run.log`, `supplied-and-full-plan.log`: 13 cases x 2 fake models x 3 runs; fake-expected 39/39 exact, 0 invented; fake-wrong 0/39, 39 invented |
-| 2 scorer unit test: perfect = 100%, one invented value counts once | pass | `src/lib/quote-eval.test.ts:24`, `:40`, `:150`; three mutants all go red (`ac2-mutation.log`) |
+| 2 scorer unit test: perfect = 100%, one invented value counts once | pass | `src/lib/quote-eval.test.ts:25`, `:43`, `:166`, `:186`; three mutants all go red (`ac2-mutation.log`) |
 | 3 not run by the unit suite or CI | pass | `ac3-not-in-ci.log`: `CI=1` refuses with exit 1; vitest collects 146 files, none outside `src/`; `ci.yml` has no `eval` |
 | 4 first baseline committed beside the cases | not verified | needs the owner's paid run (78 model calls) |
 
