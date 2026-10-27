@@ -73,7 +73,10 @@ export function databaseHandler({ request }: { request: Request }): Response {
   return dbTarget ? json(dbTarget) : cannotTellDatabase()
 }
 
-export function retiredHandler(retired: boolean) {
+type SetRetired = (id: string, retired: boolean, actor: string) => Promise<boolean>
+
+/** POST retire or restore of one row by id, for appliances (the default) or for products. */
+export function retiredHandler(retired: boolean, setRetiredOf: SetRetired = setRetired, noun = 'appliance') {
   return async ({ request, params }: { request: Request; params: { id: string } }): Promise<Response> => {
     const denied = authorize(request)
     if (denied) return denied
@@ -82,10 +85,10 @@ export function retiredHandler(retired: boolean) {
     if (!query.ok) return json({ error: query.error }, 400)
     const { id } = params
     try {
-      return (await setRetired(id, retired, API_ACTOR)) ? json({ id, retired }) : json({ error: 'Not found' }, 404)
+      return (await setRetiredOf(id, retired, API_ACTOR)) ? json({ id, retired }) : json({ error: 'Not found' }, 404)
     } catch (error) {
-      console.error('[catalog-api] retire/restore failed', { id, retired, error })
-      return json({ error: 'Could not update the appliance' }, 500)
+      console.error('[catalog-api] retire/restore failed', { noun, id, retired, error })
+      return json({ error: `Could not update the ${noun}` }, 500)
     }
   }
 }

@@ -1,0 +1,6 @@
+  ✘  1 [desktop] › e2e/catalog-products.spec.ts:239:1 › a token write to a retired product keeps it retired, and the list refuses a query it does not know (2.4s)
+  ✘  2 [desktop] › e2e/admin.spec.ts:327:1 › a retired product stays on the admin page marked Retired, and restore takes the mark off (12.1s)
+    Error: expect(locator).toContainText(expected) failed
+    Expected substring: "Retired: hidden from the token API list"
+    Received string:    "E2E Power T1793132663462inverterDatasheetUnverifiedVerify"
+  2 failed

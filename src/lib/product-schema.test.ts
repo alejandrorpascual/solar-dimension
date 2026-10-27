@@ -248,6 +248,26 @@ describe('parseProducts', () => {
     expect(out.errors[1]!.issues.map((i) => i.path).sort()).toEqual(['datasheetUrl', 'makerUrl'])
   })
 
+  test('takes the fields to clear beside the product, and leaves clear off when none is sent', () => {
+    const out = parseProducts([{ ...inverter({ chargerA: NONE }), clear: ['specs.chargerA', 'makerUrl', 'price', 'extraSpecs.Weight'] }, battery()])
+    expect(out).toMatchObject({ ok: true, items: [{ clear: ['specs.chargerA', 'makerUrl', 'price', 'extraSpecs.Weight'] }, {}] })
+    expect(out.ok && 'clear' in out.items[1]!).toBe(false)
+  })
+
+  test.each([
+    ['a field it also states', 'specs.continuousW', 'clear.0: the product states specs.continuousW; send it unstated to clear it'],
+    ['the datasheet', 'datasheetUrl', 'clear.0: datasheetUrl cannot be cleared; use specs.<name>, makerUrl, price or extraSpecs.<name>'],
+    ['a spec its kind does not have', 'specs.kWh', 'clear.0: specs.kWh cannot be cleared; use specs.<name>, makerUrl, price or extraSpecs.<name>'],
+  ])('refuses a clear of %s', (_, path, message) => {
+    const out = parseProducts([{ ...inverter(), clear: [path] }])
+    const [where, text] = message.split(': ')
+    expect(out).toEqual({ ok: false, errors: [{ index: 0, issues: [{ path: where, message: text }] }] })
+  })
+
+  test('refuses a clear that is not a list of field names', () => {
+    expect(parseProducts([{ ...inverter(), clear: 'price' }])).toMatchObject({ ok: false, errors: [{ index: 0, issues: [{ path: 'clear' }] }] })
+  })
+
   test('refuses two items with the same key', () => {
     const out = parseProducts([inverter(), { ...inverter(), brand: 'EG4' }])
     expect(out).toMatchObject({ ok: false, errors: [{ index: 1, issues: [{ path: 'model', message: 'the same product twice in this request' }] }] })

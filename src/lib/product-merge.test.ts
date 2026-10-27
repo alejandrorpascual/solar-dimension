@@ -5,7 +5,8 @@ import type { ProductInput, ProductRecord } from './product-schema'
 
 const NOW = '2026-10-09T12:00:00.000Z'
 const record = storedRecord
-const merge = (stored: ProductRecord | null, incoming: ProductInput, replace = false) => mergeProduct(stored, incoming, { replace, now: NOW })
+const merge = (stored: ProductRecord | null, incoming: ProductInput, replace = false, clear: string[] = []) =>
+  mergeProduct(stored, incoming, { replace, now: NOW, clear })
 const extraLine = (name: string, value: string) => ({ name, value, source: SHEET })
 const OLD = '2026-10-01T00:00:00.000Z'
 const PRICE = { amount: 1199, currency: 'USD', seller: 'Shop', url: 'https://shop.example.com/p', seenOn: '2026-10-09' }
@@ -13,7 +14,7 @@ const PRICE = { amount: 1199, currency: 'USD', seller: 'Shop', url: 'https://sho
 describe('mergeProduct', () => {
   test('a new key is stored as sent', () => {
     const out = merge(null, inverter())
-    expect(out.change).toEqual({ key: 'inverter:eg4:6000xp', kind: 'inverter', brand: 'EG4 Electronics', model: '6000XP', status: 'new', fills: [], replaced: [], cleared: [], conflicts: [], dropped: [] })
+    expect(out.change).toEqual({ key: 'inverter:eg4:6000xp', kind: 'inverter', brand: 'EG4 Electronics', model: '6000XP', status: 'new', fills: [], replaced: [], refreshed: [], removed: [], cleared: [], conflicts: [], dropped: [] })
     expect(out.next).toEqual(inverter())
   })
 
@@ -256,11 +257,60 @@ describe('summarize', () => {
   })
 })
 
+describe('mergeProduct with replace: source refresh and clear', () => {
+  const OTHER_SHEET = 'https://example.com/sheet-v2.pdf'
+
+  test('the same value from a new source takes the new source and words', () => {
+    const moved = { value: 6000, source: OTHER_SHEET, asWritten: 'Rated output 6000W' }
+    const out = merge(record(inverter()), inverter({ continuousW: moved }), true)
+    expect(out.change).toMatchObject({ status: 'updated', refreshed: ['specs.continuousW'], replaced: [], fills: [] })
+    expect(out.next.kind === 'inverter' && out.next.specs.continuousW).toEqual(moved)
+  })
+
+  test('a new source for an extra line or a surge level is a refresh too', () => {
+    const stored = record({ ...inverter(), extraSpecs: [extraLine('IP rating', 'IP65')] })
+    const surges = inverter().specs.surges.map((l) => ({ ...l, source: OTHER_SHEET }))
+    const out = merge(stored, { ...inverter({ surges }), extraSpecs: [{ name: 'IP rating', value: 'IP65', source: OTHER_SHEET }] }, true)
+    expect(out.change.refreshed).toEqual(['specs.surges', 'extraSpecs.IP rating'])
+    expect(out.next.extraSpecs[0].source).toBe(OTHER_SHEET)
+  })
+
+  test('the same value and source in other words is confirmed, not refreshed', () => {
+    expect(merge(record(inverter()), inverter({ continuousW: stated(6000, 'Rated output 6000W') }), true).change).toMatchObject({ status: 'unchanged', refreshed: [] })
+  })
+
+  test('without replace a new source is kept out', () => {
+    const out = merge(record(inverter()), inverter({ continuousW: { value: 6000, source: OTHER_SHEET, asWritten: '6000W' } }))
+    expect(out.change).toMatchObject({ status: 'unchanged', refreshed: [] })
+  })
+
+  test('clear empties a stated spec, a list, the maker page, the price and an extra line', () => {
+    const stored = record({ ...inverter(), makerUrl: 'https://eg4.example.com', price: PRICE, extraSpecs: [extraLine('Weight', '24 kg')] })
+    const incoming = { ...inverter({ maxParallelUnits: NONE, bmsComms: [] }), extraSpecs: [] }
+    const out = merge(stored, incoming, true, ['specs.maxParallelUnits', 'specs.bmsComms', 'makerUrl', 'price', 'extraSpecs.weight'])
+    expect(out.change).toMatchObject({
+      status: 'updated', removed: ['specs.maxParallelUnits', 'specs.bmsComms', 'makerUrl', 'price', 'extraSpecs.Weight'], fills: [], replaced: [],
+    })
+    expect(out.next.kind === 'inverter' && [out.next.specs.maxParallelUnits, out.next.specs.bmsComms]).toEqual([NONE, []])
+    expect([out.next.makerUrl, out.next.price, out.next.extraSpecs]).toEqual([null, null, []])
+  })
+
+  test('clearing a field settles its conflicts, and clearing an empty field changes nothing', () => {
+    const old = { field: 'specs.maxParallelUnits', found: 8, source: SHEET, seenAt: OLD }
+    const cleared = merge(record(inverter(), [old]), inverter({ maxParallelUnits: NONE }), true, ['specs.maxParallelUnits'])
+    expect(cleared.change).toMatchObject({ cleared: ['specs.maxParallelUnits'], removed: ['specs.maxParallelUnits'] })
+    expect(cleared.conflicts).toEqual([])
+    expect(merge(record(inverter()), inverter(), true, ['specs.chargerA']).change).toMatchObject({ status: 'unchanged', removed: [] })
+  })
+})
+
 describe('changesStoredValues', () => {
   test.each([
     ['a fill', () => merge(record(inverter({ chargerA: NONE })), inverter({ chargerA: stated(125, 'MAX. CHARGE CURRENT 125A') }))],
     ['a replaced value', () => merge(record(inverter()), inverter({ continuousW: stated(5000, '5000W') }), true)],
     ['a new price', () => merge(record(inverter()), { ...inverter(), price: PRICE })],
+    ['a refreshed source', () => merge(record(inverter()), inverter({ continuousW: { value: 6000, source: 'https://example.com/v2.pdf', asWritten: '6000W' } }), true)],
+    ['a cleared value', () => merge(record(inverter()), inverter({ maxParallelUnits: NONE }), true, ['specs.maxParallelUnits'])],
   ])('is true for %s', (_, write) => {
     expect(changesStoredValues(write().change)).toBe(true)
   })

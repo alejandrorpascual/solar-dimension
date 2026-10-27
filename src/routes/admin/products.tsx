@@ -49,6 +49,7 @@ function AdminProducts() {
                   {p.verification.status === 'verified' ? (
                     <>Verified<br /><small>{p.verifiedByEmail ?? p.verification.by} · <time dateTime={p.verification.at}>{utcMinute(p.verification.at)}</time></small></>
                   ) : 'Unverified'}
+                  {p.retired && <><br /><small>Retired: hidden from the token API list</small></>}
                 </td>
                 <td>
                   {p.verification.status === 'unverified' && (

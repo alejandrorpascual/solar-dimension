@@ -178,22 +178,60 @@ export function productKey(p: Pick<ProductInput, 'kind' | 'brand' | 'model'>): s
 }
 
 const MAX_BATCH = 50
+/** More paths than a product has fields. */
+const MAX_CLEAR = 40
+const ClearSchema = z.array(text()).max(MAX_CLEAR)
 
+/** A product as a write sends it. `clear` names stored fields to empty; the merge honours it only with replace. */
+export type ProductWrite = ProductInput & { clear?: string[] }
+
+type Issue = { path: string; message: string }
 export type ParsedProducts =
-  | { ok: true; items: ProductInput[] }
-  | { ok: false; errors: Array<{ index: number; issues: Array<{ path: string; message: string }> }> }
+  | { ok: true; items: ProductWrite[] }
+  | { ok: false; errors: Array<{ index: number; issues: Issue[] }> }
+
+const CLEARABLE = 'use specs.<name>, makerUrl, price or extraSpecs.<name>'
+const isStatedSpec = (s: unknown): boolean => (Array.isArray(s) ? s.length > 0 : (s as { value: unknown }).value !== null)
+
+/** Why `path` cannot be cleared on `p`: not a clearable field, or one the same item states (it would be filled and emptied at once). */
+function clearIssue(p: ProductInput, path: string): string | null {
+  const spec = path.startsWith('specs.') ? path.slice('specs.'.length) : null
+  const line = path.startsWith('extraSpecs.') ? path.slice('extraSpecs.'.length).trim() : ''
+  const isStated = path === 'makerUrl' || path === 'price' ? p[path] !== null
+    : spec !== null && Object.hasOwn(p.specs, spec) ? isStatedSpec((p.specs as Record<string, unknown>)[spec])
+    : line !== '' ? p.extraSpecs.some((l) => extraNameKey(l.name) === extraNameKey(line))
+    : undefined
+  if (isStated === undefined) return `${path} cannot be cleared; ${CLEARABLE}`
+  return isStated ? `the product states ${path}; send it unstated to clear it` : null
+}
+
+/** One item: the product, plus its `clear` list when one is sent. */
+function parseItem(item: unknown): { ok: true; item: ProductWrite } | { ok: false; issues: Issue[] } {
+  const { clear, ...rest } = item !== null && typeof item === 'object' && !Array.isArray(item) ? (item as Record<string, unknown>) : { clear: undefined }
+  const product = ProductInputSchema.safeParse(clear === undefined ? item : rest)
+  const paths = clear === undefined ? null : ClearSchema.safeParse(clear)
+  const issues: Issue[] = [
+    ...(product.success ? [] : product.error.issues),
+    ...(paths === null || paths.success ? [] : paths.error.issues.map((i) => ({ ...i, path: ['clear', ...i.path] }))),
+  ].map((i) => ({ path: i.path.map(String).join('.'), message: i.message }))
+  if (!product.success || (paths !== null && !paths.success)) return { ok: false, issues }
+  const refused = (paths?.data ?? []).flatMap((path, i) => {
+    const message = clearIssue(product.data, path)
+    return message === null ? [] : [{ path: `clear.${i}`, message }]
+  })
+  if (refused.length > 0) return { ok: false, issues: refused }
+  return { ok: true, item: paths && paths.data.length > 0 ? { ...product.data, clear: paths.data } : product.data }
+}
 
 export function parseProducts(body: unknown): ParsedProducts {
   const list = Array.isArray(body) ? body : [body]
   if (list.length === 0 || list.length > MAX_BATCH) {
     return { ok: false, errors: [{ index: -1, issues: [{ path: '', message: `send 1 to ${MAX_BATCH} products` }] }] }
   }
-  const results = list.map((item) => ProductInputSchema.safeParse(item))
-  const errors = results.flatMap((r, index) =>
-    r.success ? [] : [{ index, issues: r.error.issues.map((i) => ({ path: i.path.map(String).join('.'), message: i.message })) }],
-  )
+  const results = list.map(parseItem)
+  const errors = results.flatMap((r, index) => (r.ok ? [] : [{ index, issues: r.issues }]))
   if (errors.length > 0) return { ok: false, errors }
-  const items = results.map((r) => r.data!)
+  const items = results.flatMap((r) => (r.ok ? [r.item] : []))
   const seen = new Set<string>()
   const duplicates = items.flatMap((item, index) => {
     const key = productKey(item)

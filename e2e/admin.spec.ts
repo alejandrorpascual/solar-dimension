@@ -324,6 +324,31 @@ test('verifying from a page loaded before a token edit says to reload and leaves
   }
 })
 
+test('a retired product stays on the admin page marked Retired, and restore takes the mark off', async ({ page, request }) => {
+  const model = `T${Date.now()}`
+  const key = productKeyOf(model)
+  const flip = (verb: string, id: string) => request.post(`/api/catalog/products/${id}/${verb}`, { headers: writeHeaders() })
+  try {
+    expect((await tokenWrite(request, inverterProduct(model))).status()).toBe(200)
+    const items = (await (await request.get('/api/catalog/products', { headers: catalogAuthHeader })).json()).items as Array<{ key: string; id: string }>
+    const id = items.find((i) => i.key === key)!.id
+    expect((await flip('retire', id)).status()).toBe(200)
+
+    await signInAsAdmin(page)
+    await page.goto('/admin/products')
+    const row = productRow(page, model)
+    await expect(row).toContainText('Retired: hidden from the token API list')
+    await expect(row).toContainText('Unverified')
+
+    expect((await flip('restore', id)).status()).toBe(200)
+    await page.reload()
+    await expect(row).toBeVisible()
+    await expect(row).not.toContainText('Retired')
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
 test('a token change shows in the admin log, and Revert puts a saved project\'s kit back to the earlier numbers', async ({ page, request, browser }) => {
   const id = `e2e-revert-${Date.now()}`
   const name = `E2E heater ${id}`
