@@ -1,0 +1,4 @@
+  ✓  3 [desktop] › e2e/motion-focus.spec.ts:103:1 › with reduced motion the shared hover ease and the menu animation are off (1.7s)
+  ✓  2 [desktop] › e2e/motion-focus.spec.ts:79:1 › buttons, chips and links ease their hover colour with the same token as the solar tiles (1.8s)
+  ✓  1 [desktop] › e2e/motion-focus.spec.ts:48:1 › at 1440 px a category chip, Sign in and the duty select take the same 2 px accent ring as the stepper (2.0s)
+  3 passed (7.8s)

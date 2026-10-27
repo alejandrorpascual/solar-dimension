@@ -21,7 +21,7 @@
 }
 .planner__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12px; }
 .planner__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
-.tile { aspect-ratio: 1.13 / 2.28; min-height: var(--tap); border-radius: 6px; border: 1.5px dashed var(--line-strong); background: var(--ground); padding: 0; transition: background 120ms, border-color 120ms; }
+.tile { aspect-ratio: 1.13 / 2.28; min-height: var(--tap); border-radius: 6px; border: 1.5px dashed var(--line-strong); background: var(--ground); padding: 0; transition: background var(--dur-fast), border-color var(--dur-fast); }
 .tile:hover { border-color: var(--accent); }
 .tile--on { border: 1.5px solid #0F1A33; background: var(--panel); background-image: linear-gradient(var(--panel-line) 1px, transparent 1px), linear-gradient(90deg, var(--panel-line) 1px, transparent 1px); background-size: 100% 25%, 50% 100%; }
 .tile--on:hover { box-shadow: 0 0 0 3px var(--accent-ring); }

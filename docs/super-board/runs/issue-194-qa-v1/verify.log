@@ -1,0 +1,72 @@
+
+> typecheck
+> tsc --noEmit && tsc --noEmit -p e2e && tsc --noEmit -p scripts
+
+
+> test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.1 /Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-194-qa
+      Coverage enabled with v8
+
+ ❯ src/lib/kit-parts.test.ts (53 tests | 1 failed) 7925ms
+   ❯ solar rows on every bank voltage and roof (1)
+     × a kit lists the solar rows with equal strings, or none, no yield and a warning that the string is too short 7486ms
+ ❯ src/lib/solar.test.ts (36 tests | 2 failed) 16849ms
+   ❯ string length against the charge voltage (8)
+     × any tapped count becomes the nearest count that wires as equal strings on the fewest controllers, a tie rounding up, never past the roof 5243ms
+   ❯ controllers, breakers and taps (5)
+     × adding panel n lights it and removing it leaves the most panels below n that wire; every tile can light, on every voltage and roof 10661ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/kit-parts.test.ts > solar rows on every bank voltage and roof > a kit lists the solar rows with equal strings, or none, no yield and a warning that the string is too short
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/lib/kit-parts.test.ts:306:3
+    304|   const SHORTEST = { 12: 1, 24: 1, 36: 2, 48: 2 } as const
+    305|
+    306|   test('a kit lists the solar rows with equal strings, or none, no yie…
+       |   ^
+    307|     const controllerCounts = new Set<number>()
+    308|     for (const volts of [12, 24, 36, 48] as const) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/lib/solar.test.ts > string length against the charge voltage > any tapped count becomes the nearest count that wires as equal strings on the fewest controllers, a tie rounding up, never past the roof
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/lib/solar.test.ts:232:3
+    230|   })
+    231|
+    232|   test('any tapped count becomes the nearest count that wires as equal…
+       |   ^
+    233|     // Lengths a string may have: from the shortest that charges to 5,…
+    234|     const lengths = { 12: [1, 2], 24: [1, 2, 3, 4, 5], 36: [2, 3, 4, 5…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/lib/solar.test.ts > controllers, breakers and taps > adding panel n lights it and removing it leaves the most panels below n that wire; every tile can light, on every voltage and roof
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/lib/solar.test.ts:282:3
+    280|   })
+    281|
+    282|   test('adding panel n lights it and removing it leaves the most panel…
+       |   ^
+    283|     for (const volts of VOLTAGES) {
+    284|       for (let roofM2 = SOLAR.ROOF_RANGE[0]; roofM2 <= SOLAR.ROOF_RANG…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed | 136 passed (138)
+      Tests  3 failed | 2165 passed (2168)
+   Start at  12:48:47
+   Duration  70.34s (tests 42%, import 32%, transform 22%, worker 4%)
+
+    Isolate  138 workers spawned · ~579ms startup each (spawn + environment, per file)
+             at least ~8.30s faster with isolate: false — reuses workers across files instead of one per file
+
+VERIFY_EXIT=1
