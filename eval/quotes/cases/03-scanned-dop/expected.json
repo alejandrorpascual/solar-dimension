@@ -1,0 +1,145 @@
+{
+  "vendor": {
+    "name": "Brisaluz Sistemas Eléctricos",
+    "contact": "C/ Duarte 45, Santiago · Tel. 809-555-0187"
+  },
+  "date": "2026-09-22",
+  "validUntil": null,
+  "currency": "DOP",
+  "options": [],
+  "lines": [
+    {
+      "kind": "inverter",
+      "description": "Inversor onda pura 3,000 W 24 V",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 38500,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 2,
+        "text": "Inversor onda pura 3,000 W 24 V"
+      },
+      "specs": {
+        "watts": 3000,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Batería AGM 12 V 200 Ah",
+      "brand": null,
+      "model": null,
+      "qty": 4,
+      "unitPrice": 14900,
+      "lineTotal": 59600,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 2,
+        "text": "Batería AGM 12 V 200 Ah"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": 12,
+        "ah": 200,
+        "kWh": null,
+        "chemistry": "agm",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "wiring",
+      "description": "Cableado y protecciones",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 6500,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 2,
+        "text": "Cableado y protecciones"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "labor",
+      "description": "Mano de obra",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 12000,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 2,
+        "text": "Mano de obra"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    }
+  ],
+  "subtotal": 116600,
+  "tax": 20988,
+  "total": 137588,
+  "warranties": [],
+  "notes": []
+}

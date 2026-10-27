@@ -1,0 +1,10 @@
+eval:quotes: built 13 PDFs in eval/quotes/documents
+  skipped 02-phone-photo: eval/quotes/documents/02-phone-photo.jpg is missing: it is made by hand; see howTo in its case.json
+  skipped 03-scanned-dop: eval/quotes/documents/03-scanned-dop.pdf is missing: it is made by hand; see howTo in its case.json
+  skipped 11-embedded-instructions-image: eval/quotes/documents/11-embedded-instructions-image.jpg is missing: it is made by hand; see howTo in its case.json
+eval:quotes plan: 10 cases x 2 models x 3 runs = 60 model calls
+  models: gpt-6-luna, gpt-6-sol
+  each call sends one document and may write up to 13,000 output tokens; the results file keeps each call's tokens
+  OPENAI_API_KEY is not set in this shell; a run needs it
+Nothing was called. To make these 60 calls: npx tsx scripts/eval-quotes.ts --yes (or npm run eval:quotes -- --yes)
+exit=0

@@ -1,0 +1,34 @@
+{
+  "title": "Case 1 as a phone photo",
+  "spec": "A8 case 2",
+  "document": {
+    "source": "supplied",
+    "file": "02-phone-photo.jpg",
+    "uploadName": "cotizacion.jpg",
+    "howTo": "Run build-documents.ts, print 02-phone-photo.print.pdf (case 1's page), photograph it at an angle with a shadow at about 12 MP, then shrink it as the app does before upload (prepare-quote-file.ts): longest edge 2048 px, JPEG at quality 85 (macOS: sips -Z 2048 -s format jpeg -s formatOptions 85 <photo> --out eval/quotes/documents/02-phone-photo.jpg)."
+  },
+  "status": "ready",
+  "expectedNull": [
+    "lines[2].unitPrice",
+    "lines[2].specs.mm2",
+    "lines[3].unitPrice",
+    "lines[4].unitPrice"
+  ],
+  "unscored": [
+    "lines[0].specs.batteryVolts",
+    "lines[*].source.page"
+  ],
+  "notesMention": [],
+  "pending": [
+    {
+      "path": "lines[0].specs.batteryVolts",
+      "today": "recorded, not scored",
+      "after": "null",
+      "change": "A8 case 3: the owner must set the rule; A8 proposes battery voltage on battery lines only. The inverter line writes 48 V."
+    }
+  ],
+  "notes": [
+    "Expected exactly as case 1. Measures digit accuracy on photos.",
+    "source.page may be 1 or null on a photo, so it is recorded, not scored."
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "pages": [
+    [
+      {
+        "h": "Brisaluz Sistemas Eléctricos"
+      },
+      "C/ Duarte 45, Santiago · Tel. 809-555-0187",
+      "",
+      "Santiago, 22/09/2026",
+      "",
+      "Estimado cliente:",
+      "",
+      "Le agradecemos la oportunidad de presentarle nuestra propuesta para un sistema de respaldo con baterías para su vivienda. En las páginas siguientes encontrará el detalle de los equipos y servicios y el resumen de precios. Todos los montos están expresados en RD$.",
+      "",
+      "Atentamente,",
+      "Departamento de ventas"
+    ],
+    [
+      {
+        "h": "Detalle de equipos y servicios"
+      },
+      "",
+      {
+        "cells": [
+          "Descripción",
+          "Cant.",
+          "Precio unit.",
+          "Importe"
+        ],
+        "bold": true
+      },
+      {
+        "cells": [
+          "Inversor onda pura 3,000 W 24 V",
+          "1",
+          "",
+          "RD$ 38,500.00"
+        ]
+      },
+      {
+        "cells": [
+          "Batería AGM 12 V 200 Ah",
+          "4",
+          "RD$ 14,900.00",
+          "RD$ 59,600.00"
+        ]
+      },
+      {
+        "cells": [
+          "Cableado y protecciones",
+          "",
+          "",
+          "RD$ 6,500.00"
+        ]
+      },
+      {
+        "cells": [
+          "Mano de obra",
+          "",
+          "",
+          "RD$ 12,000.00"
+        ]
+      }
+    ],
+    [
+      {
+        "h": "Resumen"
+      },
+      "",
+      {
+        "cells": [
+          "",
+          "",
+          "Subtotal",
+          "RD$ 116,600.00"
+        ]
+      },
+      {
+        "cells": [
+          "",
+          "",
+          "ITBIS 18 %",
+          "RD$ 20,988.00"
+        ]
+      },
+      {
+        "cells": [
+          "",
+          "",
+          "Total",
+          "RD$ 137,588.00"
+        ],
+        "bold": true
+      },
+      "",
+      {
+        "h": "Condiciones"
+      },
+      "Tiempo de entrega: 10 días laborables. Forma de pago: 60 % de inicial y 40 % contra entrega.",
+      "Precios sujetos a cambio sin previo aviso después de 15 días."
+    ]
+  ]
+}

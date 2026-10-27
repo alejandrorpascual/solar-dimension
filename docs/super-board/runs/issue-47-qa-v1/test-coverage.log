@@ -1,0 +1,93 @@
+
+> test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.1 .
+      Coverage enabled with v8
+
+
+ Test Files  146 passed (146)
+      Tests  2318 passed (2318)
+   Start at  15:59:00
+   Duration  30.05s (tests 56%, import 35%, transform 6%, worker 3%)
+
+     Import  352 modules were evaluated 622 times · 16.06s total, 35% of tracked time
+             ~2.41s faster with isolate: false — shared modules are evaluated once per worker instead of once per file
+             learn more: https://vitest.dev/guide/improving-performance#test-isolation
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   90.51 |    90.96 |   90.77 |   90.65 |                   
+ i18n              |     100 |     92.1 |     100 |     100 |                   
+  en.ts            |     100 |     90.9 |     100 |     100 | 181-182,229       
+  es.ts            |     100 |     89.7 |     100 |     100 | 181-182,229,246   
+  index.ts         |     100 |    95.74 |     100 |     100 | 26,43             
+ lib               |    98.5 |    94.55 |   99.42 |   99.06 |                   
+  ...nce-groups.ts |     100 |       80 |     100 |     100 | 15                
+  auth-client.ts   |       0 |      100 |     100 |       0 | 3-4               
+  auth.ts          |      80 |       50 |     100 |     100 | 10-21             
+  custom.ts        |     100 |    97.56 |     100 |     100 | 47                
+  db-endpoint.ts   |     100 |    91.66 |     100 |     100 | 22                
+  fine-print.ts    |     100 |    81.25 |     100 |     100 | 36-39             
+  kit-checks.ts    |     100 |    98.27 |     100 |     100 | 106               
+  kit-parts.ts     |   98.24 |    95.65 |     100 |     100 | 17,114            
+  ...on-journal.ts |     100 |    96.42 |     100 |     100 | 24                
+  pdf-fixtures.ts  |      96 |       50 |   85.71 |     100 | 19-20             
+  pdf-info.ts      |     100 |    83.33 |     100 |     100 | 20                
+  pdf-pages.ts     |     100 |    96.55 |     100 |     100 | 35                
+  persistence.ts   |   94.83 |    92.52 |   96.42 |     100 | ...75,245,258,295 
+  product-merge.ts |   99.09 |    94.33 |     100 |     100 | 32-37             
+  ...t-warnings.ts |     100 |    98.36 |     100 |     100 | 101               
+  ...aveat-text.ts |   76.47 |    70.96 |     100 |   73.33 | ...30-31,35-36,38 
+  quote-caveats.ts |     100 |    98.14 |     100 |     100 | 118               
+  quote-compare.ts |   98.47 |    97.81 |   98.07 |     100 | 98,250            
+  quote-eval.ts    |     100 |    97.36 |     100 |     100 | 50                
+  quote-items.ts   |   99.63 |    94.22 |     100 |     100 | ...14,426,431,471 
+  quote-limits.ts  |     100 |    95.65 |     100 |     100 | 59                
+  quote-poller.ts  |     100 |    93.75 |     100 |     100 | 26                
+  quote-text.ts    |   95.37 |    82.33 |     100 |   96.95 | ...47,152,271,339 
+  requester.ts     |     100 |    96.69 |     100 |     100 | 96,112,167-170    
+  sign-out.ts      |     100 |       75 |     100 |     100 | 21                
+  sizing.ts        |     100 |     94.8 |     100 |     100 | 93-94,124-127     
+  solar.ts         |   98.76 |    96.55 |     100 |   98.38 | 172               
+  stale-chunk.ts   |   76.47 |    85.71 |      75 |   71.42 | 25-28,45          
+  store.ts         |    95.3 |    90.47 |   95.89 |   98.03 | 22-23             
+  sync.ts          |     100 |    98.73 |     100 |     100 | 152               
+  tab-sync.ts      |     100 |    83.33 |     100 |     100 | 51                
+ lib/sizing        |    99.7 |    98.92 |     100 |     100 |                   
+  cable.ts         |     100 |    96.82 |     100 |     100 | 261-265           
+  runtime.ts       |   94.11 |    94.73 |     100 |     100 | 40                
+ server            |   47.71 |    57.05 |   33.82 |   50.15 |                   
+  admin-catalog.ts |   56.81 |       50 |   36.36 |    57.5 | ...37-48,54-59,73 
+  ...n-products.ts |    90.9 |      100 |   66.66 |    90.9 | 16                
+  catalog-api.ts   |   96.22 |    96.87 |     100 |   95.34 | 87-88             
+  catalog-repo.ts  |   96.05 |      100 |    92.3 |   95.16 | 67-72             
+  catalog.ts       |       0 |      100 |       0 |       0 | 8-15              
+  locale.ts        |       0 |        0 |       0 |       0 | 5-18              
+  product-repo.ts  |       0 |        0 |       0 |       0 | 12-145            
+  projects-repo.ts |       0 |        0 |       0 |       0 | 8-158             
+  projects.ts      |   57.69 |        0 |    37.5 |   65.21 | 30-31,39-53       
+  session.ts       |       0 |        0 |       0 |       0 | 23-81             
+  site-origin.ts   |       0 |      100 |       0 |       0 | 9                 
+ server/quotes     |   54.13 |    61.47 |    52.5 |   54.79 |                   
+  api.ts           |       0 |        0 |       0 |       0 | 33-232            
+  deps.ts          |       0 |        0 |       0 |       0 | 9-32              
+  limits.ts        |       0 |        0 |       0 |       0 | 9-116             
+  model.ts         |    87.5 |    85.71 |   77.77 |   86.11 | 127-133           
+  poll.ts          |       0 |        0 |       0 |       0 | 4-10              
+  process.ts       |   98.52 |    92.85 |     100 |   98.14 | 150               
+  repo.ts          |   70.96 |    78.94 |      50 |      75 | 10,22-31,107-111  
+  storage.ts       |   72.72 |    66.66 |   71.42 |      72 | 54-64,73          
+  trash.ts         |   97.29 |    91.66 |     100 |     100 | 21                
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 90.51% ( 4429/4893 )
+Branches     : 90.96% ( 3283/3609 )
+Functions    : 90.77% ( 1516/1670 )
+Lines        : 90.65% ( 3367/3714 )
+================================================================================
+test:coverage exit=0

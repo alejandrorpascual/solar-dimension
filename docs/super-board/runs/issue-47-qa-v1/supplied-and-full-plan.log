@@ -1,0 +1,23 @@
+-rw-r--r--  1 alejandrorpascual  staff  301954 Oct 27 16:00 eval/quotes/documents/02-phone-photo.jpg
+-rw-r--r--  1 alejandrorpascual  staff  173861 Oct 27 16:00 eval/quotes/documents/03-scanned-dop.pdf
+-rw-r--r--  1 alejandrorpascual  staff  134585 Oct 27 16:00 eval/quotes/documents/11-embedded-instructions-image.jpg
+exit=0
+.rw-r--r-- alejandrorpascual staff 295 KB Tue Oct 27 16:00:38 2026 02-phone-photo.jpg
+.rw-r--r-- alejandrorpascual staff 2.0 KB Tue Oct 27 15:59:44 2026 02-phone-photo.print.pdf
+.rw-r--r-- alejandrorpascual staff 170 KB Tue Oct 27 16:00:40 2026 03-scanned-dop.pdf
+.rw-r--r-- alejandrorpascual staff 2.6 KB Tue Oct 27 15:59:44 2026 03-scanned-dop.print.pdf
+.rw-r--r-- alejandrorpascual staff 131 KB Tue Oct 27 16:00:40 2026 11-embedded-instructions-image.jpg
+.rw-r--r-- alejandrorpascual staff 2.2 KB Tue Oct 27 15:59:44 2026 11-embedded-instructions-image.print.pdf
+.rw-r--r-- alejandrorpascual staff 2.2 KB Tue Oct 27 15:59:44 2026 11-embedded-instructions-pdf.pdf
+eval:quotes: built 13 PDFs in eval/quotes/documents
+eval:quotes plan: 13 cases x 2 models x 3 runs = 78 model calls
+  models: gpt-6-luna, gpt-6-sol
+  each call sends one document and may write up to 13,000 output tokens; the results file keeps each call's tokens
+  OPENAI_API_KEY is not set in this shell; a run needs it
+Nothing was called. To make these 78 calls: npx tsx scripts/eval-quotes.ts --yes (or npm run eval:quotes -- --yes)
+exit=0
+model          runs  exact  totals      lines          specs         details        halluc  missing  extra  notes  status ok  failed  tokens in  tokens out
+-------------  ----  -----  ----------  -------------  ------------  -------------  ------  -------  -----  -----  ---------  ------  ---------  ----------
+fake-expected  39    39/39  100% 75/75  100% 495/495   100% 171/171  100% 693/693   0       0        0      18/18  30/30      0       0          0
+fake-wrong     39    0/39   48% 36/75   76.4% 378/495  93% 159/171   88.3% 612/693  39      39       39     18/18  6/30       0       0          0
+

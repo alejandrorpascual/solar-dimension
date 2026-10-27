@@ -1,0 +1,211 @@
+{
+  "vendor": {
+    "name": "Watiara Sistemas",
+    "contact": "Tel. 809-555-0175 · watiara.example"
+  },
+  "date": "2026-09-26",
+  "validUntil": null,
+  "currency": "USD",
+  "options": [],
+  "lines": [
+    {
+      "kind": "inverter",
+      "description": "Inversor 5 kW",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 1200,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor 5 kW"
+      },
+      "specs": {
+        "watts": 5000,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Batería LiFePO4 5.12 kWh",
+      "brand": null,
+      "model": null,
+      "qty": 2,
+      "unitPrice": 1300,
+      "lineTotal": 2600,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Batería LiFePO4 5.12 kWh"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": 5.12,
+        "chemistry": "lifepo4",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "other",
+      "description": "Flete a Santiago",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 150,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Flete a Santiago"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "other",
+      "description": "Descuento cliente 5 %",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": -197.5,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Descuento cliente 5 %"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "monitoring",
+      "description": "Opcional, no incluido en el total: módulo WiFi 120.00",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 120,
+      "optional": true,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Opcional, no incluido en el total: módulo WiFi 120.00"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "labor",
+      "description": "Instalación no incluida",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 0,
+      "optional": true,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Instalación no incluida"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    }
+  ],
+  "subtotal": 3752.5,
+  "tax": 675.45,
+  "total": 4427.95,
+  "warranties": [],
+  "notes": [
+    "No incluye breaker principal ni obra civil."
+  ]
+}

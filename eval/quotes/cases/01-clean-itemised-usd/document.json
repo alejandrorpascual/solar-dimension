@@ -1,0 +1,95 @@
+{
+  "pages": [
+    [
+      {
+        "h": "Heliandro Energía S.R.L."
+      },
+      "Av. Las Palmas 120, Santo Domingo · Tel. 809-555-0142 · ventas@heliandro.example",
+      "",
+      {
+        "h": "Cotización HE-2026-0915"
+      },
+      "Fecha: 15/09/2026 · Válida hasta: 15/10/2026",
+      "Moneda: US$ (dólares estadounidenses)",
+      "",
+      {
+        "cells": [
+          "Descripción",
+          "Cant.",
+          "Precio unit.",
+          "Importe"
+        ],
+        "bold": true
+      },
+      {
+        "cells": [
+          "Inversor híbrido 5 kW 48 V, pico 10 kW (5 s), cargador 80 A, WiFi integrado",
+          "1",
+          "1,150.00",
+          "1,150.00"
+        ]
+      },
+      {
+        "cells": [
+          "Batería LiFePO4 51.2 V 100 Ah (5.12 kWh)",
+          "2",
+          "1,290.00",
+          "2,580.00"
+        ]
+      },
+      {
+        "cells": [
+          "Cable de batería 2/0 AWG, 2 tramos",
+          "",
+          "",
+          "85.00"
+        ]
+      },
+      {
+        "cells": [
+          "Fusible clase T 200 A con base",
+          "",
+          "",
+          "95.00"
+        ]
+      },
+      {
+        "cells": [
+          "Instalación y puesta en marcha",
+          "",
+          "",
+          "600.00"
+        ]
+      },
+      "",
+      {
+        "cells": [
+          "",
+          "",
+          "Subtotal",
+          "4,510.00"
+        ]
+      },
+      {
+        "cells": [
+          "",
+          "",
+          "ITBIS 18 %",
+          "811.80"
+        ]
+      },
+      {
+        "cells": [
+          "",
+          "",
+          "Total US$",
+          "5,321.80"
+        ],
+        "bold": true
+      },
+      "",
+      "Garantía: baterías 10 años, inversor 5 años.",
+      "Forma de pago: 50 % al aceptar la cotización y 50 % al terminar la instalación."
+    ]
+  ]
+}

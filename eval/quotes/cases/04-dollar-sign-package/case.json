@@ -1,0 +1,42 @@
+{
+  "title": "Only a '$' sign, one package price",
+  "spec": "A8 case 4",
+  "document": {
+    "source": "generated",
+    "file": "04-dollar-sign-package.pdf",
+    "uploadName": "cotizacion.pdf"
+  },
+  "status": null,
+  "expectedNull": [
+    "lines[1].unitPrice",
+    "lines[2].unitPrice",
+    "lines[1].specs.batteryVolts",
+    "lines[1].specs.ah",
+    "vendor.contact",
+    "subtotal",
+    "tax"
+  ],
+  "unscored": [
+    "currency"
+  ],
+  "notesMention": [],
+  "pending": [
+    {
+      "path": "currency",
+      "today": "recorded, not scored: the schema forces a code, so the model has to write one",
+      "after": "null",
+      "change": "A8's '6.5': nullable total and currency (A9 item 3, AI-09)"
+    },
+    {
+      "path": "status",
+      "today": "recorded, not scored: it follows the currency written",
+      "after": "needs_review",
+      "change": "A8's '6.5': nullable total and currency (A9 item 3, AI-09)"
+    }
+  ],
+  "notes": [
+    "Three lines from the bundle rule, each with the package's words as its source: the inverter with the price, then the battery and the installation at 0 with unitPrice null.",
+    "currency is XXX in expected.json, ISO 4217's code for no currency, only because today's schema needs a string; it is not scored.",
+    "date is expected as YYYY-MM-DD, as A8 writes it for case 1; today's prompt sets no date format, so a miss there may be the format alone."
+  ]
+}

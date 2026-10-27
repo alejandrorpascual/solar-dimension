@@ -1,0 +1,30 @@
+## baseline
+      Tests  24 passed (24)
+## mutant 1: hallucination = any blank-expected field (drop !isBlank(actual))
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+     × a reading equal to the expected one gets every field right and nothing else 8ms
+     × a value where the document writes none is a hallucination; a value left out is an error 3ms
+     × a one-unit line that repeats its amount as the unit price invents nothing; a price split over units does 1ms
+     × free text is only checked for being there, and names ignore case 1ms
+     × options are compared as the app stores them: ids renamed in order, a total invented for one is a hallucination 2ms
+     × a line left out is missing and its written fields count as wrong; a line added is extra 1ms
+     × unscored fields are recorded with what came back, and count nowhere 2ms
+     × the expected reading is perfect 0ms
+## mutant 2: each hallucination counted twice in sumScores
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+     × adds up runs: tallies, counts, statuses, and the runs whose status was as expected 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/lib/quote-eval.test.ts > sumScores > adds up runs: tallies, counts, statuses, and the runs whose status was as expected
+      Tests  1 failed | 23 passed (24)
+## mutant 3: agrees() always true
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+     × a wrong total or currency counts in totals, with what was expected and what came back 4ms
+     × a value where the document writes none is a hallucination; a value left out is an error 1ms
+     × warranties are compared as a whole, in any order 1ms
+     × options are compared as the app stores them: ids renamed in order, a total invented for one is a hallucination 1ms
+     × a line left out is missing and its written fields count as wrong; a line added is extra 0ms
+     × a line read as the wrong kind keeps its partner when the amount agrees, so the kind is scored wrong 0ms
+     × notes that miss an expected mention, a hallucination, or a missing or extra line each make it imperfect 1ms
+     × adds up runs: tallies, counts, statuses, and the runs whose status was as expected 1ms
+## restored
+      Tests  24 passed (24)

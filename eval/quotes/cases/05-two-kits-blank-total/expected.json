@@ -1,0 +1,190 @@
+{
+  "vendor": {
+    "name": "Kilovia Energía",
+    "contact": null
+  },
+  "date": "2026-09-25",
+  "validUntil": null,
+  "currency": "USD",
+  "options": [
+    {
+      "id": "o1",
+      "label": "Inversor 3 kW",
+      "total": null,
+      "tax": null
+    },
+    {
+      "id": "o2",
+      "label": "Inversor 10 kW",
+      "total": null,
+      "tax": null
+    }
+  ],
+  "lines": [
+    {
+      "kind": "inverter",
+      "description": "Inversor de corriente 3 kW, incluye 2 baterías de litio 5.12 kWh, transfer y flete",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 2600,
+      "optional": false,
+      "option": "o1",
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor de corriente 3 kW, incluye 2 baterías de litio 5.12 kWh, transfer y flete"
+      },
+      "specs": {
+        "watts": 3000,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Inversor de corriente 3 kW, incluye 2 baterías de litio 5.12 kWh, transfer y flete",
+      "brand": null,
+      "model": null,
+      "qty": 2,
+      "unitPrice": null,
+      "lineTotal": 0,
+      "optional": false,
+      "option": "o1",
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor de corriente 3 kW, incluye 2 baterías de litio 5.12 kWh, transfer y flete"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": 5.12,
+        "chemistry": "other",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "inverter",
+      "description": "Inversor de corriente 10 kW, incluye baterías de litio 200 Ah, controlador solar 80 A/48 V",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 6200,
+      "optional": false,
+      "option": "o2",
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor de corriente 10 kW, incluye baterías de litio 200 Ah, controlador solar 80 A/48 V"
+      },
+      "specs": {
+        "watts": 10000,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Inversor de corriente 10 kW, incluye baterías de litio 200 Ah, controlador solar 80 A/48 V",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 0,
+      "optional": false,
+      "option": "o2",
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor de corriente 10 kW, incluye baterías de litio 200 Ah, controlador solar 80 A/48 V"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": 200,
+        "kWh": null,
+        "chemistry": "other",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "charge_controller",
+      "description": "Inversor de corriente 10 kW, incluye baterías de litio 200 Ah, controlador solar 80 A/48 V",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 0,
+      "optional": false,
+      "option": "o2",
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor de corriente 10 kW, incluye baterías de litio 200 Ah, controlador solar 80 A/48 V"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": 80,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    }
+  ],
+  "subtotal": null,
+  "tax": null,
+  "total": 0,
+  "warranties": [],
+  "notes": []
+}

@@ -1,0 +1,179 @@
+{
+  "vendor": {
+    "name": "Vatimar Soluciones",
+    "contact": "WhatsApp 809-555-0163"
+  },
+  "date": "2026-09-19",
+  "validUntil": null,
+  "currency": "USD",
+  "options": [],
+  "lines": [
+    {
+      "kind": "inverter",
+      "description": "Inversor/cargador 5 kVA / 4,000 W, pico 12,000 VA (5 s), cargador 60 A",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 980,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor/cargador 5 kVA / 4,000 W, pico 12,000 VA (5 s), cargador 60 A"
+      },
+      "specs": {
+        "watts": 4000,
+        "surgeWatts": 12000,
+        "hasCharger": true,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": 60,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Batería de gel ciclo profundo 12 V 200 Ah",
+      "brand": null,
+      "model": null,
+      "qty": 4,
+      "unitPrice": 310,
+      "lineTotal": 1240,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Batería de gel ciclo profundo 12 V 200 Ah"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": 12,
+        "ah": 200,
+        "kWh": null,
+        "chemistry": "other",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "wiring",
+      "description": "Cable 1/0 AWG",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 60,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Cable 1/0 AWG"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": "1/0",
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "fuse",
+      "description": "Fusible ANL 250 A",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 35,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Fusible ANL 250 A"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": 250,
+        "fuseClass": "ANL"
+      }
+    },
+    {
+      "kind": "labor",
+      "description": "Instalación",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 450,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Instalación"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    }
+  ],
+  "subtotal": null,
+  "tax": null,
+  "total": 2765,
+  "warranties": [],
+  "notes": [
+    "El pico del inversor está escrito en VA (12,000 VA), no en W."
+  ]
+}

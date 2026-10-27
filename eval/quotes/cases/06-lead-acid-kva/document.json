@@ -1,0 +1,71 @@
+{
+  "pages": [
+    [
+      {
+        "h": "Vatimar Soluciones"
+      },
+      "WhatsApp 809-555-0163 · Fecha: 19/09/2026",
+      "Cotización en dólares estadounidenses (US$).",
+      "",
+      {
+        "cells": [
+          "Descripción",
+          "Cant.",
+          "Precio unit.",
+          "Importe"
+        ],
+        "bold": true
+      },
+      {
+        "cells": [
+          "Inversor/cargador 5 kVA / 4,000 W, pico 12,000 VA (5 s), cargador 60 A",
+          "1",
+          "",
+          "980.00"
+        ]
+      },
+      {
+        "cells": [
+          "Batería de gel ciclo profundo 12 V 200 Ah",
+          "4",
+          "310.00",
+          "1,240.00"
+        ]
+      },
+      {
+        "cells": [
+          "Cable 1/0 AWG",
+          "",
+          "",
+          "60.00"
+        ]
+      },
+      {
+        "cells": [
+          "Fusible ANL 250 A",
+          "",
+          "",
+          "35.00"
+        ]
+      },
+      {
+        "cells": [
+          "Instalación",
+          "",
+          "",
+          "450.00"
+        ]
+      },
+      "",
+      {
+        "cells": [
+          "",
+          "",
+          "Total US$",
+          "2,765.00"
+        ],
+        "bold": true
+      }
+    ]
+  ]
+}

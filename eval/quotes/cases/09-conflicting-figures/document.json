@@ -1,0 +1,78 @@
+{
+  "pages": [
+    [
+      {
+        "h": "Fotelia Energía"
+      },
+      "Tel. 809-555-0129 · Fecha: 24/09/2026",
+      "",
+      {
+        "h": "Sistema de respaldo 5 kW"
+      },
+      "",
+      {
+        "cells": [
+          "Descripción",
+          "Cant.",
+          "Precio unit.",
+          "Importe"
+        ],
+        "bold": true
+      },
+      {
+        "cells": [
+          "Inversor 3000 W 24 V",
+          "1",
+          "",
+          "US$ 650.00"
+        ]
+      },
+      {
+        "cells": [
+          "Batería LiFePO4 24 V 100 Ah",
+          "2",
+          "US$ 1,450.00",
+          "US$ 2,900.00"
+        ]
+      },
+      {
+        "cells": [
+          "Cableado de baterías",
+          "",
+          "",
+          "US$ 300.00"
+        ]
+      },
+      {
+        "cells": [
+          "Instalación",
+          "",
+          "",
+          "US$ 1,000.00"
+        ]
+      },
+      "",
+      {
+        "cells": [
+          "",
+          "",
+          "Total",
+          "US$ 4,850.00"
+        ],
+        "bold": true
+      },
+      "",
+      "Son: cuatro mil quinientos ochenta dólares con 00/100.",
+      "Ver la ficha técnica del inversor en la página 2."
+    ],
+    [
+      {
+        "h": "Ficha técnica del inversor (extracto)"
+      },
+      "",
+      "Inversor de onda pura",
+      "Rated power 3600 W",
+      "Eficiencia máxima 93 %"
+    ]
+  ]
+}

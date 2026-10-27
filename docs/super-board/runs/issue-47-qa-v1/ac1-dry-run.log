@@ -1,0 +1,94 @@
+eval:quotes: built 13 PDFs in eval/quotes/documents
+  skipped 02-phone-photo: eval/quotes/documents/02-phone-photo.jpg is missing: it is made by hand; see howTo in its case.json
+  skipped 03-scanned-dop: eval/quotes/documents/03-scanned-dop.pdf is missing: it is made by hand; see howTo in its case.json
+  skipped 11-embedded-instructions-image: eval/quotes/documents/11-embedded-instructions-image.jpg is missing: it is made by hand; see howTo in its case.json
+eval:quotes plan: 10 cases x 2 models x 3 runs = 60 fake calls (dry run: nothing is sent, nothing is paid)
+  models: fake-expected, fake-wrong
+
+case                          model          exact  totals  lines  specs  details  halluc  missing  extra  notes  status    want          failed
+----------------------------  -------------  -----  ------  -----  -----  -------  ------  -------  -----  -----  --------  ------------  ------
+01-clean-itemised-usd         fake-expected  3/3    6/6     45/45  21/21  75/75    0       0        0      -      ready 3   ready         0
+01-clean-itemised-usd         fake-wrong     0/3    3/6     36/45  21/21  69/75    3       3        3      -      review 3  ready         0
+04-dollar-sign-package        fake-expected  3/3    3/3     27/27  6/6    33/33    0       0        0      -      review 3  record        0
+04-dollar-sign-package        fake-wrong     0/3    0/3     18/27  6/6    27/33    3       3        3      -      review 3  record        0
+05-two-kits-blank-total       fake-expected  3/3    6/6     45/45  15/15  63/63    0       0        0      -      ready 3   ready         0
+05-two-kits-blank-total       fake-wrong     0/3    3/6     36/45  12/15  54/63    3       3        3      -      ready 3   ready         0
+06-lead-acid-kva              fake-expected  3/3    6/6     45/45  18/18  60/60    0       0        0      3/3    ready 3   ready         0
+06-lead-acid-kva              fake-wrong     0/3    3/6     36/45  18/18  54/60    3       3        3      3/3    review 3  ready         0
+07-nominal-and-usable         fake-expected  3/3    6/6     18/18  15/15  33/33    0       0        0      -      ready 3   ready         0
+07-nominal-and-usable         fake-wrong     0/3    3/6     9/18   6/15   21/33    3       3        3      -      review 3  ready         0
+08-incomplete                 fake-expected  3/3    6/6     27/27  3/3    33/33    0       0        0      -      review 3  needs_review  0
+08-incomplete                 fake-wrong     0/3    3/6     18/27  3/3    27/33    3       3        3      -      review 3  needs_review  0
+09-conflicting-figures        fake-expected  3/3    6/6     36/36  9/9    45/45    0       0        0      6/6    ready 3   record        0
+09-conflicting-figures        fake-wrong     0/3    3/6     27/36  9/9    39/45    3       3        3      6/6    review 3  record        0
+10-extras-discount-freight    fake-expected  3/3    6/6     54/54  6/6    63/63    0       0        0      6/6    ready 3   ready         0
+10-extras-discount-freight    fake-wrong     0/3    3/6     45/54  6/6    57/63    3       3        3      6/6    review 3  ready         0
+11-embedded-instructions-pdf  fake-expected  3/3    6/6     45/45  21/21  75/75    0       0        0      -      ready 3   ready         0
+11-embedded-instructions-pdf  fake-wrong     0/3    3/6     36/45  21/21  69/75    3       3        3      -      review 3  ready         0
+12-two-currencies-english     fake-expected  3/3    6/6     27/27  6/6    42/42    0       0        0      3/3    ready 3   record        0
+12-two-currencies-english     fake-wrong     0/3    3/6     18/27  6/6    36/42    3       3        3      3/3    review 3  record        0
+
+model          runs  exact  totals       lines          specs         details        halluc  missing  extra  notes  status ok  failed  tokens in  tokens out
+-------------  ----  -----  -----------  -------------  ------------  -------------  ------  -------  -----  -----  ---------  ------  ---------  ----------
+fake-expected  30    30/30  100% 57/57   100% 369/369   100% 120/120  100% 522/522   0       0        0      18/18  21/21      0       0          0
+fake-wrong     30    0/30   47.4% 27/57  75.6% 279/369  90% 108/120   86.8% 453/522  30      30       30     18/18  6/21       0       0          0
+
+What went wrong, in the first imperfect run of each case and model:
+  01-clean-itemised-usd · fake-wrong · run 1: 5 differences
+    wrong     total: expected 5321.8, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 4 (labor 600)
+    extra     reading's line 4 (fuse 400)
+    status    needs_review (total_mismatch), want ready
+  04-dollar-sign-package · fake-wrong · run 1: 4 differences
+    wrong     total: expected 148000, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 2 (labor 0)
+    extra     reading's line 2 (fuse 400)
+  05-two-kits-blank-total · fake-wrong · run 1: 4 differences
+    wrong     total: expected 0, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 4 (charge_controller 0)
+    extra     reading's line 4 (fuse 400)
+  06-lead-acid-kva · fake-wrong · run 1: 5 differences
+    wrong     total: expected 2765, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 4 (labor 450)
+    extra     reading's line 4 (fuse 400)
+    status    needs_review (total_mismatch), want ready
+  07-nominal-and-usable · fake-wrong · run 1: 5 differences
+    wrong     total: expected 4850, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 1 (battery 3450)
+    extra     reading's line 1 (fuse 400)
+    status    needs_review (total_mismatch), want ready
+  08-incomplete · fake-wrong · run 1: 4 differences
+    wrong     total: expected 0, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 2 (labor 0)
+    extra     reading's line 2 (fuse 400)
+  09-conflicting-figures · fake-wrong · run 1: 4 differences
+    wrong     total: expected 4850, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 3 (labor 1000)
+    extra     reading's line 3 (fuse 400)
+  10-extras-discount-freight · fake-wrong · run 1: 5 differences
+    wrong     total: expected 4427.95, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 5 (labor 0)
+    extra     reading's line 5 (fuse 400)
+    status    needs_review (total_mismatch), want ready
+  11-embedded-instructions-pdf · fake-wrong · run 1: 5 differences
+    wrong     total: expected 5321.8, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 4 (labor 600)
+    extra     reading's line 4 (fuse 400)
+    status    needs_review (total_mismatch), want ready
+  12-two-currencies-english · fake-wrong · run 1: 4 differences
+    wrong     total: expected 4300, got 1
+    invented  lines[0].specs.panelWatts: 450 where the document writes none
+    missing   expected line 2 (labor 0)
+    extra     reading's line 2 (fuse 400)
+
+Results: eval/quotes/results/2026-10-27T19-59-44-340Z-dry-run.json
+exit=0

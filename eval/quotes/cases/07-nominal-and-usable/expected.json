@@ -1,0 +1,81 @@
+{
+  "vendor": {
+    "name": "Lumentra Solar",
+    "contact": "info@lumentra.example"
+  },
+  "date": "2026-09-23",
+  "validUntil": null,
+  "currency": "USD",
+  "options": [],
+  "lines": [
+    {
+      "kind": "inverter",
+      "description": "Inversor 6 kW (12 kW pico)",
+      "brand": null,
+      "model": null,
+      "qty": 1,
+      "unitPrice": null,
+      "lineTotal": 1400,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Inversor 6 kW (12 kW pico)"
+      },
+      "specs": {
+        "watts": 6000,
+        "surgeWatts": 12000,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": null,
+        "ah": null,
+        "kWh": null,
+        "chemistry": null,
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    },
+    {
+      "kind": "battery",
+      "description": "Batería LiFePO4 48 V 100 Ah, 4.8 kWh nominal, 4.3 kWh utilizables (90 % DoD)",
+      "brand": null,
+      "model": null,
+      "qty": 3,
+      "unitPrice": 1150,
+      "lineTotal": 3450,
+      "optional": false,
+      "option": null,
+      "role": null,
+      "source": {
+        "page": 1,
+        "text": "Batería LiFePO4 48 V 100 Ah, 4.8 kWh nominal, 4.3 kWh utilizables (90 % DoD)"
+      },
+      "specs": {
+        "watts": null,
+        "surgeWatts": null,
+        "hasCharger": null,
+        "hasWifi": null,
+        "batteryVolts": 48,
+        "ah": 100,
+        "kWh": 4.8,
+        "chemistry": "lifepo4",
+        "panelWatts": null,
+        "chargerAmps": null,
+        "awg": null,
+        "mm2": null,
+        "fuseAmps": null,
+        "fuseClass": null
+      }
+    }
+  ],
+  "subtotal": null,
+  "tax": null,
+  "total": 4850,
+  "warranties": [],
+  "notes": []
+}

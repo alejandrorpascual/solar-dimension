@@ -1,0 +1,10 @@
+## CI refusal (AC3)
+eval:quotes refused: CI is set. This evaluation calls a paid API and is run by hand only, never in CI (audit AI-01).
+exit=1
+
+## unit suite collects no file under scripts/ or eval/ (AC3)
+146 files
+outside src/: []
+
+## ci.yml mentions of eval
+0 matches
