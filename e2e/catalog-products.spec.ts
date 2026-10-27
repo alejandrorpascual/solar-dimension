@@ -236,6 +236,32 @@ test('a retired product leaves the list, and restore brings it back', async ({ r
   }
 })
 
+test('a token write to a retired product keeps it retired, and the list refuses a query it does not know', async ({ request }) => {
+  const model = `W${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  const withRetired = async () =>
+    ((await (await request.get('/api/catalog/products?includeRetired=true', { headers: auth })).json()).items as Array<{ key: string }>).find((i) => i.key === key)
+  try {
+    await post(request, '', [inverter(model)])
+    const { id } = (await stored(request, key)) as unknown as { id: string }
+    const retire = () => request.post(`/api/catalog/products/${id}/retire`, { headers: writeHeaders() })
+    expect(await (await retire()).json()).toEqual({ id, retired: true })
+    expect(await (await retire()).json()).toEqual({ id, retired: true })
+
+    expect(await (await post(request, '?replace=true', [inverter(model, 5000)])).json()).toMatchObject({ updated: [key] })
+    expect(await stored(request, key)).toBeUndefined()
+    expect(await withRetired()).toMatchObject({ retired: true, specs: { continuousW: { value: 5000 } } })
+
+    for (const query of ['?retired=1', '?includeRetired=yes', '?includeRetired=true&includeRetired=false']) {
+      expect((await request.get(`/api/catalog/products${query}`, { headers: auth })).status(), query).toBe(400)
+    }
+    expect((await request.post(`/api/catalog/products/${id}/restore?dryRun=true`, { headers: writeHeaders() })).status()).toBe(400)
+    expect(await withRetired()).toMatchObject({ retired: true })
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
 test('replace with clear empties a stored value; a clear without replace is refused', async ({ request }) => {
   const model = `C${Date.now()}`
   const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
