@@ -1,0 +1,25 @@
+import { test } from 'vitest'
+import * as now from './quote-checks'
+import * as old from './quote-checks.qaold'
+import { extraction, line } from './quote-fixtures'
+import { optionLines } from './quote-options'
+import type { QuoteLine } from './quote-schema'
+const kit = (labor: number, option: string | null): QuoteLine[] => [line('inverter', 2000, { option }), line('battery', 3000, { option, qty: 2 }), line('wiring', 150, { option }), line('fuse', 90, { option }), line('labor', labor, { option })]
+const sum = (ls: readonly QuoteLine[]) => ls.reduce((a, l) => a + l.lineTotal, 0)
+test('which rates make a bare-lines total read as taxed', () => {
+  const rows: string[] = []
+  for (const rate of [0.005, 0.01, 0.015, 0.019, 0.02, 0.021, 0.025, 0.03, 0.07, 0.16, 1141.2 / 6340]) {
+    for (const shared of [0, 100, 300]) {
+      const lines = [...kit(1100, 'o1'), ...kit(1200, 'o2'), ...(shared ? [line('labor', shared, { option: null })] : [])]
+      const x0 = extraction(lines, { subtotal: 6340, tax: Math.round(6340 * rate * 100) / 100, total: 0, options: [] })
+      const own = sum(lines.filter((l) => l.option === 'o1')); const ws = sum(optionLines(x0, 'o1'))
+      for (const [label, t] of [['own', own], ['own+shared', ws]] as const) {
+        const x = { ...x0, options: [{ id: 'o1', label: 'o1', total: t, tax: null }, { id: 'o2', label: 'o2', total: 99999, tax: null }] }
+        const p = now.priceOf(x, 'o1')!
+        rows.push(`rate=${(rate * 100).toFixed(2)}% shared=${shared} total=${label} ${t}: branch taxIncluded=${p.taxIncluded} tax=${p.tax?.toFixed(2)} includesTax=${now.includesTax(p)} staging statesTax=${old.statesTax(x, 'o1')}`)
+      }
+    }
+  }
+  console.log(rows.filter((r) => r.includes('includesTax=true')).join('\n') || 'none')
+  console.log('--- not taxed at bare lines from rate >', rows.filter((r) => r.includes('includesTax=false')).length, 'rows')
+})

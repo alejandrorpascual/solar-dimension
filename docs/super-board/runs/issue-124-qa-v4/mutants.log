@@ -1,0 +1,7 @@
+mutant quote-level includedOf -> nearest:
+      Tests  151 passed (151)
+mutant option R5 reverted (taxed-first):
+       × says it states no tax beside a quote at 7,953.20 that includes its tax 5ms
+       × leaves a cheaper quote at 6,240 that states no tax without a caveat, and names no clean fit 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 149 passed (151)

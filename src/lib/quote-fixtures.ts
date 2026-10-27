@@ -12,7 +12,7 @@ type LineOverrides = Partial<Omit<QuoteLine, 'specs'>> & { specs?: Partial<LineS
 export function line(kind: LineKind, lineTotal: number, over: LineOverrides = {}): QuoteLine {
   const { specs, ...rest } = over
   return {
-    kind, description: kind, brand: null, model: null, qty: 1, unitPrice: null, lineTotal, optional: false, option: null,
+    kind, description: kind, brand: null, model: null, qty: 1, unitPrice: null, lineTotal, optional: false, option: null, role: null,
     source: { page: 1, text: kind }, ...rest, specs: { ...NO_SPECS, ...specs },
   }
 }

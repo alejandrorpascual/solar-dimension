@@ -48,7 +48,17 @@ export async function quoteCounts(userId: string, projectId: string): Promise<{ 
   return { project: projectRow?.n ?? 0, month: usageRow?.n ?? 0 }
 }
 
-export interface NewQuote { id: string; userId: string; projectId: string; fileName: string; blobPathname: string; mime: QuoteMime; sizeBytes: number; pages: number | null }
+/**
+ * The project's quote of this very file, if it has one. Quotes are deleted outright, so a deleted quote's file can be
+ * uploaded again; an older quote with no fingerprint (null file_hash) never matches.
+ */
+export async function quoteWithFile(userId: string, projectId: string, fileHash: string): Promise<{ fileName: string } | null> {
+  const [row] = await db.select({ fileName: quotes.fileName }).from(quotes)
+    .where(and(eq(quotes.userId, userId), eq(quotes.projectId, projectId), eq(quotes.fileHash, fileHash))).orderBy(quotes.createdAt).limit(1)
+  return row ?? null
+}
+
+export interface NewQuote { id: string; userId: string; projectId: string; fileName: string; blobPathname: string; mime: QuoteMime; sizeBytes: number; pages: number | null; fileHash: string }
 
 /**
  * Adds the quote only if the account's limits and today's read budget still allow it, and counts it in `quote_usage`
@@ -56,19 +66,22 @@ export interface NewQuote { id: string; userId: string; projectId: string; fileN
  * as one. The advisory lock makes a user's uploads take turns, so parallel uploads cannot all pass the same count; it
  * is per user, so the daily budget, shared by every account, is guarded by takeDailyRead's conditional upsert
  * instead. The quote is inserted only when that upsert returned today's row, in the same statement, so a read is never
- * taken without its quote nor a quote added without its read. Returns whether the row was inserted.
+ * taken without its quote nor a quote added without its read. A file the project already has (the same file_hash) is
+ * refused by the same check, so it takes no read and no upload; the lock makes a second upload of a file wait for the
+ * first to commit, and its statement then sees the first quote. Returns whether the row was inserted.
  */
 export async function insertWithinLimits(q: NewQuote): Promise<boolean> {
   const month = usageMonth()
   const withinAccountLimits = sql`
     (select count(*) from quotes where user_id = ${q.userId} and project_id = ${q.projectId}) < ${QUOTE_LIMITS.perProject}
-    and coalesce((select uploads from quote_usage where user_id = ${q.userId} and month = ${month}::date), 0) < ${QUOTE_LIMITS.perMonth}`
+    and coalesce((select uploads from quote_usage where user_id = ${q.userId} and month = ${month}::date), 0) < ${QUOTE_LIMITS.perMonth}
+    and not exists (select 1 from quotes where user_id = ${q.userId} and project_id = ${q.projectId} and file_hash = ${q.fileHash})`
   const [, inserted] = await db.batch([
     lockUserQuotes(q.userId),
     db.execute(sql`
       with admitted as (${takeDailyRead(utcDay(new Date()), withinAccountLimits)})
-      insert into quotes (id, user_id, project_id, file_name, blob_pathname, mime, size_bytes, pages)
-      select ${q.id}::uuid, ${q.userId}::text, ${q.projectId}::text, ${q.fileName}::text, ${q.blobPathname}::text, ${q.mime}::text, ${q.sizeBytes}::integer, ${q.pages}::integer
+      insert into quotes (id, user_id, project_id, file_name, blob_pathname, mime, size_bytes, pages, file_hash)
+      select ${q.id}::uuid, ${q.userId}::text, ${q.projectId}::text, ${q.fileName}::text, ${q.blobPathname}::text, ${q.mime}::text, ${q.sizeBytes}::integer, ${q.pages}::integer, ${q.fileHash}::text
       where exists (select 1 from admitted)
       returning id`),
     db.execute(sql`

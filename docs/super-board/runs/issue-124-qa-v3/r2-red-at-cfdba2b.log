@@ -1,0 +1,43 @@
+
+ RUN  v5.0.1 /Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3
+
+ ❯ src/lib/quote-tax-cases.test.ts (14 tests | 1 failed | 13 skipped) 9ms
+   ❯ tax shapes that once mis-priced or mis-checked a quote (14)
+     × an option priced at the document's tax rate counts as taxed, so a cheaper option beside it that states no tax says so 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option priced at the document's tax rate counts as taxed, so a cheaper option beside it that states no tax says so
+AssertionError: expected { quote: { id: 'a', …(9) }, …(16) } to match object { optionId: 'o2', total: 6440, …(1) }
+(24 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "caveats": [
+-     {
+-       "id": "tax_unstated",
+-     },
+-   ],
++   "caveats": [],
+    "optionId": "o2",
+    "total": 6440,
+  }
+
+ ❯ src/lib/quote-tax-cases.test.ts:115:20
+    113|     })
+    114|     const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', x)])
+    115|     expect(v.best).toMatchObject({ optionId: 'o2', total: 6440, caveat…
+       |                    ^
+    116|     expect(v.cleanFit).toMatchObject({ optionId: 'o1', total: 7481.2 })
+    117|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  22:40:28
+   Duration  219ms (transform 54%, import 38%, tests 6%, worker 2%)
+

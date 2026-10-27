@@ -1,0 +1,8 @@
+v3 harness, untyped, RATE_SHARE 0.5, N 20000 (5000 comparisons): best-or-clean-moved vs staging, per comparison, 6f1eab3 -> 72a0e4d
+196 ('newly moved', 'untyped:option:tax-at-document-rate:also-at-bare-lines')
+40 ('newly moved', 'untyped:option:stated-tax-left-out-of-total:also-near-taxed+untyped:option:tax-at-document-rate:also-at-bare-lines')
+40 ('no longer moved', 'now equal to staging')
+39 ('newly moved', 'untyped:option:stated-tax-left-out-of-total:also-near-taxed+untyped:quote:stated-tax-left-out-of-total')
+39 ('newly moved', 'untyped:option:stated-tax-left-out-of-total:also-near-taxed+untyped:option:tax-at-document-rate')
+1 ('newly moved', 'untyped:option:stated-tax-left-out-of-total+untyped:option:stated-tax-left-out-of-total:also-near-taxed+untyped:option:tax-at-document-rate+untyped:option:tax-at-document-rate:also-at-bare-lines')
+net 275

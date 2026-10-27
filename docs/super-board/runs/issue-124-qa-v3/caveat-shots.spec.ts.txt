@@ -1,0 +1,70 @@
+// QA #124 v3 capture script (evidence only, not part of the suite): the tax caveat's copy on the verdict, for a quote
+// that states no tax (case A) and one that states its tax and leaves it out of its total (case B), in English and
+// Spanish, at 1920 px desktop, 1024 px tablet and the 390 px phone project. Asserts the caveat line fits its card.
+import { neon } from '@neondatabase/serverless'
+import { expect, test, type Page } from '@playwright/test'
+import { quotesEn } from '../src/i18n/quotes-en'
+import { quotesEs } from '../src/i18n/quotes-es'
+import { firstProjectId } from './db'
+import { switchLanguage } from './header'
+import { PHONE } from './phone'
+import { quotePdf, signUp, uploadQuotes, verdictHeading } from './quotes'
+
+const OUT = 'docs/super-board/runs/issue-124-qa-v3'
+
+async function setTax(email: string, projectId: string, file: string, t: { subtotal: number; tax: number; total: number }) {
+  await neon(process.env.DATABASE_URL!)`
+    update quotes q set extraction = q.extraction || jsonb_build_object('subtotal', ${t.subtotal}::numeric, 'tax', ${t.tax}::numeric, 'total', ${t.total}::numeric)
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${file}`
+}
+
+/** The caveat line on Voltia's card: its text, and that it sits inside the card and the viewport with nothing cut. */
+async function checkCaveat(page: Page, text: string) {
+  const voltia = page.getByRole('region', { name: 'Voltia Instalaciones' })
+  const note = voltia.getByRole('note').filter({ hasText: text })
+  await expect(note).toBeVisible()
+  await note.scrollIntoViewIfNeeded()
+  const fit = await note.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    const card = el.closest('section,[role="region"]')!.getBoundingClientRect()
+    return { overflowX: el.scrollWidth > el.clientWidth + 1, inCard: r.left >= card.left - 1 && r.right <= card.right + 1, inView: r.right <= window.innerWidth + 1, width: Math.round(r.width) }
+  })
+  expect(fit).toMatchObject({ overflowX: false, inCard: true, inView: true })
+  const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
+  expect(pageOverflow).toBe(false)
+  return { voltia, fit }
+}
+
+async function shoot(page: Page, name: string, viewport: 'desktop' | 'tablet' | 'mobile', text: string) {
+  const { voltia, fit } = await checkCaveat(page, text)
+  await page.screenshot({ path: `${OUT}/${name}-${viewport}.png`, fullPage: false })
+  if (viewport !== 'mobile') await voltia.screenshot({ path: `${OUT}/${name}-${viewport}-crop.png` })
+  console.log(`${name}-${viewport}: caveat width ${fit.width}px, no overflow`)
+}
+
+test('QA #124 v3: the tax caveat reads true and fits for a quote that states no tax and one that leaves it out', PHONE, async ({ page }, info) => {
+  test.slow()
+  const isPhone = info.project.name === 'phone'
+  const email = await signUp(page)
+  await uploadQuotes(page, await Promise.all(['solartec', 'voltia'].map(quotePdf)))
+  await page.getByRole('button', { name: 'Ok, got it' }).click()
+  const projectId = await firstProjectId(email)
+
+  // Case A: SolarTec writes 18% tax into its 7,646.40; Voltia, 7,300, states none.
+  await setTax(email, projectId, 'solartec.pdf', { subtotal: 6480, tax: 1166.4, total: 7646.4 })
+  const views: ['desktop' | 'tablet' | 'mobile', number, number][] = isPhone ? [['mobile', 0, 0]] : [['desktop', 1920, 1080], ['tablet', 1024, 768]]
+  for (const [c, setup] of [['case-a-states-no-tax', null], ['case-b-tax-left-out', { subtotal: 7300, tax: 1314, total: 7300 }]] as const) {
+    // Case B: Voltia also writes 18% tax (1,314) but its total, 7,300, leaves it out.
+    if (setup) await setTax(email, projectId, 'voltia.pdf', setup)
+    for (const [vp, w, h] of views) {
+      if (w) await page.setViewportSize({ width: w, height: h })
+      await page.goto(`/projects/${projectId}/quotes`)
+      await expect(verdictHeading(page)).toHaveText('Voltia Instalaciones is the cheapest that fits: confirm 1 thing first', { timeout: 30_000 })
+      await shoot(page, `ac4-${c}-en`, vp, quotesEn.caveatTax)
+      if (vp === 'tablet') continue
+      await switchLanguage(page, 'Español')
+      await shoot(page, `ac4-${c}-es`, vp, quotesEs.caveatTax)
+      await switchLanguage(page, 'English')
+    }
+  }
+})

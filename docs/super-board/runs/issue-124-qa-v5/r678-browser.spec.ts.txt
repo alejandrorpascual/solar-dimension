@@ -1,0 +1,123 @@
+// QA #124 v5 capture script (evidence only, not part of the suite): review R6, R7 and R8 in the browser. SolarTec is set
+// to include 18% tax (7,646.40), so an entry ranked beside it that holds no tax would carry the tax caveat.
+// R6: Voltia re-read as two options that each write a 1% tax (73, 74) and a total of just their lines (7,300, 7,400), and
+//     Grupo Luz as one system that writes a 1% tax (61.50) and a total of its lines (6,150). All hold their tax.
+// R7: Voltia as two options that each write a 1,000 tax, listed once as a shared IVA line beside a shared 200 labour line,
+//     totalled with both (8,500, 8,600), so the total is not just the option's own lines plus its tax.
+// R8: Voltia as a quote offering one option that writes 1,134 tax in its 7,434 total, the document stating none.
+// Expected on every pairing: no entry carries the tax caveat. English and Spanish, 1920 and 1024 px, and the 390 px phone.
+import { neon } from '@neondatabase/serverless'
+import { expect, test, type Page } from '@playwright/test'
+import { quotesEn } from '../src/i18n/quotes-en'
+import { quotesEs } from '../src/i18n/quotes-es'
+import { SAMPLE_QUOTES } from '../src/lib/quote-fixtures'
+import type { QuoteExtraction, QuoteLine } from '../src/lib/quote-schema'
+import { firstProjectId } from './db'
+import { switchLanguageOnLoad } from './header'
+import { PHONE } from './phone'
+import { quotePdf, signUp, uploadQuotes, verdictHeading } from './quotes'
+
+const OUT = process.env.QA_OUT ?? 'docs/super-board/runs/issue-124-qa-v5'
+const TAG = process.env.QA_TAG ?? ''
+
+const v = SAMPLE_QUOTES.voltia
+const voltiaLines = (option: string | null, extraLabor: number): QuoteLine[] =>
+  v.lines.map((l) => ({ ...l, option, lineTotal: l.kind === 'labor' ? l.lineTotal + extraLabor : l.lineTotal }))
+const ivaLine = (amount: number): QuoteLine => ({ ...v.lines.find((l) => l.kind === 'labor')!, kind: 'other', qty: 1, unitPrice: null, lineTotal: amount, option: null, description: 'IVA', source: { page: 2, text: 'IVA' } })
+
+const PAIRINGS = {
+  r6: {
+    files: ['solartec', 'voltia', 'grupoluz'],
+    voltia: { ...v, lines: [...voltiaLines('o1', 0), ...voltiaLines('o2', 100)], subtotal: null, tax: null, total: 0,
+      options: [{ id: 'o1', label: 'Plan A', total: 7300, tax: 73 }, { id: 'o2', label: 'Plan B', total: 7400, tax: 74 }] },
+    grupoluz: { ...SAMPLE_QUOTES.grupoluz, subtotal: null, tax: 61.5, total: 6150 },
+  },
+  r7: {
+    files: ['solartec', 'voltia'],
+    voltia: { ...v, lines: [...voltiaLines('o1', 0), ...voltiaLines('o2', 100), { ...ivaLine(200), kind: 'labor', description: 'Viáticos', source: { page: 2, text: 'Viáticos' } }, ivaLine(1000)], subtotal: null, tax: null, total: 0,
+      options: [{ id: 'o1', label: 'Plan A', total: 8500, tax: 1000 }, { id: 'o2', label: 'Plan B', total: 8600, tax: 1000 }] },
+  },
+  r8: {
+    files: ['solartec', 'voltia'],
+    voltia: { ...v, lines: voltiaLines('o1', -1000), subtotal: null, tax: null, total: 7434, options: [{ id: 'o1', label: 'Plan A', total: 7434, tax: 1134 }] },
+  },
+} satisfies Record<string, { files: string[]; voltia: QuoteExtraction; grupoluz?: QuoteExtraction }>
+
+async function setExtraction(email: string, projectId: string, file: string, x: QuoteExtraction) {
+  await neon(process.env.DATABASE_URL!)`
+    update quotes q set extraction = ${JSON.stringify(x)}::jsonb
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${file}`
+}
+
+async function setTax(email: string, projectId: string, file: string, t: { subtotal: number; tax: number; total: number }) {
+  await neon(process.env.DATABASE_URL!)`
+    update quotes q set extraction = q.extraction || jsonb_build_object('subtotal', ${t.subtotal}::numeric, 'tax', ${t.tax}::numeric, 'total', ${t.total}::numeric)
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${file}`
+}
+
+/** Every ranked card on the verdict: its name and the caveat notes it shows. */
+async function cards(page: Page): Promise<{ name: string; notes: string[] }[]> {
+  return page.getByRole('region').evaluateAll((els) => els
+    .filter((el) => el.getAttribute('aria-label') || el.getAttribute('aria-labelledby'))
+    .map((el) => {
+      const id = el.getAttribute('aria-labelledby')
+      const name = el.getAttribute('aria-label') ?? (id ? document.getElementById(id)?.textContent ?? '' : '')
+      return { name: name.trim(), notes: [...el.querySelectorAll('[role="note"]')].map((n) => (n.textContent ?? '').trim()) }
+    }))
+}
+
+const views = (isPhone: boolean): ['desktop' | 'tablet' | 'mobile', number, number][] =>
+  isPhone ? [['mobile', 0, 0]] : [['desktop', 1920, 1080], ['tablet', 1024, 768]]
+
+async function shoot(page: Page, name: string, vp: string, crop: string | null) {
+  await page.screenshot({ path: `${OUT}/${TAG}${name}-${vp}.png`, fullPage: false })
+  if (vp !== 'mobile' && crop) {
+    const card = page.getByRole('region', { name: crop }).first()
+    await card.scrollIntoViewIfNeeded()
+    await card.screenshot({ path: `${OUT}/${TAG}${name}-${vp}-crop.png` })
+  }
+}
+
+for (const [pairing, setup] of Object.entries(PAIRINGS)) {
+  test(`QA #124 v5 ${pairing}: no tax caveat beside a taxed quote`, PHONE, async ({ page }, info) => {
+    test.slow()
+    const isPhone = info.project.name === 'phone'
+    const email = await signUp(page)
+    await uploadQuotes(page, await Promise.all(setup.files.map(quotePdf)))
+    await page.getByRole('button', { name: 'Ok, got it' }).click()
+    const projectId = await firstProjectId(email)
+    await setExtraction(email, projectId, 'voltia.pdf', setup.voltia)
+    if ('grupoluz' in setup) await setExtraction(email, projectId, 'grupoluz.pdf', setup.grupoluz)
+    await setTax(email, projectId, 'solartec.pdf', { subtotal: 6480, tax: 1166.4, total: 7646.4 })
+
+    for (const [vp, w, h] of views(isPhone)) {
+      if (w) await page.setViewportSize({ width: w, height: h })
+      await page.goto(`/projects/${projectId}/quotes`)
+      await expect(verdictHeading(page)).toBeVisible({ timeout: 30_000 })
+      await expect(page.getByText(/Voltia/).first()).toBeVisible({ timeout: 30_000 })
+      for (const [lang, copy] of [['en', quotesEn], ['es', quotesEs]] as const) {
+        if (lang === 'es' && vp === 'tablet') continue
+        if (lang === 'es') await switchLanguageOnLoad(page, 'Español')
+        await expect(page.getByRole('region', { name: lang === 'es' ? 'Lo que necesita tu kit' : 'What your kit needs' })).toBeVisible()
+        const heading = (await verdictHeading(page).textContent())?.trim() ?? ''
+        const all = await cards(page)
+        const othersRegion = page.getByRole('region', { name: lang === 'es' ? 'Cómo se comparan las demás' : 'How the others compare' })
+        const others = (await othersRegion.count()) > 0 ? (await othersRegion.innerText()).replace(/\s+/g, ' ') : ''
+        const taxOn = all.filter((c) => c.notes.some((n) => n.includes(copy.caveatTax))).map((c) => c.name)
+        const prefix = copy.caveatsLine.split('{items}')[0]!
+        const shortTaxLines = others.split(prefix).slice(1).filter((s) => new RegExp(`^[^.·]*\\b${copy.caveatShortTax}\\b`).test(s)).length
+        console.log(`${TAG}${pairing} ${vp} ${lang}: heading=${JSON.stringify(heading)} taxCaveatOn=${JSON.stringify(taxOn)} othersWithShortTax=${shortTaxLines} others=${JSON.stringify(others.slice(0, 700))}`)
+        if (!TAG) {
+          expect(taxOn).toEqual([])
+          expect(shortTaxLines).toBe(0)
+        }
+        const crop = all.find((c) => c.name.startsWith('Voltia'))?.name ?? all.find((c) => c.name.startsWith('SolarTec'))?.name ?? null
+        await shoot(page, `${pairing}-${lang}`, vp, crop)
+        if (lang === 'es') {
+          await switchLanguageOnLoad(page, 'English')
+          await expect(page.getByRole('region', { name: 'What your kit needs' })).toBeVisible()
+        }
+      }
+    }
+  })
+}

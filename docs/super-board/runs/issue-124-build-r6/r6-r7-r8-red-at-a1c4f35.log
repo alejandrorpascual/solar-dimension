@@ -1,0 +1,88 @@
+
+ RUN  v5.0.1 /Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-r6
+
+ ❯ src/lib/quote-tax-cases.test.ts (22 tests | 3 failed) 20ms
+   ❯ tax shapes that once mis-priced or mis-checked a quote (22)
+     × an option and a quote that each write a 60 tax and total 6,340 both hold it, beside one at 7,953.20 7ms
+     × options that write a 1,000 tax listed once as a shared IVA line, totalled with it, hold their tax 1ms
+     × a quote whose one option writes 1,141.20 tax in its 7,481.20 total holds it, so it is best fit with no caveat 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option and a quote that each write a 60 tax and total 6,340 both hold it, beside one at 7,953.20
+AssertionError: expected { o1: true, single: false } to deeply equal { o1: false, single: false }
+
+- Expected
++ Received
+
+  {
+-   "o1": false,
++   "o1": true,
+    "single": false,
+  }
+
+ ❯ src/lib/quote-tax-cases.test.ts:173:72
+    171|     const single = extraction(kitLines(1100), { tax: 60, total: 6340 })
+    172|     const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('o', opti…
+    173|     expect({ o1: taxCaveat(v, 'o', 'o1'), single: taxCaveat(v, 's') })…
+       |                                                                        ^
+    174|     expect(priceOf(options, 'o1')?.taxIncluded).toBe(priceOf(single, n…
+    175|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > options that write a 1,000 tax listed once as a shared IVA line, totalled with it, hold their tax
+AssertionError: expected { o1: true, o2: true } to deeply equal { o1: false, o2: false }
+
+- Expected
++ Received
+
+  {
+-   "o1": false,
+-   "o2": false,
++   "o1": true,
++   "o2": true,
+  }
+
+ ❯ src/lib/quote-tax-cases.test.ts:184:74
+    182|     )
+    183|     const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('b', x), …
+    184|     expect({ o1: taxCaveat(v, 'b', 'o1'), o2: taxCaveat(v, 'b', 'o2') …
+       |                                                                          ^
+    185|   })
+    186|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > a quote whose one option writes 1,141.20 tax in its 7,481.20 total holds it, so it is best fit with no caveat
+AssertionError: expected { best: 'one', …(2) } to deeply equal { best: 'one', caveats: [], …(1) }
+
+- Expected
++ Received
+
+  {
+    "best": "one",
+-   "caveats": [],
+-   "cleanFit": null,
++   "caveats": [
++     "tax_unstated",
++   ],
++   "cleanFit": "t",
+  }
+
+ ❯ src/lib/quote-tax-cases.test.ts:193:8
+    191|     const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('one', x)…
+    192|     expect({ best: v.best?.quote.id, caveats: v.best?.caveats.map((c) …
+    193|       .toEqual({ best: 'one', caveats: [], cleanFit: null })
+       |        ^
+    194|   })
+    195|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 19 passed (22)
+   Start at  23:55:16
+   Duration  278ms (transform 54%, import 34%, tests 11%, worker 1%)
+

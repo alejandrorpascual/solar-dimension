@@ -1,0 +1,3752 @@
+{
+ "N": 20000,
+ "TYPED": false,
+ "RATE_SHARE": 0.5,
+ "counts": {
+  "comparisons": 5000,
+  "readings:with-rate-option": 7227,
+  "quote-both-near:nearest-would-say-no:staging-taxed:now-taxed": 1891,
+  "compare-differs": 3295,
+  "compare-explained-by:untyped:option:stated-tax-left-out-of-total": 627,
+  "compare-explained-by:untyped:option:tax-at-document-rate": 2194,
+  "compare-classes:untyped:option:stated-tax-left-out-of-total+untyped:option:tax-at-document-rate": 233,
+  "compare:best-or-clean-moved": 1841,
+  "compare-classes:untyped:option:tax-at-document-rate": 1214,
+  "compare:rate-only": 2318,
+  "compare:rate-only:best-or-clean-moved": 1217,
+  "compare-explained-by:untyped:option:tax-at-document-rate:also-at-bare-lines": 1492,
+  "compare-classes:untyped:option:tax-at-document-rate+untyped:option:tax-at-document-rate:also-at-bare-lines": 431,
+  "compare-classes:untyped:option:tax-at-document-rate:also-at-bare-lines": 673,
+  "quote-both-near:nearest-also-yes:staging-taxed:now-taxed": 120,
+  "compare-classes:untyped:option:stated-tax-left-out-of-total+untyped:option:tax-at-document-rate+untyped:option:tax-at-document-rate:also-at-bare-lines": 235,
+  "compare-explained-by:untyped:quote:stated-tax-left-out-of-total": 273,
+  "compare-classes:untyped:option:stated-tax-left-out-of-total+untyped:option:tax-at-document-rate+untyped:quote:stated-tax-left-out-of-total": 2,
+  "compare-explained-by:untyped:quote:lone-option-tax-not-the-quotes": 120,
+  "compare-classes:untyped:option:stated-tax-left-out-of-total+untyped:quote:lone-option-tax-not-the-quotes": 2,
+  "compare-classes:untyped:option:tax-at-document-rate+untyped:quote:lone-option-tax-not-the-quotes": 40,
+  "compare-classes:untyped:option:tax-at-document-rate+untyped:quote:stated-tax-left-out-of-total": 39,
+  "compare-classes:untyped:quote:stated-tax-left-out-of-total": 194,
+  "compare-classes:untyped:option:stated-tax-left-out-of-total": 40,
+  "compare-classes:untyped:option:stated-tax-left-out-of-total+untyped:option:tax-at-document-rate:also-at-bare-lines+untyped:quote:lone-option-tax-not-the-quotes": 39,
+  "compare-classes:untyped:quote:lone-option-tax-not-the-quotes": 39,
+  "compare-classes:untyped:option:stated-tax-left-out-of-total+untyped:option:tax-at-document-rate:also-at-bare-lines": 76,
+  "compare-classes:untyped:option:tax-at-document-rate:also-at-bare-lines+untyped:quote:stated-tax-left-out-of-total": 38
+ },
+ "samples": {
+  "untyped:option:stated-tax-left-out-of-total": [
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 1141.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6340,
+        null
+       ],
+       [
+        "b",
+        7953.2,
+        null
+       ],
+       [
+        "c",
+        7481.2,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1100
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ],
+       [
+        "c",
+        2000
+       ],
+       [
+        "c",
+        3000
+       ],
+       [
+        "c",
+        150
+       ],
+       [
+        "c",
+        90
+       ],
+       [
+        "c",
+        1100
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": 1141.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        null,
+        1159
+       ],
+       [
+        "b",
+        6440,
+        null
+       ],
+       [
+        "c",
+        null,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1200
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1200
+       ],
+       [
+        "c",
+        2000
+       ],
+       [
+        "c",
+        3000
+       ],
+       [
+        "c",
+        150
+       ],
+       [
+        "c",
+        90
+       ],
+       [
+        "c",
+        1100
+       ]
+      ]
+     },
+     {
+      "st": 6840,
+      "tax": 1094.4,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7818,
+        1078
+       ],
+       [
+        "b",
+        6840,
+        1078
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1500
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ],
+       [
+        null,
+        100
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q3",
+       "o": "a",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "c",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "b",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q5",
+       "o": "b",
+       "t": 6840,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q3",
+       "o": "c",
+       "t": 7481.2,
+       "c": []
+      },
+      {
+       "id": "q4",
+       "o": "a",
+       "t": 7599,
+       "c": []
+      },
+      {
+       "id": "q5",
+       "o": "a",
+       "t": 7818,
+       "c": []
+      },
+      {
+       "id": "q3",
+       "o": "b",
+       "t": 7953.2,
+       "c": []
+      }
+     ],
+     "best": [
+      "q3",
+      "a"
+     ],
+     "clean": [
+      "q3",
+      "c"
+     ]
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q3",
+       "o": "a",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "c",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "b",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q5",
+       "o": "b",
+       "t": 6840,
+       "c": []
+      },
+      {
+       "id": "q3",
+       "o": "c",
+       "t": 7481.2,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "a",
+       "t": 7599,
+       "c": []
+      },
+      {
+       "id": "q5",
+       "o": "a",
+       "t": 7818,
+       "c": []
+      },
+      {
+       "id": "q3",
+       "o": "b",
+       "t": 7953.2,
+       "c": [
+        "tax_unstated"
+       ]
+      }
+     ],
+     "best": [
+      "q3",
+      "a"
+     ],
+     "clean": [
+      "q5",
+      "b"
+     ]
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 1141.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        null,
+        null
+       ],
+       [
+        "b",
+        null,
+        1213
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ],
+       [
+        null,
+        300
+       ],
+       [
+        "a",
+        160
+       ]
+      ]
+     },
+     {
+      "st": 0,
+      "tax": 160,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        160,
+        160
+       ],
+       [
+        "b",
+        0,
+        160
+       ]
+      ],
+      "lines": []
+     },
+     {
+      "st": 1000,
+      "tax": 160,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7470,
+        null
+       ],
+       [
+        "b",
+        6440,
+        1030
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1200
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1200
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q27",
+       "o": "b",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q25",
+       "o": "a",
+       "t": 6700,
+       "c": []
+      },
+      {
+       "id": "q27",
+       "o": "a",
+       "t": 7470,
+       "c": []
+      },
+      {
+       "id": "q25",
+       "o": "b",
+       "t": 8253,
+       "c": []
+      },
+      {
+       "id": "q26",
+       "o": "a",
+       "t": 160,
+       "c": []
+      }
+     ],
+     "best": [
+      "q27",
+      "b"
+     ],
+     "clean": [
+      "q25",
+      "a"
+     ]
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q27",
+       "o": "b",
+       "t": 6440,
+       "c": []
+      },
+      {
+       "id": "q25",
+       "o": "a",
+       "t": 6700,
+       "c": []
+      },
+      {
+       "id": "q27",
+       "o": "a",
+       "t": 7470,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q25",
+       "o": "b",
+       "t": 8253,
+       "c": []
+      },
+      {
+       "id": "q26",
+       "o": "a",
+       "t": 160,
+       "c": []
+      }
+     ],
+     "best": [
+      "q27",
+      "b"
+     ],
+     "clean": null
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 63.4,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6440,
+        null
+       ],
+       [
+        "b",
+        6240,
+        62
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1100
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ]
+      ]
+     },
+     {
+      "st": 1000,
+      "tax": 180,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7363.2,
+        null
+       ],
+       [
+        "b",
+        6740,
+        1213
+       ],
+       [
+        "c",
+        7481.2,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ],
+       [
+        "c",
+        2000
+       ],
+       [
+        "c",
+        3000
+       ],
+       [
+        "c",
+        150
+       ],
+       [
+        "c",
+        90
+       ],
+       [
+        "c",
+        1100
+       ],
+       [
+        null,
+        100
+       ]
+      ]
+     },
+     {
+      "st": null,
+      "tax": 0,
+      "typed": null,
+      "opts": [],
+      "lines": [
+       [
+        null,
+        1000
+       ],
+       [
+        null,
+        160
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q68",
+       "o": "b",
+       "t": 6240,
+       "c": []
+      },
+      {
+       "id": "q68",
+       "o": "a",
+       "t": 6440,
+       "c": []
+      },
+      {
+       "id": "q69",
+       "o": "b",
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q69",
+       "o": "a",
+       "t": 7363.2,
+       "c": []
+      },
+      {
+       "id": "q69",
+       "o": "c",
+       "t": 7481.2,
+       "c": []
+      },
+      {
+       "id": "q70",
+       "o": null,
+       "t": 1160,
+       "c": []
+      }
+     ],
+     "best": [
+      "q68",
+      "b"
+     ],
+     "clean": null
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q68",
+       "o": "b",
+       "t": 6240,
+       "c": []
+      },
+      {
+       "id": "q68",
+       "o": "a",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q69",
+       "o": "b",
+       "t": 6740,
+       "c": []
+      },
+      {
+       "id": "q69",
+       "o": "a",
+       "t": 7363.2,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q69",
+       "o": "c",
+       "t": 7481.2,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q70",
+       "o": null,
+       "t": 1160,
+       "c": []
+      }
+     ],
+     "best": [
+      "q68",
+      "b"
+     ],
+     "clean": null
+    }
+   }
+  ],
+  "untyped:option:tax-at-document-rate": [
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 1141.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6340,
+        null
+       ],
+       [
+        "b",
+        7953.2,
+        null
+       ],
+       [
+        "c",
+        7481.2,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1100
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ],
+       [
+        "c",
+        2000
+       ],
+       [
+        "c",
+        3000
+       ],
+       [
+        "c",
+        150
+       ],
+       [
+        "c",
+        90
+       ],
+       [
+        "c",
+        1100
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": 1141.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        null,
+        1159
+       ],
+       [
+        "b",
+        6440,
+        null
+       ],
+       [
+        "c",
+        null,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1200
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1200
+       ],
+       [
+        "c",
+        2000
+       ],
+       [
+        "c",
+        3000
+       ],
+       [
+        "c",
+        150
+       ],
+       [
+        "c",
+        90
+       ],
+       [
+        "c",
+        1100
+       ]
+      ]
+     },
+     {
+      "st": 6840,
+      "tax": 1094.4,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7818,
+        1078
+       ],
+       [
+        "b",
+        6840,
+        1078
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1500
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ],
+       [
+        null,
+        100
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q3",
+       "o": "a",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "c",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "b",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q5",
+       "o": "b",
+       "t": 6840,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q3",
+       "o": "c",
+       "t": 7481.2,
+       "c": []
+      },
+      {
+       "id": "q4",
+       "o": "a",
+       "t": 7599,
+       "c": []
+      },
+      {
+       "id": "q5",
+       "o": "a",
+       "t": 7818,
+       "c": []
+      },
+      {
+       "id": "q3",
+       "o": "b",
+       "t": 7953.2,
+       "c": []
+      }
+     ],
+     "best": [
+      "q3",
+      "a"
+     ],
+     "clean": [
+      "q3",
+      "c"
+     ]
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q3",
+       "o": "a",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "c",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "b",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q5",
+       "o": "b",
+       "t": 6840,
+       "c": []
+      },
+      {
+       "id": "q3",
+       "o": "c",
+       "t": 7481.2,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q4",
+       "o": "a",
+       "t": 7599,
+       "c": []
+      },
+      {
+       "id": "q5",
+       "o": "a",
+       "t": 7818,
+       "c": []
+      },
+      {
+       "id": "q3",
+       "o": "b",
+       "t": 7953.2,
+       "c": [
+        "tax_unstated"
+       ]
+      }
+     ],
+     "best": [
+      "q3",
+      "a"
+     ],
+     "clean": [
+      "q5",
+      "b"
+     ]
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 1000,
+      "tax": 180,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6740,
+        null
+       ],
+       [
+        "b",
+        6340,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1500
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ],
+       [
+        null,
+        100
+       ]
+      ]
+     },
+     {
+      "st": 6440,
+      "tax": 450.8,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6540,
+        null
+       ],
+       [
+        "b",
+        6890.8,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1200
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1200
+       ]
+      ]
+     },
+     {
+      "st": null,
+      "tax": null,
+      "typed": null,
+      "opts": [],
+      "lines": [
+       [
+        null,
+        1460
+       ],
+       [
+        null,
+        1460
+       ],
+       [
+        null,
+        160
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q6",
+       "o": "b",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q7",
+       "o": "a",
+       "t": 6540,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q6",
+       "o": "a",
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q7",
+       "o": "b",
+       "t": 6890.8,
+       "c": []
+      },
+      {
+       "id": "q8",
+       "o": null,
+       "t": 7481.2,
+       "c": []
+      }
+     ],
+     "best": [
+      "q6",
+      "b"
+     ],
+     "clean": [
+      "q7",
+      "b"
+     ]
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q6",
+       "o": "b",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q7",
+       "o": "a",
+       "t": 6540,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q6",
+       "o": "a",
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q7",
+       "o": "b",
+       "t": 6890.8,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q8",
+       "o": null,
+       "t": 7481.2,
+       "c": []
+      }
+     ],
+     "best": [
+      "q6",
+      "b"
+     ],
+     "clean": null
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 443.8,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6890.8,
+        null
+       ],
+       [
+        "b",
+        7490,
+        null
+       ],
+       [
+        "c",
+        6997.8,
+        451
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1100
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ],
+       [
+        "c",
+        2000
+       ],
+       [
+        "c",
+        3000
+       ],
+       [
+        "c",
+        150
+       ],
+       [
+        "c",
+        90
+       ],
+       [
+        "c",
+        1200
+       ],
+       [
+        null,
+        100
+       ],
+       [
+        "b",
+        160
+       ]
+      ]
+     },
+     {
+      "st": 1560,
+      "tax": null,
+      "typed": null,
+      "opts": [],
+      "lines": [
+       [
+        null,
+        100
+       ],
+       [
+        null,
+        1460
+       ]
+      ]
+     },
+     {
+      "st": null,
+      "tax": 998.4,
+      "typed": null,
+      "opts": [],
+      "lines": [
+       [
+        null,
+        2000
+       ],
+       [
+        null,
+        3000
+       ],
+       [
+        null,
+        150
+       ],
+       [
+        null,
+        90
+       ],
+       [
+        null,
+        1000
+       ],
+       [
+        null,
+        0
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q11",
+       "o": null,
+       "t": 1160,
+       "c": []
+      },
+      {
+       "id": "q9",
+       "o": "a",
+       "t": 6890.8,
+       "c": []
+      },
+      {
+       "id": "q9",
+       "o": "c",
+       "t": 6997.8,
+       "c": []
+      },
+      {
+       "id": "q9",
+       "o": "b",
+       "t": 7490,
+       "c": []
+      },
+      {
+       "id": "q10",
+       "o": null,
+       "t": 1560,
+       "c": []
+      }
+     ],
+     "best": [
+      "q11",
+      null
+     ],
+     "clean": null
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q11",
+       "o": null,
+       "t": 1160,
+       "c": []
+      },
+      {
+       "id": "q9",
+       "o": "a",
+       "t": 6890.8,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q9",
+       "o": "c",
+       "t": 6997.8,
+       "c": []
+      },
+      {
+       "id": "q9",
+       "o": "b",
+       "t": 7490,
+       "c": []
+      },
+      {
+       "id": "q10",
+       "o": null,
+       "t": 1560,
+       "c": []
+      }
+     ],
+     "best": [
+      "q11",
+      null
+     ],
+     "clean": null
+    }
+   }
+  ],
+  "untyped:option:tax-at-document-rate:also-at-bare-lines": [
+   {
+    "qs": [
+     {
+      "st": 6440,
+      "tax": 1159.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6440,
+        null
+       ],
+       [
+        "b",
+        null,
+        null
+       ],
+       [
+        "c",
+        7481,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1100
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ],
+       [
+        "c",
+        2000
+       ],
+       [
+        "c",
+        3000
+       ],
+       [
+        "c",
+        150
+       ],
+       [
+        "c",
+        90
+       ],
+       [
+        "c",
+        1100
+       ],
+       [
+        null,
+        100
+       ]
+      ]
+     },
+     {
+      "st": 1000,
+      "tax": 10,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6340,
+        null
+       ],
+       [
+        "b",
+        6807.4,
+        67
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ]
+      ]
+     },
+     {
+      "st": 1000,
+      "tax": 10,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6403.4,
+        63
+       ],
+       [
+        "b",
+        6302.4,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1100
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ],
+       [
+        null,
+        100
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q14",
+       "o": "b",
+       "t": 6302.4,
+       "c": []
+      },
+      {
+       "id": "q13",
+       "o": "a",
+       "t": 6340,
+       "c": []
+      },
+      {
+       "id": "q12",
+       "o": "b",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q14",
+       "o": "a",
+       "t": 6403.4,
+       "c": []
+      },
+      {
+       "id": "q12",
+       "o": "a",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q13",
+       "o": "b",
+       "t": 6807.4,
+       "c": []
+      },
+      {
+       "id": "q12",
+       "o": "c",
+       "t": 7481,
+       "c": []
+      }
+     ],
+     "best": [
+      "q14",
+      "b"
+     ],
+     "clean": null
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q14",
+       "o": "b",
+       "t": 6302.4,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q12",
+       "o": "b",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q13",
+       "o": "a",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q14",
+       "o": "a",
+       "t": 6403.4,
+       "c": []
+      },
+      {
+       "id": "q12",
+       "o": "a",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q13",
+       "o": "b",
+       "t": 6807.4,
+       "c": []
+      },
+      {
+       "id": "q12",
+       "o": "c",
+       "t": 7481,
+       "c": [
+        "tax_unstated"
+       ]
+      }
+     ],
+     "best": [
+      "q14",
+      "b"
+     ],
+     "clean": [
+      "q14",
+      "a"
+     ]
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": null,
+      "typed": null,
+      "opts": [],
+      "lines": [
+       [
+        null,
+        300
+       ],
+       [
+        null,
+        2000
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": 63.4,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6605.4,
+        null
+       ],
+       [
+        "b",
+        6540,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ],
+       [
+        null,
+        300
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": 443.8,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6440,
+        null
+       ],
+       [
+        "b",
+        6840,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1100
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q17",
+       "o": "a",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q16",
+       "o": "b",
+       "t": 6540,
+       "c": []
+      },
+      {
+       "id": "q16",
+       "o": "a",
+       "t": 6605.4,
+       "c": []
+      },
+      {
+       "id": "q17",
+       "o": "b",
+       "t": 6840,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q15",
+       "o": null,
+       "t": 7481.2,
+       "c": []
+      }
+     ],
+     "best": [
+      "q17",
+      "a"
+     ],
+     "clean": [
+      "q16",
+      "b"
+     ]
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q17",
+       "o": "a",
+       "t": 6440,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q16",
+       "o": "b",
+       "t": 6540,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q16",
+       "o": "a",
+       "t": 6605.4,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q17",
+       "o": "b",
+       "t": 6840,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q15",
+       "o": null,
+       "t": 7481.2,
+       "c": []
+      }
+     ],
+     "best": [
+      "q17",
+      "a"
+     ],
+     "clean": null
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 1000,
+      "tax": 70,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        null,
+        null
+       ],
+       [
+        "b",
+        6340,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1500
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ]
+      ]
+     },
+     {
+      "st": 6740,
+      "tax": 101.1,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6740,
+        null
+       ],
+       [
+        "b",
+        6240,
+        94
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1500
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ]
+      ]
+     },
+     {
+      "st": 1000,
+      "tax": 10,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6540,
+        null
+       ],
+       [
+        "b",
+        6340,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ],
+       [
+        null,
+        300
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q19",
+       "o": "b",
+       "t": 6240,
+       "c": []
+      },
+      {
+       "id": "q20",
+       "o": "b",
+       "t": 6340,
+       "c": []
+      },
+      {
+       "id": "q18",
+       "o": "b",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q20",
+       "o": "a",
+       "t": 6540,
+       "c": []
+      },
+      {
+       "id": "q19",
+       "o": "a",
+       "t": 6740,
+       "c": []
+      },
+      {
+       "id": "q18",
+       "o": "a",
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      }
+     ],
+     "best": [
+      "q19",
+      "b"
+     ],
+     "clean": null
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q19",
+       "o": "b",
+       "t": 6240,
+       "c": []
+      },
+      {
+       "id": "q18",
+       "o": "b",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q20",
+       "o": "b",
+       "t": 6340,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q20",
+       "o": "a",
+       "t": 6540,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q18",
+       "o": "a",
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q19",
+       "o": "a",
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      }
+     ],
+     "best": [
+      "q19",
+      "b"
+     ],
+     "clean": null
+    }
+   }
+  ],
+  "untyped:quote:stated-tax-left-out-of-total": [
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 387.2,
+      "typed": null,
+      "opts": [],
+      "lines": [
+       [
+        null,
+        160
+       ],
+       [
+        null,
+        2160
+       ],
+       [
+        null,
+        100
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": 1141.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6540,
+        1159
+       ],
+       [
+        "b",
+        7481.2,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1200
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1100
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": 0,
+      "typed": null,
+      "opts": [],
+      "lines": []
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q102",
+       "o": "a",
+       "t": 6540,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q102",
+       "o": "b",
+       "t": 7481.2,
+       "c": []
+      },
+      {
+       "id": "q101",
+       "o": null,
+       "t": 2420,
+       "c": [
+        "tax_unstated"
+       ]
+      }
+     ],
+     "best": [
+      "q102",
+      "a"
+     ],
+     "clean": [
+      "q102",
+      "b"
+     ]
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q102",
+       "o": "a",
+       "t": 6540,
+       "c": []
+      },
+      {
+       "id": "q102",
+       "o": "b",
+       "t": 7481.2,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q101",
+       "o": null,
+       "t": 2420,
+       "c": []
+      }
+     ],
+     "best": [
+      "q102",
+      "a"
+     ],
+     "clean": null
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 1206.4,
+      "typed": null,
+      "opts": [],
+      "lines": [
+       [
+        null,
+        2000
+       ],
+       [
+        null,
+        3000
+       ],
+       [
+        null,
+        150
+       ],
+       [
+        null,
+        90
+       ],
+       [
+        null,
+        1000
+       ],
+       [
+        null,
+        0
+       ],
+       [
+        null,
+        300
+       ],
+       [
+        null,
+        1000
+       ]
+      ]
+     },
+     {
+      "st": 1000,
+      "tax": 70,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6740,
+        null
+       ],
+       [
+        "b",
+        7211.8,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1500
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": 1141.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7953,
+        null
+       ],
+       [
+        "b",
+        7363,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1500
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q129",
+       "o": "a",
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q129",
+       "o": "b",
+       "t": 7211.8,
+       "c": []
+      },
+      {
+       "id": "q130",
+       "o": "b",
+       "t": 7363,
+       "c": []
+      },
+      {
+       "id": "q128",
+       "o": null,
+       "t": 7540,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q130",
+       "o": "a",
+       "t": 7953,
+       "c": []
+      }
+     ],
+     "best": [
+      "q129",
+      "a"
+     ],
+     "clean": [
+      "q129",
+      "b"
+     ]
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q129",
+       "o": "a",
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q129",
+       "o": "b",
+       "t": 7211.8,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q130",
+       "o": "b",
+       "t": 7363,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q128",
+       "o": null,
+       "t": 7540,
+       "c": []
+      },
+      {
+       "id": "q130",
+       "o": "a",
+       "t": 7953,
+       "c": [
+        "tax_unstated"
+       ]
+      }
+     ],
+     "best": [
+      "q129",
+      "a"
+     ],
+     "clean": [
+      "q128",
+      null
+     ]
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 6740,
+      "tax": 1078.4,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        160,
+        160
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1500
+       ]
+      ]
+     },
+     {
+      "st": null,
+      "tax": 160,
+      "typed": null,
+      "opts": [],
+      "lines": [
+       [
+        null,
+        1160
+       ],
+       [
+        null,
+        0
+       ],
+       [
+        null,
+        100
+       ]
+      ]
+     },
+     {
+      "st": 1000,
+      "tax": null,
+      "typed": null,
+      "opts": [],
+      "lines": []
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q135",
+       "o": null,
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q136",
+       "o": null,
+       "t": 1160,
+       "c": []
+      }
+     ],
+     "best": [
+      "q135",
+      null
+     ],
+     "clean": null
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q135",
+       "o": null,
+       "t": 6740,
+       "c": []
+      },
+      {
+       "id": "q136",
+       "o": null,
+       "t": 1160,
+       "c": []
+      }
+     ],
+     "best": [
+      "q135",
+      null
+     ],
+     "clean": null
+    }
+   }
+  ],
+  "untyped:quote:lone-option-tax-not-the-quotes": [
+   {
+    "qs": [
+     {
+      "st": 14040,
+      "tax": 741,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7481.2,
+        160
+       ],
+       [
+        "b",
+        6740,
+        741
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1100
+       ],
+       [
+        "a",
+        1460
+       ]
+      ]
+     },
+     {
+      "st": null,
+      "tax": 0,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        null,
+        160
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        100
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": 1014.4,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7040,
+        1078
+       ],
+       [
+        "b",
+        null,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1500
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1100
+       ],
+       [
+        null,
+        300
+       ],
+       [
+        "b",
+        0
+       ]
+      ]
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q112",
+       "o": "b",
+       "t": 6640,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q110",
+       "o": "b",
+       "t": 6740,
+       "c": []
+      },
+      {
+       "id": "q112",
+       "o": "a",
+       "t": 7040,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q110",
+       "o": "a",
+       "t": 7481.2,
+       "c": []
+      },
+      {
+       "id": "q111",
+       "o": null,
+       "t": 6740,
+       "c": [
+        "tax_unstated"
+       ]
+      }
+     ],
+     "best": [
+      "q112",
+      "b"
+     ],
+     "clean": [
+      "q110",
+      "b"
+     ]
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q112",
+       "o": "b",
+       "t": 6640,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q110",
+       "o": "b",
+       "t": 6740,
+       "c": []
+      },
+      {
+       "id": "q112",
+       "o": "a",
+       "t": 7040,
+       "c": []
+      },
+      {
+       "id": "q110",
+       "o": "a",
+       "t": 7481.2,
+       "c": []
+      },
+      {
+       "id": "q111",
+       "o": null,
+       "t": 6740,
+       "c": []
+      }
+     ],
+     "best": [
+      "q112",
+      "b"
+     ],
+     "clean": [
+      "q110",
+      "b"
+     ]
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 6340,
+      "tax": 0,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        2000,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "a",
+        0
+       ],
+       [
+        null,
+        1000
+       ]
+      ]
+     },
+     {
+      "st": 6340,
+      "tax": 1141.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        7717.2,
+        null
+       ],
+       [
+        "b",
+        7040,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1500
+       ],
+       [
+        null,
+        300
+       ]
+      ]
+     },
+     {
+      "st": null,
+      "tax": null,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        1000,
+        160
+       ]
+      ],
+      "lines": []
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q116",
+       "o": null,
+       "t": 1160,
+       "c": [
+        "chemistry_unstated",
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q117",
+       "o": "b",
+       "t": 7040,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q117",
+       "o": "a",
+       "t": 7717.2,
+       "c": []
+      },
+      {
+       "id": "q118",
+       "o": null,
+       "t": 7481.2,
+       "c": [
+        "tax_unstated"
+       ]
+      }
+     ],
+     "best": [
+      "q116",
+      null
+     ],
+     "clean": [
+      "q117",
+      "a"
+     ]
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q116",
+       "o": null,
+       "t": 1160,
+       "c": [
+        "chemistry_unstated",
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q117",
+       "o": "b",
+       "t": 7040,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q117",
+       "o": "a",
+       "t": 7717.2,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q118",
+       "o": null,
+       "t": 7481.2,
+       "c": []
+      }
+     ],
+     "best": [
+      "q116",
+      null
+     ],
+     "clean": null
+    }
+   },
+   {
+    "qs": [
+     {
+      "st": 0,
+      "tax": 0,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        100,
+        160
+       ]
+      ],
+      "lines": [
+       [
+        null,
+        0
+       ]
+      ]
+     },
+     {
+      "st": 6540,
+      "tax": 1177.2,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        6540,
+        1123
+       ],
+       [
+        "b",
+        null,
+        null
+       ]
+      ],
+      "lines": [
+       [
+        "a",
+        2000
+       ],
+       [
+        "a",
+        3000
+       ],
+       [
+        "a",
+        150
+       ],
+       [
+        "a",
+        90
+       ],
+       [
+        "a",
+        1000
+       ],
+       [
+        "b",
+        2000
+       ],
+       [
+        "b",
+        3000
+       ],
+       [
+        "b",
+        150
+       ],
+       [
+        "b",
+        90
+       ],
+       [
+        "b",
+        1000
+       ],
+       [
+        null,
+        300
+       ]
+      ]
+     },
+     {
+      "st": 1000,
+      "tax": 0,
+      "typed": null,
+      "opts": [
+       [
+        "a",
+        1160,
+        160
+       ]
+      ],
+      "lines": []
+     }
+    ],
+    "now": {
+     "ranked": [
+      {
+       "id": "q229",
+       "o": "a",
+       "t": 6540,
+       "c": []
+      },
+      {
+       "id": "q229",
+       "o": "b",
+       "t": 6540,
+       "c": []
+      },
+      {
+       "id": "q228",
+       "o": null,
+       "t": 1160,
+       "c": []
+      },
+      {
+       "id": "q230",
+       "o": null,
+       "t": 7481.2,
+       "c": []
+      }
+     ],
+     "best": [
+      "q229",
+      "a"
+     ],
+     "clean": null
+    },
+    "old": {
+     "ranked": [
+      {
+       "id": "q229",
+       "o": "a",
+       "t": 6540,
+       "c": []
+      },
+      {
+       "id": "q229",
+       "o": "b",
+       "t": 6540,
+       "c": [
+        "tax_unstated"
+       ]
+      },
+      {
+       "id": "q228",
+       "o": null,
+       "t": 1160,
+       "c": []
+      },
+      {
+       "id": "q230",
+       "o": null,
+       "t": 7481.2,
+       "c": []
+      }
+     ],
+     "best": [
+      "q229",
+      "a"
+     ],
+     "clean": null
+    }
+   }
+  ]
+ }
+}

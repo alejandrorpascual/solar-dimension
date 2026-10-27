@@ -67,7 +67,9 @@ export function useProjectStore() {
   const language = useRef(t)
   language.current = t
   const [store, setStore] = useState<Store>(() => initialStore(t))
-  const [syncing, setSyncing] = useState(false)
+  // Signed in, the page syncs from its first render: what the server renders, and the page before it hydrates, must not
+  // offer an upload for a project the account has not got yet.
+  const [syncing, setSyncing] = useState(account !== null)
   const [saving, setSaving] = useState(false)
   const [syncError, setSyncError] = useState(false)
   const latest = useRef(store)

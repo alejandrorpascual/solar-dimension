@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AdminAppliancesRouteImport } from './routes/admin/appliances'
+import { Route as AdminProductsRouteImport } from './routes/admin/products'
 import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCatalogAppliancesRouteImport } from './routes/api/catalog/appliances'
@@ -48,6 +49,11 @@ const TermsRoute = TermsRouteImport.update({
 const AdminAppliancesRoute = AdminAppliancesRouteImport.update({
   id: '/admin/appliances',
   path: '/admin/appliances',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminProductsRoute = AdminProductsRouteImport.update({
+  id: '/admin/products',
+  path: '/admin/products',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminQuotesRoute = AdminQuotesRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/admin/appliances': typeof AdminAppliancesRoute
+  '/admin/products': typeof AdminProductsRoute
   '/admin/quotes': typeof AdminQuotesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/admin/appliances': typeof AdminAppliancesRoute
+  '/admin/products': typeof AdminProductsRoute
   '/admin/quotes': typeof AdminQuotesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/admin/appliances': typeof AdminAppliancesRoute
+  '/admin/products': typeof AdminProductsRoute
   '/admin/quotes': typeof AdminQuotesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/catalog/appliances': typeof ApiCatalogAppliancesRouteWithChildren
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/appliances'
+    | '/admin/products'
     | '/admin/quotes'
     | '/api/auth/$'
     | '/api/catalog/appliances'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/appliances'
+    | '/admin/products'
     | '/admin/quotes'
     | '/api/auth/$'
     | '/api/catalog/appliances'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/appliances'
+    | '/admin/products'
     | '/admin/quotes'
     | '/api/auth/$'
     | '/api/catalog/appliances'
@@ -215,6 +227,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   AdminAppliancesRoute: typeof AdminAppliancesRoute
+  AdminProductsRoute: typeof AdminProductsRoute
   AdminQuotesRoute: typeof AdminQuotesRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCatalogAppliancesRoute: typeof ApiCatalogAppliancesRouteWithChildren
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/appliances'
       fullPath: '/admin/appliances'
       preLoaderRoute: typeof AdminAppliancesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/products': {
+      id: '/admin/products'
+      path: '/admin/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AdminProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/quotes': {
@@ -354,6 +374,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   AdminAppliancesRoute: AdminAppliancesRoute,
+  AdminProductsRoute: AdminProductsRoute,
   AdminQuotesRoute: AdminQuotesRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCatalogAppliancesRoute: ApiCatalogAppliancesRouteWithChildren,

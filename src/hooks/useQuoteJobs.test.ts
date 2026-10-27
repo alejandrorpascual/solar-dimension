@@ -27,7 +27,7 @@ const PROJECT_ID = 'p1'
 /** `total` finished quotes on the project, none being read, so the page does not poll again. */
 const jobsWith = (total: number): ProjectJobs[] => [{
   projectId: PROJECT_ID, projectName: 'Home', files: [], total, done: total, pending: 0, failed: 0, needsReview: 0,
-  kitEmpty: false, unseen: false, best: null,
+  kitHold: null, unseen: false, best: null,
 }]
 
 let root: Root | null = null

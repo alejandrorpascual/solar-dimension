@@ -1,0 +1,36 @@
+ ✓ src/lib/quote-prices.test.ts > pricesOf: one price record per system > a single system: base, written tax and a total that holds it 2ms
+ ✓ src/lib/quote-prices.test.ts > pricesOf: one price record per system > a tax listed as a line is the tax, not part of the base 1ms
+ ✓ src/lib/quote-prices.test.ts > pricesOf: one price record per system > a stated tax the total leaves out is not included; no tax stated is unknown 0ms
+ ✓ src/lib/quote-prices.test.ts > pricesOf: one price record per system > a typed total replaces the read one and decides whether the tax is in; the check stays on the read total 0ms
+ ✓ src/lib/quote-prices.test.ts > pricesOf: one price record per system > a typed total leaves the options their own totals 0ms
+ ✓ src/lib/quote-prices.test.ts > pricesOf: one price record per system > an option priced from its lines and its own tax includes it 0ms
+ ✓ src/lib/quote-prices.test.ts > pricesOf: one price record per system > an option total at the document's rate includes tax at that rate 0ms
+ ✓ src/lib/quote-prices.test.ts > pricesOf: one price record per system > an option total that leaves out its written tax is not included, and no option is no price 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option total that includes the document's tax rate passes the option total check (PR #7, quote-checks.ts thread: option total with tax failed option_total_mismatch; fixed in b2c3922 (squashed into 00296f1)) 1ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > the document's flat tax amount never explains another option's total (PR #7, quote-checks.ts thread: a flat tax from one option was accepted on another; fixed in 10ee1dd (squashed into 00296f1)) 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option with its own tax and a tax-inclusive total, but no subtotal, passes and is priced (PR #7, quote-checks.ts thread: option with own tax and no subtotal stayed unranked; fixed in d10b3fb (squashed into 00296f1)) 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option's VAT read both as a line and as its tax is counted once (PR #11, quote-checks.ts thread: an option's VAT counted twice; fixed in 4c4a468 (squashed into 3b4e08b)) 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > a freight line the same size as the tax is not taken for the tax (PR #11, quote-checks.ts thread: freight the size of the tax hid it; fixed in 8c901b1 (squashed into 3b4e08b)) 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > a quote at 7,481 with tax beside one at 6,740 with tax left out: the cheaper one says its tax is not included (Audit AI-04: a quote leaving tax out ranked on its written total against taxed ones; fixed in b105845 (#38)) 3ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > ITBMS 7% is a tax line, counted once (#55, tax words; fixed in cf86c0b (#205)) 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > IGV 18% is a tax line, counted once (#55, tax words; fixed in cf86c0b (#205)) 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > GST 5% is a tax line, counted once (#55, tax words; fixed in cf86c0b (#205)) 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > IVU 11.5% is a tax line, counted once (#55, tax words; fixed in cf86c0b (#205)) 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option at 6,740 that writes 741 tax and leaves it out of its total says so beside one at 7,481 with tax 1ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option priced at the document's tax rate counts as taxed, so a cheaper option beside it that states no tax says so 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option written at just its lines, in a quote whose document rate is 1% > says it states no tax beside a quote at 7,953.20 that includes its tax 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option written at just its lines, in a quote whose document rate is 1% > leaves a cheaper quote at 6,240 that states no tax without a caveat, and names no clean fit 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option total exactly halfway between its lines and its lines plus its written tax counts as taxed 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option at 6,440 whose 100 tax equals the 100 shared line counts as taxed 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > a quote at 6,340 that states 63.40 tax (1%) counts as taxed, so one at 6,440 stating none beside it says so 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option and a quote that each write a 60 tax and total 6,340 both hold it, beside one at 7,953.20 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > options that write a 1,000 tax listed once as a shared IVA line, totalled with it, hold their tax 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > a quote whose one option writes 1,141.20 tax in its 7,481.20 total holds it, so it is best fit with no caveat 0ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > a reading whose total was read without its tax, once the user types the total with it > is not said to leave its tax out 1ms
+ ✓ src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > a reading whose total was read without its tax, once the user types the total with it > still marks a cheaper quote that states no tax beside it 0ms
+ ✓ src/lib/quote-tax-differential.test.ts > the price record against staging's tax rules > agrees on 2400 generated readings (seed 124), outside the classes #124 changed 175ms
+      Tests  31 passed (31)
+   Duration  448ms (transform 40%, import 31%, tests 28%, worker 1%)
+under coverage:
+ ✓ src/lib/quote-tax-differential.test.ts > the price record against staging's tax rules > agrees on 2400 generated readings (seed 124), outside the classes #124 changed 244ms
+   Duration  748ms (tests 62%, transform 24%, import 12%, worker 2%)

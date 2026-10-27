@@ -229,6 +229,15 @@ describe('parseProducts', () => {
     expect(out.errors[0]!.issues[0]!.path).toBe('specs.continuousW')
   })
 
+  test.each([
+    ['verification', { status: 'verified', by: 'token', at: '2026-10-25T00:00:00.000Z' }],
+    ['verifiedAt', '2026-10-25T00:00:00.000Z'],
+    ['verifiedBy', 'token'],
+  ])('refuses a product that sets %s: only an admin verifies', (field, value) => {
+    const out = parseProducts([{ ...inverter(), [field]: value }])
+    expect(out).toMatchObject({ ok: false, errors: [{ index: 0, issues: [expect.objectContaining({ message: expect.stringContaining(field) })] }] })
+  })
+
   test('gives one entry per bad item, all of an item\'s issues in its entry', () => {
     const twoIssues = { ...noDatasheet(), makerUrl: 'http://example.com' }
     const out = parseProducts([battery(), noDatasheet(), inverter(), twoIssues])
