@@ -373,3 +373,71 @@ test('a token change shows in the admin log, and Revert puts a saved project\'s 
     await deleteTestAppliance(id)
   }
 })
+
+test('the admin pages fit a phone, a tablet and a desktop: no sideways page scroll, a wide table scrolls in its own box', async ({ page }) => {
+  await signInAsAdmin(page)
+  for (const width of [390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const path of ['/admin/quotes', '/admin/appliances']) {
+      await page.goto(path)
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+      expect(overflow, `${path} at ${width}px`).toBeLessThanOrEqual(0)
+    }
+    // Still on /admin/appliances: the catalog's own box scrolls, and every button is a full tap target.
+    await expect(page.getByRole('table', { name: 'Catalog' }).locator('xpath=..')).toHaveCSS('overflow-x', 'auto')
+    for (const name of ['New appliance', 'Edit']) {
+      const box = await page.getByRole('button', { name }).first().boundingBox()
+      expect(box?.height, `${name} at ${width}px`).toBeGreaterThanOrEqual(44)
+    }
+  }
+})
+
+test('the appliance page wears the app\'s styles: display headings on the ground color, .btn buttons a full tap tall, .error and .warn in the form', async ({ page }) => {
+  await signInAsAdmin(page)
+  await page.goto('/admin/appliances')
+  const token = (name: string) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name)
+  /** What the browser computes for `property: var(<name>)`, so a token compares in the browser's own form ("" vs ''). */
+  const resolved = (property: 'fontFamily' | 'backgroundColor', name: string) => page.evaluate(([prop, n]) => {
+    const probe = document.createElement('div')
+    probe.style[prop as 'fontFamily'] = `var(${n})`
+    document.body.append(probe)
+    const value = getComputedStyle(probe)[prop as 'fontFamily']
+    probe.remove()
+    return value
+  }, [property, name] as const)
+  const display = await resolved('fontFamily', '--font-display')
+  for (const heading of [page.getByRole('heading', { level: 1 }), page.getByRole('heading', { name: 'Recent changes' })]) {
+    await expect(heading).toHaveCSS('font-family', display)
+  }
+  const ground = await resolved('backgroundColor', '--ground')
+  await expect(page.locator('body')).toHaveCSS('background-color', ground)
+
+  // Every button on the page (New appliance, each row's Edit and Retire or Restore, each Revert) is a .btn at least --tap tall.
+  const buttons = page.getByRole('main').getByRole('button')
+  expect(await buttons.count()).toBeGreaterThan(2)
+  const tap = Number.parseFloat(await token('--tap'))
+  for (const button of await buttons.all()) {
+    const name = (await button.textContent())?.trim()
+    await expect(button, `${name}`).toHaveClass(/(^|\s)btn(\s|$)/)
+    expect((await button.boundingBox())?.height, `${name}`).toBeGreaterThanOrEqual(tap)
+  }
+
+  await page.getByRole('button', { name: 'New appliance' }).click()
+  await expect(page.getByRole('button', { name: 'Save' })).toHaveClass('btn btn--primary')
+  await expect(page.getByRole('button', { name: 'Cancel' })).toHaveClass('btn btn--quiet')
+  await expect(page.getByLabel('Name (EN)')).toHaveClass('in')
+  // Saving an empty form shows each field's error in the app's .error style.
+  await page.getByRole('button', { name: 'Save' }).click()
+  const errors = page.locator('.admin__form small.error')
+  await expect(errors.first()).toBeVisible()
+  // Over 5 kW is a warning, shown in the app's .warn box above Save. Nothing is saved: the form is cancelled.
+  await page.getByLabel('Name (EN)').fill('E2E style check')
+  await page.getByLabel('Name (ES)').fill('Prueba de estilo')
+  await page.getByLabel('Running watts').fill('6000')
+  await page.getByLabel('Surge watts').fill('6000')
+  await page.getByLabel('Duty').fill('0.5')
+  await expect(page.locator('.admin__form p.warn').filter({ hasText: 'Over 5 kW' })).toBeVisible()
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.locator('.admin__form')).toHaveCount(0)
+})
