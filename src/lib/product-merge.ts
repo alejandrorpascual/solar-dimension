@@ -144,6 +144,9 @@ export function mergeProduct(stored: ProductRecord | null, incoming: ProductInpu
   return { change, next, conflicts: nextConflicts(stored.conflicts, outcome, settled) }
 }
 
+/** Whether a write puts a different value in the row: a fill or a replace. A kept conflict or a confirmed value does not. */
+export const changesStoredValues = (change: ProductChange): boolean => change.fills.length > 0 || change.replaced.length > 0
+
 export interface UpsertSummary { created: string[]; updated: string[]; unchanged: string[]; conflicts: Array<{ key: string; fields: string[] }> }
 
 /** What a write answers. `conflicts` lists every product whose change has conflicts, whatever its status: a write that fills one field and finds another differing is in `updated` too. */

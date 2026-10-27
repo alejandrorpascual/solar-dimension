@@ -129,7 +129,12 @@ export type BatterySpecs = z.infer<typeof BatterySpecsSchema>
 export type SurgeLevel = z.infer<typeof SurgeLevelSchema>
 export type ExtraSpec = z.infer<typeof ExtraSpecSchema>
 export type ProductConflict = z.infer<typeof ProductConflictSchema>
-export type ProductRecord = ProductInput & { id: string; key: string; origin: ProductOrigin; conflicts: ProductConflict[]; retired: boolean }
+/** Unverified until a signed-in admin checks the row (`by` is their user id); a token write that changes a value undoes it. */
+export type ProductVerification = { status: 'unverified' } | { status: 'verified'; by: string; at: string }
+/** `updatedAt` lets an admin verify only the row they read: a write since then refuses the verify. */
+export type ProductRecord = ProductInput & {
+  id: string; key: string; origin: ProductOrigin; conflicts: ProductConflict[]; retired: boolean; updatedAt: string; verification: ProductVerification
+}
 
 /** Lowercase letters and digits only, accents dropped. */
 function normalize(s: string): string {

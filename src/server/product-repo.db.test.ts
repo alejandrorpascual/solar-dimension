@@ -8,7 +8,7 @@ import { db } from '../db/client'
 import { products } from '../db/schema'
 import { battery, NONE, stated, stating } from '../lib/product-fixtures'
 import { productKey } from '../lib/product-schema'
-import { previewProducts, upsertProducts } from './product-repo'
+import { listProducts, previewProducts, upsertProducts, verifyProduct } from './product-repo'
 
 const keys: string[] = []
 
@@ -43,5 +43,61 @@ describe('previewProducts on the test database', () => {
     const preview = await previewProducts([stating(stored, { warrantyYears: stated(10, '10-year warranty') })], false)
 
     expect(preview.warnings).toEqual([])
+  })
+})
+
+describe('verification on the test database', () => {
+  const TOKEN = 'catalog-api'
+  const ADMIN = 'test-db-admin'
+  const read = async (key: string) => (await listProducts()).find((p) => p.key === key)!
+  /** A stored battery, verified by the admin as read back. */
+  async function verifiedBattery(specs: Parameters<typeof battery>[0] = {}) {
+    const product = await storedBattery(specs)
+    const seen = await read(productKey(product))
+    expect(await verifyProduct(seen.id, seen.updatedAt, ADMIN)).toBe(true)
+    return product
+  }
+
+  test('a token write is unverified, and an admin verifies it with who and when', async () => {
+    const product = await storedBattery({})
+    const key = productKey(product)
+    expect((await read(key)).verification).toEqual({ status: 'unverified' })
+
+    const seen = await read(key)
+    expect(await verifyProduct(seen.id, seen.updatedAt, ADMIN)).toBe(true)
+
+    expect((await read(key)).verification).toEqual({ status: 'verified', by: ADMIN, at: expect.any(String) })
+  })
+
+  test.each([
+    ['fills a value', { cycleLife: NONE }, { cycleLife: stated(6000, '6000 cycles') }, false],
+    ['replaces a value', {}, { ah: stated(105, '105Ah') }, true],
+  ] as const)('a token write that %s makes a verified product unverified again', async (_, specs, change, replace) => {
+    const product = await verifiedBattery(specs)
+
+    await upsertProducts([stating(product, change)], { replace, actor: TOKEN })
+
+    expect((await read(productKey(product))).verification).toEqual({ status: 'unverified' })
+  })
+
+  test.each([
+    ['the same values', (p: ReturnType<typeof battery>) => p],
+    ['a differing value kept aside as a conflict', (p: ReturnType<typeof battery>) => stating(p, { ah: stated(105, '105Ah') })],
+  ])('a token write with %s keeps a product verified', async (_, incoming) => {
+    const product = await verifiedBattery()
+
+    await upsertProducts([incoming(product)], { replace: false, actor: TOKEN })
+
+    expect((await read(productKey(product))).verification).toMatchObject({ status: 'verified', by: ADMIN })
+  })
+
+  test('an admin cannot verify a product the token changed after the admin read it', async () => {
+    const product = await storedBattery({ cycleLife: NONE })
+    const seen = await read(productKey(product))
+    await upsertProducts([stating(product, { cycleLife: stated(6000, '6000 cycles') })], { replace: false, actor: TOKEN })
+
+    expect(await verifyProduct(seen.id, seen.updatedAt, ADMIN)).toBe(false)
+
+    expect((await read(productKey(product))).verification).toEqual({ status: 'unverified' })
   })
 })

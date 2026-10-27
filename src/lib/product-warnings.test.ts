@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import seedLeads from '../../scripts/product-search/seed-leads.json'
 import { mergeProduct } from './product-merge'
-import { NONE, SHEET, battery, inverter, stated, stating } from './product-fixtures'
-import { productKey, type ProductInput } from './product-schema'
+import { NONE, SHEET, battery, inverter, stated, stating, storedRecord } from './product-fixtures'
+import type { ProductInput } from './product-schema'
 import { warnProducts } from './product-warnings'
 
 /** The messages for one product sent alone, against the stored products given. */
@@ -11,8 +11,7 @@ const level = (w: number, seconds: number, asWritten: string) => ({ w, seconds, 
 
 /** The messages for `incoming` sent over `stored`, the same product, with the product the merge would store (replace off). */
 function warnOver(stored: ProductInput, incoming: ProductInput): string[] {
-  const record = { ...stored, id: 'id-1', key: productKey(stored), origin: 'admin' as const, conflicts: [], retired: false }
-  const { next } = mergeProduct(record, incoming, { replace: false, now: '2026-10-23T12:00:00.000Z' })
+  const { next } = mergeProduct(storedRecord(stored), incoming, { replace: false, now: '2026-10-23T12:00:00.000Z' })
   return warnProducts([stored], [incoming], [next]).flatMap((w) => w.messages)
 }
 

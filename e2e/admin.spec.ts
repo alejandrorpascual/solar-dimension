@@ -1,7 +1,8 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { slugify } from '../src/lib/catalog-schema'
+import { productKey } from '../src/lib/product-schema'
 import { catalogAuthHeader, writeHeaders } from './catalog-token'
-import { deleteTestAppliance, firstProjectName, markEmailVerified } from './db'
+import { deleteTestAppliance, deleteTestProduct, firstProjectName, markEmailVerified } from './db'
 import { quotePdf, signUp, uploadQuotes } from './quotes'
 import { E2E_ADMIN as ADMIN } from './servers'
 
@@ -33,7 +34,7 @@ async function signInAsAdmin(page: Page) {
   await signInOrUp(page, ADMIN.email, ADMIN.password)
 }
 
-for (const path of ['/admin/appliances', '/admin/quotes']) {
+for (const path of ['/admin/appliances', '/admin/quotes', '/admin/products']) {
   test(`non-admins get a 404 at ${path}`, async ({ page }) => {
     await page.goto(path)
     await expect(page.getByText('Page not found')).toBeVisible()
@@ -231,6 +232,96 @@ test('"New appliance" refuses an id that already belongs to another appliance', 
   await expect(page.getByLabel('Name (EN)')).toHaveValue('Coffee maker')
   await expect(page.getByLabel('Running watts')).toHaveValue('900')
   await page.getByRole('button', { name: 'Cancel' }).click()
+})
+
+const SHEET = 'https://example.com/e2e-datasheet.pdf'
+const NONE = { value: null, source: null, asWritten: null }
+const BRAND = 'E2E Power'
+
+/** A token-written inverter `model`, whose charger reading is `chargerA`; any other field given is sent as well. */
+const inverterProduct = (model: string, chargerA: object = NONE, extra: object = {}) => ({
+  kind: 'inverter', brand: BRAND, model, makerUrl: null, datasheetUrl: SHEET, extraSpecs: [], price: null,
+  specs: {
+    continuousW: { value: 6000, source: SHEET, asWritten: 'Rated power 6000W' }, surges: [], batteryVolts: { value: 48, source: SHEET, asWritten: '48 VDC' },
+    splitPhase: NONE, chargerA, pvInputW: NONE, pvVocMax: NONE, maxParallelUnits: NONE, idleW: NONE, peakEfficiencyPct: NONE,
+    warrantyYears: NONE, bmsComms: [], compatibleBatteryBrands: [],
+  },
+  ...extra,
+})
+const CHARGER_125 = { value: 125, source: SHEET, asWritten: 'Max charge 125A' }
+const productKeyOf = (model: string) => productKey({ kind: 'inverter', brand: BRAND, model })
+const tokenWrite = (request: APIRequestContext, body: unknown) => request.post('/api/catalog/products', { headers: writeHeaders(), data: [body] })
+/** The product's `verification` as the token API's GET shows it. */
+async function tokenVerificationOf(request: APIRequestContext, key: string): Promise<unknown> {
+  const items = (await (await request.get('/api/catalog/products', { headers: catalogAuthHeader })).json()).items as Array<{ key: string; verification: unknown }>
+  return items.find((i) => i.key === key)?.verification
+}
+const productRow = (page: Page, model: string) => page.getByRole('table', { name: 'Products' }).getByRole('row', { name: new RegExp(model) })
+
+test('a token-written product is unverified until the admin verifies it, and a token edit that changes a value undoes it', async ({ page, request }) => {
+  const model = `V${Date.now()}`
+  const key = productKeyOf(model)
+  try {
+    expect((await tokenWrite(request, inverterProduct(model))).status()).toBe(200)
+    expect(await tokenVerificationOf(request, key)).toEqual({ status: 'unverified' })
+
+    await signInAsAdmin(page)
+    await page.goto('/admin/products')
+    const row = productRow(page, model)
+    await expect(row).toContainText('Unverified')
+    await row.getByRole('button', { name: `Verify ${BRAND} ${model}` }).click()
+    await expect(row).toContainText(`Verified${ADMIN.email}`)
+    await expect(row.getByRole('button')).toHaveCount(0)
+
+    expect((await tokenWrite(request, inverterProduct(model, CHARGER_125))).status()).toBe(200)
+    expect(await tokenVerificationOf(request, key)).toEqual({ status: 'unverified' })
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
+test('a token write that changes nothing keeps a product verified, and the token cannot verify one itself', async ({ page, request }) => {
+  const model = `K${Date.now()}`
+  const key = productKeyOf(model)
+  try {
+    expect((await tokenWrite(request, inverterProduct(model))).status()).toBe(200)
+    const claimed = { status: 'verified', by: 'catalog-api', at: '2026-10-25T00:00:00.000Z' }
+    for (const extra of [{ verification: claimed }, { verifiedAt: claimed.at }, { verifiedBy: claimed.by }]) {
+      expect((await tokenWrite(request, inverterProduct(model, CHARGER_125, extra))).status()).toBe(422)
+    }
+    expect(await tokenVerificationOf(request, key)).toEqual({ status: 'unverified' })
+
+    await signInAsAdmin(page)
+    await page.goto('/admin/products')
+    await productRow(page, model).getByRole('button', { name: `Verify ${BRAND} ${model}` }).click()
+    await expect(productRow(page, model)).toContainText(`Verified${ADMIN.email}`)
+
+    expect(await (await tokenWrite(request, inverterProduct(model))).json()).toMatchObject({ unchanged: [key] })
+    expect(await tokenVerificationOf(request, key)).toMatchObject({ status: 'verified' })
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
+test('verifying from a page loaded before a token edit says to reload and leaves the product unverified', async ({ page, request }) => {
+  const model = `S${Date.now()}`
+  const key = productKeyOf(model)
+  try {
+    expect((await tokenWrite(request, inverterProduct(model))).status()).toBe(200)
+    await signInAsAdmin(page)
+    await page.goto('/admin/products')
+    const row = productRow(page, model)
+    await expect(row).toContainText('Unverified')
+
+    expect((await tokenWrite(request, inverterProduct(model, CHARGER_125))).status()).toBe(200)
+    await row.getByRole('button', { name: `Verify ${BRAND} ${model}` }).click()
+
+    await expect(page.getByRole('alert')).toContainText('changed since this page loaded')
+    await expect(row).toContainText('Unverified')
+    expect(await tokenVerificationOf(request, key)).toEqual({ status: 'unverified' })
+  } finally {
+    await deleteTestProduct(key)
+  }
 })
 
 test('a token change shows in the admin log, and Revert puts a saved project\'s kit back to the earlier numbers', async ({ page, request, browser }) => {
