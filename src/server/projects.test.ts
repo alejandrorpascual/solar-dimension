@@ -5,7 +5,7 @@ import { z } from 'zod'
 import type { Project } from '../lib/schema'
 import { currentProject, initialStore } from '../lib/store'
 import { importProjects, saveProjects } from './projects'
-import { listForUser, saveForUser, upsertAll } from './projects-repo'
+import { listForUser, saveForUser } from './projects-repo'
 
 const ANA = 'user-ana'
 
@@ -27,7 +27,6 @@ vi.mock('./session', () => ({ AccountClaim: z.string().min(1).optional(), requir
 vi.mock('./projects-repo', () => ({
   listForUser: vi.fn(async () => []),
   saveForUser: vi.fn(async () => ({ ok: true, stale: [] })),
-  upsertAll: vi.fn(async () => new Set<string>()),
 }))
 /** The account already holds a project: an import then writes only the projects edited on the device. */
 vi.mock('../db/client', () => ({
@@ -58,12 +57,19 @@ test('a save that carries a project without solar asks the write to keep the sto
 test('an import that carries a project without solar asks the write to keep the stored solar', async () => {
   await importProjects({ data: { account: ANA, projects: [withoutSolar] } })
 
-  expect(upsertAll).toHaveBeenCalledTimes(1)
-  const [userId, written, leftOut] = vi.mocked(upsertAll).mock.calls[0]!
+  expect(saveForUser).toHaveBeenCalledTimes(1)
+  const [userId, written, leftOut] = vi.mocked(saveForUser).mock.calls[0]!
   expect(userId).toBe(ANA)
   expect(written.map((p) => p.id)).toEqual(['p-older'])
   expect(leftOut).toEqual(new Map([['p-older', ['solar']]]))
   expect(listForUser).toHaveBeenCalledWith(ANA)
+})
+
+test('an import that names fields passes them to the write, as a save does', async () => {
+  await importProjects({ data: { account: ANA, projects: [home], named: { [home.id]: { hours: 20 } } } })
+
+  const [, , , named] = vi.mocked(saveForUser).mock.calls[0]!
+  expect(named).toEqual({ [home.id]: { hours: 20 } })
 })
 
 test('a save that names fields passes them to the write, and a field no save can name is refused', async () => {

@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { clearPendingSave, markPendingSave, OWNER_KEY } from '../lib/persistence'
 import type { Store } from '../lib/schema'
 import { addProject, patchCurrent } from '../lib/store'
-import { account, accounts, clock, net, resetServer, session } from './fake-account-server'
+import { account, accounts, clock, net, resetServer, saveProjects, session } from './fake-account-server'
 import { comeBack, edit, fakeStorage, home, mount, names, openBrowser, otherTabKeeps, storedStore, unmount, type FakeStorage } from './project-store-harness'
 
 vi.mock('../server/projects', () => import('./fake-account-server'))
@@ -274,4 +274,40 @@ test("another device's saved hours show when this tab comes back, though another
   const back = await comeBack()
 
   expect(home(back.store.projects).hours).toBe(20)
+})
+
+test("a load after a save failed offline sends only the hours edited here, and the volts another device saved since stay", async () => {
+  session.user = ANA
+  await mount()
+  net.offline = true
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 24 })))
+  net.offline = false
+  // Another device saves the volts later, naming only them, as every save from this build does.
+  const there = home(account(ANA))
+  const later = Date.now() + 1
+  await saveProjects({ data: { account: ANA.id, projects: [{ ...there, volts: VOLTS, updatedAt: later }], named: { [there.id]: { volts: later } } } })
+  net.calls = []
+
+  const reloaded = await mount()
+
+  expect(net.calls).toEqual(['import'])
+  expect(home(account(ANA))).toMatchObject({ hours: 24, volts: VOLTS })
+  expect(home(reloaded.store.projects)).toMatchObject({ hours: 24, volts: VOLTS })
+})
+
+test('a load after two saves of different fields failed offline sends both, and the chemistry another device saved since stays', async () => {
+  session.user = ANA
+  await mount()
+  net.offline = true
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 24 })))
+  await edit((h) => h.commit(patchCurrent(h.store, { volts: VOLTS })))
+  net.offline = false
+  const there = home(account(ANA))
+  const later = Date.now() + 1
+  await saveProjects({ data: { account: ANA.id, projects: [{ ...there, chemistry: 'agm', updatedAt: later }], named: { [there.id]: { chemistry: later } } } })
+
+  const reloaded = await mount()
+
+  expect(home(account(ANA))).toMatchObject({ hours: 24, volts: VOLTS, chemistry: 'agm' })
+  expect(home(reloaded.store.projects)).toMatchObject({ hours: 24, volts: VOLTS, chemistry: 'agm' })
 })

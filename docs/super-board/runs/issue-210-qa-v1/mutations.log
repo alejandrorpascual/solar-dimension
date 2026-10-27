@@ -1,0 +1,14 @@
+QA v1 · issue #210 · head 0319db6 · each mutant applied alone, test run, file restored (no mutant committed)
+
+M1 useProjectStore.ts loadSave: always send the whole copy
+   x orders.test.ts  "#210: a reload of A while its save naming the hours is on its way, after volts on C"  lost: A {"hours":24} ... A reload > C:list > C:save > A:import
+   x sync.test.ts    "a load after a save failed offline sends only the hours edited here ..."
+M2 persistence.ts setAsideUnsent: back to `!== '1'`
+   x accounts.test.ts "a sign-out with an unsent edit sets it aside, and the next sign-in sends it"
+M3 server/projects.ts importProjects: drop data.named
+   x projects.test.ts "an import that names fields passes them to the write, as a save does"
+M4 fake-account-server.ts importProjects: ignore named
+   x sync.test.ts AC2 case and orders.test.ts #210 case
+M5 persistence.ts markPendingEdits: keep only the latest edits (no merge)
+   x sync.test.ts (new, QA) "a load after two saves of different fields failed offline sends both ..."
+All restored: npx vitest run src/hooks src/lib/persistence.test.ts src/server/projects.test.ts -> green

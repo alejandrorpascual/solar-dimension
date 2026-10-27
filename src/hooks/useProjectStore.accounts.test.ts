@@ -188,7 +188,7 @@ test("an edit from a tab left open after another tab signed out is still the acc
   await edit((h) => h.commit(patchCurrent(h.store, { hours: 24 })))
 
   expect(browser.getItem(OWNER_KEY)).toBe(ANA.id)
-  expect(browser.getItem(PENDING_KEY)).toBe('1')
+  expect(browser.getItem(PENDING_KEY)).not.toBeNull()
 
   net.offline = false
   session.user = null
@@ -338,7 +338,7 @@ test("a tab left open across a sign-out and another account's sign-in cannot sav
 
   beaKeptHerOwn()
   expect(stale.syncError).toBe(true)
-  expect(browser.getItem(PENDING_KEY)).toBe('1')
+  expect(browser.getItem(PENDING_KEY)).not.toBeNull()
 
   // The tab is loaded again, now for Bea: Ana's copy leaves, with her unsent edit set aside for her.
   delete tab.user
@@ -682,4 +682,26 @@ test('work set aside that cannot be read stays set aside after a sign-in that wo
 
   expect(signedIn.syncError).toBe(false)
   expect(browser.getItem(key)).toBe(unreadable)
+})
+
+test('a sign-out with an unsent edit sets it aside, and the next sign-in sends it', async () => {
+  session.user = ANA
+  await mount()
+  net.offline = true
+  await edit((h) => h.commit(patchCurrent(h.store, { hours: 24 })))
+  net.offline = false
+
+  releaseAccountCopy()
+  session.user = null
+  await mount()
+
+  expect(browser.getItem(`${UNSENT_KEY_PREFIX}${ANA.id}`)).toMatch(/"hours":24/)
+  expect(home(account(ANA)).hours).not.toBe(24)
+
+  session.user = ANA
+  const back = await mount()
+
+  expect(home(account(ANA)).hours).toBe(24)
+  expect(home(back.store.projects).hours).toBe(24)
+  expect(browser.getItem(`${UNSENT_KEY_PREFIX}${ANA.id}`)).toBeNull()
 })

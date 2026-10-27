@@ -3,18 +3,29 @@ import type { Dictionary } from '../i18n'
 import { signedInUser } from '../lib/account-session'
 import { localCopyPlan } from '../lib/local-copy'
 import {
-  clearPendingSave, clearUnsent, hasPendingSave, loadOwner, loadStore, loadUnsent, markPendingSave, releaseAccountCopy, saveOwner, saveStore,
-  STORAGE_KEY,
+  clearPendingSave, clearUnsent, hasPendingSave, loadOwner, loadPendingEdits, loadStore, loadUnsent, markPendingEdits, markPendingSave,
+  pendingEditsOf, releaseAccountCopy, saveOwner, saveStore, STORAGE_KEY, type PendingEdits,
 } from '../lib/persistence'
 import type { Project, Store } from '../lib/schema'
 import { currentProject, initialStore, nameFirstProject, rekeySeed, withSetAside } from '../lib/store'
-import { adoptKept, adoptStale, applyChanges, diffProjects } from '../lib/sync'
+import { adoptKept, adoptStale, applyChanges, diffProjects, type NamedEdits } from '../lib/sync'
 import {
   edited, isClean, listRead, NOT_SYNCED, readAnswered, readSent, readSettled, saveAnswered, saveFailed, saveOf,
 } from '../lib/tab-sync'
 import { deleteProjects, importProjects, listProjects, saveProjects } from '../server/projects'
 import { useLocale } from './useLocale'
 import { useRootData } from './useRootData'
+
+/**
+ * What a load sends of `projects`: only the edits marked pending (`pending`), each project they name with the fields
+ * they name, so a copy here that missed another device's later edit to another field does not undo it. With nothing
+ * marked but the whole copy (null), all of it.
+ */
+function loadSave(projects: readonly Project[], pending: PendingEdits | null): { projects: Project[]; named?: NamedEdits } {
+  if (!pending) return { projects: [...projects] }
+  const named = Object.fromEntries(Object.entries(pending).flatMap(([id, fields]) => (fields === 'all' ? [] : [[id, fields]])))
+  return { projects: projects.filter((p) => pending[p.id]), named }
+}
 
 function fromServer(list: Project[], prev: Store): Store {
   const projects = list.length ? list : prev.projects
@@ -37,27 +48,29 @@ function fromServer(list: Project[], prev: Store): Store {
  * the first project of a copy that is not the account's takes an id of its own, so nothing done to it meanwhile
  * reaches the account's.
  */
-function startingCopy(account: string | null, isAccountUnreachable: boolean, t: Dictionary): { local: Store; mustPush: boolean } {
+function startingCopy(account: string | null, isAccountUnreachable: boolean, t: Dictionary): { local: Store; mustPush: boolean; pending: PendingEdits | null } {
   // Someone may be signed in, and nobody can tell who: what this browser holds may be their account's, so it is neither
   // shown nor touched, and the page starts from a project of its own that nothing saves.
-  if (isAccountUnreachable) return { local: initialStore(t), mustPush: false }
+  if (isAccountUnreachable) return { local: initialStore(t), mustPush: false, pending: null }
   // The owner first: reading it takes over a marker left by an earlier release, which sets the pending marker.
   const owner = loadOwner()
   const plan = localCopyPlan(account, owner, hasPendingSave())
   if (plan === 'release') releaseAccountCopy()
   // After a release nothing is read back: if storage refused the removal, the copy must still not be shown.
   const stored = plan === 'release' ? initialStore(t) : loadStore() ?? initialStore(t)
-  if (!account) return { local: stored, mustPush: false }
+  if (!account) return { local: stored, mustPush: false, pending: null }
   const isOwn = plan === 'pull' || plan === 'push'
   const setAside = loadUnsent(account)
   const local = withSetAside(isOwn ? stored : rekeySeed(stored), setAside, isOwn)
   const mustPush = plan !== 'pull' || setAside.length > 0
+  // Only the account's own copy, with nothing set aside, sends just its pending edits: anything else goes whole.
+  const pending = plan === 'push' && setAside.length === 0 ? loadPendingEdits() : null
   if (mustPush) {
     saveStore(local)
     saveOwner(account)
-    markPendingSave()
+    if (!pending) markPendingSave()
   }
-  return { local, mustPush }
+  return { local, mustPush, pending }
 }
 
 export function useProjectStore() {
@@ -112,7 +125,7 @@ export function useProjectStore() {
   }, [])
 
   useEffect(() => {
-    const { local, mustPush } = startingCopy(account, isAccountUnreachable, language.current)
+    const { local, mustPush, pending } = startingCopy(account, isAccountUnreachable, language.current)
     latest.current = local
     setStore(local)
     sync.current = NOT_SYNCED
@@ -121,7 +134,7 @@ export function useProjectStore() {
     if (!account) return
     let cancelled = false
     // Unless something here still has to reach the account, the server copy is the source of truth.
-    enqueue(() => (mustPush ? importProjects({ data: { account, projects: local.projects } }) : listProjects({ data: { account } })))
+    enqueue(() => (mustPush ? importProjects({ data: { account, ...loadSave(local.projects, pending) } }) : listProjects({ data: { account } })))
       .then((list) => {
         if (cancelled) return
         sync.current = listRead(sync.current, list)
@@ -216,7 +229,7 @@ export function useProjectStore() {
     const edit = edited(sync.current, prev.projects, upserts)
     sync.current = edit.sync
     inFlight.current += 1
-    markPendingSave()
+    markPendingEdits(pendingEditsOf(upserts, edit.edits))
     setSaving(true)
     enqueue(async () => {
       // What failed before goes again with this save. If either request fails both count as unsent: sending a
@@ -257,7 +270,7 @@ export function useProjectStore() {
         inFlight.current -= 1
         if (inFlight.current > 0 || scope.current === null) return
         setSaving(false)
-        // A save that failed keeps the marker, so the next load sends this device's copy before it reads the account's.
+        // A save that failed keeps the marker, so the next load sends the edits it names before it reads the account's.
         // What that load sends is projects: one deleted here whose delete never arrived is back after it.
         if (scope.current === sentIn && isClean(sync.current)) clearPendingSave()
       })
