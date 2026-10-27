@@ -80,10 +80,10 @@ export function ApplianceForm({
   }
 
   const field = (label: string, k: keyof Draft, errKey: string, props: InputHTMLAttributes<HTMLInputElement> = {}) => (
-    <label className="admin__field">
-      <span>{label}</span>
-      <input value={draft[k]} onChange={set(k)} aria-invalid={!!errors[errKey]} {...props} />
-      {errors[errKey] && <small className="admin__error">{errors[errKey]}</small>}
+    <label className="field">
+      <span className="lab">{label}</span>
+      <input className="in" value={draft[k]} onChange={set(k)} aria-invalid={!!errors[errKey]} {...props} />
+      {errors[errKey] && <small className="error">{errors[errKey]}</small>}
     </label>
   )
 
@@ -91,19 +91,19 @@ export function ApplianceForm({
     <form className="admin__form" onSubmit={submit} noValidate>
       <p className="admin__id">
         id: <code>{id || '—'}</code>{!initial && ' (fixed after saving)'}
-        {errors.id && <><br /><small className="admin__error">The English name must give an id of at least 2 letters or digits</small></>}
-        {errors.idTaken && <><br /><small className="admin__error">{errors.idTaken}</small></>}
+        {errors.id && <><br /><small className="error">The English name must give an id of at least 2 letters or digits</small></>}
+        {errors.idTaken && <><br /><small className="error">{errors.idTaken}</small></>}
       </p>
       {field('Name (EN)', 'nameEn', 'labels.en.name')}
       {field('Note (EN)', 'noteEn', 'labels.en.note')}
       {field('Name (ES)', 'nameEs', 'labels.es.name')}
       {field('Note (ES)', 'noteEs', 'labels.es.note')}
-      <label className="admin__field">
-        <span>Category</span>
-        <select value={draft.category} onChange={set('category')}>
+      <label className="field">
+        <span className="lab">Category</span>
+        <select className="in" value={draft.category} onChange={set('category')}>
           {APPLIANCE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        {errors.category && <small className="admin__error">{errors.category}</small>}
+        {errors.category && <small className="error">{errors.category}</small>}
       </label>
       {field('Running watts', 'watts', 'watts', { inputMode: 'numeric' })}
       {field('Surge watts', 'surge', 'surge', { inputMode: 'numeric' })}
@@ -111,45 +111,45 @@ export function ApplianceForm({
       {draft.category === 'Air conditioning' && (
         <>
           {field('Tons', 'tons', 'tons', { inputMode: 'decimal' })}
-          <label className="admin__field">
-            <span>Compressor</span>
-            <select value={draft.acType} onChange={set('acType')}>
+          <label className="field">
+            <span className="lab">Compressor</span>
+            <select className="in" value={draft.acType} onChange={set('acType')}>
               <option value="">Not set</option><option value="inverter">inverter</option><option value="conventional">conventional</option>
             </select>
           </label>
         </>
       )}
-      <label className="admin__field">
-        <span>Load kind</span>
-        <select value={draft.kind} onChange={set('kind')} aria-invalid={!!errors.kind}>
+      <label className="field">
+        <span className="lab">Load kind</span>
+        <select className="in" value={draft.kind} onChange={set('kind')} aria-invalid={!!errors.kind}>
           <option value="">auto (derived)</option>
           {LOAD_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
         </select>
-        {errors.kind && <small className="admin__error">{errors.kind}</small>}
+        {errors.kind && <small className="error">{errors.kind}</small>}
       </label>
-      <label className="admin__field">
-        <span>Surge class</span>
-        <select value={draft.surgeClass} onChange={set('surgeClass')} aria-invalid={!!errors.surgeClass}>
+      <label className="field">
+        <span className="lab">Surge class</span>
+        <select className="in" value={draft.surgeClass} onChange={set('surgeClass')} aria-invalid={!!errors.surgeClass}>
           <option value="">auto (derived)</option>
           {SURGE_CLASSES.map((k) => <option key={k} value={k}>{k}</option>)}
         </select>
-        {errors.surgeClass && <small className="admin__error">{errors.surgeClass}</small>}
+        {errors.surgeClass && <small className="error">{errors.surgeClass}</small>}
       </label>
       {draft.kind === 'momentary' && (
         <>
           {field('Burst seconds', 'burstSeconds', 'burstSeconds', { inputMode: 'decimal' })}
           {field('Cycles per hour', 'cyclesPerHour', 'cyclesPerHour', { inputMode: 'decimal' })}
-          <p className="admin__hint">The engine uses burst × cycles ÷ 3600 as the duty; the duty field above is only shown.</p>
+          <p className="admin__hint muted"><small>The engine uses burst × cycles ÷ 3600 as the duty; the duty field above is only shown.</small></p>
         </>
       )}
-      {warnings.map((w) => <p key={w} className="admin__warn">{w}</p>)}
+      {warnings.map((w) => <p key={w} className="warn admin__warn">{w}</p>)}
       {unmappedErrors.length > 0 && (
-        <p role="alert" className="admin__error">{unmappedErrors.map(([k, msg]) => `${k || 'form'}: ${msg}`).join('; ')}</p>
+        <p role="alert" className="error">{unmappedErrors.map(([k, msg]) => `${k || 'form'}: ${msg}`).join('; ')}</p>
       )}
-      {saveError && <p role="alert" className="admin__error">{saveError}</p>}
+      {saveError && <p role="alert" className="error">{saveError}</p>}
       <div className="admin__actions">
-        <button type="submit" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
-        <button type="button" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="btn btn--primary" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
+        <button type="button" className="btn btn--quiet" onClick={onCancel}>Cancel</button>
       </div>
     </form>
   )

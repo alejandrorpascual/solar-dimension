@@ -24,20 +24,22 @@ function AdminQuotes() {
       {reads.length === 0 ? (
         <p>No quote read has failed.</p>
       ) : (
-        <table className="admin__table">
-          <thead><tr><th>File</th><th>Account</th><th>Project</th><th>Error</th><th>Time</th></tr></thead>
-          <tbody>
-            {reads.map((r) => (
-              <tr key={r.id}>
-                <td>{r.fileName}</td>
-                <td>{r.email ?? '—'}</td>
-                <td>{r.project ?? '—'}</td>
-                <td>{r.error ?? '—'}</td>
-                <td><time dateTime={r.at}>{utcMinute(r.at)}</time></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="admin__box">
+          <table className="admin__table">
+            <thead><tr><th>File</th><th>Account</th><th>Project</th><th>Error</th><th>Time</th></tr></thead>
+            <tbody>
+              {reads.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.fileName}</td>
+                  <td>{r.email ?? '—'}</td>
+                  <td>{r.project ?? '—'}</td>
+                  <td>{r.error ?? '—'}</td>
+                  <td><time dateTime={r.at}>{utcMinute(r.at)}</time></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </main>
   )

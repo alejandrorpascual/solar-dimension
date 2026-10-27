@@ -373,3 +373,22 @@ test('a token change shows in the admin log, and Revert puts a saved project\'s 
     await deleteTestAppliance(id)
   }
 })
+
+test('the admin pages fit a phone, a tablet and a desktop: no sideways page scroll, a wide table scrolls in its own box', async ({ page }) => {
+  await signInAsAdmin(page)
+  for (const width of [390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const path of ['/admin/quotes', '/admin/appliances']) {
+      await page.goto(path)
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+      expect(overflow, `${path} at ${width}px`).toBeLessThanOrEqual(0)
+    }
+    // Still on /admin/appliances: the catalog's own box scrolls, and every button is a full tap target.
+    await expect(page.getByRole('table', { name: 'Catalog' }).locator('xpath=..')).toHaveCSS('overflow-x', 'auto')
+    for (const name of ['New appliance', 'Edit']) {
+      const box = await page.getByRole('button', { name }).first().boundingBox()
+      expect(box?.height, `${name} at ${width}px`).toBeGreaterThanOrEqual(44)
+    }
+  }
+})

@@ -34,33 +34,35 @@ function AdminProducts() {
       <header className="admin__head">
         <h1>Products</h1>
       </header>
-      <p className="admin__hint">A product written through the token API is unverified until you check it against its datasheet.</p>
-      {error && <p role="alert" className="admin__error">{error}</p>}
+      <p className="admin__hint muted">A product written through the token API is unverified until you check it against its datasheet.</p>
+      {error && <p role="alert" className="error">{error}</p>}
       {items.length === 0 ? <p>No products yet.</p> : (
-        <table className="admin__table" aria-label="Products">
-          <thead><tr><th>Product</th><th>Kind</th><th>Datasheet</th><th>Status</th><th /></tr></thead>
-          <tbody>
-            {items.map((p) => (
-              <tr key={p.id} className={p.retired ? 'is-retired' : undefined}>
-                <td>{p.brand} {p.model}</td>
-                <td>{p.kind}</td>
-                <td><a href={p.datasheetUrl} target="_blank" rel="noopener noreferrer">Datasheet</a></td>
-                <td>
-                  {p.verification.status === 'verified' ? (
-                    <>Verified<br /><small>{p.verifiedByEmail ?? p.verification.by} · <time dateTime={p.verification.at}>{utcMinute(p.verification.at)}</time></small></>
-                  ) : 'Unverified'}
-                </td>
-                <td>
-                  {p.verification.status === 'unverified' && (
-                    <button type="button" onClick={() => verify(p)} aria-label={`Verify ${p.brand} ${p.model}`}>
-                      Verify
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="admin__box">
+          <table className="admin__table" aria-label="Products">
+            <thead><tr><th>Product</th><th>Kind</th><th>Datasheet</th><th>Status</th><th /></tr></thead>
+            <tbody>
+              {items.map((p) => (
+                <tr key={p.id} className={p.retired ? 'is-retired' : undefined}>
+                  <td>{p.brand} {p.model}</td>
+                  <td>{p.kind}</td>
+                  <td><a href={p.datasheetUrl} target="_blank" rel="noopener noreferrer">Datasheet</a></td>
+                  <td>
+                    {p.verification.status === 'verified' ? (
+                      <>Verified<br /><small>{p.verifiedByEmail ?? p.verification.by} · <time dateTime={p.verification.at}>{utcMinute(p.verification.at)}</time></small></>
+                    ) : 'Unverified'}
+                  </td>
+                  <td>
+                    {p.verification.status === 'unverified' && (
+                      <button type="button" className="btn btn--quiet" onClick={() => verify(p)} aria-label={`Verify ${p.brand} ${p.model}`}>
+                        Verify
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </main>
   )

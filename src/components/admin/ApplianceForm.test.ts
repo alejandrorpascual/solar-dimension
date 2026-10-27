@@ -11,14 +11,33 @@ const airConditioner = APPLIANCE_SEED.find((r) => r.category === 'Air conditioni
 
 /** The visible text of every option in the select whose label reads `label`, in order. */
 function optionsOf(html: string, label: string): string[] {
-  const field = new RegExp(`<span>${label}</span><select[^>]*>(.*?)</select>`).exec(html)?.[1] ?? ''
+  const field = new RegExp(`<span[^>]*>${label}</span><select[^>]*>(.*?)</select>`).exec(html)?.[1] ?? ''
   return [...field.matchAll(/<option[^>]*>(.*?)<\/option>/g)].map(([, text = '']) => text)
 }
 
+const renderForm = () => renderToStaticMarkup(createElement(ApplianceForm, {
+  initial: airConditioner!, existingIds: new Set<string>(), onSaved: () => {}, onCancel: () => {},
+}))
+
+/** The class attribute of the button whose text is `text`. */
+const buttonClass = (html: string, text: string) => new RegExp(`<button[^>]*class="([^"]*)"[^>]*>${text}</button>`).exec(html)?.[1]
+
 test('the Compressor dropdown names its empty option "Not set", not a lone dash a screen reader skips', () => {
   expect(airConditioner).toBeDefined()
-  const html = renderToStaticMarkup(createElement(ApplianceForm, {
-    initial: airConditioner!, existingIds: new Set<string>(), onSaved: () => {}, onCancel: () => {},
-  }))
-  expect(optionsOf(html, 'Compressor')).toEqual(['Not set', 'inverter', 'conventional'])
+  expect(optionsOf(renderForm(), 'Compressor')).toEqual(['Not set', 'inverter', 'conventional'])
+})
+
+test('Save is the app\'s primary button and Cancel its quiet one', () => {
+  const html = renderForm()
+  expect(buttonClass(html, 'Save')).toBe('btn btn--primary')
+  expect(buttonClass(html, 'Cancel')).toBe('btn btn--quiet')
+})
+
+test('every field is the app\'s field: a .field label around an .in control, with the edge and focus ring that brings', () => {
+  const html = renderForm()
+  const controls = [...html.matchAll(/<(input|select)\b[^>]*>/g)].map(([tag]) => tag)
+  expect(controls.length).toBeGreaterThan(0)
+  for (const tag of controls) expect(tag).toMatch(/class="in"/)
+  expect(html).not.toMatch(/admin__field/)
+  expect(html).toMatch(/<label class="field"><span class="lab">Name \(EN\)<\/span>/)
 })
