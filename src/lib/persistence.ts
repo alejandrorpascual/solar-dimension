@@ -3,7 +3,7 @@ import { RequesterSchema, type Requester } from './requester'
 import { StoredDraftSchema, isSameSlot, type DraftSlot, type StoredDraft } from './requester-draft'
 import { SavedClientSchema, byRecent, type SavedClient } from './saved-clients'
 import { StoreSchema, type Project, type Store } from './schema'
-import { newestById } from './sync'
+import { NAMEABLE, newestById, type Edits, type Nameable, type NamedEdits } from './sync'
 
 export const STORAGE_KEY = 'solar-dimension.projects.v1'
 /** The id of the account the projects under STORAGE_KEY belong to. Absent: they are work done signed out. */
@@ -14,8 +14,13 @@ export const OWNER_KEY = 'solar-dimension.owner.v1'
  * It is only read, by loadOwner, which takes it over.
  */
 export const LEGACY_SYNCED_KEY = 'solar-dimension.synced.v1'
-/** Set from a save's start until the account holds it; still present at a load means a save failed or was cut off. */
+/**
+ * Set from a save's start until the account holds it; still present at a load means a save failed or was cut off. It
+ * holds the edits that save carries (PendingEdits), so the load sends only those; `1` means all of this browser's copy
+ * is unsent, as after work done signed out, or when what is unsent could not be recorded.
+ */
 export const PENDING_KEY = 'solar-dimension.pending.v1'
+const WHOLE_COPY = '1'
 /**
  * Projects that never reached their account, set aside when that account's copy left this browser: one entry per
  * account id, read back and sent when that account next signs in here. Like saved clients, another account on a
@@ -56,18 +61,78 @@ export function saveStore(store: Store, storage: Writer | null = browserStorage(
 export function hasPendingSave(storage: Reader | null = browserStorage()): boolean {
   if (!storage) return false
   try {
-    return storage.getItem(PENDING_KEY) === '1'
+    return storage.getItem(PENDING_KEY) !== null
   } catch {
     return false
   }
 }
 
+/** Marks all of this browser's copy as unsent: the next load sends every project. */
 export function markPendingSave(storage: Writer | null = browserStorage()): void {
   if (!storage) return
   try {
-    storage.setItem(PENDING_KEY, '1')
+    storage.setItem(PENDING_KEY, WHOLE_COPY)
   } catch {
     // Without storage an interrupted save cannot be recovered, but nothing else breaks.
+  }
+}
+
+/**
+ * By project id, the edits a save carries that the account may not hold yet: each field with the stamp of the edit that
+ * set it, as a save names it (NamedEdits), or `all` for a project added here, which goes whole.
+ */
+export type PendingEdits = Readonly<Record<string, NamedEdits[string] | 'all'>>
+const PendingEditsSchema = z.record(z.string(), z.union([z.literal('all'), z.partialRecord(z.enum(NAMEABLE as [Nameable, ...Nameable[]]), z.number())]))
+
+/** The pending edits of an edit that made the copies `upserts`, changing the fields `edits`. */
+export function pendingEditsOf(upserts: readonly Project[], edits: Edits): PendingEdits {
+  return Object.fromEntries(upserts.flatMap((p) => {
+    const fields = edits.get(p.id)
+    if (!fields) return []
+    return [[p.id, fields === 'all' ? 'all' : Object.fromEntries(fields.map((field) => [field, p.updatedAt]))]]
+  }))
+}
+
+/** `earlier` and `later` as one: a field takes the later stamp, and a project added in either goes whole. */
+function mergePending(earlier: PendingEdits, later: PendingEdits): PendingEdits {
+  const merged: Record<string, PendingEdits[string]> = { ...earlier }
+  for (const [id, fields] of Object.entries(later)) {
+    const had = merged[id]
+    if (had === 'all' || fields === 'all') merged[id] = 'all'
+    else merged[id] = Object.fromEntries([...new Set([...Object.keys(had ?? {}), ...Object.keys(fields)])].map((field) => {
+      const stamps = [had?.[field as Nameable], fields[field as Nameable]].filter((stamp) => stamp !== undefined)
+      return [field, Math.max(...stamps)]
+    }))
+  }
+  return merged
+}
+
+/** The edits marked pending, or null when there are none, or all of the copy is unsent, or the marker cannot be read. */
+export function loadPendingEdits(storage: Reader | null = browserStorage()): PendingEdits | null {
+  if (!storage) return null
+  try {
+    const raw = storage.getItem(PENDING_KEY)
+    if (raw === null || raw === WHOLE_COPY) return null
+    const parsed = PendingEditsSchema.safeParse(JSON.parse(raw))
+    return parsed.success ? parsed.data : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Adds `edits` to what is marked pending. A copy marked unsent whole stays so: these edits are part of it. A marker that
+ * cannot be read becomes one: nothing says what of the copy it stood for.
+ */
+export function markPendingEdits(edits: PendingEdits, storage: (Reader & Writer) | null = browserStorage()): void {
+  if (!storage) return
+  try {
+    const raw = storage.getItem(PENDING_KEY)
+    if (raw === WHOLE_COPY) return
+    const earlier = raw === null ? {} : loadPendingEdits(storage)
+    storage.setItem(PENDING_KEY, earlier ? JSON.stringify(mergePending(earlier, edits)) : WHOLE_COPY)
+  } catch {
+    markPendingSave(storage)
   }
 }
 
@@ -123,7 +188,7 @@ export function saveOwner(owner: string, storage: Writer | null = browserStorage
 /** Adds the account's projects to what is already set aside for it, the newer copy of each. Nothing when the account has them all. */
 function setAsideUnsent(owner: string, storage: Reader & Writer): void {
   const raw = storage.getItem(STORAGE_KEY)
-  if (!raw || storage.getItem(PENDING_KEY) !== '1') return
+  if (!raw || storage.getItem(PENDING_KEY) === null) return
   const current = StoreSchema.safeParse(JSON.parse(raw))
   const earlier = loadUnsent(owner, storage)
   // A copy the schema no longer reads is kept as it is, unless that would replace one it does read.

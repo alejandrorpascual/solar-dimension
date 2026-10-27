@@ -1,8 +1,8 @@
 import { expect, test, vi } from 'vitest'
 import {
   CLIENTS_KEY_PREFIX, DRAFT_KEY, LEGACY_SYNCED_KEY, OWNER_KEY, PENDING_KEY, REQUESTER_KEY, STORAGE_KEY, UNSENT_KEY_PREFIX, clearPendingSave,
-  clearRequesterDraft, clearUnsent, hasPendingSave, loadOwner, loadRequesterDraft, loadSavedClients, loadStore, loadUnsent, markPendingSave,
-  releaseAccountCopy, requesterStorage, saveOwner, saveRequesterDraft, saveSavedClients, saveStore,
+  clearRequesterDraft, clearUnsent, hasPendingSave, loadOwner, loadPendingEdits, loadRequesterDraft, loadSavedClients, loadStore, loadUnsent,
+  markPendingEdits, markPendingSave, pendingEditsOf, releaseAccountCopy, requesterStorage, saveOwner, saveRequesterDraft, saveSavedClients, saveStore,
 } from './persistence'
 import { CATALOG_SNAPSHOT } from './catalog-snapshot'
 import { computeProject } from './project-summary'
@@ -81,6 +81,35 @@ test('tracks an interrupted save with a pending marker', () => {
   clearPendingSave(storage)
   expect(hasPendingSave(storage)).toBe(false)
   expect(hasPendingSave(null)).toBe(false)
+})
+
+test('keeps the edits a save carries as its pending marker, each field at its latest stamp, a new project whole', () => {
+  const storage = removableStorage()
+  const [home] = initialStore().projects
+  markPendingEdits(pendingEditsOf([{ ...home!, updatedAt: 10 }], new Map([[home!.id, ['hours']]])), storage)
+  markPendingEdits({ [home!.id]: { hours: 30, volts: 20 }, added: 'all' }, storage)
+  markPendingEdits({ [home!.id]: { hours: 25 }, added: { name: 40 } }, storage)
+
+  expect(hasPendingSave(storage)).toBe(true)
+  expect(loadPendingEdits(storage)).toEqual({ [home!.id]: { hours: 30, volts: 20 }, added: 'all' })
+  clearPendingSave(storage)
+  expect(loadPendingEdits(storage)).toBeNull()
+})
+
+test('a copy marked unsent whole stays whole, and a marker that cannot be read becomes whole', () => {
+  const whole = removableStorage({ [PENDING_KEY]: '1' })
+  markPendingEdits({ p1: { hours: 10 } }, whole)
+  expect(whole.data[PENDING_KEY]).toBe('1')
+  expect(loadPendingEdits(whole)).toBeNull()
+
+  const unreadable = removableStorage({ [PENDING_KEY]: '{"p1":{"id":3}}' })
+  expect(loadPendingEdits(unreadable)).toBeNull()
+  markPendingEdits({ p1: { hours: 10 } }, unreadable)
+  expect(unreadable.data[PENDING_KEY]).toBe('1')
+
+  const broken = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
+  expect(loadPendingEdits(broken)).toBeNull()
+  expect(() => markPendingEdits({ p1: { hours: 10 } }, broken)).not.toThrow()
 })
 
 const ann = { kind: 'person', country: 'US', name: 'Ann Lee', contact: '', docPrefix: '', doc: '', phone: '+1 305 555 0100', email: '', address: '' } as const

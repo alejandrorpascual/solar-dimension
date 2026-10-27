@@ -47,7 +47,7 @@ test('a save that never reached the account stays marked, and the next page load
   await edit((h) => h.commit(setQty(h.store, 'fridge', 9)))
   const failed = await edit((h) => h.commit(addProject(h.store, 'Offline project')))
   expect(failed.syncError).toBe(true)
-  expect(browser.getItem(PENDING_KEY)).toBe('1')
+  expect(browser.getItem(PENDING_KEY)).not.toBeNull()
   expect(home(account(ANA)).qty.fridge).toBe(2)
 
   net.offline = false
@@ -120,7 +120,7 @@ test('while saves keep failing the error and the marker stay, and each failure i
 
   expect(failed.syncError).toBe(true)
   expect(failed.saving).toBe(false)
-  expect(browser.getItem(PENDING_KEY)).toBe('1')
+  expect(browser.getItem(PENDING_KEY)).not.toBeNull()
   expect(storedStore(browser)?.projects[0]?.qty).toMatchObject({ fridge: 4, tv: 2 })
   expect(logs('[projects] save failed')).toHaveLength(2)
 })
@@ -142,7 +142,7 @@ test('after a load that failed, a save that works does not pass for a clean stat
   expect(home(account(ANA)).qty.tv).toBe(3)
   expect(byName(account(ANA), 'Second').hours).toBe(10)
   expect(saved.syncError).toBe(true)
-  expect(browser.getItem(PENDING_KEY)).toBe('1')
+  expect(browser.getItem(PENDING_KEY)).not.toBeNull()
 
   const reloaded = await mount()
 
@@ -248,7 +248,7 @@ test('a save answered after its page was left writes nothing over the page that 
   expect(names(storedStore(browser)?.projects ?? [])).toEqual(['Home', 'Made on the new page'])
   expect(names(duringSecondSave.store.projects)).toEqual(['Home', 'Made on the new page'])
   // The new page's save is still in flight: its marker is not the old page's to clear.
-  expect(browser.getItem(PENDING_KEY)).toBe('1')
+  expect(browser.getItem(PENDING_KEY)).not.toBeNull()
 
   answerSecond()
   await edit(() => undefined)

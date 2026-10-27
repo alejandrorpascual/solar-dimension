@@ -5,7 +5,7 @@ import { db } from '../db/client'
 import { projects, quoteFileTrash, quotes } from '../db/schema'
 import { ProjectSchema, type Project } from '../lib/schema'
 import { importable, leftOut, parseNamed } from '../lib/sync'
-import { listForUser, saveForUser, upsertAll } from './projects-repo'
+import { listForUser, saveForUser } from './projects-repo'
 import { emptyQuoteTrash } from './quotes/deps'
 import { lockUserQuotes } from './quotes/limits'
 import { trashQuoteFiles } from './quotes/repo'
@@ -53,11 +53,15 @@ export const deleteProjects = createServerFn({ method: 'POST' })
     return { ok: true }
   })
 
+/**
+ * Sends what a page load found unsent, then reads the account's list. A project it names fields of is written field by
+ * field, as a save's (saveForUser): a copy that missed another device's later edit to another field does not undo it.
+ */
 export const importProjects = createServerFn({ method: 'POST' })
   .validator(parseSave)
   .handler(async ({ data }): Promise<Project[]> => {
     const userId = await requireAccount(data.account)
     const [existing] = await db.select({ id: projects.id }).from(projects).where(eq(projects.userId, userId)).limit(1)
-    await upsertAll(userId, importable(data.projects, existing !== undefined), data.leftOut)
+    await saveForUser(userId, importable(data.projects, existing !== undefined), data.leftOut, data.named)
     return listForUser(userId)
   })

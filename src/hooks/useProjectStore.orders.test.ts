@@ -18,7 +18,7 @@ const HOME = ProjectSchema.parse({ id: 'acct-home', name: 'Home', qty: {}, custo
 const LAYOUT = { A: 'laptop', B: 'laptop', C: 'phone' }
 const FIELDS = ['hours', 'volts', 'chemistry'] as const
 type Fields = Pick<Project, (typeof FIELDS)[number]>
-type Step = { tab: string; edit: Partial<Fields> } | { tab: string; focus: true }
+type Step = { tab: string; edit: Partial<Fields> } | { tab: string; focus: true } | { tab: string; reload: true }
 
 const fieldsOf = (projects: readonly Project[]): Fields => {
   const home = projects.find((p) => p.id === HOME.id)!
@@ -64,13 +64,20 @@ async function runOrder(names: readonly string[], steps: readonly Step[], choice
     if (stepsLeft && choice === 0) {
       const step = steps[next++]!
       if ('focus' in step) await focusTab(step.tab)
+      else if ('reload' in step) await reloadTab(step.tab)
       else await editIn(step.tab, step.edit)
-      path.push('focus' in step ? `${step.tab} focus` : `${step.tab} ${JSON.stringify(step.edit)}`)
+      path.push('edit' in step ? `${step.tab} ${JSON.stringify(step.edit)}` : `${step.tab} ${'focus' in step ? 'focus' : 'reload'}`)
     } else {
       path.push(await land(choice - stepsLeft))
     }
   }
   return { taken, options, path }
+}
+
+/** A reload of tab `name`: what it had on its way never reaches the account, as the page that sent it is gone. */
+async function reloadTab(name: string): Promise<void> {
+  net.held = net.held!.filter((call) => call.by !== name)
+  await mountTab(name)
 }
 
 /** Every order of `steps`: returns the ones that lost an edit, and the ones where a tab came back to another copy. */
@@ -114,6 +121,8 @@ test.each([
   ['one field on two devices: 24 h on C, then 12 h in B, which is the later edit', ['B', 'C'], switching([edit('C', { hours: 24 }), edit('B', { hours: 12 })])],
   ['one field set back (QA-W4): 5 h in A, then 12 h and back to 10 h on C, which is the later edit', ['A', 'C'],
     switching([edit('A', { hours: 5 }), edit('C', { hours: 12 }), edit('C', { hours: 10 })])],
+  ['#210: a reload of A while its save naming the hours is on its way, after volts on C', ['A', 'C'],
+    switching([edit('A', { hours: 24 }), edit('C', { volts: 12 }), { tab: 'A', reload: true }])],
   ['QA-W5: 5 h in A as the click that brings A back, 12 h on C, then 12 V in A before A has sent its 5 h', ['A', 'C'],
     [{ tab: 'A', focus: true }, edit('A', { hours: 5 }), { tab: 'C', focus: true }, edit('C', { hours: 12 }), edit('A', { volts: 12 })]],
 ] as const)('%s: no order loses an edit, and each tab shows the account once back', async (_what, names, steps) => {

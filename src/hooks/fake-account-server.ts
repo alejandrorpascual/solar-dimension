@@ -2,7 +2,7 @@
 // the same stamp clamp, an update only when the incoming stamp is not older than the stored one (the upsert's
 // setWhere), a named field written only when the stamp sent for it is not older than that field's last write
 // (upsertNamed's fieldStamps), a batch that names a project twice is refused, as Postgres refuses an upsert that would
-// touch a row twice, and an import stores a never-edited first project only for an account with no project yet. A call
+// touch a row twice, an import writes as a save does, and stores a never-edited first project only for an account with no project yet. A call
 // without a session throws as requireUserId does, and one from a page loaded for another account as requireAccount does.
 import { z } from 'zod'
 import { sessionOf, type AccountSession } from '../lib/account-session'
@@ -138,23 +138,29 @@ function upsertNamed(list: Project[], named: NamedEdits): Set<string> {
   return written
 }
 
+/** saveForUser: the projects a save names fields of field by field, the rest whole; returns the ids it refused. */
+function saveAll(projects: Project[], named: NamedEdits): Set<string> {
+  const stored = new Set(rows().map((row) => row.id))
+  const byField = projects.filter((p) => named[p.id] && stored.has(p.id))
+  const written = new Set([...upsertNamed(byField, named), ...upsertAll(projects.filter((p) => !byField.includes(p)))])
+  return new Set(projects.filter((p) => !written.has(p.id)).map((p) => p.id))
+}
+
 export async function saveProjects({ data }: { data: { account?: string; projects: Project[]; named?: NamedEdits } }): Promise<{ ok: true; stale: Project[] }> {
   await reach('save')
   const { projects } = ProjectsInput.parse(data)
   const named = parseNamed(data.named)
   requireAccount(data.account)
-  const stored = new Set(rows().map((row) => row.id))
-  const byField = projects.filter((p) => named[p.id] && stored.has(p.id))
-  const written = new Set([...upsertNamed(byField, named), ...upsertAll(projects.filter((p) => !byField.includes(p)))])
-  const refused = new Set(projects.filter((p) => !written.has(p.id)).map((p) => p.id))
+  const refused = saveAll(projects, named)
   return { ok: true, stale: structuredClone(rows().filter((row) => refused.has(row.id))) }
 }
 
-export async function importProjects({ data }: { data: { account?: string; projects: Project[] } }): Promise<Project[]> {
+export async function importProjects({ data }: { data: { account?: string; projects: Project[]; named?: NamedEdits } }): Promise<Project[]> {
   await reach('import')
   const { projects } = ProjectsInput.parse(data)
+  const named = parseNamed(data.named)
   requireAccount(data.account)
-  upsertAll(importable(projects, rows().length > 0))
+  saveAll(importable(projects, rows().length > 0), named)
   return structuredClone(rows())
 }
 
