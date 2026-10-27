@@ -59,7 +59,7 @@ Env var names (never values): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH
 | Checks | surge (inverter size), batteryContinuous, batteryPeak, parallel, fuse, cable: pass or warn |
 | Solar | Panels (550 W), roof m2, sun hours, strings, controller, breaker |
 | Requester | Who the kit is for, printed on the sheet; saved clients are kept in the browser |
-| Product | Library row for an inverter or battery from its datasheet (`products`); written through the token API; unverified until an admin verifies it, and a token write that changes a value makes it unverified again |
+| Product | Library row for an inverter or battery from its datasheet (`products`); written through the token API; unverified until an admin verifies it, and a token write that changes a value (fill, replace, source refresh or clear) makes it unverified again; retired rows are left out of the token list but stay on `/admin/products` |
 | Quote | Uploaded file plus reading job (queued to done/failed), extraction, overrides, optional total override |
 | Quote settings / musts | Per-project must-have items (inverter, battery, charger, wifi, cables, fuse, installation, warranty) |
 | Verdict | Ranked quotes: cheapest that meets every must-have; fit is fits/unclear/short; options inside one quote rank separately |

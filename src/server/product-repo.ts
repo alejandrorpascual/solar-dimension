@@ -1,10 +1,10 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client'
 import { products, user } from '../db/schema'
 import { changesStoredValues, mergeProduct, summarize, type MergeResult, type ProductChange, type UpsertSummary } from '../lib/product-merge'
 import {
-  ProductConflictSchema, ProductInputSchema, productKey, type ProductInput, type ProductOrigin, type ProductRecord, type ProductVerification,
+  ProductConflictSchema, ProductInputSchema, productKey, type ProductInput, type ProductOrigin, type ProductRecord, type ProductVerification, type ProductWrite,
 } from '../lib/product-schema'
 import { warnProducts, type ProductWarnings } from '../lib/product-warnings'
 
@@ -35,9 +35,23 @@ const isRecord = (r: ProductRecord | null): r is ProductRecord => r !== null
 
 const ORDER = [asc(products.kind), asc(products.brand), asc(products.model)]
 
-export async function listProducts(): Promise<ProductRecord[]> {
-  const rows = await db.select().from(products).orderBy(...ORDER)
+/** Retired products are left out unless asked for. */
+export async function listProducts(opts: { includeRetired?: boolean } = {}): Promise<ProductRecord[]> {
+  const rows = await db.select().from(products).where(opts.includeRetired ? undefined : isNull(products.retiredAt)).orderBy(...ORDER)
   return rows.map(toRecord).filter(isRecord)
+}
+
+/**
+ * Retires or restores one product; its values and verification stay as they are. False when there is no such product
+ * (an id that is not a uuid included). Already in that state: nothing is written.
+ */
+export async function setProductRetired(id: string, retired: boolean, actor: string): Promise<boolean> {
+  if (!z.uuid().safeParse(id).success) return false
+  const [row] = await db.select({ retiredAt: products.retiredAt }).from(products).where(eq(products.id, id)).limit(1)
+  if (!row) return false
+  if ((row.retiredAt !== null) === retired) return true
+  await db.update(products).set({ retiredAt: retired ? sql`now()` : null, updatedAt: sql`now()`, updatedBy: actor }).where(eq(products.id, id))
+  return true
 }
 
 /** A product as the admin page lists it, with the verifier's email beside their id. Never served by the token API. */
@@ -78,14 +92,14 @@ export class UnreadableProductsError extends Error {
 }
 
 /** Throws UnreadableProductsError, before anything is merged or written, when a stored row can't be read: a dry run and a write both refuse. */
-async function plan(items: readonly ProductInput[], replace: boolean): Promise<MergeResult[]> {
+async function plan(items: readonly ProductWrite[], replace: boolean): Promise<MergeResult[]> {
   const rows = await db.select().from(products).where(inArray(products.key, items.map(productKey)))
   const decoded = rows.map((row) => ({ key: row.key, record: toRecord(row) }))
   const unreadable = decoded.filter((d) => d.record === null).map((d) => d.key)
   if (unreadable.length > 0) throw new UnreadableProductsError(unreadable)
   const byKey = new Map(decoded.map((d) => d.record).filter(isRecord).map((r) => [r.key, r]))
   const now = new Date().toISOString()
-  return items.map((item) => mergeProduct(byKey.get(productKey(item)) ?? null, item, { replace, now }))
+  return items.map(({ clear, ...item }) => mergeProduct(byKey.get(productKey(item)) ?? null, item as ProductInput, { replace, now, clear }))
 }
 
 /**
@@ -94,9 +108,9 @@ async function plan(items: readonly ProductInput[], replace: boolean): Promise<M
  * The checks across fields also read each product as the write would store it, so a filled-in value meets the stored ones.
  */
 export async function previewProducts(
-  items: readonly ProductInput[], replace: boolean,
+  items: readonly ProductWrite[], replace: boolean,
 ): Promise<{ changes: ProductChange[]; warnings: ProductWarnings[] }> {
-  const [merged, stored] = await Promise.all([plan(items, replace), listProducts()])
+  const [merged, stored] = await Promise.all([plan(items, replace), listProducts({ includeRetired: true })])
   return { changes: merged.map((m) => m.change), warnings: warnProducts(stored, items, merged.map((m) => m.next)) }
 }
 
@@ -129,12 +143,12 @@ const seenAgainStatement = (keys: readonly string[]) => db.update(products).set(
  * Known limit: the merge reads the stored rows and writes in a second statement, so two concurrent writers to one product
  * can lose a fill or a conflict; today the only writer is one admin through the skill.
  */
-export async function upsertProducts(items: readonly ProductInput[], opts: { replace: boolean; actor: string }): Promise<UpsertSummary> {
+export async function upsertProducts(items: readonly ProductWrite[], opts: { replace: boolean; actor: string }): Promise<UpsertSummary> {
   const merged = await plan(items, opts.replace)
   const isUnchanged = (m: MergeResult) => m.change.status === 'unchanged'
   const writes = merged.filter((m) => !isUnchanged(m))
   const seenAgain = merged.filter(isUnchanged).map((m) => m.change.key)
-  // New rows start unverified by the column default, and their change lists no fill or replace.
+  // New rows start unverified by the column default, and their change lists no fill, replace, refresh or clear.
   const unverify = writes.filter((m) => changesStoredValues(m.change)).map((m) => m.change.key)
   const [first, ...rest] = [
     ...(writes.length > 0 ? [upsertStatement(writes, opts.actor)] : []),

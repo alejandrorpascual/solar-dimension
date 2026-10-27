@@ -211,3 +211,66 @@ test('a dry run with replace shows what it would overwrite, and writes nothing',
     await deleteTestProduct(key)
   }
 })
+
+test('a retired product leaves the list, and restore brings it back', async ({ request }) => {
+  const model = `R${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  const listed = async (query = '') =>
+    ((await (await request.get(`/api/catalog/products${query}`, { headers: auth })).json()).items as Array<{ key: string; retired: boolean }>).find((i) => i.key === key)
+  const flip = (verb: string, id: string) => request.post(`/api/catalog/products/${id}/${verb}`, { headers: writeHeaders() })
+  try {
+    await post(request, '', [inverter(model)])
+    const { id } = (await stored(request, key)) as unknown as { id: string }
+
+    expect(await (await flip('retire', id)).json()).toEqual({ id, retired: true })
+    expect(await listed()).toBeUndefined()
+    expect(await listed('?includeRetired=true')).toMatchObject({ retired: true })
+
+    expect(await (await flip('restore', id)).json()).toEqual({ id, retired: false })
+    expect(await listed()).toMatchObject({ retired: false })
+
+    expect((await flip('retire', '00000000-0000-4000-8000-000000000000')).status()).toBe(404)
+    expect((await flip('retire', 'not-a-uuid')).status()).toBe(404)
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
+test('replace with clear empties a stored value; a clear without replace is refused', async ({ request }) => {
+  const model = `C${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  try {
+    await post(request, '', [inverter(model, 6000, stated(125, 'Charge current 125A'))])
+    const clearing = { ...inverter(model), clear: ['specs.chargerA'] }
+
+    expect((await post(request, '', [clearing])).status()).toBe(422)
+    expect(await stored(request, key)).toMatchObject({ specs: { chargerA: { value: 125 } } })
+
+    const dry = await (await post(request, '?dryRun=true&replace=true', [clearing])).json()
+    expect(dry.changes).toEqual([expect.objectContaining({ status: 'updated', removed: ['specs.chargerA'] })])
+
+    expect(await (await post(request, '?replace=true', [clearing])).json()).toEqual({ created: [], updated: [key], unchanged: [], conflicts: [] })
+    expect(await stored(request, key)).toMatchObject({ specs: { chargerA: NONE } })
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
+
+test('replace with the same value from a new source updates the source', async ({ request }) => {
+  const model = `S${Date.now()}`
+  const key = productKey({ kind: 'inverter', brand: 'E2E Power', model })
+  const NEW_SHEET = 'https://example.com/e2e-datasheet-v2.pdf'
+  try {
+    await post(request, '', [inverter(model)])
+    const base = inverter(model)
+    const moved = { ...base, specs: { ...base.specs, continuousW: { value: 6000, source: NEW_SHEET, asWritten: 'Rated power 6000W' } } }
+
+    expect((await (await post(request, '', [moved])).json()).unchanged).toEqual([key])
+    expect(await stored(request, key)).toMatchObject({ specs: { continuousW: { source: SHEET } } })
+
+    expect((await (await post(request, '?replace=true', [moved])).json()).updated).toEqual([key])
+    expect(await stored(request, key)).toMatchObject({ specs: { continuousW: { value: 6000, source: NEW_SHEET } } })
+  } finally {
+    await deleteTestProduct(key)
+  }
+})
