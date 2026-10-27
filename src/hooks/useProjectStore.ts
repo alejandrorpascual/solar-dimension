@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dictionary } from '../i18n'
+import { signedInUser } from '../lib/account-session'
 import { localCopyPlan } from '../lib/local-copy'
 import {
   clearPendingSave, clearUnsent, hasPendingSave, loadOwner, loadStore, loadUnsent, markPendingSave, releaseAccountCopy, saveOwner, saveStore,
@@ -60,8 +61,9 @@ function startingCopy(account: string | null, isAccountUnreachable: boolean, t: 
 }
 
 export function useProjectStore() {
-  const { user, isAccountUnreachable } = useRootData()
-  const account = user?.id ?? null
+  const { session } = useRootData()
+  const account = signedInUser(session)?.id ?? null
+  const isAccountUnreachable = session.status === 'unreachable'
   const { t } = useLocale()
   /** The language on screen, for requests answered after it changed. */
   const language = useRef(t)

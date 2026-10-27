@@ -31,6 +31,8 @@ async function expectBuilderWithNotice(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
   await expect(unreachableNotice(page)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Something interrupted the kit builder.' })).toHaveCount(0)
+  // Someone may be signed in: the header offers no Sign in next to a notice that says the account is unreachable.
+  await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toHaveCount(0)
 }
 
 test('with the database down, a signed-in browser keeps sizing and leaves the account copy it holds as it was', async ({ page }) => {

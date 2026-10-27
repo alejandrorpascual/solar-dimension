@@ -1,6 +1,7 @@
 import { useConnectGoogle } from '../../hooks/useConnectGoogle'
 import { useLocale } from '../../hooks/useLocale'
 import { useRootData } from '../../hooks/useRootData'
+import { signedInUser } from '../../lib/account-session'
 
 /**
  * What an account that may not start reads gets instead of an upload button: a way to connect Google, which verifies
@@ -8,7 +9,7 @@ import { useRootData } from '../../hooks/useRootData'
  */
 export function QuotesLockedAction({ withNote }: { withNote: boolean }) {
   const { t } = useLocale()
-  const { user } = useRootData()
+  const user = signedInUser(useRootData().session)
   const google = useConnectGoogle(user)
   if (google.canConnect) {
     return (

@@ -20,7 +20,7 @@ vi.mock('../../hooks/useLocale', async () => {
 vi.mock('../../hooks/useRootData', async () => {
   const { CATALOG_SNAPSHOT } = await import('../../lib/catalog-snapshot')
   return {
-    useRootData: () => ({ locale: page.locale, user: null, isAccountUnreachable: false, googleEnabled: false, catalog: [...CATALOG_SNAPSHOT], quotePollMs: 3000 }),
+    useRootData: () => ({ locale: page.locale, session: { status: 'signed-out' }, googleEnabled: false, catalog: [...CATALOG_SNAPSHOT], quotePollMs: 3000 }),
   }
 })
 vi.mock('../../hooks/useQuoteJobs', () => ({ useQuoteJobs: () => ({ refresh: () => {} }) }))

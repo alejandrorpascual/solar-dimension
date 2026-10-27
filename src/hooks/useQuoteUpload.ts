@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { prepareQuoteFile } from '../client/prepare-quote-file'
+import { signedInUser } from '../lib/account-session'
 import { checkBasics, type Rejection } from '../lib/quote-limits'
 import { createSingleFlight } from '../lib/single-flight'
 import { uploadQuote } from '../server/quotes/api'
@@ -37,7 +38,7 @@ async function uploadOne(account: string | undefined, projectId: string, raw: Fi
  */
 export function useQuoteUpload(projectId: string) {
   const { refresh } = useQuoteJobs()
-  const account = useRootData().user?.id
+  const account = signedInUser(useRootData().session)?.id
   const [items, setItems] = useState<UploadItem[]>([])
   const [isOpen, setOpen] = useState(false)
   const [isUploading, setUploading] = useState(false)

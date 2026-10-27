@@ -6,13 +6,14 @@ import { account, accounts, clock, net, resetServer, session } from './fake-acco
 import { edit, fakeStorage, home, mount, names, openBrowser, rerender, unmount, type FakeStorage } from './project-store-harness'
 
 vi.mock('../server/projects', () => import('./fake-account-server'))
-// What the root route read: during an outage it has no user and says the account was unreachable.
+// What the root route read: during an outage the session is unreachable, with no user.
 const page = vi.hoisted(() => ({ isAccountUnreachable: false }))
 vi.mock('./useRootData', async () => {
   const server = await import('./fake-account-server')
+  const { UNREACHABLE } = await import('../lib/account-session')
   return {
     useRootData: () => ({
-      user: page.isAccountUnreachable ? null : server.pageUser(), locale: 'en', isAccountUnreachable: page.isAccountUnreachable,
+      session: page.isAccountUnreachable ? UNREACHABLE : server.pageSession(), locale: 'en',
     }),
   }
 })

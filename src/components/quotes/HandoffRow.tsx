@@ -3,6 +3,7 @@ import { useElapsedSeconds } from '../../hooks/useElapsedSeconds'
 import { useLocale } from '../../hooks/useLocale'
 import type { UploadItem } from '../../hooks/useQuoteUpload'
 import { useRootData } from '../../hooks/useRootData'
+import { signedInUser } from '../../lib/account-session'
 import { retryOffer } from '../../lib/quote-guards'
 import type { JobFile } from '../../lib/quote-jobs'
 import { handoffRowMeta, handoffRowState } from '../../lib/quote-progress'
@@ -24,7 +25,7 @@ interface Props {
  */
 export function HandoffRow({ item, file, error, onRetry, onDelete }: Props) {
   const { t } = useLocale()
-  const { user } = useRootData()
+  const user = signedInUser(useRootData().session)
   const status = file?.status ?? null
   const state = handoffRowState(item, status)
   const elapsed = useElapsedSeconds(state === 'working')
