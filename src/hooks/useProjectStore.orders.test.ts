@@ -9,7 +9,7 @@ import { closeAll, editIn, focusTab, land, landAll, mountTab, openTabs, screenOf
 vi.mock('../server/projects', () => import('./fake-account-server'))
 vi.mock('./useRootData', async () => {
   const server = await import('./fake-account-server')
-  return { useRootData: () => ({ user: server.pageUser(), locale: 'en' }) }
+  return { useRootData: () => ({ session: server.pageSession(), locale: 'en' }) }
 })
 
 const ANA = { id: 'user-ana' }

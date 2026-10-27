@@ -1,13 +1,18 @@
-import { asc, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client'
-import { products } from '../db/schema'
-import { mergeProduct, summarize, type MergeResult, type ProductChange, type UpsertSummary } from '../lib/product-merge'
-import { ProductConflictSchema, ProductInputSchema, productKey, type ProductInput, type ProductOrigin, type ProductRecord } from '../lib/product-schema'
+import { products, user } from '../db/schema'
+import { changesStoredValues, mergeProduct, summarize, type MergeResult, type ProductChange, type UpsertSummary } from '../lib/product-merge'
+import {
+  ProductConflictSchema, ProductInputSchema, productKey, type ProductInput, type ProductOrigin, type ProductRecord, type ProductVerification,
+} from '../lib/product-schema'
 import { warnProducts, type ProductWarnings } from '../lib/product-warnings'
 
 type Row = typeof products.$inferSelect
 const Conflicts = z.array(ProductConflictSchema)
+
+const verificationOf = (row: Row): ProductVerification =>
+  row.verifiedAt && row.verifiedBy ? { status: 'verified', by: row.verifiedBy, at: row.verifiedAt.toISOString() } : { status: 'unverified' }
 
 /** A row that no longer passes the schema (edited by hand) is skipped and logged, not served. */
 function toRecord(row: Row): ProductRecord | null {
@@ -20,14 +25,48 @@ function toRecord(row: Row): ProductRecord | null {
     console.error('[products] skipping invalid product row', { key: row.key, issues: product.error?.issues ?? conflicts.error?.issues })
     return null
   }
-  return { ...product.data, id: row.id, key: row.key, origin: row.origin as ProductOrigin, conflicts: conflicts.data, retired: row.retiredAt !== null }
+  return {
+    ...product.data, id: row.id, key: row.key, origin: row.origin as ProductOrigin, conflicts: conflicts.data, retired: row.retiredAt !== null,
+    updatedAt: row.updatedAt.toISOString(), verification: verificationOf(row),
+  }
 }
 
 const isRecord = (r: ProductRecord | null): r is ProductRecord => r !== null
 
+const ORDER = [asc(products.kind), asc(products.brand), asc(products.model)]
+
 export async function listProducts(): Promise<ProductRecord[]> {
-  const rows = await db.select().from(products).orderBy(asc(products.kind), asc(products.brand), asc(products.model))
+  const rows = await db.select().from(products).orderBy(...ORDER)
   return rows.map(toRecord).filter(isRecord)
+}
+
+/** A product as the admin page lists it, with the verifier's email beside their id. Never served by the token API. */
+export type AdminProduct = Pick<ProductRecord, 'id' | 'kind' | 'brand' | 'model' | 'datasheetUrl' | 'retired' | 'updatedAt' | 'verification'> & {
+  verifiedByEmail: string | null
+}
+
+export async function listProductsForAdmin(): Promise<AdminProduct[]> {
+  const rows = await db.select({ row: products, email: user.email }).from(products).leftJoin(user, eq(user.id, products.verifiedBy)).orderBy(...ORDER)
+  return rows.flatMap(({ row, email }) => {
+    const r = toRecord(row)
+    if (!r) return []
+    const { id, kind, brand, model, datasheetUrl, retired, updatedAt, verification } = r
+    return [{ id, kind, brand, model, datasheetUrl, retired, updatedAt, verification, verifiedByEmail: verification.status === 'verified' ? email : null }]
+  })
+}
+
+/**
+ * Marks a product verified by `actor` (an admin's user id), only while it is the row the admin read: a write since
+ * `seenUpdatedAt` refuses it, so no one verifies values they did not see. Compared to the millisecond, as JS dates hold it.
+ * False when the product changed or does not exist.
+ */
+export async function verifyProduct(id: string, seenUpdatedAt: string, actor: string): Promise<boolean> {
+  const rows = await db
+    .update(products)
+    .set({ verifiedAt: sql`now()`, verifiedBy: actor })
+    .where(and(eq(products.id, id), sql`date_trunc('milliseconds', ${products.updatedAt}) = ${seenUpdatedAt}::timestamptz`))
+    .returning({ id: products.id })
+  return rows.length > 0
 }
 
 /** Stored products an incoming item matches but that no longer pass the schema. Merging would call them new and overwrite them. */
@@ -78,6 +117,9 @@ const upsertStatement = (writes: readonly MergeResult[], actor: string) =>
       },
     })
 
+/** A token write that put a different value in a row: its verification no longer covers what is stored. */
+const unverifyStatement = (keys: readonly string[]) => db.update(products).set({ verifiedAt: null, verifiedBy: null }).where(inArray(products.key, keys))
+
 /** Moves `last_seen_at` of products found again with nothing to change; no other column is touched. */
 const seenAgainStatement = (keys: readonly string[]) => db.update(products).set({ lastSeenAt: sql`now()` }).where(inArray(products.key, keys))
 
@@ -92,8 +134,11 @@ export async function upsertProducts(items: readonly ProductInput[], opts: { rep
   const isUnchanged = (m: MergeResult) => m.change.status === 'unchanged'
   const writes = merged.filter((m) => !isUnchanged(m))
   const seenAgain = merged.filter(isUnchanged).map((m) => m.change.key)
+  // New rows start unverified by the column default, and their change lists no fill or replace.
+  const unverify = writes.filter((m) => changesStoredValues(m.change)).map((m) => m.change.key)
   const [first, ...rest] = [
     ...(writes.length > 0 ? [upsertStatement(writes, opts.actor)] : []),
+    ...(unverify.length > 0 ? [unverifyStatement(unverify)] : []),
     ...(seenAgain.length > 0 ? [seenAgainStatement(seenAgain)] : []),
   ]
   if (first) await db.batch([first, ...rest])

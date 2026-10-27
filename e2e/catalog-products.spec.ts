@@ -43,7 +43,7 @@ test('dry run, create, keep a conflicting reading aside, then replace it', async
     expect((await post(request, '', [unsourced])).status()).toBe(422)
 
     expect(await (await post(request, '', [inverter(model)])).json()).toEqual({ created: [key], updated: [], unchanged: [], conflicts: [] })
-    expect(await stored(request, key)).toMatchObject({ origin: 'admin', specs: { continuousW: { value: 6000 } }, conflicts: [] })
+    expect(await stored(request, key)).toMatchObject({ origin: 'admin', specs: { continuousW: { value: 6000 } }, conflicts: [], verification: { status: 'unverified' } })
 
     const conflict = await post(request, '', [inverter(model, 5000)])
     expect(await conflict.json()).toEqual({ created: [], updated: [], unchanged: [], conflicts: [{ key, fields: ['specs.continuousW'] }] })

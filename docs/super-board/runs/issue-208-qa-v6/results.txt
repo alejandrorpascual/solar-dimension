@@ -1,0 +1,10 @@
+QA v6 · PR #237 · head 8c02746 (refusal copy only; QA v5 covered the rest)
+unit            npm test                                        2184/2184 · quote-text + quote-guards 118/118
+typecheck       npm run typecheck                               clean
+e2e #208        -g "#208" --project=desktop                     7/7
+e2e #208 390px  -g "#208" on iPhone 13 at 390x844 (temp config) 7/7
+refusal shots   en + es at 1920 and 390, earlier quote ready    4/4: text ends at the file name, no overflow, 1 row, 1 file, month 1 (facts.jsonl)
+leftovers       rg "{action}" / readAgain in the refusal path   0 hits; readAgain left only on the Read again buttons and their tests
+mutation M1     server accepts every duplicate (random hash)    red at quotes.spec.ts:145 (refusal text missing)
+mutation M2     server accepts only the solo again.pdf, UI      red at :159 toContain('already_uploaded') and :160 not.toMatch(QUOTE_ID);
+                check dropped so the reply alone judges it      accepted reply is {ok, id:<uuid>}; :161 rows 2

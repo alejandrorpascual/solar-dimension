@@ -1,0 +1,1164 @@
+
+> e2e
+> playwright test e2e/database-down.spec.ts e2e/qa-170-evidence.spec.ts
+
+[WebServer] ◇ injected env (0) from .env.local
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - import "./src/server/quotes/time-limits" without a file extension (vite.config.ts:8:41). Add the file extension
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] `output.codeSplitting.groups[0].name` is a function. Set `output.codeSplitting.groups[0].debugName` so the bundler timing report can identify this group.
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/index.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/index.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/utils.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/utils.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouter.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouter.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useMatch.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useMatch.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/ClientOnly.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/ClientOnly.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/RouterProvider.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/RouterProvider.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/link.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/link.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useNavigate.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useNavigate.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useLocation.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useLocation.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useRouterState.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useRouterState.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/useBlocker.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/useBlocker.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/HeadContent.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/HeadContent.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Asset.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Asset.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Matches.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Matches.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Match.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Match.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/routerContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/routerContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/matchContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/matchContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/Transitioner.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/Transitioner.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/@tanstack/react-router/dist/esm/nonRouteComponentContext.js:1:1 ]
+[WebServer]    │
+[WebServer]  1 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/Icon.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/Icon.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] [MODULE_LEVEL_DIRECTIVE] The semantics of the module level directive "use client" in "node_modules/lucide-react/dist/esm/context.mjs" may not be preserved when bundling.
+[WebServer]    ╭─[ node_modules/lucide-react/dist/esm/context.mjs:2:1 ]
+[WebServer]    │
+[WebServer]  2 │ "use client";
+[WebServer]    │ ──────┬──────  
+[WebServer]    │       ╰──────── module level directive may not be preserved
+[WebServer]    │ 
+[WebServer]    │ Help: For more information, see https://rolldown.rs/in-depth/directives#other-directives
+[WebServer] ───╯
+[WebServer] 
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] .env.local not found. Continuing without it.
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+
+Running 4 tests using 4 workers
+
+  ✓  4 [desktop] › e2e/qa-170-evidence.spec.ts:31:1 › qa #170 evidence: signed out on the main server, header still offers Sign in (2.7s)
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+[WebServer] [server] a server function failed {
+[WebServer]   ref: '1eaf84a4',
+[WebServer]   fn: 'getSession',
+[WebServer]   file: 'src/server/session.ts',
+[WebServer]   error: DrizzleQueryError: Failed query: select "email", "email_verified" from "user" where "user"."id" = $1 limit $2
+[WebServer]   params: E0Cf1Fm6ELCqSBRHg0DLsW75JzznAD1M,1
+[WebServer]       at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       ... 4 lines matching cause stack trace ...
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]       at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]       at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]     query: 'select "email", "email_verified" from "user" where "user"."id" = $1 limit $2',
+[WebServer]     params: [ 'E0Cf1Fm6ELCqSBRHg0DLsW75JzznAD1M', 1 ],
+[WebServer]     cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]         at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]         at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]         at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]         at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]         at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]         at async Promise.all (index 0)
+[WebServer]         at async quotesAllowed (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:14:26)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async Object.serverFn (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:32:35)
+[WebServer]         at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]       severity: undefined,
+[WebServer]       code: undefined,
+[WebServer]       detail: undefined,
+[WebServer]       hint: undefined,
+[WebServer]       position: undefined,
+[WebServer]       internalPosition: undefined,
+[WebServer]       internalQuery: undefined,
+[WebServer]       where: undefined,
+[WebServer]       schema: undefined,
+[WebServer]       table: undefined,
+[WebServer]       column: undefined,
+[WebServer]       dataType: undefined,
+[WebServer]       constraint: undefined,
+[WebServer]       file: undefined,
+[WebServer]       line: undefined,
+[WebServer]       routine: undefined,
+[WebServer]       sourceError: [TypeError]
+[WebServer]     }
+[WebServer]   }
+[WebServer] }
+[WebServer] [root] the session could not be read; the page opens without the account Error: Server error (ref 1eaf84a4)
+[WebServer]     at unexpectedServerError (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/server-error-8ozpdepa.mjs:10:54)
+[WebServer]     at errorForCaller (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:40:9)
+[WebServer]     at file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:55:9
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign.__executeServer (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1963:13)
+[WebServer]     at async client (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2089:17)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1944:20)
+[WebServer]     at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/router-C7al95mc.mjs:1674:61
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+[WebServer] [server] a server function failed {
+[WebServer]   ref: '07c417f9',
+[WebServer]   fn: 'getSession',
+[WebServer]   file: 'src/server/session.ts',
+[WebServer]   error: DrizzleQueryError: Failed query: select "email", "email_verified" from "user" where "user"."id" = $1 limit $2
+[WebServer]   params: sefUek3hJiSo3PD7898SCN79Tm0CwqwS,1
+[WebServer]       at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       ... 4 lines matching cause stack trace ...
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]       at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]       at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]     query: 'select "email", "email_verified" from "user" where "user"."id" = $1 limit $2',
+[WebServer]     params: [ 'sefUek3hJiSo3PD7898SCN79Tm0CwqwS', 1 ],
+[WebServer]     cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]         at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]         at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]         at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]         at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]         at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]         at async Promise.all (index 0)
+[WebServer]         at async quotesAllowed (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:14:26)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async Object.serverFn (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:32:35)
+[WebServer]         at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]       severity: undefined,
+[WebServer]       code: undefined,
+[WebServer]       detail: undefined,
+[WebServer]       hint: undefined,
+[WebServer]       position: undefined,
+[WebServer]       internalPosition: undefined,
+[WebServer]       internalQuery: undefined,
+[WebServer]       where: undefined,
+[WebServer]       schema: undefined,
+[WebServer]       table: undefined,
+[WebServer]       column: undefined,
+[WebServer]       dataType: undefined,
+[WebServer]       constraint: undefined,
+[WebServer]       file: undefined,
+[WebServer]       line: undefined,
+[WebServer]       routine: undefined,
+[WebServer]       sourceError: [TypeError]
+[WebServer]     }
+[WebServer]   }
+[WebServer] }
+[WebServer] [root] the session could not be read; the page opens without the account Error: Server error (ref 07c417f9)
+[WebServer]     at unexpectedServerError (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/server-error-8ozpdepa.mjs:10:54)
+[WebServer]     at errorForCaller (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:40:9)
+[WebServer]     at file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:55:9
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign.__executeServer (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1963:13)
+[WebServer]     at async client (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2089:17)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1944:20)
+[WebServer]     at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/router-C7al95mc.mjs:1674:61
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+[WebServer] [server] a server function failed {
+[WebServer]   ref: '7a0e2d8a',
+[WebServer]   fn: 'getSession',
+[WebServer]   file: 'src/server/session.ts',
+[WebServer]   error: DrizzleQueryError: Failed query: select "email", "email_verified" from "user" where "user"."id" = $1 limit $2
+[WebServer]   params: E0Cf1Fm6ELCqSBRHg0DLsW75JzznAD1M,1
+[WebServer]       at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       ... 4 lines matching cause stack trace ...
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]       at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]       at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]     query: 'select "email", "email_verified" from "user" where "user"."id" = $1 limit $2',
+[WebServer]     params: [ 'E0Cf1Fm6ELCqSBRHg0DLsW75JzznAD1M', 1 ],
+[WebServer]     cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]         at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]         at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]         at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]         at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]         at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]         at async Promise.all (index 0)
+[WebServer]         at async quotesAllowed (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:14:26)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async Object.serverFn (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:32:35)
+[WebServer]         at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]       severity: undefined,
+[WebServer]       code: undefined,
+[WebServer]       detail: undefined,
+[WebServer]       hint: undefined,
+[WebServer]       position: undefined,
+[WebServer]       internalPosition: undefined,
+[WebServer]       internalQuery: undefined,
+[WebServer]       where: undefined,
+[WebServer]       schema: undefined,
+[WebServer]       table: undefined,
+[WebServer]       column: undefined,
+[WebServer]       dataType: undefined,
+[WebServer]       constraint: undefined,
+[WebServer]       file: undefined,
+[WebServer]       line: undefined,
+[WebServer]       routine: undefined,
+[WebServer]       sourceError: [TypeError]
+[WebServer]     }
+[WebServer]   }
+[WebServer] }
+[WebServer] [root] the session could not be read; the page opens without the account Error: Server error (ref 7a0e2d8a)
+[WebServer]     at unexpectedServerError (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/server-error-8ozpdepa.mjs:10:54)
+[WebServer]     at errorForCaller (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:40:9)
+[WebServer]     at file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:55:9
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign.__executeServer (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1963:13)
+[WebServer]     at async client (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2089:17)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1944:20)
+[WebServer]     at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/router-C7al95mc.mjs:1674:61
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+  ✓  1 [desktop] › e2e/database-down.spec.ts:72:1 › with the database down, client details stay on the page: the browser keeps neither the draft nor the saved client (8.8s)
+[WebServer] [server] a server function failed {
+[WebServer]   ref: '3e62be28',
+[WebServer]   fn: 'getSession',
+[WebServer]   file: 'src/server/session.ts',
+[WebServer]   error: DrizzleQueryError: Failed query: select "email", "email_verified" from "user" where "user"."id" = $1 limit $2
+[WebServer]   params: GUjqYFrxvEzb6u2LffKBafRH3U7N3zmx,1
+[WebServer]       at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       ... 4 lines matching cause stack trace ...
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]       at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]       at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]     query: 'select "email", "email_verified" from "user" where "user"."id" = $1 limit $2',
+[WebServer]     params: [ 'GUjqYFrxvEzb6u2LffKBafRH3U7N3zmx', 1 ],
+[WebServer]     cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]         at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]         at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]         at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]         at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]         at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]         at async Promise.all (index 0)
+[WebServer]         at async quotesAllowed (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:14:26)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async Object.serverFn (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:32:35)
+[WebServer]         at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]       severity: undefined,
+[WebServer]       code: undefined,
+[WebServer]       detail: undefined,
+[WebServer]       hint: undefined,
+[WebServer]       position: undefined,
+[WebServer]       internalPosition: undefined,
+[WebServer]       internalQuery: undefined,
+[WebServer]       where: undefined,
+[WebServer]       schema: undefined,
+[WebServer]       table: undefined,
+[WebServer]       column: undefined,
+[WebServer]       dataType: undefined,
+[WebServer]       constraint: undefined,
+[WebServer]       file: undefined,
+[WebServer]       line: undefined,
+[WebServer]       routine: undefined,
+[WebServer]       sourceError: [TypeError]
+[WebServer]     }
+[WebServer]   }
+[WebServer] }
+[WebServer] [root] the session could not be read; the page opens without the account Error: Server error (ref 3e62be28)
+[WebServer]     at unexpectedServerError (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/server-error-8ozpdepa.mjs:10:54)
+[WebServer]     at errorForCaller (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:40:9)
+[WebServer]     at file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:55:9
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign.__executeServer (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1963:13)
+[WebServer]     at async client (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2089:17)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1944:20)
+[WebServer]     at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/router-C7al95mc.mjs:1674:61
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+[WebServer] [server] a server function failed {
+[WebServer]   ref: 'a3d23d53',
+[WebServer]   fn: 'getSession',
+[WebServer]   file: 'src/server/session.ts',
+[WebServer]   error: DrizzleQueryError: Failed query: select "email", "email_verified" from "user" where "user"."id" = $1 limit $2
+[WebServer]   params: sefUek3hJiSo3PD7898SCN79Tm0CwqwS,1
+[WebServer]       at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       ... 4 lines matching cause stack trace ...
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]       at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]       at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]     query: 'select "email", "email_verified" from "user" where "user"."id" = $1 limit $2',
+[WebServer]     params: [ 'sefUek3hJiSo3PD7898SCN79Tm0CwqwS', 1 ],
+[WebServer]     cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]         at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]         at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]         at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]         at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]         at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]         at async Promise.all (index 0)
+[WebServer]         at async quotesAllowed (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:14:26)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async Object.serverFn (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:32:35)
+[WebServer]         at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]       severity: undefined,
+[WebServer]       code: undefined,
+[WebServer]       detail: undefined,
+[WebServer]       hint: undefined,
+[WebServer]       position: undefined,
+[WebServer]       internalPosition: undefined,
+[WebServer]       internalQuery: undefined,
+[WebServer]       where: undefined,
+[WebServer]       schema: undefined,
+[WebServer]       table: undefined,
+[WebServer]       column: undefined,
+[WebServer]       dataType: undefined,
+[WebServer]       constraint: undefined,
+[WebServer]       file: undefined,
+[WebServer]       line: undefined,
+[WebServer]       routine: undefined,
+[WebServer]       sourceError: [TypeError]
+[WebServer]     }
+[WebServer]   }
+[WebServer] }
+[WebServer] [root] the session could not be read; the page opens without the account Error: Server error (ref a3d23d53)
+[WebServer]     at unexpectedServerError (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/server-error-8ozpdepa.mjs:10:54)
+[WebServer]     at errorForCaller (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:40:9)
+[WebServer]     at file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:55:9
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign.__executeServer (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1963:13)
+[WebServer]     at async client (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2089:17)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1944:20)
+[WebServer]     at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/router-C7al95mc.mjs:1674:61
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+[WebServer] [server] a server function failed {
+[WebServer]   ref: '01d0efd4',
+[WebServer]   fn: 'getSession',
+[WebServer]   file: 'src/server/session.ts',
+[WebServer]   error: DrizzleQueryError: Failed query: select "email", "email_verified" from "user" where "user"."id" = $1 limit $2
+[WebServer]   params: GUjqYFrxvEzb6u2LffKBafRH3U7N3zmx,1
+[WebServer]       at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       ... 4 lines matching cause stack trace ...
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]       at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]       at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]     query: 'select "email", "email_verified" from "user" where "user"."id" = $1 limit $2',
+[WebServer]     params: [ 'GUjqYFrxvEzb6u2LffKBafRH3U7N3zmx', 1 ],
+[WebServer]     cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]         at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]         at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]         at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]         at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]         at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]         at async Promise.all (index 0)
+[WebServer]         at async quotesAllowed (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:14:26)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async Object.serverFn (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:32:35)
+[WebServer]         at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]       severity: undefined,
+[WebServer]       code: undefined,
+[WebServer]       detail: undefined,
+[WebServer]       hint: undefined,
+[WebServer]       position: undefined,
+[WebServer]       internalPosition: undefined,
+[WebServer]       internalQuery: undefined,
+[WebServer]       where: undefined,
+[WebServer]       schema: undefined,
+[WebServer]       table: undefined,
+[WebServer]       column: undefined,
+[WebServer]       dataType: undefined,
+[WebServer]       constraint: undefined,
+[WebServer]       file: undefined,
+[WebServer]       line: undefined,
+[WebServer]       routine: undefined,
+[WebServer]       sourceError: [TypeError]
+[WebServer]     }
+[WebServer]   }
+[WebServer] }
+[WebServer] [root] the session could not be read; the page opens without the account Error: Server error (ref 01d0efd4)
+[WebServer]     at unexpectedServerError (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/server-error-8ozpdepa.mjs:10:54)
+[WebServer]     at errorForCaller (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:40:9)
+[WebServer]     at file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:55:9
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign.__executeServer (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1963:13)
+[WebServer]     at async client (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2089:17)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1944:20)
+[WebServer]     at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/router-C7al95mc.mjs:1674:61
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+[WebServer] [server] a server function failed {
+[WebServer]   ref: 'a7d6cfe0',
+[WebServer]   fn: 'getSession',
+[WebServer]   file: 'src/server/session.ts',
+[WebServer]   error: DrizzleQueryError: Failed query: select "id_token" from "account" where ("account"."user_id" = $1 and "account"."provider_id" = $2)
+[WebServer]   params: sefUek3hJiSo3PD7898SCN79Tm0CwqwS,google
+[WebServer]       at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       ... 4 lines matching cause stack trace ...
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]       at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]       at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]     query: 'select "id_token" from "account" where ("account"."user_id" = $1 and "account"."provider_id" = $2)',
+[WebServer]     params: [ 'sefUek3hJiSo3PD7898SCN79Tm0CwqwS', 'google' ],
+[WebServer]     cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]         at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]         at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]         at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]         at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]         at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async quotesAllowed (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:14:26)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async Object.serverFn (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:32:35)
+[WebServer]         at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]       severity: undefined,
+[WebServer]       code: undefined,
+[WebServer]       detail: undefined,
+[WebServer]       hint: undefined,
+[WebServer]       position: undefined,
+[WebServer]       internalPosition: undefined,
+[WebServer]       internalQuery: undefined,
+[WebServer]       where: undefined,
+[WebServer]       schema: undefined,
+[WebServer]       table: undefined,
+[WebServer]       column: undefined,
+[WebServer]       dataType: undefined,
+[WebServer]       constraint: undefined,
+[WebServer]       file: undefined,
+[WebServer]       line: undefined,
+[WebServer]       routine: undefined,
+[WebServer]       sourceError: [TypeError]
+[WebServer]     }
+[WebServer]   }
+[WebServer] }
+[WebServer] [root] the session could not be read; the page opens without the account Error: Server error (ref a7d6cfe0)
+[WebServer]     at unexpectedServerError (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/server-error-8ozpdepa.mjs:10:54)
+[WebServer]     at errorForCaller (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:40:9)
+[WebServer]     at file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:55:9
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign.__executeServer (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1963:13)
+[WebServer]     at async client (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2089:17)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1944:20)
+[WebServer]     at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/router-C7al95mc.mjs:1674:61
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+[WebServer] [server] a server function failed {
+[WebServer]   ref: '04135ea6',
+[WebServer]   fn: 'getSession',
+[WebServer]   file: 'src/server/session.ts',
+[WebServer]   error: DrizzleQueryError: Failed query: select "id_token" from "account" where ("account"."user_id" = $1 and "account"."provider_id" = $2)
+[WebServer]   params: GUjqYFrxvEzb6u2LffKBafRH3U7N3zmx,google
+[WebServer]       at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       ... 4 lines matching cause stack trace ...
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]       at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]       at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]     query: 'select "id_token" from "account" where ("account"."user_id" = $1 and "account"."provider_id" = $2)',
+[WebServer]     params: [ 'GUjqYFrxvEzb6u2LffKBafRH3U7N3zmx', 'google' ],
+[WebServer]     cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]         at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]         at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]         at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]         at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]         at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async quotesAllowed (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:14:26)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async Object.serverFn (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:32:35)
+[WebServer]         at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]       severity: undefined,
+[WebServer]       code: undefined,
+[WebServer]       detail: undefined,
+[WebServer]       hint: undefined,
+[WebServer]       position: undefined,
+[WebServer]       internalPosition: undefined,
+[WebServer]       internalQuery: undefined,
+[WebServer]       where: undefined,
+[WebServer]       schema: undefined,
+[WebServer]       table: undefined,
+[WebServer]       column: undefined,
+[WebServer]       dataType: undefined,
+[WebServer]       constraint: undefined,
+[WebServer]       file: undefined,
+[WebServer]       line: undefined,
+[WebServer]       routine: undefined,
+[WebServer]       sourceError: [TypeError]
+[WebServer]     }
+[WebServer]   }
+[WebServer] }
+[WebServer] [root] the session could not be read; the page opens without the account Error: Server error (ref 04135ea6)
+[WebServer]     at unexpectedServerError (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/server-error-8ozpdepa.mjs:10:54)
+[WebServer]     at errorForCaller (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:40:9)
+[WebServer]     at file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:55:9
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign.__executeServer (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1963:13)
+[WebServer]     at async client (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2089:17)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1944:20)
+[WebServer]     at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/router-C7al95mc.mjs:1674:61
+[WebServer] [getCatalog] catalog query failed; serving the bundled snapshot DrizzleQueryError: Failed query: select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc
+[WebServer] params: 
+[WebServer]     at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]     ... 4 lines matching cause stack trace ...
+[WebServer]     at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]   query: 'select "id", "category", "watts", "surge", "duty", "tons", "ac_type", "kind", "surge_class", "burst_seconds", "cycles_per_hour", "sources", "labels", "sort_order", "retired_at", "created_at", "updated_at", "updated_by" from "appliances" order by "appliances"."sort_order" asc, "appliances"."id" asc',
+[WebServer]   params: [],
+[WebServer]   cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]       at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]       at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       at async listRecords (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:234:22)
+[WebServer]       at async queryCatalog (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:241:10)
+[WebServer]       at async Object.get (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:12:18)
+[WebServer]       at async withFallback (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/catalog-repo-BPnRMiYo.mjs:27:10)
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]     severity: undefined,
+[WebServer]     code: undefined,
+[WebServer]     detail: undefined,
+[WebServer]     hint: undefined,
+[WebServer]     position: undefined,
+[WebServer]     internalPosition: undefined,
+[WebServer]     internalQuery: undefined,
+[WebServer]     where: undefined,
+[WebServer]     schema: undefined,
+[WebServer]     table: undefined,
+[WebServer]     column: undefined,
+[WebServer]     dataType: undefined,
+[WebServer]     constraint: undefined,
+[WebServer]     file: undefined,
+[WebServer]     line: undefined,
+[WebServer]     routine: undefined,
+[WebServer]     sourceError: [TypeError: fetch failed] { [cause]: [Error] }
+[WebServer]   }
+[WebServer] }
+[WebServer] [server] a server function failed {
+[WebServer]   ref: '42843be2',
+[WebServer]   fn: 'getSession',
+[WebServer]   file: 'src/server/session.ts',
+[WebServer]   error: DrizzleQueryError: Failed query: select "email", "email_verified" from "user" where "user"."id" = $1 limit $2
+[WebServer]   params: sefUek3hJiSo3PD7898SCN79Tm0CwqwS,1
+[WebServer]       at NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4145:10)
+[WebServer]       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]       at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]       ... 4 lines matching cause stack trace ...
+[WebServer]       at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20)
+[WebServer]       at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]       at async userNext (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2006:21) {
+[WebServer]     query: 'select "email", "email_verified" from "user" where "user"."id" = $1 limit $2',
+[WebServer]     params: [ 'sefUek3hJiSo3PD7898SCN79Tm0CwqwS', 1 ],
+[WebServer]     cause: NeonDbError: Error connecting to database: TypeError: fetch failed
+[WebServer]         at dr.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/neondatabase__serverless.mjs:4640:12)
+[WebServer]         at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]         at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4240:11
+[WebServer]         at async NeonHttpPreparedQuery.queryWithCache (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4143:11)
+[WebServer]         at async NeonHttpPreparedQuery.execute (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_libs/drizzle-orm.mjs:4239:18)
+[WebServer]         at async Promise.all (index 0)
+[WebServer]         at async quotesAllowed (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:14:26)
+[WebServer]         at async Promise.all (index 1)
+[WebServer]         at async Object.serverFn (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/session-D1SJ4Y7E.mjs:32:35)
+[WebServer]         at async server (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2092:20) {
+[WebServer]       severity: undefined,
+[WebServer]       code: undefined,
+[WebServer]       detail: undefined,
+[WebServer]       hint: undefined,
+[WebServer]       position: undefined,
+[WebServer]       internalPosition: undefined,
+[WebServer]       internalQuery: undefined,
+[WebServer]       where: undefined,
+[WebServer]       schema: undefined,
+[WebServer]       table: undefined,
+[WebServer]       column: undefined,
+[WebServer]       dataType: undefined,
+[WebServer]       constraint: undefined,
+[WebServer]       file: undefined,
+[WebServer]       line: undefined,
+[WebServer]       routine: undefined,
+[WebServer]       sourceError: [TypeError]
+[WebServer]     }
+[WebServer]   }
+[WebServer] }
+[WebServer] [root] the session could not be read; the page opens without the account Error: Server error (ref 42843be2)
+[WebServer]     at unexpectedServerError (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/server-error-8ozpdepa.mjs:10:54)
+[WebServer]     at errorForCaller (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:40:9)
+[WebServer]     at file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/start-moiPq5uA.mjs:55:9
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign.__executeServer (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1963:13)
+[WebServer]     at async client (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2089:17)
+[WebServer]     at async callNextMiddleware (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:2020:20)
+[WebServer]     at async Object.assign (file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/ssr.mjs:1944:20)
+[WebServer]     at async file:///Users/alejandrorpascual/.t3/worktrees/solar-dimension/t3-ed86311f/.claude/worktrees/issue-170-qa/.output/server/_ssr/router-C7al95mc.mjs:1674:61
+  ✓  3 [desktop] › e2e/database-down.spec.ts:38:1 › with the database down, a signed-in browser keeps sizing and leaves the account copy it holds as it was (12.3s)
+  ✓  2 [desktop] › e2e/qa-170-evidence.spec.ts:13:1 › qa #170 evidence: signed in, database down, header offers no Sign in (12.8s)
+
+  4 passed (48.7s)

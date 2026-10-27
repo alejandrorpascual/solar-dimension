@@ -109,6 +109,14 @@ export async function setQuoteUploadsThisMonth(email: string, uploads: number): 
     on conflict (user_id, month) do update set uploads = excluded.uploads`
 }
 
+/** This UTC month's upload counter of the user, which the monthly limit reads. 0 when nothing was counted yet. */
+export async function quoteUploadsThisMonth(email: string): Promise<number> {
+  const rows = await testDb()`
+    select qu.uploads from quote_usage qu join "user" u on u.id = qu.user_id
+    where u.email = ${email} and qu.month = date_trunc('month', now() at time zone 'utc')::date`
+  return (rows[0]?.uploads as number | undefined) ?? 0
+}
+
 export async function countQuoteRows(email: string, projectId: string): Promise<number> {
   const rows = await testDb()`select count(*)::int as n from quotes q join "user" u on u.id = q.user_id where u.email = ${email} and q.project_id = ${projectId}`
   return rows[0].n as number
@@ -121,6 +129,16 @@ export async function savedProject(email: string, name: string): Promise<{ hours
     where u.email = ${email} and p.name = ${name}`
   const row = rows[0]
   return row ? { hours: row.hours as number, volts: row.volts as number, chemistry: row.chemistry as string, solar: row.solar } : null
+}
+
+/**
+ * Sets the appliances a saved project counts, as a save would. A count whose appliance is in neither the catalog nor
+ * the project's custom list is what a custom appliance that no longer loads leaves behind: the kit leaves it out.
+ */
+export async function setProjectQty(email: string, projectId: string, qty: Record<string, number>): Promise<void> {
+  await testDb()`
+    update projects p set qty = ${JSON.stringify(qty)}::jsonb, custom = '[]'::jsonb
+    from "user" u where u.id = p.user_id and u.email = ${email} and p.id = ${projectId}`
 }
 
 /** Adds a copy of the user's first project under a new id, so a test has a project only this account can open. */
@@ -169,6 +187,19 @@ export async function misreadQuoteTotal(email: string, projectId: string, total:
   await testDb()`
     update quotes q set status = 'needs_review', extraction = jsonb_set(q.extraction, '{total}', to_jsonb(${total}::numeric))
     from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId}`
+}
+
+/**
+ * Turns one quote of a project, picked by its file name, into a reading that states a subtotal and a tax but whose total
+ * was read as the subtotal, so it needs review until the user types the total with the tax.
+ */
+export async function misreadQuoteTaxedTotal(
+  email: string, projectId: string, fileName: string, { subtotal, tax }: { subtotal: number; tax: number },
+): Promise<void> {
+  await testDb()`
+    update quotes q set status = 'needs_review',
+      extraction = q.extraction || jsonb_build_object('subtotal', ${subtotal}::numeric, 'tax', ${tax}::numeric, 'total', ${subtotal}::numeric)
+    from "user" u where u.id = q.user_id and u.email = ${email} and q.project_id = ${projectId} and q.file_name = ${fileName}`
 }
 
 /** Same, because its first line's unit price was read as `unitPrice`, which that line's amount doesn't match. */
@@ -234,6 +265,13 @@ export async function quoteRetryStates(email: string, projectId: string): Promis
     select q.status, q.retries from quotes q join "user" u on u.id = q.user_id
     where u.email = ${email} and q.project_id = ${projectId} order by q.created_at`
   return rows.map((r) => ({ status: r.status as string, retries: r.retries as number }))
+}
+
+/** The file name and stored fingerprint (quotes.file_hash) of every quote of the user, oldest first. */
+export async function quoteFileHashes(email: string): Promise<{ fileName: string; fileHash: string | null }[]> {
+  const rows = await testDb()`
+    select q.file_name, q.file_hash from quotes q join "user" u on u.id = q.user_id where u.email = ${email} order by q.created_at`
+  return rows.map((r) => ({ fileName: r.file_name as string, fileHash: r.file_hash as string | null }))
 }
 
 /** Every quote of the user, with its project and the path of its file in storage. */

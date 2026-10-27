@@ -5,7 +5,7 @@ import { DEFAULT_MUSTS } from './quote-items'
 
 const view = (id: string, over: Partial<QuoteView> = {}): QuoteView => ({
   id, fileName: `${id}.pdf`, label: null, status: 'ready',
-  extraction: SAMPLE_QUOTES[id as SampleQuoteId] ?? null, overrides: {}, totalOverride: null, createdAt: 1, retries: 0, pages: null, ...over,
+  extraction: SAMPLE_QUOTES[id as SampleQuoteId] ?? null, overrides: {}, totalOverride: null, createdAt: 1, retries: 0, pages: null, fileHash: null, ...over,
 })
 const ALL = (['solartec', 'voltia', 'grupoluz', 'enerhogar'] as const).map((id, i) => view(id, { createdAt: i }))
 const ids = (v: { quote: QuoteView }[]) => v.map((r) => r.quote.id)
@@ -228,6 +228,126 @@ describe('the same quote uploaded twice (AI-28)', () => {
     const confirmed = { ...copy('again', 'grupoluz', 2), overrides: { charger: 'included' as const } }
     const withConfirmation = compareQuotes(KIT, DEFAULT_MUSTS, [copy('first', 'grupoluz', 1), confirmed])
     expect(ids(withConfirmation.ranked).sort()).toEqual(['again', 'first'])
+  })
+  // #208: uploading a file the project already has is now refused (uploadQuote, insertWithinLimits), so the file-copy
+  // cases below can no longer be made through the app. They stay as the safety net for quotes uploaded before that.
+  test('the same file uploaded again is a duplicate even when its second reading words an item differently', () => {
+    const reworded = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, description: `${l.description} (reworded)` } : l)) }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: reworded, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['first'])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'again' }, reason: 'duplicate' }])
+  })
+  test('a file with several systems, uploaded again and read differently, has every system listed as a duplicate', () => {
+    const reworded = { ...SAMPLE_QUOTES.suna, vendor: { ...SAMPLE_QUOTES.suna.vendor, name: 'SUNA' } }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.suna, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: reworded, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(v.ranked.map(entryKey).sort()).toEqual(['first:o1', 'first:o2'])
+    expect(v.unranked.map((u) => [entryKey(u), u.reason])).toEqual([['again:o1', 'duplicate'], ['again:o2', 'duplicate']])
+  })
+  test('two different files that read the same are still duplicates by their reading', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'b2', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['first'])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'again' }, reason: 'duplicate' }])
+  })
+  test('a file whose first upload was a reading duplicate is still a duplicate when uploaded again and read differently', () => {
+    const reworded = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, description: `${l.description} (reworded)` } : l)) }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('a', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'h1', createdAt: 1 }),
+      view('b', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'h2', createdAt: 2 }),
+      view('c', { extraction: reworded, fileHash: 'h2', createdAt: 3 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['a'])
+    expect(v.unranked.map((u) => [u.quote.id, u.reason])).toEqual([['b', 'duplicate'], ['c', 'duplicate']])
+  })
+  test("a different file that reads like a file duplicate's second reading is still a duplicate", () => {
+    const reworded = { ...SAMPLE_QUOTES.solartec, lines: SAMPLE_QUOTES.solartec.lines.map((l, i) => (i === 0 ? { ...l, description: `${l.description} (reworded)` } : l)) }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('a', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'h1', createdAt: 1 }),
+      view('b', { extraction: reworded, fileHash: 'h1', createdAt: 2 }),
+      view('c', { extraction: reworded, fileHash: 'h3', createdAt: 3 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['a'])
+    expect(v.unranked.map((u) => [u.quote.id, u.reason])).toEqual([['b', 'duplicate'], ['c', 'duplicate']])
+  })
+  test('the same file is its own quote once the user types a different total into it', () => {
+    const noTotal = { ...SAMPLE_QUOTES.voltia, total: 0 }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: noTotal, totalOverride: 6000, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: { ...noTotal, notes: ['read again'] }, totalOverride: 5000, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked).sort()).toEqual(['again', 'first'])
+  })
+  test('an untouched upload of a file is a duplicate of the earlier upload the user typed a total into', () => {
+    const noTotal = { ...SAMPLE_QUOTES.voltia, total: 0 }
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: noTotal, totalOverride: 6000, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: { ...SAMPLE_QUOTES.voltia, notes: ['read again'] }, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['first'])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'again' }, reason: 'duplicate' }])
+  })
+  test('an untouched first upload of a file is the duplicate once the user confirms an item on a later one', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.grupoluz, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: SAMPLE_QUOTES.grupoluz, overrides: { charger: 'included' }, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['again'])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'first' }, reason: 'duplicate' }])
+  })
+  test('an untouched first upload of a file is the duplicate once the user types a total into a later one', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.voltia, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: SAMPLE_QUOTES.voltia, totalOverride: 5000, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['again'])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'first' }, reason: 'duplicate' }])
+  })
+  test('uploads of a file the user changed differently all rank, and the untouched ones and same-changed copies do not', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('plain', { extraction: SAMPLE_QUOTES.grupoluz, fileHash: 'a1', createdAt: 1 }),
+      view('charger', { extraction: SAMPLE_QUOTES.grupoluz, overrides: { charger: 'included' }, fileHash: 'a1', createdAt: 2 }),
+      view('fuse', { extraction: SAMPLE_QUOTES.grupoluz, overrides: { fuse: 'included' }, fileHash: 'a1', createdAt: 3 }),
+      view('charger-again', { extraction: SAMPLE_QUOTES.grupoluz, overrides: { charger: 'included' }, fileHash: 'a1', createdAt: 4 }),
+      view('plain-again', { extraction: SAMPLE_QUOTES.grupoluz, fileHash: 'a1', createdAt: 5 }),
+    ])
+    expect(ids(v.ranked).sort()).toEqual(['charger', 'fuse'])
+    expect(v.unranked.map((u) => [u.quote.id, u.reason])).toEqual([['plain', 'duplicate'], ['charger-again', 'duplicate'], ['plain-again', 'duplicate']])
+  })
+  test('an untouched upload of a file with several systems has every system hidden once the user confirms an item on another', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.suna, overrides: { installation: 'included' }, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: SAMPLE_QUOTES.suna, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(v.ranked.map(entryKey).sort()).toEqual(['first:o1', 'first:o2'])
+    expect(v.unranked.map((u) => [entryKey(u), u.reason])).toEqual([['again:o1', 'duplicate'], ['again:o2', 'duplicate']])
+  })
+  test('when the only upload of a file the user changed cannot rank, the earliest untouched upload still ranks', () => {
+    // The changed upload waits for a total, so it is not in the ranking: hiding every untouched upload would rank none.
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { extraction: SAMPLE_QUOTES.grupoluz, fileHash: 'a1', createdAt: 1 }),
+      view('changed', { status: 'needs_review', extraction: SAMPLE_QUOTES.grupoluz, overrides: { charger: 'included' }, fileHash: 'a1', createdAt: 2 }),
+      view('again', { extraction: SAMPLE_QUOTES.grupoluz, fileHash: 'a1', createdAt: 3 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['first'])
+    const reasons = Object.fromEntries(v.unranked.map((u) => [u.quote.id, u.reason]))
+    expect(reasons.again).toBe('duplicate')
+    expect(reasons.changed).not.toBe('duplicate')
+  })
+  test('the same file read well the second time ranks when the first reading failed', () => {
+    const v = compareQuotes(KIT, DEFAULT_MUSTS, [
+      view('first', { status: 'failed', extraction: null, fileHash: 'a1', createdAt: 1 }),
+      view('again', { extraction: SAMPLE_QUOTES.solartec, fileHash: 'a1', createdAt: 2 }),
+    ])
+    expect(ids(v.ranked)).toEqual(['again'])
+    expect(v.unranked).toMatchObject([{ quote: { id: 'first' }, reason: 'failed' }])
   })
   test('a copy does not sway the currency: one quote in each is a tie, which goes to the first', () => {
     const eur = (id: string, createdAt: number) => view(id, { extraction: { ...SAMPLE_QUOTES.voltia, currency: 'EUR' }, createdAt })

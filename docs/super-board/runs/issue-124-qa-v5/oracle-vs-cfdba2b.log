@@ -1,0 +1,25 @@
+# oracle (quote-tax-oracle.test-helper.ts) vs git show cfdba2b:src/lib/quote-checks.ts + quote-options.ts, comments and whitespace stripped, per top-level declaration
+SAME  LINE_TOLERANCE
+SAME  TOTAL_TOLERANCE
+SAME  MIN_ABSOLUTE_TOLERANCE
+SAME  near
+SAME  hasTotal
+SAME  includedSum
+SAME  hasOptions
+SAME  optionLines
+SAME  TAX_WORDS
+SAME  DIACRITICS
+SAME  namesTax
+SAME  isTaxListed
+SAME  linesWithTax
+SAME  optionPrices
+NEW   isTaxLine
+DIFF  statesTax
+SAME  taxedTotals
+SAME  hasOptionTotalMismatch
+SAME  hasTotalMismatch
+NEW   totalFailures
+NEW   rankTotal
+NEW   OracleEntry
+NEW   taxCaveatKeys
+statesTax DIFF: staging's inline line predicate extracted verbatim as isTaxLine (same text). NEW: totalFailures, rankTotal, OracleEntry, taxCaveatKeys = compressions of checkExtraction's 3 total checks, quote-compare totalOf, and compareQuotes taxed/taxElsewhere + caveatsOf tax_unstated.

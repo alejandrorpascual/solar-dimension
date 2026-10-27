@@ -1,4 +1,4 @@
-import type { BatterySpecs, InverterSpecs, ProductInput } from './product-schema'
+import { productKey, type BatterySpecs, type InverterSpecs, type ProductInput, type ProductRecord } from './product-schema'
 
 export const SHEET = 'https://example.com/sheet.pdf'
 export const NONE = { value: null, source: null, asWritten: null }
@@ -40,3 +40,9 @@ export function battery(specs: Partial<BatterySpecs> = {}): Extract<ProductInput
     },
   }
 }
+
+/** `p` as read back from the library: stored by an admin write, never verified. */
+export const storedRecord = (p: ProductInput, conflicts: ProductRecord['conflicts'] = []): ProductRecord => ({
+  ...p, id: 'id-1', key: productKey(p), origin: 'admin', conflicts, retired: false,
+  updatedAt: '2026-10-01T00:00:00.000Z', verification: { status: 'unverified' },
+})

@@ -123,6 +123,9 @@ export const products = pgTable(
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     retiredAt: timestamp('retired_at', { withTimezone: true }),
     updatedBy: text('updated_by').notNull(),
+    /** Set only by a signed-in admin (the user id and when); a token write that changes a value clears both. Null = unverified. */
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    verifiedBy: text('verified_by'),
   },
   (t) => [
     check('products_kind_check', sql`${t.kind} in (${productKindList})`),
@@ -145,6 +148,8 @@ export const quotes = pgTable(
     mime: text('mime').notNull(),
     sizeBytes: integer('size_bytes').notNull(),
     pages: integer('pages'),
+    /** SHA-256 of the uploaded file, hex: the same file uploaded to the project again is refused (insertWithinLimits). Null on older quotes. */
+    fileHash: text('file_hash'),
     status: text('status').$type<QuoteStatus>().notNull().default('queued'),
     attempts: integer('attempts').notNull().default(0),
     /** Retries the user asked for; capped at MAX_RETRIES (quote-guards), because retries don't count against the monthly limit. */

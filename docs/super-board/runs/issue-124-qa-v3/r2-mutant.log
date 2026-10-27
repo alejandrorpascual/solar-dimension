@@ -1,0 +1,74 @@
+
+ RUN  v5.0.1 /Users/alejandrorpascual/projects/solar-dimension/.claude/worktrees/pr234-qa3
+
+ ❯ src/lib/quote-prices.test.ts (8 tests | 1 failed) 9ms
+   ❯ pricesOf: one price record per system (8)
+     × an option total at the document's rate includes tax at that rate 5ms
+ ❯ src/lib/quote-tax-cases.test.ts (14 tests | 1 failed) 17ms
+   ❯ tax shapes that once mis-priced or mis-checked a quote (14)
+     × an option priced at the document's tax rate counts as taxed, so a cheaper option beside it that states no tax says so 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/quote-prices.test.ts > pricesOf: one price record per system > an option total at the document's rate includes tax at that rate
+AssertionError: expected { base: 1300, tax: null, …(4) } to match object { taxIncluded: 'yes', …(2) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "from": {
+-     "tax": "rate",
++     "tax": null,
+      "total": "written",
+    },
+    "isMismatch": false,
+-   "taxIncluded": "yes",
++   "taxIncluded": "unknown",
+  }
+
+ ❯ src/lib/quote-prices.test.ts:39:15
+     37|   test("an option total at the document's rate includes tax at that ra…
+     38|     const p = priceOf(extraction(kits, { options: [opt('a', 1160), opt…
+     39|     expect(p).toMatchObject({ taxIncluded: 'yes', from: { tax: 'rate',…
+       |               ^
+     40|     expect(p.tax).toBeCloseTo(160)
+     41|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > an option priced at the document's tax rate counts as taxed, so a cheaper option beside it that states no tax says so
+AssertionError: expected { quote: { id: 'a', …(9) }, …(16) } to match object { optionId: 'o2', total: 6440, …(1) }
+(24 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "caveats": [
+-     {
+-       "id": "tax_unstated",
+-     },
+-   ],
++   "caveats": [],
+    "optionId": "o2",
+    "total": 6440,
+  }
+
+ ❯ src/lib/quote-tax-cases.test.ts:115:20
+    113|     })
+    114|     const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [view('a', x)])
+    115|     expect(v.best).toMatchObject({ optionId: 'o2', total: 6440, caveat…
+       |                    ^
+    116|     expect(v.cleanFit).toMatchObject({ optionId: 'o1', total: 7481.2 })
+    117|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 3 passed (5)
+      Tests  2 failed | 146 passed (148)
+   Start at  22:40:34
+   Duration  405ms (transform 58%, import 34%, tests 7%, worker 2%)
+

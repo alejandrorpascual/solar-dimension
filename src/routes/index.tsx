@@ -21,6 +21,7 @@ import { useRootData } from '../hooks/useRootData'
 import { useSignOut } from '../hooks/useSignOut'
 import { applianceCount, batteryCount, inverterSize, panelCount, tr, type Dictionary, type Locale } from '../i18n'
 import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
+import { signedInUser } from '../lib/account-session'
 import { attentionLine } from '../lib/kit-checks'
 import { computeProject } from '../lib/project-summary'
 import { patchCurrent } from '../lib/store'
@@ -93,7 +94,8 @@ function KitBuilderPage() {
   const { step } = Route.useSearch()
   const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
-  const { user, isAccountUnreachable } = useRootData()
+  const { session } = useRootData()
+  const user = signedInUser(session)
   const appliances = useCatalog()
   const { store, project, commit, syncing, saving, syncError } = useProjectStore()
   const { signOut, hasFailed: hasSignOutFailed } = useSignOut(user)
@@ -120,11 +122,11 @@ function KitBuilderPage() {
   return (
     <div className="workspace">
       <main className="page">
-        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu user={user} busy={syncing || saving} onSignOut={signOut} google={google} step={step} />} />
+        <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu session={session} busy={syncing || saving} onSignOut={signOut} google={google} step={step} />} />
         {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
         {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
         <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
-        {isAccountUnreachable && <div className="warn" role="status">{t.ui.accountUnreachable}</div>}
+        {session.status === 'unreachable' && <div className="warn" role="status">{t.ui.accountUnreachable}</div>}
         {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
         {syncing && <div className="muted">{t.ui.syncing}</div>}
         <section className="stage">

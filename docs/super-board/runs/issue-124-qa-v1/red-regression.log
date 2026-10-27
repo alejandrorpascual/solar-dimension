@@ -1,0 +1,53 @@
+
+ RUN  v5.0.1 .
+
+ ❯ src/lib/quote-tax-cases.test.ts (13 tests | 2 failed) 12ms
+   ❯ tax shapes that once mis-priced or mis-checked a quote (13)
+     ❯ a reading whose total was read without its tax, once the user types the total with it (2)
+       × is not said to leave its tax out 3ms
+       × still marks a cheaper quote that states no tax beside it 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > a reading whose total was read without its tax, once the user types the total with it > is not said to leave its tax out
+AssertionError: expected [ 'tax_unstated', 'total_typed' ] to not include 'tax_unstated'
+ ❯ src/lib/quote-tax-cases.test.ts:118:53
+    116|       const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [typed(), vie…
+    117|       expect(v.best).toMatchObject({ total: 7481.2 })
+    118|       expect(v.best?.caveats?.map((c) => c.id)).not.toContain('tax_uns…
+       |                                                     ^
+    119|     })
+    120|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/lib/quote-tax-cases.test.ts > tax shapes that once mis-priced or mis-checked a quote > a reading whose total was read without its tax, once the user types the total with it > still marks a cheaper quote that states no tax beside it
+AssertionError: expected { best: 6740, caveats: [] } to deeply equal { best: 6740, …(1) }
+
+- Expected
++ Received
+
+  {
+    "best": 6740,
+-   "caveats": [
+-     "tax_unstated",
+-   ],
++   "caveats": [],
+  }
+
+ ❯ src/lib/quote-tax-cases.test.ts:124:83
+    122|       const untaxed = extraction([...kitLines(1500), taxLine(0, 'Preci…
+    123|       const v = compareQuotes(SAMPLE_KIT, DEFAULT_MUSTS, [typed(), vie…
+    124|       expect({ best: v.best?.total, caveats: v.best?.caveats?.map((c) …
+       |                                                                                   ^
+    125|     })
+    126|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 11 passed (13)
+   Start at  01:27:23
+   Duration  218ms (transform 61%, import 29%, tests 9%, worker 2%)
+

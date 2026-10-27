@@ -1,5 +1,5 @@
 import { caveatsOf, type Caveat } from './quote-caveats'
-import { checkExtraction, hasTotal, isFixedByTotal, optionPrices, statesTax } from './quote-checks'
+import { checkExtraction, hasTotal, includesTax, isFixedByTotal, priceOf, pricesOf } from './quote-checks'
 import { checkItems, includedArrayW, itemsFor, type ItemCheck, type ItemId, type KitNeeds, type Musts, type Overrides } from './quote-items'
 import { hasOptions, optionExtraction } from './quote-options'
 import { isPending, type QuoteExtraction, type QuoteStatus } from './quote-schema'
@@ -13,6 +13,8 @@ export interface QuoteView {
   retries: number
   /** The file's page count (quotes.pages), which a reading's source pages are checked against; null for an image. */
   pages: number | null
+  /** The SHA-256 of the uploaded file (quotes.file_hash), which spots the same file uploaded again; null on quotes uploaded before it was stored. */
+  fileHash: string | null
 }
 export type Fit = 'fits' | 'unclear' | 'short'
 /** Which of a quote's systems an entry is. A single-system quote has no option and an option count of 0. */
@@ -34,7 +36,7 @@ export interface RankedQuote extends EntryOption {
  * was read but states no total. Both wait for the user's total. misread: a single-system reading whose line amounts,
  * quantities or currency don't hold, that has no lines, or that states an implausible number, which a typed total
  * wouldn't fix: it waits to be read again (takesTypedTotal). no_price: an option of a quote that offers several states no
- * price for it. duplicate: it reads exactly like an earlier upload, which ranks in its place.
+ * price for it. duplicate: it is the same file as an earlier upload, or reads exactly like one, which ranks in its place.
  */
 export type UnrankedReason = 'reading' | 'needs_review' | 'no_total' | 'misread' | 'no_price' | 'failed' | 'other_currency' | 'duplicate'
 export interface UnrankedQuote extends EntryOption { quote: QuoteView; name: string; reason: UnrankedReason; currency: string | null }
@@ -81,8 +83,8 @@ export const entryName = (e: { name: string; optionLabel: string | null }): stri
 /** One thing to rank: a whole quote, or one of the systems a quote offers, with the lines and price of that system. */
 interface Entry extends EntryOption { quote: QuoteView; extraction: QuoteExtraction | null; total: number | null }
 
-/** The total a quote ranks by: the user's, else the one read. */
-const totalOf = (q: QuoteView): number | null => q.totalOverride ?? q.extraction?.total ?? null
+/** The total a single-system quote ranks by: the user's, else the one read (pricesOf). */
+const totalOf = (q: QuoteView): number | null => q.totalOverride ?? (q.extraction === null ? null : pricesOf(q.extraction).quote.total)
 
 /**
  * Whether the user's total can rank a reading that needs review: when its total was all that failed, or once it has been
@@ -110,9 +112,9 @@ function entriesOf(q: QuoteView): Entry[] {
   if (x === null || optionCount === 0 || q.status !== 'ready') {
     return [{ quote: q, extraction: x, total: optionCount === 0 ? totalOf(q) : null, optionId: null, optionLabel: null, optionCount }]
   }
-  const prices = optionPrices(x)
+  const prices = pricesOf(x).options
   return x.options.map((o, i) => ({
-    quote: q, extraction: optionExtraction(x, o.id), total: prices[i]!.total, optionId: o.id, optionLabel: o.label, optionCount,
+    quote: q, extraction: optionExtraction(x, o.id), total: prices[i]!.price.total, optionId: o.id, optionLabel: o.label, optionCount,
   }))
 }
 
@@ -129,19 +131,44 @@ const isRankable = (e: Entry): boolean =>
 
 const byUpload = (a: { quote: QuoteView }, b: { quote: QuoteView }) => a.quote.createdAt - b.quote.createdAt
 
+/** Whether the user typed a total or confirmed an item on a quote. */
+const isTouched = (q: QuoteView): boolean => q.totalOverride !== null || Object.keys(q.overrides).length > 0
+
+/** The files with at least one upload the user changed. */
+const touchedFiles = (entries: readonly Entry[]): Set<string> =>
+  new Set(entries.flatMap((e) => (e.quote.fileHash !== null && isTouched(e.quote) ? [e.quote.fileHash] : [])))
+
 /**
- * The entries left once a file uploaded twice counts once: an entry whose quote reads exactly like an earlier upload's
- * (the same reading, the same option of it, and nothing the user typed or confirmed that differs) is that upload's
- * duplicate. A copy the user changed is its own quote, so what they entered is never hidden. Kept in the order given.
+ * The entries left once a quote uploaded twice counts once. Uploads of the same file (the same fileHash) are matched
+ * whatever their readings say: when the user changed none of them, the earliest is kept; once they typed a total or
+ * confirmed an item on any, every untouched upload of that file is a duplicate, and of those they changed the earliest
+ * of each set of entries is kept, so two copies they changed differently both stay and what they entered is never
+ * hidden. Apart from that, an entry is a duplicate when it reads exactly like an earlier one (the same reading, the
+ * same entries and the same option). Matching is per quote, so a quote's options are kept or hidden together. Kept in
+ * the order given. An upload of a file the project already has is refused (uploadQuote, insertWithinLimits), so the
+ * file matching here is the safety net: for quotes uploaded before that refusal, and for older quotes with no
+ * fingerprint, which only the reading rule can match.
  */
 function withoutDuplicates(entries: readonly Entry[]): Entry[] {
-  const first = new Map<string, Entry>()
+  const changedFiles = touchedFiles(entries)
+  const seenReadings = new Set<string>()
+  const firstFile = new Map<string, string>()
+  const kept = new Set<Entry>()
   for (const e of [...entries].sort(byUpload)) {
-    const { extraction, totalOverride, overrides } = e.quote
-    const key = `${JSON.stringify([extraction, totalOverride, overrides])}|${e.optionId}`
-    if (!first.has(key)) first.set(key, e)
+    const { id, extraction, totalOverride, overrides, fileHash } = e.quote
+    const entered = JSON.stringify([totalOverride, overrides])
+    const readingKey = `${JSON.stringify(extraction)}|${entered}|${e.optionId}`
+    const fileKey = fileHash === null ? null : `${fileHash}|${entered}`
+    const fileOwner = fileKey === null ? undefined : firstFile.get(fileKey)
+    const isReadingCopy = seenReadings.has(readingKey)
+    const isUntouchedCopy = fileHash !== null && changedFiles.has(fileHash) && !isTouched(e.quote)
+    const isFileCopy = isUntouchedCopy || (fileOwner !== undefined && fileOwner !== id)
+    // Both recorded even for a duplicate, so a later upload of its file, or one that reads like it, is matched too.
+    if (fileKey !== null && fileOwner === undefined) firstFile.set(fileKey, id)
+    seenReadings.add(readingKey)
+    if (isReadingCopy || isFileCopy) continue
+    kept.add(e)
   }
-  const kept = new Set(first.values())
   return entries.filter((e) => kept.has(e))
 }
 
@@ -202,9 +229,9 @@ export function compareQuotes(kit: KitNeeds, musts: Musts, quotes: readonly Quot
     .filter((e) => !inCurrency.includes(e))
     .map((e) => ({ quote: e.quote, name: quoteName(e.quote), ...optionOf(e), reason: unrankedReason(e, rankable), currency: e.extraction?.currency ?? null }))
 
-  // Whether another entry ranked beside one states tax, another quote or another option of its own: then one that
-  // states none may be priced without it.
-  const taxed = inCurrency.filter((e) => statesTax(e.quote.extraction!, e.optionId)).map(entryKey)
+  // Whether another entry ranked beside one includes tax in its total, another quote or another option of its own: then
+  // one whose total holds none may be priced without it.
+  const taxed = inCurrency.filter((e) => includesTax(priceOf(e.quote.extraction!, e.optionId, e.quote.totalOverride))).map(entryKey)
   const taxElsewhere = (e: Entry): boolean => taxed.some((key) => key !== entryKey(e))
   const scored = currency === null ? [] : inCurrency.map((e) => score(e, kit, musts, currency, taxElsewhere(e)))
   const fits = scored.filter((s) => s.fit === 'fits').sort(byFitsOrder)

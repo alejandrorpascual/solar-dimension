@@ -44,7 +44,7 @@ function Field({ id, label, isOptional = false, error, children }: { id: string;
 export function RequesterForm({ owner, projectId, target, base, resumed, canRemember, onSave, onRemove, onDelete }: RequesterFormProps) {
   const { t } = useLocale()
   // While the account cannot be read the draft stays in this page, so the form does not say it is on this device.
-  const { isAccountUnreachable } = useRootData()
+  const isAccountUnreachable = useRootData().session.status === 'unreachable'
   const storage = requesterStorage(isAccountUnreachable)
   const id = useId()
   const formRef = useRef<HTMLFormElement>(null)

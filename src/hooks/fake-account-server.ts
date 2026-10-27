@@ -5,8 +5,10 @@
 // touch a row twice, and an import stores a never-edited first project only for an account with no project yet. A call
 // without a session throws as requireUserId does, and one from a page loaded for another account as requireAccount does.
 import { z } from 'zod'
+import { sessionOf, type AccountSession } from '../lib/account-session'
 import { ProjectSchema, type Project } from '../lib/schema'
 import { clampStamp, importable, isForAccount, NAMEABLE, namedFields, parseNamed, type Nameable, type NamedEdits } from '../lib/sync'
+import type { SessionUser } from '../server/session'
 
 const ProjectsInput = z.object({ account: z.string().min(1).optional(), projects: z.array(ProjectSchema).max(200) })
 type Call = 'list' | 'save' | 'import' | 'delete'
@@ -20,6 +22,8 @@ export const session: { user: User | null } = { user: null }
  */
 export const tab: { user?: User | null } = {}
 export const pageUser = (): User | null => ('user' in tab ? tab.user ?? null : session.user)
+/** The root route's session for the page: signed in as `pageUser`, or signed out. */
+export const pageSession = (): AccountSession => sessionOf(pageUser() as SessionUser | null)
 export const accounts = new Map<string, Project[]>()
 type Stamps = Readonly<Record<Nameable, number>>
 /** By account, then project id: the copy this server last wrote, and the stamp of the edit that last wrote each field. */

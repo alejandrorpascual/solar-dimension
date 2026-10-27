@@ -1,0 +1,12 @@
+# updated differential (QA v5), 8 seeds x 60,000 readings at eddc053 app code
+seed 1: Tests  1 passed (1) 
+seed 2: Tests  1 passed (1) 
+seed 3: Tests  1 passed (1) 
+seed 4: Tests  1 passed (1) 
+seed 5: Tests  1 passed (1) 
+seed 6: Tests  1 passed (1) 
+seed 777: Tests  1 passed (1) 
+seed 2026: Tests  1 passed (1) 
+# original differential at eddc053 (instrumented copy), 10 seeds x 60,000: all 0 divergences, see generator-shapes-eddc053.jsonl
+# updated differential at a1c4f35 app code: Tests 1 ⎯⎯⎯⎯⎯⎯⎯ 87 divergences Tests  1 failed (1) 
+# under coverage, 5 runs at load ~22 (10 cores): 236, 232, 229, 230, 252 ms (updated test, 2,400 readings, seed 124)

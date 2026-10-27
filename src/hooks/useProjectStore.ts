@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dictionary } from '../i18n'
+import { signedInUser } from '../lib/account-session'
 import { localCopyPlan } from '../lib/local-copy'
 import {
   clearPendingSave, clearUnsent, hasPendingSave, loadOwner, loadStore, loadUnsent, markPendingSave, releaseAccountCopy, saveOwner, saveStore,
@@ -60,14 +61,17 @@ function startingCopy(account: string | null, isAccountUnreachable: boolean, t: 
 }
 
 export function useProjectStore() {
-  const { user, isAccountUnreachable } = useRootData()
-  const account = user?.id ?? null
+  const { session } = useRootData()
+  const account = signedInUser(session)?.id ?? null
+  const isAccountUnreachable = session.status === 'unreachable'
   const { t } = useLocale()
   /** The language on screen, for requests answered after it changed. */
   const language = useRef(t)
   language.current = t
   const [store, setStore] = useState<Store>(() => initialStore(t))
-  const [syncing, setSyncing] = useState(false)
+  // Signed in, the page syncs from its first render: what the server renders, and the page before it hydrates, must not
+  // offer an upload for a project the account has not got yet.
+  const [syncing, setSyncing] = useState(account !== null)
   const [saving, setSaving] = useState(false)
   const [syncError, setSyncError] = useState(false)
   const latest = useRef(store)

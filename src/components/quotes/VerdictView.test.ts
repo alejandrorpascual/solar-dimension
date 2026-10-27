@@ -20,7 +20,7 @@ vi.mock('../../hooks/useLocale', async () => {
 vi.mock('../../hooks/useRootData', async () => {
   const { CATALOG_SNAPSHOT } = await import('../../lib/catalog-snapshot')
   return {
-    useRootData: () => ({ locale: page.locale, user: null, isAccountUnreachable: false, googleEnabled: false, catalog: [...CATALOG_SNAPSHOT], quotePollMs: 3000 }),
+    useRootData: () => ({ locale: page.locale, session: { status: 'signed-out' }, googleEnabled: false, catalog: [...CATALOG_SNAPSHOT], quotePollMs: 3000 }),
   }
 })
 vi.mock('../../hooks/useQuoteJobs', () => ({ useQuoteJobs: () => ({ refresh: () => {} }) }))
@@ -45,7 +45,7 @@ function verdictHtml(locale: Locale, qty: Record<string, number>, over: Partial<
     project, musts: DEFAULT_MUSTS, readAt: 0,
     quotes: [{
       id: 'solartec', fileName: 'solartec.pdf', label: null, status: 'ready', extraction: SAMPLE_QUOTES.solartec, overrides: {},
-      totalOverride: null, createdAt: 0, seenAt: 0, retries: 0, pages: 2, ...over,
+      totalOverride: null, createdAt: 0, seenAt: 0, retries: 0, pages: 2, fileHash: null, ...over,
     }],
   }
   return renderToStaticMarkup(createElement(VerdictView, { data, progress: null, onReload: async () => {} }))

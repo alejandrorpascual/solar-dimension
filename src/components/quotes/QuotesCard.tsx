@@ -6,6 +6,7 @@ import { useProjectJobs } from '../../hooks/useQuoteJobs'
 import { useQuoteUpload } from '../../hooks/useQuoteUpload'
 import { useRootData } from '../../hooks/useRootData'
 import { trq } from '../../i18n'
+import { signedInUser } from '../../lib/account-session'
 import { MAX_MB } from '../../lib/quote-limits'
 import { projectLine } from '../../lib/quote-text'
 import type { Project } from '../../lib/schema'
@@ -23,7 +24,8 @@ interface Props { project: Project; isSaving: boolean }
  */
 export function QuotesCard({ project, isSaving }: Props) {
   const { t } = useLocale()
-  const { user } = useRootData()
+  const { session } = useRootData()
+  const user = signedInUser(session)
   const jobs = useProjectJobs(project.id)
   const upload = useQuoteUpload(project.id)
   const [isDragging, setDragging] = useState(false)
@@ -39,8 +41,9 @@ export function QuotesCard({ project, isSaving }: Props) {
           <h3 className="qcard__title" id={titleId}>{t.quotes.cardTitle}</h3>
           <p className="qcard__meta">{t.quotes.cardBody}</p>
         </div>
-        {/* The card lives on the kit step, so signing in comes back to step 4. */}
-        <div className="qcard__actions"><Link className="qbtn" to="/login" search={{ step: 4 }}>{t.quotes.cardSignIn}</Link></div>
+        {/* The card lives on the kit step, so signing in comes back to step 4. Not offered while the account is
+            unreachable: whoever is here may be signed in already. */}
+        {session.status === 'signed-out' && <div className="qcard__actions"><Link className="qbtn" to="/login" search={{ step: 4 }}>{t.quotes.cardSignIn}</Link></div>}
       </section>
     )
   }

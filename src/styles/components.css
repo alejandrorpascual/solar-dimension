@@ -61,12 +61,11 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 /* iOS Safari zooms the page in when a field under 16 px gets focus; zoomed, it scrolls the page under any open dialog
    (and react-aria stops tracking the keyboard), so the field you tapped ends up behind the keyboard. */
 @media (pointer: coarse) { .in { font-size: 16px; } }
-.hs { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px; scrollbar-width: none; }
-.hs::-webkit-scrollbar { display: none; }
+/* A row of chips wraps onto more lines rather than scrolling sideways, so every option shows at any width. */
+.hs { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (min-width: 1024px) {
   .btn { flex: 0 0 auto; min-height: 48px; padding: 0 22px; }
   .in { font-size: 14px; min-height: 40px; }
-  .hs { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 }
 
 

@@ -1,0 +1,5 @@
+before-6f1eab3-p1-beside-taxed desktop en: heading="Voltia Instalaciones · Plan A fits your kit for the least" taxCaveatOnBest=[] othersWithShortTax=0
+before-6f1eab3-p2-beside-cheaper-untaxed desktop en: heading="SolarTec Caribe is the cheapest that fits: confirm 1 thing first" taxCaveatOnBest=["SolarTec Caribe"] othersWithShortTax=0
+before-6f1eab3-p1-beside-taxed tablet en: heading="Voltia Instalaciones · Plan A fits your kit for the least" taxCaveatOnBest=[] othersWithShortTax=0
+before-6f1eab3-p2-beside-cheaper-untaxed tablet en: heading="SolarTec Caribe is the cheapest that fits: confirm 1 thing first" taxCaveatOnBest=["SolarTec Caribe"] othersWithShortTax=0
+  2 passed (15.2s)

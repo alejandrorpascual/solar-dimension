@@ -22,7 +22,7 @@ export const Route = createFileRoute('/login')({
   loaderDeps: ({ search }) => ({ step: search.step ?? 1 }),
   loader: async ({ parentMatchPromise, deps }) => {
     const root = await parentMatchPromise
-    if (root.loaderData?.user) throw redirect({ to: '/', search: { step: deps.step } })
+    if (root.loaderData?.session.status === 'signed-in') throw redirect({ to: '/', search: { step: deps.step } })
   },
   component: LoginPage,
 })

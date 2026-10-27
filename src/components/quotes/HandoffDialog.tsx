@@ -7,6 +7,7 @@ import { useProjectJobs, useQuoteJobs } from '../../hooks/useQuoteJobs'
 import { useRootData } from '../../hooks/useRootData'
 import type { UploadItem } from '../../hooks/useQuoteUpload'
 import { trq } from '../../i18n'
+import { signedInUser } from '../../lib/account-session'
 import { SECONDS_PER_QUOTE } from '../../lib/quote-jobs'
 import { handoffRowState, handoffSummary } from '../../lib/quote-progress'
 import { rejectionText } from '../../lib/quote-text'
@@ -20,7 +21,7 @@ export function HandoffDialog({ isOpen, onOpenChange, items, projectId, projectN
   const { t } = useLocale()
   const jobs = useProjectJobs(projectId)
   const { refresh } = useQuoteJobs()
-  const account = useRootData().user?.id
+  const account = signedInUser(useRootData().session)?.id
   // Files deleted from here: the upload still lists them, but they are gone.
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set())
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({})

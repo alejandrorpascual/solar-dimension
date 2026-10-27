@@ -1,9 +1,12 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { afterAll, afterEach, beforeEach, expect, test, vi, type MockInstance } from 'vitest'
 import type { Locale } from '../i18n'
 import { PENDING_KEY } from '../lib/persistence'
 import { addProject, deleteProject, patchCurrent, selectProject, setQty } from '../lib/store'
 import { account, accounts, clock, net, resetServer, session } from './fake-account-server'
 import { byName, edit, fakeStorage, home, mount, names, openBrowser, storedStore, unmount, type FakeStorage } from './project-store-harness'
+import { useProjectStore } from './useProjectStore'
 
 // What happens to an account's projects when its session ends or another account signs in is in
 // useProjectStore.accounts.test.ts.
@@ -12,7 +15,7 @@ vi.mock('../server/projects', () => import('./fake-account-server'))
 const page = vi.hoisted(() => ({ locale: 'en' as Locale }))
 vi.mock('./useRootData', async () => {
   const server = await import('./fake-account-server')
-  return { useRootData: () => ({ user: server.pageUser(), locale: page.locale }) }
+  return { useRootData: () => ({ session: server.pageSession(), locale: page.locale }) }
 })
 
 const ANA = { id: 'user-ana' }
@@ -297,4 +300,20 @@ test("the account's first project edited on another device is shown, not this br
 
   expect(names(inSpanish.store.projects)).toEqual(['Quinta'])
   expect(inSpanish.store.projects[0]!.hours).toBe(20)
+})
+
+test('signed in, the page as the server renders it is still syncing, so nothing acts on a project before it reaches the account', () => {
+  // The page shows this markup before it hydrates; an upload picked then would name a project the account has not got yet.
+  const syncingOnFirstRender = (): boolean => {
+    let syncing: boolean | null = null
+    const Probe = () => { syncing = useProjectStore().syncing; return null }
+    renderToStaticMarkup(createElement(Probe))
+    return syncing!
+  }
+  session.user = ANA
+  const signedIn = syncingOnFirstRender()
+  session.user = null
+  const signedOut = syncingOnFirstRender()
+
+  expect({ signedIn, signedOut }).toEqual({ signedIn: true, signedOut: false })
 })

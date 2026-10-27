@@ -4,11 +4,12 @@ import { Button, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, type
 import type { ConnectGoogle } from '../hooks/useConnectGoogle'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
+import type { AccountSession } from '../lib/account-session'
 import type { Step } from '../lib/steps'
 import type { SessionUser } from '../server/session'
 
 interface Props {
-  user: SessionUser | null
+  session: AccountSession
   /** True while projects are still syncing or saving; signing out then would lose the in-flight write. */
   busy?: boolean
   /** From useSignOut: the page that holds the menu says when signing out failed, since the header has no room. */
@@ -24,9 +25,11 @@ function initialOf(user: SessionUser): string {
   return (user.name.trim() || user.email).charAt(0).toUpperCase()
 }
 
-export function AccountMenu({ user, busy = false, onSignOut, google, step }: Props) {
+export function AccountMenu({ session, busy = false, onSignOut, google, step }: Props) {
   const { t } = useLocale()
-  if (!user) {
+  // Someone may be signed in, and nobody can tell who: the page's notice says so, and offering Sign in would contradict it.
+  if (session.status === 'unreachable') return null
+  if (session.status === 'signed-out') {
     return (
       <Link to="/login" search={{ step }} className="chip">
         <LogIn size={16} strokeWidth={2} aria-hidden="true" />
@@ -34,6 +37,7 @@ export function AccountMenu({ user, busy = false, onSignOut, google, step }: Pro
       </Link>
     )
   }
+  const { user } = session
   const signedInAs = tr(t, 'signedInAs', { email: user.email })
   const canLinkGoogle = google.canConnect
   async function act(key: Key) {

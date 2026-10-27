@@ -13,7 +13,7 @@ interface Read { account: string; answer: (jobs: ProjectJobs[]) => void; fail: (
 
 /** The user the page was loaded for, and the reads of the quote jobs the page sent, which answer when the test says. */
 const page = vi.hoisted(() => ({ user: null as User | null, reads: [] as Read[] }))
-vi.mock('./useRootData', () => ({ useRootData: () => ({ user: page.user, quotePollMs: 60_000 }) }))
+vi.mock('./useRootData', () => ({ useRootData: () => ({ session: page.user ? { status: 'signed-in', user: page.user } : { status: 'signed-out' }, quotePollMs: 60_000 }) }))
 vi.mock('../server/quotes/api', () => ({
   getQuoteJobs: ({ data }: { data: { account: string } }) =>
     new Promise<ProjectJobs[]>((answer, fail) => { page.reads.push({ account: data.account, answer, fail }) }),
@@ -27,7 +27,7 @@ const PROJECT_ID = 'p1'
 /** `total` finished quotes on the project, none being read, so the page does not poll again. */
 const jobsWith = (total: number): ProjectJobs[] => [{
   projectId: PROJECT_ID, projectName: 'Home', files: [], total, done: total, pending: 0, failed: 0, needsReview: 0,
-  kitEmpty: false, unseen: false, best: null,
+  kitHold: null, unseen: false, best: null,
 }]
 
 let root: Root | null = null
