@@ -12,9 +12,21 @@ import { catalog, type SizingResult } from '../lib/sizing'
 import { QuickEditRow } from './QuickEditRow'
 
 const NO_ROW = -1
-/** How much of the list shows when it opens: its group label and first row. */
-const PANEL_SHOWN_PX = 120
+/** How much of the panel shows when it opens: the search, a group label and the first row. */
+const PANEL_SHOWN_PX = 170
+/** Space left above the search field when its results bring it up. */
+const SEARCH_TOP_GAP_PX = 8
 const rowsOf = (panel: HTMLElement | null): Element[] => [...(panel?.querySelectorAll('.qedit__row') ?? [])]
+/** Where the screen stops being usable: the sticky footer's top, or the on-screen keyboard's when that sits higher. */
+function usableBottom(): number {
+  const footerTop = document.querySelector('.footer')?.getBoundingClientRect().top ?? window.innerHeight
+  const view = window.visualViewport
+  return view ? Math.min(footerTop, view.offsetTop + view.height) : footerTop
+}
+function scrollDownBy(px: number): void {
+  const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.scrollBy({ top: px, behavior: isReduced ? 'auto' : 'smooth' })
+}
 
 interface BarProps {
   project: Project
@@ -84,6 +96,7 @@ export function KitQuickEditPanel({ id, project, result, onQty, onDuty, onAllApp
   const searchId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
   const nameOf = (item: { id: string; name: string; isCustom?: boolean }) => applianceName(t, item)
   const suggestions = searchAppliances(catalog(forPicker(appliances), project.custom), query, (a) => searchTexts(t, a), new Set(result.items.map((i) => i.id)))
   // A suggestion is gone once added: focus stays where the next one is typed.
@@ -101,12 +114,18 @@ export function KitQuickEditPanel({ id, project, result, onQty, onDuty, onAllApp
   // Opened under the figures, the list can start right at the footer: bring its first row up, leaving the figures in view.
   useEffect(() => {
     const top = panelRef.current?.getBoundingClientRect().top ?? 0
-    const footerTop = document.querySelector('.footer')?.getBoundingClientRect().top ?? window.innerHeight
-    const hiddenPx = top + PANEL_SHOWN_PX - footerTop
-    if (hiddenPx <= 0) return
-    const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    window.scrollBy({ top: hiddenPx, behavior: isReduced ? 'auto' : 'smooth' })
+    const hiddenPx = top + PANEL_SHOWN_PX - usableBottom()
+    if (hiddenPx > 0) scrollDownBy(hiddenPx)
   }, [])
+  // Results open under the field: bring them up over the footer and the keyboard, without taking the field off screen.
+  const hasQuery = query.trim() !== ''
+  useEffect(() => {
+    if (!hasQuery) return
+    const resultsBottom = resultsRef.current?.getBoundingClientRect().bottom ?? 0
+    const fieldTop = searchRef.current?.getBoundingClientRect().top ?? 0
+    const hiddenPx = Math.min(resultsBottom - usableBottom(), fieldTop - SEARCH_TOP_GAP_PX)
+    if (hiddenPx > 0) scrollDownBy(hiddenPx)
+  }, [hasQuery, query])
   const itemCount = result.items.length
   useEffect(() => {
     const index = removedRow.current
@@ -118,22 +137,12 @@ export function KitQuickEditPanel({ id, project, result, onQty, onDuty, onAllApp
 
   return (
     <div ref={panelRef} id={id} className="qedit__panel">
-      {groupByKind(result.items).map((g) => (
-        <div key={g.kind} className="qedit__group">
-          <span className="lab qedit__group-label">{t.kinds[g.kind]}</span>
-          <ul className="qedit__list">
-            {g.items.map((item) => (
-              <QuickEditRow key={item.id} item={item} name={nameOf(item)} onQty={(n) => setQty(item.id, n)} onDuty={(duty) => onDuty(item.id, duty)} />
-            ))}
-          </ul>
-        </div>
-      ))}
       <div className="qedit__add">
         <label htmlFor={searchId} className="visually-hidden">{t.ui.addApplianceSearch}</label>
         <Search size={16} aria-hidden="true" className="qedit__search-icon" />
         <input ref={searchRef} id={searchId} className="in qedit__search" type="search" autoComplete="off" placeholder={t.ui.addApplianceSearch} value={query} onChange={(e) => setQuery(e.target.value)} />
-        {query.trim() !== '' && (
-          <div className="qedit__sugs">
+        {hasQuery && (
+          <div ref={resultsRef} className="qedit__sugs">
             {suggestions.map((a) => (
               <button key={a.id} type="button" className="qedit__sug" onClick={() => add(a.id)}>
                 <span className="qedit__sug-name">{nameOf(a)}</span>
@@ -146,6 +155,16 @@ export function KitQuickEditPanel({ id, project, result, onQty, onDuty, onAllApp
         )}
       </div>
       <button type="button" className="qedit__all" onClick={onAllAppliances}>{t.ui.allAppliances}</button>
+      {groupByKind(result.items).map((g) => (
+        <div key={g.kind} className="qedit__group">
+          <span className="lab qedit__group-label">{t.kinds[g.kind]}</span>
+          <ul className="qedit__list">
+            {g.items.map((item) => (
+              <QuickEditRow key={item.id} item={item} name={nameOf(item)} onQty={(n) => setQty(item.id, n)} onDuty={(duty) => onDuty(item.id, duty)} />
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   )
 }

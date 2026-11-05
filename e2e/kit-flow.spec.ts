@@ -8,7 +8,7 @@ const PHONE_SCREEN = { width: 390, height: 844 }
 test('a first visit says the list is an example, and Clear all starts an empty one', PHONE, async ({ page }) => {
   await page.goto('/')
   const note = page.locator('.toolbar__note')
-  await expect(note).toContainText('An example list to start from.')
+  await expect(note).toContainText('An example list to start from: Refrigerator,')
   const next = page.getByRole('button', { name: 'Next: backup window' })
   await expect(next).toBeEnabled()
   await expect(async () => {
@@ -19,7 +19,7 @@ test('a first visit says the list is an example, and Clear all starts an empty o
   await expect(note).toBeFocused()
   await expect(next).toBeDisabled()
   await note.getByRole('button', { name: 'Undo' }).click()
-  await expect(note).toContainText('An example list to start from.')
+  await expect(note).toContainText('An example list to start from: Refrigerator,')
   await expect(note).toBeFocused()
   await expect(next).toBeEnabled()
 })
@@ -30,7 +30,7 @@ test('after the first edit the note still points at the example list, with Clear
   await expect(async () => {
     await page.getByLabel('Search appliances').fill('microwave')
     await page.getByRole('button', { name: /^Add Microwave/ }).click({ timeout: RETRY_AFTER_MS })
-    await expect(note).toContainText('Your list may still hold 6 from the example.', { timeout: RETRY_AFTER_MS })
+    await expect(note).toContainText('6 on your list came from the example.', { timeout: RETRY_AFTER_MS })
   }).toPass()
   await expect(note.getByRole('button', { name: 'Clear all' })).toBeVisible()
 })
@@ -68,7 +68,7 @@ test('a new project opens on the appliances step, where the example list is expl
   await expect(page).toHaveURL(/step=1/)
   await hideProjects(page)
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
-  await expect(page.locator('.toolbar__note')).toContainText('An example list to start from.')
+  await expect(page.locator('.toolbar__note')).toContainText('An example list to start from: Refrigerator,')
 })
 
 test('All appliances from the kit comes back with the list still open', PHONE, async ({ page }) => {

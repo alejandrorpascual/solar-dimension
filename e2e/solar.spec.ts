@@ -22,14 +22,14 @@ test('the roof area fills the planner with the recommended panels, taps override
   await expect(page.getByText('Recommended · refills the bank in a day')).toBeVisible()
   await expect(page.getByText(/^5 panels · 2\.8 kW$/)).toBeVisible()
 
-  await planner.getByRole('button', { name: 'Add panel 8' }).click()
+  await planner.getByRole('button', { name: 'Use 8 panels' }).last().click()
   await expect(planner.getByRole('button', { pressed: true })).toHaveCount(8)
   await expect(page.getByRole('button', { name: 'Back to recommended · 5' })).toBeVisible()
-  await planner.getByRole('button', { name: 'Remove panel 3' }).click()
+  await planner.getByRole('button', { name: 'Use 2 panels' }).click()
   await expect(planner.getByRole('button', { pressed: true })).toHaveCount(2)
 
   // Grow the tapped count back above what a small roof fits, then shrink the roof to exercise the clamp.
-  await planner.getByRole('button', { name: 'Add panel 8' }).click()
+  await planner.getByRole('button', { name: 'Use 8 panels' }).last().click()
   await expect(planner.getByRole('button', { pressed: true })).toHaveCount(8)
   const less = page.getByRole('button', { name: 'Five square metres less' })
   const more = page.getByRole('button', { name: 'Five square metres more' })
@@ -67,7 +67,7 @@ test('sun hours change the recommendation and the flow', async ({ page }) => {
   await page.goto('/?step=3')
   await page.getByRole('button', { name: /^Yes, add panels/ }).click()
   const planner = page.getByRole('group', { name: /Roof planner/ })
-  await planner.getByRole('button', { name: 'Add panel 6' }).click()
+  await planner.getByRole('button', { name: 'Use 6 panels' }).click()
   await expect(planner.getByRole('button', { pressed: true })).toHaveCount(6)
   await page.getByLabel('Peak sun hours a day').fill('3')
   await expect(planner.getByRole('button', { pressed: true })).toHaveCount(6)

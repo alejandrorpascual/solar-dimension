@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import { fmtInt } from '../i18n/format'
@@ -7,10 +7,11 @@ import { CUSTOM_DUTY_MIN_PCT, CUSTOM_NAME_MAX, EMPTY_FORM, parseCustom, type Cus
 import type { Store } from '../lib/schema'
 import { addCustom, currentProject, removeUnreadCustom, takenLoadIds, unreadCustomCount } from '../lib/store'
 
-export function CustomApplianceForm({ store, commit }: { store: Store; commit: (s: Store) => void }) {
+export function CustomApplianceForm({ store, commit, onAdded }: { store: Store; commit: (s: Store) => void; onAdded: (name: string) => void }) {
   const { t, locale } = useLocale()
   const [form, setForm] = useState<CustomForm>(EMPTY_FORM)
   const [error, setError] = useState<CustomError | null>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
   const set = (patch: Partial<CustomForm>) => { setForm({ ...form, ...patch }); setError(null) }
 
   const project = currentProject(store)
@@ -21,6 +22,9 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
     if (!res.ok) { setError(res.error); return }
     commit(addCustom(store, res.item))
     setForm(EMPTY_FORM)
+    onAdded(res.item.name)
+    // The form empties for the next one, and Add sits where the footer can cover it.
+    nameRef.current?.focus()
   }
 
   const isVa = form.mode === 'va'
@@ -31,7 +35,7 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
           <div className="custom__title">{t.ui.customTitle}</div>
           <div className="muted custom__hint">{t.ui.customHelp}</div>
         </div>
-        <div className="custom__modes">
+        <div className="custom__modes" role="group" aria-label={t.ui.powerEntry}>
           <button type="button" className={`seg${!isVa ? ' seg--on' : ''}`} aria-pressed={!isVa} onClick={() => set({ mode: 'watts' })}>{t.ui.watts}</button>
           <button type="button" className={`seg${isVa ? ' seg--on' : ''}`} aria-pressed={isVa} onClick={() => set({ mode: 'va' })}>{t.ui.voltsAmps}</button>
         </div>
@@ -45,7 +49,7 @@ export function CustomApplianceForm({ store, commit }: { store: Store; commit: (
         </div>
       )}
       <div className="custom__row">
-        <label className="field field--grow"><span className="lab">{t.ui.name}</span><input className="in" type="text" maxLength={CUSTOM_NAME_MAX} value={form.name} onChange={(e) => set({ name: e.target.value })} /></label>
+        <label className="field field--grow"><span className="lab">{t.ui.name}</span><input ref={nameRef} className="in" type="text" maxLength={CUSTOM_NAME_MAX} value={form.name} onChange={(e) => set({ name: e.target.value })} /></label>
         {isVa ? (
           <>
             <label className="field"><span className="lab">{t.ui.volts}</span><input className="in" type="number" min="0" placeholder="230" value={form.volts} onChange={(e) => set({ volts: e.target.value })} /></label>

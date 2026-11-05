@@ -48,9 +48,11 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
         <div className="planner__grid" role="group" aria-label={t.ui.plannerLabel}>
           {tiles.map((i) => {
             const on = i < s.panels
+            // A tap sets the count, and only counts that wire are on offer: the label names the one this tile gives.
+            const count = on ? nextWirable(i + 1, -1, s.volts) : nextWirable(i, 1, s.volts)
             return (
               <button key={i} type="button" className={`tile${on ? ' tile--on' : ''}`} aria-pressed={on}
-                aria-label={tr(t, on ? 'removePanel' : 'addPanel', { n: i + 1 })} onClick={() => onPanels(on ? nextWirable(i + 1, -1, s.volts) : nextWirable(i, 1, s.volts))} />
+                aria-label={count === 0 ? t.ui.setNoPanels : tr(t, 'setPanels', { panels: panelCount(t, count) })} onClick={() => onPanels(count)} />
             )
           })}
         </div>

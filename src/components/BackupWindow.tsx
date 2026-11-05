@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react'
+import { useId } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { applianceCount, tr } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
@@ -15,6 +16,8 @@ interface Props { store: Store; commit: (s: Store) => void; result: SizingResult
 export function BackupWindow({ store, commit, result }: Props) {
   const { t, locale } = useLocale()
   const p = currentProject(store)
+  const voltageId = useId()
+  const chemistryId = useId()
   const setHours = (hours: number) => commit(patchCurrent(store, { hours }))
   const setElectrical = (patch: Parameters<typeof setElectricalIn>[2]) => commit(setElectricalIn(store, p.id, patch))
   const summary = result.empty
@@ -33,7 +36,7 @@ export function BackupWindow({ store, commit, result }: Props) {
           <div className="hours-value num">{p.hours} h</div>
         </div>
         <input id="hours" type="range" min={HOURS_MIN} max={HOURS_MAX} step={1} value={p.hours} onChange={(e) => setHours(Number(e.target.value))} />
-        <div className="hs presets">
+        <div className="hs presets" role="group" aria-label={t.ui.hoursPresets}>
           {PRESET_HOURS.map((h) => (
             <button key={h} type="button" className={`chip${h === p.hours ? ' chip--on' : ''}`} aria-pressed={h === p.hours} onClick={() => setHours(h)}>{h} h</button>
           ))}
@@ -47,16 +50,16 @@ export function BackupWindow({ store, commit, result }: Props) {
           <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
         </summary>
         <div className="window__options">
-          <div className="window__label">{t.ui.batteryVoltage}</div>
-          <div className="opt-grid">
+          <div id={voltageId} className="window__label">{t.ui.batteryVoltage}</div>
+          <div className="opt-grid" role="group" aria-labelledby={voltageId}>
             {VOLTAGES.map((v: Voltage) => (
               <button key={v} type="button" className={`opt${v === p.volts ? ' opt--on' : ''}`} aria-pressed={v === p.volts} onClick={() => commit(patchCurrent(store, { volts: v }))}>
                 <span className="opt__t">{v} V</span><span className="opt__h">{t.voltageHints[v]}</span>
               </button>
             ))}
           </div>
-          <div className="window__label">{t.ui.batteryChemistry}</div>
-          <div className="opt-grid">
+          <div id={chemistryId} className="window__label">{t.ui.batteryChemistry}</div>
+          <div className="opt-grid" role="group" aria-labelledby={chemistryId}>
             {(Object.keys(CHEMISTRIES) as ChemistryId[]).map((k) => (
               <button key={k} type="button" className={`opt${k === p.chemistry ? ' opt--on' : ''}`} aria-pressed={k === p.chemistry} onClick={() => commit(patchCurrent(store, { chemistry: k }))}>
                 <span className="opt__t">{t.chemistries[k]}</span><span className="opt__h">{tr(t, 'usableCapacity', { pct: Math.round(CHEMISTRIES[k].dod * 100) })}</span>

@@ -6,7 +6,7 @@ import { mayRunOn240V, needsSplitPhase, type CatalogItem } from '../lib/catalog'
 import type { DutyHint } from '../lib/load-kinds'
 import type { SelectedItem } from '../lib/sizing'
 import { clampQty, parseQty } from '../lib/store'
-import { DutyHintLine, DutyMeter } from './DutyMeter'
+import { DutyMeter } from './DutyMeter'
 
 interface Props {
   item: CatalogItem; title?: string; qty: number
@@ -82,7 +82,6 @@ export function ApplianceCard({ item, title, qty, onInc, onDec, onSet, onRemove,
         {needsSplitPhase(item) && <div className="card__spec card__spec--warn">{t.ui.splitPhase}</div>}
         {mayRunOn240V(item) && <div className="card__spec card__spec--warn">{t.ui.checkNameplate240}</div>}
         {item.isCustom && <div className="card__spec">{applianceNote(t, item)}</div>}
-        {duty && !on && <DutyHintLine hint={duty} />}
       </div>
       {/* A sibling of the body: in the row layout the meter then gets the card's width, not what the buttons leave of it. */}
       {duty && on && selected && onDuty && <DutyMeter hint={duty} item={selected} name={name} onDuty={onDuty} />}

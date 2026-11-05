@@ -89,6 +89,8 @@ for (const language of ['English', 'Español'] as const) {
   })
 
   test(`the duty picker stays inside its quick-edit row and clear of the quantity buttons at every width, in ${language}`, PHONE, async ({ page }) => {
+    // The list scrolls up smoothly as it opens, which would move the row between one measure and the next.
+    await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/?step=4')
     if (language === 'Español') await switchLanguageOnLoad(page, language)
     const panel = await openQuickEdit(page)
@@ -194,11 +196,11 @@ test('the average on a card says how many units it adds up once there are severa
   await expect(average).toHaveText('~53 W average')
 })
 
-test('a card says how much of each hour its appliance runs, and an added one can change it', async ({ page }) => {
+test('a card keeps how much of each hour its appliance runs for once it is added, and it can change it then', async ({ page }) => {
   await page.goto('/')
   const freezer = cardOf(page, 'Chest freezer')
-  await expect(freezer.getByText('Runs · 30% of each hour', { exact: true })).toBeVisible()
-  await expect(cardOf(page, 'Sliding gate motor').getByText('~2 min an hour', { exact: true })).toBeVisible()
+  await expect(freezer).toBeVisible()
+  await expect(freezer.getByLabel('Chest freezer: share of each hour it runs')).toHaveCount(0)
 
   const fridgeDuty = page.getByLabel(FRIDGE_DUTY.English)
   await expect(fridgeDuty).toBeVisible()
@@ -209,11 +211,6 @@ test('a card says how much of each hour its appliance runs, and an added one can
   await fridgeDuty.selectOption({ label: '35% · typical' })
   await expect(page.getByText(/typical 35%/)).toHaveCount(0)
 
-  await switchLanguage(page, 'Español')
-  await expect(cardOf(page, 'Congelador horizontal').getByText('Funciona · 30% de cada hora', { exact: true })).toBeVisible()
-  await switchLanguage(page, 'English')
-
   await page.getByRole('button', { name: 'Add Chest freezer' }).click()
   await expect(page.getByLabel('Chest freezer: share of each hour it runs')).toBeVisible()
-  await expect(freezer.getByText('Runs · 30% of each hour', { exact: true })).toHaveCount(0)
 })

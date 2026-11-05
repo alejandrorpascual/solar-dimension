@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { LayoutGrid } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { AccountMenu } from '../components/AccountMenu'
 import { ApplianceGrid } from '../components/ApplianceGrid'
@@ -46,7 +46,7 @@ function runtimeLine(r: SizingResult, t: Dictionary, locale: Locale): string {
 
 function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary, locale: Locale): string {
   if (step === 1) return tr(t, 'footer1', { name, appliances: applianceCount(t, r.items.length, r.units), running: fmtW(r.runningW, locale), peak: fmtW(r.surgeW, locale) })
-  if (step === 2) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) })
+  if (step === 2) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale), need: fmtKwh(r.requiredWh, locale) })
   if (step === 3) {
     const base = { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) }
     return r.solar ? tr(t, 'footerSolar', { ...base, panels: panelCount(t, r.solar.panels), kw: fmtKw(r.solar.arrayW, locale) }) : tr(t, 'footerSolarNone', base)
@@ -59,8 +59,8 @@ function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary,
 
 /** The footer line under 1024px, one row where it can be. The name shows beside the projects button there; undefined when the full line is already short. */
 function footerSlim(step: Step, r: SizingResult, t: Dictionary, locale: Locale): string | undefined {
-  if (step === 2) return undefined
   if (r.empty) return t.ui.stepLocked
+  if (step === 2) return tr(t, 'footer2Slim', { hours: r.hours, volts: r.volts, need: fmtKwh(r.requiredWh, locale) })
   if (step === 1) return `${applianceCount(t, r.items.length, r.units)} · ${fmtW(r.runningW, locale)} ${t.ui.running}`
   if (step === 3) {
     const base = { hours: r.hours, volts: r.volts }
@@ -91,6 +91,33 @@ function useStepHeadingFocus(step: Step) {
     if (!document.activeElement?.closest('.rail, .rsheet')) headingRef.current?.focus()
   }, [step])
   return headingRef
+}
+
+/** How long a figure rests before it is read out, so a slider being dragged is not read at every step. */
+const FIGURE_REST_MS = 600
+/**
+ * What the one status region reads out: the footer's figure after an edit moves it (not on a new step, whose heading takes
+ * focus), and any message `announce` is given.
+ */
+function useStatusLine(step: Step, figure: string) {
+  const [line, setLine] = useState('')
+  const shown = useRef({ step, figure })
+  // A figure moved by the action that just gave a message: the message already speaks for it. Lasts until the next frame.
+  const isMessageFresh = useRef(false)
+  useEffect(() => {
+    const before = shown.current
+    shown.current = { step, figure }
+    if (before.step !== step || before.figure === figure) return
+    if (isMessageFresh.current) return
+    const timer = window.setTimeout(() => setLine(figure), FIGURE_REST_MS)
+    return () => window.clearTimeout(timer)
+  }, [step, figure])
+  const announce = useCallback((message: string) => {
+    isMessageFresh.current = true
+    requestAnimationFrame(() => { isMessageFresh.current = false })
+    setLine(message)
+  }, [])
+  return { line, announce }
 }
 
 /**
@@ -139,6 +166,9 @@ function KitBuilderPage() {
     flushSync(() => setRailTab('download'))
     railRef.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus()
   }
+  const slim = footerSlim(step, result, t, locale)
+  const summary = footerSummary(step, project.name, result, t, locale)
+  const status = useStatusLine(step, slim ?? summary)
   const rail = { store, commit, tab: railTab, onTab: setRailTab, onProjectCreated: () => go(1), download: <DownloadPanel project={project} result={result} onRequesterChange={(requester) => commit(patchCurrent(store, { requester }))} /> }
 
   return (
@@ -155,8 +185,8 @@ function KitBuilderPage() {
           <h1 ref={headingRef} tabIndex={-1} className="stage__title">{stepTitle(step, project.name, t)}</h1>
           {step === 1 && (
             <>
-              <ApplianceGrid key={project.id} store={store} commit={commit} />
-              <CustomApplianceForm store={store} commit={commit} />
+              <ApplianceGrid key={project.id} store={store} commit={commit} onAnnounce={status.announce} />
+              <CustomApplianceForm store={store} commit={commit} onAdded={(name) => status.announce(tr(t, 'customAdded', { name }))} />
             </>
           )}
           {step === 2 && <BackupWindow store={store} commit={commit} result={result} />}
@@ -164,10 +194,11 @@ function KitBuilderPage() {
           {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={openCatalogFromKit} isListOpen={isKitListOpen} onListOpen={setKitListOpen} />}
         </section>
         <LegalLinks />
+        <div className="visually-hidden" role="status">{status.line}</div>
         <WizardFooter
           step={step}
-          summary={footerSummary(step, project.name, result, t, locale)}
-          summarySlim={footerSlim(step, result, t, locale)}
+          summary={summary}
+          summarySlim={slim}
           attention={attentionLine(t, result)}
           nextLocked={result.empty ? t.ui.stepLocked : null}
           onBack={() => go((step - 1) as Step)}

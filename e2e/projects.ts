@@ -41,6 +41,15 @@ export async function openChecks(page: Page, name = 'Checks'): Promise<void> {
 }
 
 /** Filters step 1's appliances: the chips from 1024 px, the select under it. Retried: a change before hydration does nothing. */
+/** Opens the fold of air conditioner sizes in step 1's All view. A click that lands before the page hydrates does nothing, so it retries. */
+export async function showAcSizes(page: Page): Promise<void> {
+  const fold = page.locator('.catalog__fold')
+  await expect(async () => {
+    if ((await fold.getAttribute('aria-expanded')) !== 'true') await fold.click()
+    await expect(fold).toHaveAttribute('aria-expanded', 'true', { timeout: RETRY_AFTER_MS })
+  }).toPass()
+}
+
 export async function pickCategory(page: Page, name: string): Promise<void> {
   const select = page.getByLabel('Category', { exact: true })
   if (!(await select.isVisible())) return page.getByRole('button', { name, exact: true }).click()

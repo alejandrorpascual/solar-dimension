@@ -21,10 +21,11 @@ export const startsTitle = (t: Dictionary, starts: Electrical['simultaneousStart
 /** How many motors may start in the same instant; it sets the start-up peak the inverter and the bank must ride. */
 export function StartsPicker({ electrical, onChange }: Props) {
   const { t } = useLocale()
+  const labelId = useId()
   return (
     <>
-      <div className="window__label">{t.ui.startsLabel}</div>
-      <div className="opt-grid opt-grid--3">
+      <div id={labelId} className="window__label">{t.ui.startsLabel}</div>
+      <div className="opt-grid opt-grid--3" role="group" aria-labelledby={labelId}>
         {STARTS.map((s) => {
           const [title, help] = STARTS_COPY[s]
           const isOn = s === electrical.simultaneousStarts

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage, switchLanguageOnLoad } from './header'
 import { PHONE } from './phone'
-import { acceptNewProjectName, answerDelete, hideProjects, openBatterySettings, openChecks, openProjectCard, pickCategory, renameOpenProject, showDownload, showProjects, startNewProject, startRename } from './projects'
+import { acceptNewProjectName, answerDelete, hideProjects, openBatterySettings, openChecks, openProjectCard, pickCategory, renameOpenProject, showAcSizes, showDownload, showProjects, startNewProject, startRename } from './projects'
 
 const STORAGE_KEY = 'solar-dimension.projects.v1'
 
@@ -98,6 +98,8 @@ test('the summary, the Appliances chip and the project card count the same appli
 test('the full list is split into one labeled section per category', async ({ page }) => {
   await page.goto('/')
   const ac = page.getByRole('region', { name: 'Air conditioning', exact: true })
+  await expect(ac.getByRole('heading', { level: 4 })).toHaveCount(0)
+  await showAcSizes(page)
   await expect(ac.getByRole('heading', { level: 4 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
   await expect(ac).not.toContainText('Wi-Fi router + modem')
   await expect(page.getByRole('region', { name: 'Work', exact: true })).toContainText('Wi-Fi router + modem')
@@ -410,7 +412,7 @@ test('hours, voltage and chemistry change the sizing summary', async ({ page }) 
   await openBatterySettings(page)
   await page.getByRole('button', { name: /^12 V/ }).click()
   await page.getByRole('button', { name: /AGM lead-acid/ }).click()
-  await expect(page.getByText(/24 h at 12 V/)).toBeVisible()
+  await expect(page.locator('.footer__wide')).toContainText('24 h at 12 V')
   await expect(page.getByLabel('Hours without the grid')).toHaveValue('24')
 })
 

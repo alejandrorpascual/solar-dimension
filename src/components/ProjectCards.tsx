@@ -6,6 +6,7 @@ import { useLocale } from '../hooks/useLocale'
 import { useProjectRename, type CurrentActions } from '../hooks/useProjectRename'
 import { useProjectJobs, useProjectQuoteCount } from '../hooks/useQuoteJobs'
 import { applianceName, batteryCount, deleteProjectText, tr, type Dictionary } from '../i18n'
+import { heaviestLine } from './heaviest-line'
 import { fmtHours, fmtInverter, fmtKwh, fmtW } from '../i18n/format'
 import { projectLine } from '../lib/quote-text'
 import { currentFirst, summarizeProjects, type ProjectSummary } from '../lib/project-summary'
@@ -31,12 +32,6 @@ interface Props {
   onPicked?: () => void
   /** Called when a project is created: a new one holds the example list, which the appliances step explains. */
   onCreated?: () => void
-}
-
-/** "Refrigerator, 2× TV and 3 more" from the heaviest appliances. */
-function heaviestLine(s: ProjectSummary, t: Dictionary): string {
-  const list = s.heaviest.map((i) => (i.qty > 1 ? `${i.qty}× ` : '') + applianceName(t, i)).join(', ')
-  return s.moreCount > 0 ? tr(t, 'heaviestMore', { list, count: s.moreCount }) : list
 }
 
 interface CardProps {

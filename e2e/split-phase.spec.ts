@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguageOnLoad } from './header'
 import { PHONE } from './phone'
+import { showAcSizes } from './projects'
 
 type Language = 'English' | 'Español'
 
@@ -48,6 +49,7 @@ const inverterRow = (page: Page, words: Words): Locator =>
 async function openStep1(page: Page, language: Language): Promise<void> {
   await page.goto('/?step=1')
   if (language !== 'English') await switchLanguageOnLoad(page, language)
+  await showAcSizes(page)
   await expect(card(page, WORDS[language], 'ac15c')).toBeVisible()
 }
 

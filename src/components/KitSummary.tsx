@@ -75,10 +75,12 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
   const summary = tr(t, 'kitSummary', { appliances: applianceCount(t, r.items.length, r.units), hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
   const d = baseline ? kitDeltas(baseline, r) : null
   const w = (n: number) => fmtW(n, locale)
+  // Why Runtime reads past the hours asked for, unless the oversize note below already says why the bank is big.
+  const runsLonger = !oversize && r.battery !== null && Math.round(r.battery.hoursActual) > r.hours
   return (
     <div className="kit">
       <div className="kit__head">
-        {!r.empty && <p className="muted">{summary}</p>}
+        {!r.empty && <p className="muted">{summary}{runsLonger && ` ${tr(t, 'runtimeLonger', { hours: r.hours })}`}</p>}
         <ChecksAttention text={attentionLine(t, r)} />
         {quickEdit}
       </div>
