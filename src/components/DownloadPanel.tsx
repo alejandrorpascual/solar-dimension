@@ -1,7 +1,8 @@
-import { CircleCheck, Download, LoaderCircle, Maximize2, Share2 } from 'lucide-react'
+import { ChevronDown, CircleCheck, Download, LoaderCircle, Maximize2, Share2 } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { canShareFiles, renderPdf, renderPng, saveBlob, shareFile, withinCaptureLimit } from '../client/export-file'
 import { useLocale } from '../hooks/useLocale'
+import { tr } from '../i18n'
 import { usePreparedImage } from '../hooks/usePreparedImage'
 import { usePreviewScale } from '../hooks/usePreviewScale'
 import { fmtDate } from '../i18n/format'
@@ -81,6 +82,7 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
   const current = FORMATS.find((f) => f.id === format)!
   const isEmpty = result.empty
   const isBusy = status === 'busy'
+  const includable = INCLUDES.filter((inc) => format !== 'csv' || inc.inCsv)
 
   const run = async (task: () => Promise<void>, completed: 'idle' | 'success' = 'idle') => {
     setStatus('busy')
@@ -166,31 +168,39 @@ export function DownloadPanel({ project, result, onRequesterChange }: { project:
         ))}
       </fieldset>
 
-      <fieldset className="dl__group" disabled={isBusy}>
-        <legend className="lab">{t.ui.include}</legend>
-        {INCLUDES.map((inc) => (
-          <label key={inc.key} className="dl__check">
-            <input
-              type="checkbox"
-              checked={include[inc.key]}
-              disabled={format === 'csv' && !inc.inCsv}
-              onChange={() => setInclude({ ...include, [inc.key]: !include[inc.key] })}
-            />
-            {t.ui[inc.label]}
-          </label>
-        ))}
-      </fieldset>
+      <details className="elec dl__include">
+        <summary className="elec__summary">
+          <span>{t.ui.include}</span>
+          <span className="num elec__values">{tr(t, 'includeCount', { count: includable.filter((inc) => include[inc.key]).length, total: includable.length })}</span>
+          <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
+        </summary>
+        <fieldset className="dl__group" disabled={isBusy}>
+          <legend className="visually-hidden">{t.ui.include}</legend>
+          {INCLUDES.map((inc) => (
+            <label key={inc.key} className="dl__check">
+              <input
+                type="checkbox"
+                checked={include[inc.key]}
+                disabled={format === 'csv' && !inc.inCsv}
+                onChange={() => setInclude({ ...include, [inc.key]: !include[inc.key] })}
+              />
+              {t.ui[inc.label]}
+            </label>
+          ))}
+        </fieldset>
+      </details>
 
-      {isEmpty && <p className="muted dl__empty">{t.ui.footerEmpty}</p>}
-      {status === 'error' && <p className="error dl__error" role="alert">{t.ui.exportFailed}</p>}
-      {status === 'success' && <p className="dl__success" role="status"><CircleCheck size={18} aria-hidden="true" />{t.ui.downloadReady}</p>}
-      {isBusy && (
-        <div className="dl__progress" role="status">
-          <span>{t.ui.making}</span>
-          <progress aria-label={t.ui.making} />
-        </div>
-      )}
+      {/* The action and what it reports, pinned to the panel's bottom edge: this is where the whole flow ends. */}
       <div className="dl__actions">
+        {isEmpty && <p className="muted dl__empty">{t.ui.footerEmpty}</p>}
+        {status === 'error' && <p className="error dl__error" role="alert">{t.ui.exportFailed}</p>}
+        {status === 'success' && <p className="dl__success" role="status"><CircleCheck size={18} aria-hidden="true" />{t.ui.downloadReady}</p>}
+        {isBusy && (
+          <div className="dl__progress" role="status">
+            <span>{t.ui.making}</span>
+            <progress aria-label={t.ui.making} />
+          </div>
+        )}
         <button type="button" className="btn btn--primary dl__go" disabled={isEmpty || isBusy} onClick={download}>
           {isBusy ? <LoaderCircle className="dl__spinner" size={18} aria-hidden="true" /> : <Download size={18} aria-hidden="true" />}{isBusy ? t.ui.making : t.ui[current.action]}
         </button>

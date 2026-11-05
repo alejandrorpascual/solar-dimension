@@ -6,6 +6,7 @@ import { useLocale } from '../hooks/useLocale'
 import { useProjectRename, type CurrentActions } from '../hooks/useProjectRename'
 import { useProjectJobs, useProjectQuoteCount } from '../hooks/useQuoteJobs'
 import { applianceName, batteryCount, deleteProjectText, tr, type Dictionary } from '../i18n'
+import { heaviestLine } from './heaviest-line'
 import { fmtHours, fmtInverter, fmtKwh, fmtW } from '../i18n/format'
 import { projectLine } from '../lib/quote-text'
 import { currentFirst, summarizeProjects, type ProjectSummary } from '../lib/project-summary'
@@ -29,16 +30,14 @@ interface Props {
    * in it does not call this, and neither does renaming an existing project. The desktop rail passes nothing.
    */
   onPicked?: () => void
-}
-
-/** "Refrigerator, 2× TV and 3 more" from the heaviest appliances. */
-function heaviestLine(s: ProjectSummary, t: Dictionary): string {
-  const list = s.heaviest.map((i) => (i.qty > 1 ? `${i.qty}× ` : '') + applianceName(t, i)).join(', ')
-  return s.moreCount > 0 ? tr(t, 'heaviestMore', { list, count: s.moreCount }) : list
+  /** Called when a project is created: a new one holds the example list, which the appliances step explains. */
+  onCreated?: () => void
 }
 
 interface CardProps {
   summary: ProjectSummary
+  /** Two or more projects: only then does the load bar beside the heaviest one compare anything. */
+  isCompared: boolean
   isEditing: boolean
   /** Present only on the open project's card. */
   current?: CurrentActions
@@ -63,7 +62,7 @@ function CardTitle({ name, titleId, current, onOpen }: { name: string; titleId: 
 }
 
 /** A project's kit at a glance: runtime, bank and inverter, its load beside the heaviest project's, and what draws the most. */
-function CardKit({ summary: s }: { summary: ProjectSummary }) {
+function CardKit({ summary: s, isCompared }: { summary: ProjectSummary; isCompared: boolean }) {
   const { t, locale } = useLocale()
   const r = s.result
   if (r.empty || !r.battery) return <p className="muted pcard__empty">{t.ui.footerEmpty}</p>
@@ -74,7 +73,14 @@ function CardKit({ summary: s }: { summary: ProjectSummary }) {
         <div><dt className="lab">{t.ui.bank}</dt><dd className="num">{fmtKwh(r.battery.bankWh, locale)}</dd></div>
         <div><dt className="lab">{t.ui.inverter}</dt><dd className="num">{fmtInverter(r.inverter, locale)}</dd></div>
       </dl>
-      <div className="pcard__bar" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(LOAD_BAR_MIN_PERCENT, Math.round(s.loadShare * 100)) / 100})` }} /></div>
+      {/* The caption says what the bar measures; the running load itself is in words on the line under it. With one
+          project the bar would always be full, so it shows from the second. */}
+      {isCompared && (
+        <div className="pcard__share">
+          <span className="pcard__share-cap">{t.ui.loadShare}</span>
+          <div className="pcard__bar" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(LOAD_BAR_MIN_PERCENT, Math.round(s.loadShare * 100)) / 100})` }} /></div>
+        </div>
+      )}
       <p className="pcard__load num">{`${fmtW(r.runningW, locale)} ${t.ui.running} · ${batteryCount(t, r.battery.count)} · ${r.cable.gauge}`}</p>
       <p className="pcard__items">{heaviestLine(s, t)}</p>
     </>
@@ -96,7 +102,7 @@ function CardQuickEdit({ id, items, onQty }: { id: string; items: readonly Selec
   )
 }
 
-function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQty }: CardProps) {
+function ProjectCard({ summary: s, isCompared, isEditing, current, onOpen, onToggleEdit, onQty }: CardProps) {
   const isCurrent = current !== undefined
   const { t } = useLocale()
   const titleId = useId()
@@ -122,7 +128,7 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
       {current?.isConfirmingDelete && (
         <InlineConfirm look="card" question={deleteProjectText(t, p.name, quoteCount)} yes={t.ui.deleteProjectYes} onYes={current.onDelete} onCancel={current.onCancelDelete} />
       )}
-      <CardKit summary={s} />
+      <CardKit summary={s} isCompared={isCompared} />
       {jobs && (
         <Link className="pcard__quotes" to="/projects/$projectId/quotes" params={{ projectId: p.id }}>
           <FileText size={14} aria-hidden="true" />{projectLine(t, jobs)}
@@ -139,21 +145,22 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
 }
 
 /** Every saved project with its kit at a glance, the open one first; quick edit changes a project without opening it. */
-export function ProjectCards({ store, commit, onPicked }: Props) {
+export function ProjectCards({ store, commit, onPicked, onCreated }: Props) {
   const { t } = useLocale()
   const appliances = useCatalog()
   const [editingId, setEditingId] = useState<string | null>(null)
-  const { createProject, currentActions } = useProjectRename({ store, commit, onPicked })
+  const { createProject, currentActions } = useProjectRename({ store, commit, onPicked, onCreated })
   return (
     <div className="pcards">
       <div className="pcards__head">
-        <span className="lab">{t.ui.projects}</span>
-        <button type="button" className="pcards__new" onClick={createProject}>{t.ui.newProject}</button>
+        <h2 className="lab pcards__title">{t.ui.projects}</h2>
+        <button type="button" className="linkbtn pcards__new" onClick={createProject}>{t.ui.newProject}</button>
       </div>
       {currentFirst(summarizeProjects(store.projects, appliances), store.currentId).map((s) => (
         <ProjectCard
           key={s.project.id}
           summary={s}
+          isCompared={store.projects.length > 1}
           current={s.project.id === store.currentId ? currentActions : undefined}
           isEditing={editingId === s.project.id}
           onOpen={() => { commit(selectProject(store, s.project.id)); onPicked?.() }}

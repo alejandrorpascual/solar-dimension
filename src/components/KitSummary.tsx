@@ -12,6 +12,7 @@ import { hasPanels, type SizingResult } from '../lib/sizing'
 import { BatteryPicker } from './BatteryPicker'
 import { ChecksAttention } from './ChecksAttention'
 import { ChecksList } from './ChecksList'
+import { Fold } from './Fold'
 import { Glossary } from './Glossary'
 import { RuntimeRange } from './RuntimeRange'
 
@@ -52,63 +53,76 @@ interface Props {
   projectName: string
   /** Why the bank is far bigger than the load needs, when another voltage sizes a smaller one. */
   oversize: OversizeNote | null
-  /** The edit bar (KitQuickEdit), placed under the summary line. */
+  /** The edit bar (KitQuickEditBar), placed under the summary line. */
   quickEdit: ReactNode
+  /** The appliance list the bar opens, under the figures it changes. */
+  quickEditPanel?: ReactNode
   onBatteryUnit: (id: string | null) => void
 }
 
 const signed = (n: number, fmt: (abs: number) => string) => (n === 0 ? '' : `${n > 0 ? '+' : '−'}${fmt(Math.abs(n))}`)
 
-function Delta({ text }: { text: string }) {
-  return text ? <span className="stat__delta num">{text}</span> : null
+/** How far a figure moved since the quick edit began; a screen reader hears what the bare "+1.2 h" is. */
+function Delta({ text, t }: { text: string; t: Dictionary }) {
+  if (!text) return null
+  return (
+    <>
+      <span className="stat__delta num">{text}</span>
+      <span className="visually-hidden"> {t.ui.deltaSuffix}</span>
+    </>
+  )
 }
 
-export function KitSummary({ result: r, baseline, projectName, oversize, quickEdit, onBatteryUnit }: Props) {
+/** One figure of the kit: its name, the value (and how far it moved) and an optional line under it. */
+function Stat({ label, value, delta, className, children }: { label: string; value: string; delta?: ReactNode; className?: string; children?: ReactNode }) {
+  return (
+    <div className={className ? `stat ${className}` : 'stat'}>
+      <dt className="lab">{label}</dt>
+      <dd className="stat__row"><span className="stat__v num">{value}</span>{delta}</dd>
+      {children}
+    </div>
+  )
+}
+
+export function KitSummary({ result: r, baseline, projectName, oversize, quickEdit, quickEditPanel, onBatteryUnit }: Props) {
   const { t, locale } = useLocale()
   const parts = buildParts(r, t, locale)
   const checks = kitChecks(t, r, locale)
   const notes = uncheckedWarnings(r)
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
-  const summary = r.empty ? t.ui.kitEmpty : tr(t, 'kitSummary', { appliances: applianceCount(t, r.items.length, r.units), hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
+  const summary = tr(t, 'kitSummary', { appliances: applianceCount(t, r.items.length, r.units), hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
   const d = baseline ? kitDeltas(baseline, r) : null
   const w = (n: number) => fmtW(n, locale)
+  // Why Runtime reads past the hours asked for, unless the oversize note below already says why the bank is big.
+  const runsLonger = !oversize && r.battery !== null && Math.round(r.battery.hoursActual) > r.hours
+  const longer = runsLonger && !r.empty ? tr(t, 'runtimeLonger', { hours: r.hours }) : ''
   return (
     <div className="kit">
       <div className="kit__head">
-        <p className="muted">{summary}</p>
+        {/* Said in the intro on wide screens and under the figure on a phone (components.css), so the figure starts near the top there. */}
+        {!r.empty && <p className="muted">{summary}{longer && <span className="kit__why">{` ${longer}`}</span>}</p>}
         <ChecksAttention text={attentionLine(t, r)} />
         {quickEdit}
       </div>
-      <div className={`stats${hasPanels(r) ? ' stats--five' : ''}`}>
-        <div className="stat">
-          <div className="lab">{t.ui.runningLoad}</div>
-          <div className="stat__row"><span className="stat__v num">{fmtW(r.runningW, locale)}</span><Delta text={d ? signed(d.runningW, w) : ''} /></div>
-          {!r.empty && <div className="stat__sub num">{tr(t, 'averageDraw', { w: fmtW(r.averageW, locale) })}</div>}
-        </div>
-        <div className="stat">
-          <div className="lab">{t.ui.startupPeak}</div>
-          <div className="stat__row"><span className="stat__v num">{fmtW(r.surgeW, locale)}</span><Delta text={d ? signed(d.surgeW, w) : ''} /></div>
-        </div>
-        <div className="stat">
-          <div className="lab">{t.ui.batteryNeeded}</div>
-          <div className="stat__row"><span className="stat__v num">{fmtKwh(r.requiredWh, locale)}</span><Delta text={d ? signed(d.requiredWh, (n) => fmtKwh(n, locale)) : ''} /></div>
-        </div>
-        <div className="stat stat--accent">
-          <div className="lab">{t.ui.runtime}</div>
-          <div className="stat__row">
-            <span className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</span>
-            <Delta text={d ? signed(d.runtimeH, (n) => fmtHours(n, locale)) : ''} />
-          </div>
-          {r.battery && !r.empty && <RuntimeRange runtime={r.battery.runtime} t={t} locale={locale} className="stat__sub num" />}
-        </div>
+      {/* Runtime leads: it is the answer the visitor came for, so it comes first and one step larger than the rest. */}
+      {!r.empty && <h2 className="visually-hidden">{t.ui.incSummary}</h2>}
+      {!r.empty && <dl className={`stats${hasPanels(r) ? ' stats--five' : ''}`}>
+        <Stat className="stat--accent stat--lead" label={t.ui.runtime} value={r.battery ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}
+          delta={<Delta t={t} text={d ? signed(d.runtimeH, (n) => fmtHours(n, locale)) : ''} />}>
+          {r.battery && r.battery.runtime.typical > 0 && <dd className="stat__sub num"><RuntimeRange runtime={r.battery.runtime} t={t} locale={locale} /></dd>}
+          {longer && <dd className="stat__sub stat__why">{longer}</dd>}
+        </Stat>
+        <Stat label={t.ui.runningLoad} value={fmtW(r.runningW, locale)} delta={<Delta t={t} text={d ? signed(d.runningW, w) : ''} />}>
+          <dd className="stat__sub num">{tr(t, 'averageDraw', { w: fmtW(r.averageW, locale) })}</dd>
+        </Stat>
+        <Stat label={t.ui.startupPeak} value={fmtW(r.surgeW, locale)} delta={<Delta t={t} text={d ? signed(d.surgeW, w) : ''} />} />
+        <Stat label={t.ui.batteryNeeded} value={fmtKwh(r.requiredWh, locale)} delta={<Delta t={t} text={d ? signed(d.requiredWh, (n) => fmtKwh(n, locale)) : ''} />} />
         {hasPanels(r) && (
-          <div className="stat stat--sun">
-            <div className="lab">{t.ui.solarRecharge}</div>
-            <div className="stat__row"><span className="stat__v num">{fmtKw(r.solar.arrayW, locale)}</span></div>
-            <div className="stat__sub num">{tr(t, 'solarRechargeSub', { wh: fmtKwh(r.solar.dailyWh, locale) })}</div>
-          </div>
+          <Stat className="stat--sun" label={t.ui.solarRecharge} value={fmtKw(r.solar.arrayW, locale)}>
+            <dd className="stat__sub num">{tr(t, 'solarRechargeSub', { wh: fmtKwh(r.solar.dailyWh, locale) })}</dd>
+          </Stat>
         )}
-      </div>
+      </dl>}
       {oversize && (
         <p className="note-box">
           {tr(t, oversize.isSmallestBank ? 'oversizeNoteSmallest' : 'oversizeNote', {
@@ -118,7 +132,9 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
         </p>
       )}
       {!r.empty && <BatteryPicker options={r.batteryOptions} selected={r.batteryUnit} onSelect={onBatteryUnit} />}
+      {quickEditPanel}
       <div className="parts">
+        {parts.length > 0 && <h2 className="visually-hidden">{t.ui.incParts}</h2>}
         {parts.length > 0 ? <PartsTable parts={parts} t={t} /> : <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}
       </div>
       {parts.length > 0 && <p className="estimate" role="note">{hasPanels(r) ? `${t.ui.estimateNotice} ${t.ui.solarNotSized}` : t.ui.estimateNotice}</p>}
@@ -128,7 +144,9 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
           {notes.map((n) => <div key={warningKey(n)}>{warningText(t, n, r)}</div>)}
         </div>
       )}
-      <p className="fine muted">{finePrint(t, r, dod, locale)}</p>
+      <Fold title={t.ui.incNotes}>
+        <p className="fine muted">{finePrint(t, r, dod, locale)}</p>
+      </Fold>
       <Glossary />
     </div>
   )

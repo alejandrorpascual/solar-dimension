@@ -50,7 +50,7 @@ test('a kit missing an appliance holds the cards and the quotes page, in English
   await reloadFromServer(page, '/?step=4')
 
   await expect(page.getByText('1 appliance in this project could not be loaded, so this kit leaves it out.', { exact: false })).toBeVisible()
-  await expect(quotesCard(page).getByRole('heading', { level: 3 })).toHaveText('Your kit is missing appliances', { timeout: 15_000 })
+  await expect(quotesCard(page).getByRole('heading', { level: 2 })).toHaveText('Your kit is missing appliances', { timeout: 15_000 })
   await showProjects(page)
   await expect(cardQuoteLine(page)).toHaveText('Your kit is missing appliances')
   await expect(page.getByText('Verdict ready')).toHaveCount(0)
@@ -58,7 +58,7 @@ test('a kit missing an appliance holds the cards and the quotes page, in English
   await shot(page, 'ac2-missing-en', quotesCard(page))
 
   await switchLanguage(page, 'Español')
-  await expect(quotesCard(page).getByRole('heading', { level: 3 })).toHaveText('A tu kit le faltan aparatos')
+  await expect(quotesCard(page).getByRole('heading', { level: 2 })).toHaveText('A tu kit le faltan aparatos')
   await expect(cardQuoteLine(page)).toHaveText('A tu kit le faltan aparatos')
   await shot(page, 'ac2-missing-es', quotesCard(page))
   await switchLanguage(page, 'English')

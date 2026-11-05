@@ -114,7 +114,7 @@ export function RequesterForm({ owner, projectId, target, base, resumed, canReme
           <div className="rq-resume__text">
             <strong>{t.requester.resumeTitle}</strong>
             <span>{t.requester.resumeBody}</span>
-            <button type="button" className="rq-linkbtn" onClick={startOver}>{t.requester.startOver}</button>
+            <button type="button" className="linkbtn rq-start-over" onClick={startOver}>{t.requester.startOver}</button>
           </div>
         </div>
       )}
@@ -201,7 +201,7 @@ export function RequesterForm({ owner, projectId, target, base, resumed, canReme
         {onRemove && <button type="button" className="btn" onClick={leave(onRemove)}>{t.requester.remove}</button>}
         <button type="submit" className="btn btn--primary">{t.requester.save}</button>
       </div>
-      {onDelete && <button type="button" className="rq-linkbtn rq-linkbtn--danger" onClick={leave(onDelete)}>{t.requester.deleteClient}</button>}
+      {onDelete && <button type="button" className="linkbtn linkbtn--danger rq-delete" onClick={leave(onDelete)}>{t.requester.deleteClient}</button>}
     </form>
   )
 }

@@ -55,11 +55,11 @@ test('step 2 presses the hour preset, voltage and chemistry the project has, and
 })
 
 test('step 1 presses the category filter in effect, All at first, and no other', () => {
-  const buttons = buttonsOf(createElement(ApplianceGrid, { store: initialStore(), commit: () => {} }))
+  const buttons = buttonsOf(createElement(ApplianceGrid, { store: initialStore(), commit: () => {}, onAnnounce: () => {} }))
   expect(pressedOf(buttons, CATEGORIES)).toEqual(onlyPressed(CATEGORIES, 'All'))
 })
 
 test('the custom appliance form presses the mode it is in, watts at first, and not the other', () => {
-  const buttons = buttonsOf(createElement(CustomApplianceForm, { store: initialStore(), commit: () => {} }))
+  const buttons = buttonsOf(createElement(CustomApplianceForm, { store: initialStore(), commit: () => {}, onAdded: () => {} }))
   expect(pressedOf(buttons, MODES)).toEqual(onlyPressed(MODES, 'Watts'))
 })

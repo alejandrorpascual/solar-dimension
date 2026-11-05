@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { switchLanguage, switchLanguageOnLoad } from './header'
 import { PHONE } from './phone'
-import { acceptNewProjectName, answerDelete, hideProjects, openProjectCard, renameOpenProject, showDownload, showProjects, startNewProject, startRename } from './projects'
+import { acceptNewProjectName, answerDelete, hideProjects, openBatterySettings, openChecks, openProjectCard, pickCategory, renameOpenProject, showAcSizes, showDownload, showProjects, startNewProject, startRename } from './projects'
 
 const STORAGE_KEY = 'solar-dimension.projects.v1'
 
@@ -63,7 +63,7 @@ test('the kit edits appliances and the window in place, shows what moved, and un
   const panel = page.locator('.qedit__panel')
   await panel.getByRole('button', { name: 'Add Refrigerator' }).click()
   await expect(panel.getByLabel('Quantity of Refrigerator')).toHaveValue('2')
-  await expect(page.locator('.stat__delta').first()).toHaveText('+150 W')
+  await expect(page.locator('.stat').filter({ hasText: 'Running load' }).locator('.stat__delta')).toHaveText('+150 W')
 
   await panel.getByLabel('Add an appliance').fill('kettle')
   await panel.getByRole('button', { name: /^Electric kettle/ }).click()
@@ -98,7 +98,9 @@ test('the summary, the Appliances chip and the project card count the same appli
 test('the full list is split into one labeled section per category', async ({ page }) => {
   await page.goto('/')
   const ac = page.getByRole('region', { name: 'Air conditioning', exact: true })
-  await expect(ac.getByRole('heading', { level: 4 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
+  await expect(ac.getByRole('heading', { level: 3 })).toHaveCount(0)
+  await showAcSizes(page)
+  await expect(ac.getByRole('heading', { level: 3 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
   await expect(ac).not.toContainText('Wi-Fi router + modem')
   await expect(page.getByRole('region', { name: 'Work', exact: true })).toContainText('Wi-Fi router + modem')
 
@@ -135,10 +137,12 @@ test('a condo can type 32 cameras, and the AC list is grouped by compressor type
   await expect(field).toHaveValue('100')
 
   await page.getByRole('button', { name: 'Air conditioning', exact: true }).click()
-  await expect(page.getByRole('main').getByRole('heading', { level: 3 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
+  // With one category picked there is no section heading, so the AC groups are level 2, under the step's level 1.
+  const catalog = page.locator('.catalog')
+  await expect(catalog.getByRole('heading', { level: 2 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
   await expect(page.getByText('1 ton · 12k BTU', { exact: true })).toHaveCount(2)
   await page.getByRole('searchbox').fill('2 ton')
-  await expect(page.getByRole('main').getByRole('heading', { level: 3 })).toHaveCount(0)
+  await expect(catalog.getByRole('heading', { level: 2 })).toHaveCount(0)
   await expect(page.getByText('2 ton AC · inverter', { exact: true })).toBeVisible()
 })
 
@@ -281,7 +285,7 @@ test('project cards show each kit and quick edit a project without opening it', 
 
   await home.getByRole('button', { name: 'Home', exact: true }).click()
   await hideProjects(page)
-  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
 })
 
 test('appliances can be added, filtered and a custom load created from volts × amps', async ({ page }) => {
@@ -293,7 +297,7 @@ test('appliances can be added, filtered and a custom load created from volts × 
     await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
     await expect(removeAc).toBeVisible({ timeout: 1000 })
   }).toPass()
-  await page.getByRole('button', { name: 'All' }).click()
+  await page.getByRole('button', { name: 'All', exact: true }).click()
   await page.getByLabel('Search appliances').fill('fridge')
   await expect(page.getByText('Refrigerator', { exact: true })).toBeVisible()
   await expect(page.getByText('Chest freezer')).toHaveCount(0)
@@ -308,13 +312,21 @@ test('appliances can be added, filtered and a custom load created from volts × 
   await expect(page.getByText('Pool pump')).toHaveCount(0)
 })
 
-test('the custom form explains what is missing', async ({ page }) => {
+test('the custom form explains what is missing on the field it is about, and Enter adds', async ({ page }) => {
   await page.goto('/')
+  const name = page.getByLabel('Name', { exact: true })
   // A click that lands before the page hydrates does nothing; an empty form only shows the error, so clicking again is safe.
   await expect(async () => {
     await page.getByRole('button', { name: 'Add appliance' }).click()
     await expect(page.getByText('Give the appliance a name.')).toBeVisible({ timeout: 1000 })
   }).toPass()
+  await expect(name).toHaveAttribute('aria-invalid', 'true')
+  await expect(name).toHaveAccessibleDescription('Give the appliance a name.')
+  await expect(name).toBeFocused()
+  await name.fill('Pond pump')
+  await page.getByLabel('Running W').fill('400')
+  await page.getByLabel('Running W').press('Enter')
+  await expect(page.getByText('Custom · 400 W')).toBeVisible()
 })
 
 test('the custom form questions watts typed with a thousands separator, and keeps a name to what a saved project holds', async ({ page }) => {
@@ -407,9 +419,10 @@ test('a saved custom appliance that no longer loads stays reported until it is r
 test('hours, voltage and chemistry change the sizing summary', async ({ page }) => {
   await page.goto('/?step=2')
   await page.getByRole('button', { name: '24 h' }).click()
+  await openBatterySettings(page)
   await page.getByRole('button', { name: /^12 V/ }).click()
   await page.getByRole('button', { name: /AGM lead-acid/ }).click()
-  await expect(page.getByText(/24 h at 12 V/)).toBeVisible()
+  await expect(page.locator('.footer__wide')).toContainText('24 h at 12 V')
   await expect(page.getByLabel('Hours without the grid')).toHaveValue('24')
 })
 
@@ -431,6 +444,7 @@ for (const language of ['English', 'Español'] as const) {
     await page.goto('/?step=2')
     if (language !== 'English') await switchLanguageOnLoad(page, language)
     const caveat = page.getByText(FEW_INVERTERS[language])
+    await openBatterySettings(page)
     await page.getByRole('button', { name: /^36 V/ }).click()
     await expect(caveat).toBeVisible()
     for (const volts of [12, 24, 48]) {
@@ -447,6 +461,7 @@ test('a router alone at 48 V says why its bank is large and names 12 V; at 12 V 
   const note = page.getByText(/^This bank holds/)
   await expect(note).toHaveText('This bank holds 22× the 209 Wh the load needs: it has to carry the full current of a 3,000 W inverter. At 12 V the kit would size a 1.2 kWh bank, the smallest that passes the same checks.')
   await page.getByRole('button', { name: 'Step 2: Backup window' }).click()
+  await openBatterySettings(page)
   await page.getByRole('button', { name: /^12 V/ }).click()
   await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
   await expect(page.getByText(/^Backs up 1 appliances for 8 hours on a 12 V/)).toBeVisible()
@@ -521,7 +536,7 @@ for (const step of [1, 2, 3, 4]) {
 
 test('full flow: appliances → window → kit, and the project survives a reload', PHONE, async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Air conditioning' }).click()
+  await pickCategory(page, 'Air conditioning')
   await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
   await page.getByRole('button', { name: 'Next: backup window' }).click()
   await page.getByRole('button', { name: 'Next: solar panels' }).click()
@@ -565,6 +580,7 @@ test.describe('on a device whose preferred languages put Spanish first among the
 
 test('the battery size can be chosen on the kit, is remembered, and Auto brings back the fewest batteries', async ({ page }) => {
   await page.goto('/?step=2')
+  await openBatterySettings(page)
   await page.getByRole('button', { name: /^12 V/ }).click()
   await page.getByRole('button', { name: 'Next: solar panels' }).click()
   await page.getByRole('button', { name: 'Build my kit' }).click()
@@ -633,12 +649,13 @@ test('on the narrowest phone the quotes card wraps its long Spanish sign-in labe
 const hiddenSideways = (row: Locator) => row.evaluate((el) => el.scrollWidth - el.clientWidth)
 
 for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }]) {
-  test(`at ${viewport.width} px the category chips and the hour presets all show without scrolling sideways`, PHONE, async ({ page }) => {
+  test(`at ${viewport.width} px the category filter and the hour presets all show without scrolling sideways`, PHONE, async ({ page }) => {
     await page.setViewportSize(viewport)
     await page.goto('/?step=1')
-    const categories = page.locator('.hs')
-    await expect(categories.getByRole('button', { name: 'Air conditioning' })).toBeVisible()
-    expect(await hiddenSideways(categories), 'category chips hidden past the right edge').toBeLessThanOrEqual(0)
+    const categories = page.getByLabel('Category', { exact: true })
+    await expect(categories).toBeVisible()
+    await expect(page.locator('.toolbar__chips')).toBeHidden()
+    expect(await hiddenSideways(categories), 'category filter hidden past the right edge').toBeLessThanOrEqual(0)
     await page.goto('/?step=2')
     const presets = page.locator('.presets')
     await expect(presets.getByRole('button', { name: '48 h' })).toBeVisible()
@@ -652,6 +669,7 @@ test('motors starting together and a hot cable run change the inverter, the chec
   await page.getByRole('button', { name: 'Air conditioning' }).click()
   await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
   await page.getByRole('button', { name: 'Next: backup window' }).click()
+  await openBatterySettings(page)
   await page.getByRole('button', { name: /^All at once/ }).click()
   await page.locator('summary', { hasText: 'Cable run' }).click()
   await page.getByRole('button', { name: /^50 °C/ }).click()
@@ -661,8 +679,10 @@ test('motors starting together and a hot cable run change the inverter, the chec
   // Fridge and AC starting together: 8,115 W peak, past a 4 kW inverter's 8,000 W surge.
   await expect(page.getByText('5,000 W continuous, not VA, pure sine, 48 V DC input')).toBeVisible()
   const checks = page.getByRole('region', { name: 'Checks' })
+  await openChecks(page)
   await expect(checks.getByText(/^Inverter size$/)).toBeVisible()
   await expect(checks.getByText(/\(50 °C\)/)).toBeVisible()
+  await page.locator('summary', { hasText: 'Assumptions' }).click()
   await expect(page.getByText(/every motor starting at once/)).toBeVisible()
   await page.reload()
   await expect(page.getByText('5,000 W continuous, not VA, pure sine, 48 V DC input')).toBeVisible()
@@ -681,6 +701,7 @@ test('a load past the largest inverter gets inverters in parallel, each with its
   await expect(row('Inverter').getByRole('cell').last()).toHaveText(/^×\s*2$/)
   await expect(row('Fuse')).toContainText('2 runs to each inverter')
   const checks = page.getByRole('region', { name: 'Checks' })
+  await openChecks(page)
   await expect(checks.getByText(/on 2 × 10\.0 kW inverters \(20\.0 kW together\)/)).toBeVisible()
   await expect(checks.getByText(/the 2 inverters draw up to 463 A together/)).toBeVisible()
   await expect(page.getByText(/· 2 × 10\.0 kW inverters ·/)).toBeVisible()

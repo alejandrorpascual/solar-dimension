@@ -13,13 +13,20 @@
   --accent-hover: #1A36B8;
   --accent-tint: #EEF2FF;
   --accent-ring: rgba(36, 71, 230, 0.12);
+  /* The edge of an accent-tinted box (the Runtime tile, the battery node). */
+  --accent-line: #C9D3FF;
+  /* Text and marks on an accent or ink fill. */
+  --on-accent: #FFFFFF;
   --success: #1F7A45;
   --success-tint: #E6F4EC;
   --sun-tint: #FFF8E1;
   --sun-line: #EBCB6A;
   --sun-ink: #7A5200;
+  /* The sun's own colour: the clear-day arrows and the cover bar. */
+  --sun: #E0A800;
   --panel: #1C2B4A;
   --panel-line: #2E4370;
+  --panel-edge: #0F1A33;
   --warn-bg: #FFF4E0;
   --warn-border: #F0C36B;
   --warn-ink: #6B4A00;
@@ -31,6 +38,38 @@
   --radius-md: 14px;
   --radius-lg: 24px;
   --shadow-card: 0 12px 40px rgba(18, 22, 28, 0.06);
+  /* A piece lifted a hair off its tray: the selected segment of a tab or toggle row, a preview page, a floating chip. */
+  --shadow-raise: 0 1px 3px rgba(18, 22, 28, 0.12);
+  /* Menus, popovers and suggestion lists that float over the page. */
+  --shadow-pop: 0 18px 48px rgba(18, 22, 28, 0.16), 0 2px 6px rgba(18, 22, 28, 0.06);
+  /* The dimmed page behind a sheet. */
+  --scrim: rgba(18, 22, 28, 0.4);
+  /* One keyboard focus ring for every control. */
+  --focus-ring: 2px solid var(--accent);
+  --focus-offset: 2px;
+  /* Type scale: nothing on screen under 12px and no half sizes. Body is 15; 56 is the backup hours alone. Text fields
+     take 16 on touch screens, where iOS Safari zooms in on anything smaller. */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-input: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 44px;
+  --text-hero: 56px;
+  /* Spacing scale, on a 4px grid. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  /* Side gutters: the page's (the footer and the sticky search row cancel it to run edge to edge) and the stage card's. */
+  --page-x: var(--space-4);
+  --stage-x: var(--space-10);
   --tap: 44px;
   /* Motion: hover and small pops, panels and dialogs, phone sheets, spinners. */
   --dur-fast: 120ms;

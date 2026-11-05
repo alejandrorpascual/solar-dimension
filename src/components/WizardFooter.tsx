@@ -1,61 +1,62 @@
 import { Download } from 'lucide-react'
-import { useEffect, useRef, type RefObject } from 'react'
+import { useRef } from 'react'
+import { useHeightProperty } from '../hooks/useHeightProperty'
 import { useLocale } from '../hooks/useLocale'
 import { ChecksAttention } from './ChecksAttention'
 import type { Step } from './Stepper'
 
 interface Props {
   step: Step; summary: string
+  /** The same line cut to what fits one row under 1024px, where the project's name and the rest show elsewhere. */
+  summarySlim?: string
   /** "2 checks need attention" on the kit step, or null when every check passes. */
   attention: string | null
-  onBack: () => void; onNext: () => void; onStartOver: () => void
+  /** Why Next is off, as a tooltip: later steps need an appliance, as in the stepper. Null while Next is on. */
+  nextLocked: string | null
+  onBack: () => void; onNext: () => void
   /** The kit step's main action: opens the Download tab, in the side rail where it shows and in a sheet elsewhere. */
   onDownload: () => void
+  /** Step 1 was opened from the kit: the main action goes back there. */
+  onBackToKit?: () => void
+  /** The kit step has no appliances, so nothing to download yet: the main action goes to add some. */
+  onAddAppliances?: () => void
+  /** The rail's Download tab is open, and from 1280px its button shows beside this one. */
+  isDownloadOpen?: boolean
 }
-
-/** Read by base.css and quotes.css, which leave that much room under the page and above the footer for it. */
-const FOOTER_HEIGHT_PROPERTY = '--footer-h'
 
 /**
- * Keeps the footer's height in FOOTER_HEIGHT_PROPERTY. It is not a constant on a phone: the summary wraps, so a long
- * project name or the attention pill beside it makes the footer taller.
+ * Read by base.css and quotes.css, which leave that much room under the page and above the footer for it. It is not a
+ * constant on a phone: the summary wraps, so a long project name or the attention pill beside it makes the footer taller.
  */
-function useFooterHeight(element: RefObject<HTMLElement | null>): void {
-  useEffect(() => {
-    const footer = element.current
-    if (!footer) return
-    const root = document.documentElement
-    const publish = () => root.style.setProperty(FOOTER_HEIGHT_PROPERTY, `${footer.offsetHeight}px`)
-    publish()
-    const observer = new ResizeObserver(publish)
-    observer.observe(footer)
-    return () => {
-      observer.disconnect()
-      root.style.removeProperty(FOOTER_HEIGHT_PROPERTY)
-    }
-  }, [element])
-}
+const FOOTER_HEIGHT_PROPERTY = '--footer-h'
 
-export function WizardFooter({ step, summary, attention, onBack, onNext, onStartOver, onDownload }: Props) {
+export function WizardFooter({ step, summary, summarySlim, attention, nextLocked, onBack, onNext, onDownload, onBackToKit, onAddAppliances, isDownloadOpen }: Props) {
   const { t } = useLocale()
   const element = useRef<HTMLElement>(null)
-  useFooterHeight(element)
+  useHeightProperty(element, FOOTER_HEIGHT_PROPERTY)
   return (
     <footer className="footer" ref={element}>
       <div className="footer__line">
         {step === 4 && <ChecksAttention text={attention} />}
-        <div className="num muted footer__summary">{summary}</div>
+        {summarySlim === undefined
+          ? <div className="num muted footer__summary">{summary}</div>
+          : (
+            <div className="num muted footer__summary">
+              <span className="footer__wide">{summary}</span>
+              <span className="footer__slim">{summarySlim}</span>
+            </div>
+          )}
       </div>
       <div className="footer__actions">
-        {(step === 2 || step === 3) && <button type="button" className="btn" onClick={onBack}>{t.ui.back}</button>}
+        {step > 1 && <button type="button" className="btn" onClick={onBack}>{t.ui.back}</button>}
         {step < 4 && (
-          <button type="button" className="btn btn--primary" onClick={onNext}>
-            {step === 1 ? t.ui.next : step === 2 ? t.ui.nextSolar : t.ui.buildKit}
+          <button type="button" className="btn btn--primary" disabled={nextLocked !== null} title={nextLocked ?? undefined} onClick={onBackToKit ?? onNext}>
+            {onBackToKit ? t.ui.backToKit : step === 1 ? t.ui.next : step === 2 ? t.ui.nextSolar : t.ui.buildKit}
           </button>
         )}
-        {step === 4 && <button type="button" className="btn" onClick={onStartOver}>{t.ui.startOver}</button>}
-        {step === 4 && (
-          <button type="button" className="btn btn--primary footer__download" onClick={onDownload}>
+        {step === 4 && onAddAppliances && <button type="button" className="btn btn--primary" onClick={onAddAppliances}>{t.ui.addAppliances}</button>}
+        {step === 4 && !onAddAppliances && (
+          <button type="button" className={`btn btn--primary footer__download${isDownloadOpen ? ' footer__download--open' : ''}`} onClick={onDownload}>
             <Download size={18} aria-hidden="true" />{t.ui.download}
           </button>
         )}

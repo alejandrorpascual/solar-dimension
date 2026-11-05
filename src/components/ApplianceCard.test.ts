@@ -15,7 +15,7 @@ const noop = () => {}
 function cardText(id: string, locale: Locale): string {
   page.locale = locale
   const item = CATALOG_SNAPSHOT.find((a) => a.id === id)!
-  const html = renderToStaticMarkup(createElement(ApplianceCard, { item, qty: 0, onInc: noop, onDec: noop, onSet: noop }))
+  const html = renderToStaticMarkup(createElement(ApplianceCard, { item, qty: 0, onInc: noop, onSet: noop }))
   return html.replace(/<\/div>/g, '\n').replace(/<[^>]+>/g, ' ').split('\n').map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n')
 }
 

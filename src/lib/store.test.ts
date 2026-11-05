@@ -5,8 +5,8 @@ import { EMPTY_FORM, parseCustom } from './custom'
 import { computeProject } from './project-summary'
 import { compute } from './sizing'
 import {
-  addCustom, addProject, clampHours, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
-  hasSameLoads, nameFirstProject, numberedName, rekeySeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
+  addCustom, addProject, clampHours, clearAppliances, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
+  exampleItemsLeft, hasSameLoads, isSampleList, nameFirstProject, numberedName, rekeySeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
   renameProject, setSolarIn, takenLoadIds, unreadCustomCount, withSetAside, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
 import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema, StoreSchema, type Project, type Store } from './schema'
@@ -22,6 +22,15 @@ describe('project store', () => {
     expect(p.hours).toBe(10)
     expect(p.updatedAt).toBe(0)
     expect(p.batteryUnit).toBeNull()
+  })
+
+  test('a new project starts with no appliances, while the first visit keeps the example list', () => {
+    const first = initialStore()
+    expect(isSampleList(currentProject(first))).toBe(true)
+    const added = currentProject(addProject(first, 'Cabin'))
+    expect(added.qty).toEqual({})
+    expect(added.custom).toEqual([])
+    expect(isSampleList(currentProject(first))).toBe(true)
   })
 
   test('new and duplicated projects keep the battery choice rules', () => {
@@ -580,5 +589,40 @@ describe('work that was set aside, coming back to its account', () => {
 
     expect(merged.projects.map((p) => [p.name, p.hours])).toEqual([['Clinic', 30], ['Home', 10]])
     expect(withSetAside({ ...own, projects: [{ ...clinic, hours: 30, updatedAt: 1 }] }, [{ ...clinic, hours: 24 }], true).projects[0]!.hours).toBe(24)
+  })
+})
+
+describe('the example list', () => {
+  test('a new project holds it, and any edit ends it', () => {
+    const store = initialStore()
+    const id = currentProject(store).id
+    expect(isSampleList(currentProject(store))).toBe(true)
+    expect(isSampleList(currentProject(setQty(store, 'fridge', 2)))).toBe(false)
+    expect(isSampleList(currentProject(setQty(store, 'fridge', 0)))).toBe(false)
+    expect(isSampleList(currentProject(setDutyIn(store, id, 'fridge', 0.5)))).toBe(false)
+  })
+
+  test('taking an appliance out and putting it back is the example list again', () => {
+    const store = setQty(setQty(initialStore(), 'fridge', 0), 'fridge', 1)
+    expect(isSampleList(currentProject(store))).toBe(true)
+  })
+
+  test('clearing it leaves no appliances and keeps the rest of the project', () => {
+    const before = currentProject(initialStore())
+    const after = currentProject(clearAppliances(initialStore()))
+    expect(after.qty).toEqual({})
+    expect(after.dutyOverrides).toEqual({})
+    expect({ name: after.name, hours: after.hours, volts: after.volts }).toEqual({ name: before.name, hours: before.hours, volts: before.volts })
+    expect(isSampleList(after)).toBe(false)
+  })
+})
+
+describe('exampleItemsLeft', () => {
+  test('counts the example appliances still at their example quantity', () => {
+    const store = initialStore()
+    expect(exampleItemsLeft(currentProject(store))).toBe(6)
+    expect(exampleItemsLeft(currentProject(setQty(store, 'fridge', 2)))).toBe(5)
+    expect(exampleItemsLeft(currentProject(setQty(store, 'microwave', 1)))).toBe(6)
+    expect(exampleItemsLeft(currentProject(clearAppliances(store)))).toBe(0)
   })
 })

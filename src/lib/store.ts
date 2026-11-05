@@ -25,9 +25,10 @@ function nextId(projects: readonly Project[]): string {
 
 const now = (): number => Date.now()
 
-function newProject(projects: readonly Project[], name: string, id: string = nextId(projects), updatedAt: number = now()): Project {
+/** `qty` is the appliance list it starts with: the example list for a first visit's project, none for one added later. */
+function newProject(projects: readonly Project[], name: string, qty: Record<string, number>, id: string = nextId(projects), updatedAt: number = now()): Project {
   return {
-    id, name, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4',
+    id, name, qty: { ...qty }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4',
     batteryUnit: null, solar: null, requester: null, dutyOverrides: {}, electrical: { ...DEFAULT_ELECTRICAL }, updatedAt,
   }
 }
@@ -37,7 +38,7 @@ function newProject(projects: readonly Project[], name: string, id: string = nex
  * any saved copy outranks it.
  */
 export function initialStore(t: Dictionary = DEFAULT_NAMES): Store {
-  const p = newProject([], t.ui.firstProject, SEED_ID, 0)
+  const p = newProject([], t.ui.firstProject, DEFAULT_QTY, SEED_ID, 0)
   return { version: 1, projects: [p], currentId: p.id }
 }
 
@@ -84,6 +85,25 @@ export function withSetAside(store: Store, setAside: readonly Project[], isOwn: 
   return { ...store, projects, currentId }
 }
 
+/** Whether a project still holds exactly the example list every new project starts with, unedited. */
+export function isSampleList(p: Project): boolean {
+  const added = Object.entries(p.qty).filter(([, n]) => n > 0)
+  return p.custom.length === 0
+    && Object.keys(p.dutyOverrides).length === 0
+    && added.length === Object.keys(DEFAULT_QTY).length
+    && added.every(([id, n]) => DEFAULT_QTY[id] === n)
+}
+
+/** How many of the example list's appliances the project still has at their example quantity. */
+export function exampleItemsLeft(p: Project): number {
+  return Object.entries(DEFAULT_QTY).filter(([id, n]) => p.qty[id] === n).length
+}
+
+/** The open project with no appliances, to start a list of one's own. */
+export function clearAppliances(store: Store): Store {
+  return patchCurrent(store, { qty: {}, dutyOverrides: {} })
+}
+
 export function currentProject(store: Store): Project {
   return store.projects.find((p) => p.id === store.currentId) ?? store.projects[0]!
 }
@@ -103,8 +123,9 @@ export function numberedName(store: Store, t: Dictionary): string {
   return tr(t, 'projectNumbered', { n: store.projects.length + 1 })
 }
 
+/** A project of one's own, opened: it starts with no appliances. Only a first visit's project has the example list. */
 export function addProject(store: Store, name: string = numberedName(store, DEFAULT_NAMES)): Store {
-  const p = newProject(store.projects, name)
+  const p = newProject(store.projects, name, {})
   return { ...store, projects: [...store.projects, p], currentId: p.id }
 }
 

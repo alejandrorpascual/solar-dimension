@@ -1,7 +1,7 @@
-import { ChevronDown } from 'lucide-react'
 import { useId } from 'react'
 import { useLocale } from '../hooks/useLocale'
-import { tr } from '../i18n'
+import { tr, type Dictionary } from '../i18n'
+import { Fold } from './Fold'
 import { AMBIENTS, INSULATIONS, RUN_LENGTH, STARTS, type Electrical } from '../lib/schema'
 
 interface Props {
@@ -15,13 +15,17 @@ const STARTS_COPY = {
   all: ['startsAll', 'startsAllHelp'],
 } as const
 
+/** The chosen start-up option's title, for the line that sums up a closed disclosure. */
+export const startsTitle = (t: Dictionary, starts: Electrical['simultaneousStarts']): string => t.ui[STARTS_COPY[starts][0]]
+
 /** How many motors may start in the same instant; it sets the start-up peak the inverter and the bank must ride. */
 export function StartsPicker({ electrical, onChange }: Props) {
   const { t } = useLocale()
+  const labelId = useId()
   return (
     <>
-      <div className="window__label">{t.ui.startsLabel}</div>
-      <div className="opt-grid opt-grid--3">
+      <div id={labelId} className="window__label">{t.ui.startsLabel}</div>
+      <div className="opt-grid opt-grid--3" role="group" aria-labelledby={labelId}>
         {STARTS.map((s) => {
           const [title, help] = STARTS_COPY[s]
           const isOn = s === electrical.simultaneousStarts
@@ -44,12 +48,7 @@ export function CableConditions({ electrical: e, onChange, bundleFactor }: Props
   const rangeId = useId()
   const summary = tr(t, 'cableSummary', { length: e.runLengthM, ambient: e.ambientC, insulation: e.insulationC, bundled: e.bundled ? t.ui.cableBundledShort : '' })
   return (
-    <details className="elec">
-      <summary className="elec__summary">
-        <span>{t.ui.cableRun}</span>
-        <span className="num elec__values">{summary}</span>
-        <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
-      </summary>
+    <Fold title={t.ui.cableRun} values={summary}>
       <div className="elec__grid">
         <div className="elec__field">
           <div className="elec__head"><label htmlFor={rangeId}>{t.ui.runLength}</label><span className="num elec__value">{e.runLengthM} m</span></div>
@@ -80,6 +79,6 @@ export function CableConditions({ electrical: e, onChange, bundleFactor }: Props
           <span><span className="elec__check-title">{t.ui.bundledLabel}</span>{e.bundled && <span className="muted elec__check-help">{tr(t, 'bundledHelp', { factor: Math.round(bundleFactor * PERCENT) })}</span>}</span>
         </label>
       </div>
-    </details>
+    </Fold>
   )
 }

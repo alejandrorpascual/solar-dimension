@@ -15,10 +15,11 @@ export interface SideRailProps {
   /** The Download tab's content (DownloadPanel for the open project). */
   download: ReactNode
   onPicked?: () => void
+  onProjectCreated: () => void
 }
 
 /** Two tabs: every saved project at a glance, and downloads of the open one. */
-export function SideRail({ store, commit, tab, onTab, download, onPicked }: SideRailProps) {
+export function SideRail({ store, commit, tab, onTab, download, onPicked, onProjectCreated }: SideRailProps) {
   const { t } = useLocale()
   return (
     <Tabs className="rtabs" selectedKey={tab} onSelectionChange={(key) => onTab(key === 'download' ? 'download' : 'projects')}>
@@ -29,7 +30,7 @@ export function SideRail({ store, commit, tab, onTab, download, onPicked }: Side
         <Tab id="download" className="rtab"><Download size={16} aria-hidden="true" />{t.ui.download}</Tab>
       </TabList>
       <TabPanel id="projects" className="rtabs__panel">
-        <ProjectCards store={store} commit={commit} onPicked={onPicked} />
+        <ProjectCards store={store} commit={commit} onPicked={onPicked} onCreated={onProjectCreated} />
       </TabPanel>
       <TabPanel id="download" className="rtabs__panel">{download}</TabPanel>
     </Tabs>

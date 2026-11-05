@@ -1,54 +1,65 @@
 import { ChevronDown, ListChecks, Minus, Plus, Search } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, tr } from '../i18n'
 import { fmtW } from '../i18n/format'
-import { searchAppliances } from '../lib/appliance-search'
-import { forPicker } from '../lib/catalog'
+import { searchAppliances, searchTexts } from '../lib/appliance-search'
+import { forPicker, type CatalogItem } from '../lib/catalog'
 import { HOURS_MAX, HOURS_MIN, type Project } from '../lib/schema'
 import { groupByKind } from '../lib/load-kinds'
 import { catalog, type SizingResult } from '../lib/sizing'
 import { QuickEditRow } from './QuickEditRow'
 
-interface Props {
+const NO_ROW = -1
+/** How much of the panel shows when it opens: the search, a group label and the first row. */
+const PANEL_SHOWN_PX = 170
+/** Space left above the search field when its results bring it up. */
+const SEARCH_TOP_GAP_PX = 8
+const rowsOf = (panel: HTMLElement | null): Element[] => [...(panel?.querySelectorAll('.qedit__row') ?? [])]
+/** Where the screen stops being usable: the sticky footer's top, or the on-screen keyboard's when that sits higher. */
+function usableBottom(): number {
+  const footerTop = document.querySelector('.footer')?.getBoundingClientRect().top ?? window.innerHeight
+  const view = window.visualViewport
+  return view ? Math.min(footerTop, view.offsetTop + view.height) : footerTop
+}
+function scrollDownBy(px: number): void {
+  const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.scrollBy({ top: px, behavior: isReduced ? 'auto' : 'smooth' })
+}
+
+interface BarProps {
   project: Project
   result: SizingResult
   /** True once a quick edit changed the kit; shows "Saved" and Undo. */
   isDirty: boolean
-  onQty: (itemId: string, n: number) => void
+  isOpen: boolean
+  panelId: string
+  onToggle: () => void
   onHours: (hours: number) => void
-  /** null puts the catalog duty back. */
-  onDuty: (itemId: string, duty: number | null) => void
   onUndo: () => void
-  onAllAppliances: () => void
 }
 
-/** The kit's edit bar: an appliance list that opens in place, the backup window stepper, and Undo. */
-export function KitQuickEdit({ project, result, isDirty, onQty, onHours, onDuty, onUndo, onAllAppliances }: Props) {
-  const { t, locale } = useLocale()
-  const appliances = useCatalog()
-  const [isOpen, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const panelId = useId()
-  const searchId = useId()
-  const nameOf = (item: { id: string; name: string; isCustom?: boolean }) => applianceName(t, item)
-  const suggestions = searchAppliances(catalog(forPicker(appliances), project.custom), query, nameOf, new Set(result.items.map((i) => i.id)))
-  const add = (id: string) => {
-    onQty(id, 1)
-    setQuery('')
+/** The kit's edit bar: the toggle for the appliance list, the backup window stepper, and Undo. */
+export function KitQuickEditBar({ project, result, isDirty, isOpen, panelId, onToggle, onHours, onUndo }: BarProps) {
+  const { t } = useLocale()
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  // Undo takes its own button away: focus goes to the list it just put back.
+  const undo = () => {
+    toggleRef.current?.focus()
+    onUndo()
   }
-
   return (
     <div className="qedit">
       <div className="qedit__bar">
-        <button type="button" className={`chip qedit__toggle${isOpen ? ' chip--on' : ''}`} aria-expanded={isOpen} aria-controls={panelId} onClick={() => setOpen(!isOpen)}>
+        <button ref={toggleRef} type="button" className={`chip qedit__toggle${isOpen ? ' chip--on' : ''}`} aria-expanded={isOpen} aria-controls={panelId} onClick={onToggle}>
           <ListChecks size={16} aria-hidden="true" />
           {tr(t, 'appliancesCount', { count: result.items.length })}
           <ChevronDown size={14} aria-hidden="true" className="qedit__chev" />
         </button>
         <div className="qedit__window" role="group" aria-label={t.ui.windowLabel}>
-          <span className="qedit__window-label">{t.ui.windowLabel}</span>
+          {/* The group's name says it in full; a phone shows the short word, so the bar keeps one row there (rail.css). */}
+          <span className="qedit__window-label" aria-hidden="true"><span className="qedit__window-long">{t.ui.windowLabel}</span><span className="qedit__window-short">{t.ui.windowLabelShort}</span></span>
           <button type="button" className="qedit__hour" aria-label={t.ui.hourLess} disabled={project.hours <= HOURS_MIN} onClick={() => onHours(project.hours - 1)}>
             <Minus size={14} aria-hidden="true" />
           </button>
@@ -60,43 +71,115 @@ export function KitQuickEdit({ project, result, isDirty, onQty, onHours, onDuty,
         {isDirty && (
           <div className="qedit__status" role="status">
             <span className="qedit__dot" aria-hidden="true" />{t.ui.saved}
-            <button type="button" className="qedit__undo" onClick={onUndo}>{t.ui.undo}</button>
+            <button type="button" className="linkbtn qedit__undo" onClick={undo}>{t.ui.undo}</button>
           </div>
         )}
       </div>
+    </div>
+  )
+}
 
-      {isOpen && (
-        <div id={panelId} className="qedit__panel">
-          {groupByKind(result.items).map((g) => (
-            <div key={g.kind} className="qedit__group">
-              <span className="lab qedit__group-label">{t.kinds[g.kind]}</span>
-              <ul className="qedit__list">
-                {g.items.map((item) => (
-                  <QuickEditRow key={item.id} item={item} name={nameOf(item)} onQty={(n) => onQty(item.id, n)} onDuty={(duty) => onDuty(item.id, duty)} />
-                ))}
-              </ul>
-            </div>
-          ))}
-          <div className="qedit__add">
-            <label htmlFor={searchId} className="visually-hidden">{t.ui.addApplianceSearch}</label>
-            <Search size={16} aria-hidden="true" className="qedit__search-icon" />
-            <input id={searchId} className="in qedit__search" type="search" autoComplete="off" placeholder={t.ui.addApplianceSearch} value={query} onChange={(e) => setQuery(e.target.value)} />
-            {query.trim() !== '' && (
-              <div className="qedit__sugs">
-                {suggestions.map((a) => (
-                  <button key={a.id} type="button" className="qedit__sug" onClick={() => add(a.id)}>
-                    <span className="qedit__sug-name">{nameOf(a)}</span>
-                    <span className="num muted">{fmtW(a.watts, locale)}</span>
-                    <span className="qedit__sug-add">{t.ui.add}</span>
-                  </button>
-                ))}
-                {suggestions.length === 0 && <p className="muted qedit__none">{t.ui.noSearchMatch}</p>}
-              </div>
-            )}
+interface PanelProps {
+  id: string
+  project: Project
+  result: SizingResult
+  onQty: (itemId: string, n: number) => void
+  /** null puts the catalog duty back. */
+  onDuty: (itemId: string, duty: number | null) => void
+  onAllAppliances: () => void
+}
+
+/** The appliance list the bar opens. It sits under the kit's figures, so what an edit changes stays on screen. */
+export function KitQuickEditPanel({ id, project, result, onQty, onDuty, onAllAppliances }: PanelProps) {
+  const { t, locale } = useLocale()
+  const appliances = useCatalog()
+  const [query, setQuery] = useState('')
+  const searchId = useId()
+  const panelRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
+  const nameOf = (item: { id: string; name: string; isCustom?: boolean }) => applianceName(t, item)
+  const all = catalog(forPicker(appliances), project.custom)
+  const textsOf = (a: CatalogItem) => searchTexts(t, a)
+  const listedIds = new Set(result.items.map((i) => i.id))
+  const suggestions = searchAppliances(all, query, textsOf, listedIds)
+  // What the words find that is on the list already: said by name, so a match is never reported as a miss.
+  const listed = searchAppliances(all.filter((a) => listedIds.has(a.id)), query, textsOf, new Set())
+  const goToRow = (itemId: string) => {
+    const rows = rowsOf(panelRef.current)
+    rows.find((row) => row.getAttribute('data-item-id') === itemId)?.querySelector<HTMLElement>('.stepper-qty__n')?.focus()
+  }
+  // A suggestion is gone once added: focus stays where the next one is typed.
+  const add = (itemId: string) => {
+    searchRef.current?.focus()
+    onQty(itemId, 1)
+    setQuery('')
+  }
+  // Which row was removed, by its place in the list, so focus can go to the one that takes its place.
+  const removedRow = useRef(NO_ROW)
+  const setQty = (itemId: string, n: number) => {
+    if (n <= 0) removedRow.current = rowsOf(panelRef.current).findIndex((row) => row.contains(document.activeElement))
+    onQty(itemId, n)
+  }
+  // Opened under the figures, the list can start right at the footer: bring its first row up, leaving the figures in view.
+  useEffect(() => {
+    const top = panelRef.current?.getBoundingClientRect().top ?? 0
+    const hiddenPx = top + PANEL_SHOWN_PX - usableBottom()
+    if (hiddenPx > 0) scrollDownBy(hiddenPx)
+  }, [])
+  // Results open under the field: bring them up over the footer and the keyboard, without taking the field off screen.
+  const hasQuery = query.trim() !== ''
+  useEffect(() => {
+    if (!hasQuery) return
+    const resultsBottom = resultsRef.current?.getBoundingClientRect().bottom ?? 0
+    const fieldTop = searchRef.current?.getBoundingClientRect().top ?? 0
+    const hiddenPx = Math.min(resultsBottom - usableBottom(), fieldTop - SEARCH_TOP_GAP_PX)
+    if (hiddenPx > 0) scrollDownBy(hiddenPx)
+  }, [hasQuery, query])
+  const itemCount = result.items.length
+  useEffect(() => {
+    const index = removedRow.current
+    removedRow.current = NO_ROW
+    if (index === NO_ROW) return
+    const next = rowsOf(panelRef.current)[index]?.querySelector('button') ?? searchRef.current
+    next?.focus()
+  }, [itemCount])
+
+  return (
+    <div ref={panelRef} id={id} className="qedit__panel">
+      <div className="qedit__add">
+        <label htmlFor={searchId} className="visually-hidden">{t.ui.addApplianceSearch}</label>
+        <Search size={16} aria-hidden="true" className="qedit__search-icon" />
+        <input ref={searchRef} id={searchId} className="in qedit__search" type="search" autoComplete="off" placeholder={t.ui.addApplianceSearch} value={query} onChange={(e) => setQuery(e.target.value)} />
+        {hasQuery && (
+          <div ref={resultsRef} className="qedit__sugs">
+            {suggestions.map((a) => (
+              <button key={a.id} type="button" className="qedit__sug" onClick={() => add(a.id)}>
+                <span className="qedit__sug-name">{nameOf(a)}</span>
+                <span className="num muted">{fmtW(a.watts, locale)}</span>
+                <span className="qedit__sug-add">{t.ui.add}</span>
+              </button>
+            ))}
+            {listed.map((a) => (
+              <button key={a.id} type="button" className="qedit__sug" onClick={() => goToRow(a.id)}>
+                <span className="qedit__sug-name">{tr(t, 'alreadyOnList', { name: nameOf(a) })}</span>
+              </button>
+            ))}
+            {suggestions.length === 0 && listed.length === 0 && <p className="muted qedit__none">{t.ui.noSearchMatch}</p>}
           </div>
-          <button type="button" className="qedit__all" onClick={onAllAppliances}>{t.ui.allAppliances}</button>
+        )}
+      </div>
+      <button type="button" className="linkbtn qedit__all" onClick={onAllAppliances}>{t.ui.allAppliances}</button>
+      {groupByKind(result.items).map((g) => (
+        <div key={g.kind} className="qedit__group">
+          <span className="lab qedit__group-label">{t.kinds[g.kind]}</span>
+          <ul className="qedit__list">
+            {g.items.map((item) => (
+              <QuickEditRow key={item.id} item={item} name={nameOf(item)} onQty={(n) => setQty(item.id, n)} onDuty={(duty) => onDuty(item.id, duty)} />
+            ))}
+          </ul>
         </div>
-      )}
+      ))}
     </div>
   )
 }

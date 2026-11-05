@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { PHONE } from './phone'
-import { hideProjects, showDownload } from './projects'
+import { hideProjects, openInclude, showDownload } from './projects'
 
 const STORAGE_KEY = 'solar-dimension.projects.v1'
 const LOS_SAMANES = {
@@ -49,6 +49,7 @@ test('the spec sheet prints the requester band, and Include takes it off', async
   // Page 1: header, client, figures and parts; the load schedule gets page 2.
   expect(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)).toHaveLength(2)
 
+  await openInclude(page)
   await page.getByRole('checkbox', { name: 'Client details' }).uncheck()
   await expect(band).toHaveCount(0)
   await page.getByRole('radio', { name: /^Parts list \(CSV\)/ }).check()

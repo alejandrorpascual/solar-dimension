@@ -18,7 +18,7 @@ function glossary(locale: Locale) {
   view.locale = locale
   const result = compute({ qty: { micro: 1 }, hours: 24, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
   const html = renderToStaticMarkup(createElement(KitSummary, { result, baseline: null, projectName: 'Home', oversize: null, quickEdit: null, onBatteryUnit: () => {} }))
-  const block = /<details class="[^"]*gloss[^"]*">[\s\S]*?<\/details>/.exec(html)?.[0] ?? ''
+  const block = /<details class="[^"]*gloss[^"]*"[^>]*>[\s\S]*?<\/details>/.exec(html)?.[0] ?? ''
   const text = (pattern: RegExp) => [...block.matchAll(pattern)].map((m) => m[1]!.replace(/<[^>]+>/g, ''))
   return { tag: /^<details[^>]*>/.exec(block)?.[0] ?? '', summary: text(/<summary[^>]*>([\s\S]*?)<\/summary>/g)[0], terms: text(/<dt>([\s\S]*?)<\/dt>/g), bodies: text(/<dd[^>]*>([\s\S]*?)<\/dd>/g) }
 }

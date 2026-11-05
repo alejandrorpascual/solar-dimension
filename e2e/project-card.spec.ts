@@ -1,8 +1,8 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 import { PHONE } from './phone'
 import {
-  answerDelete, deleteAsk, openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, RETRY_AFTER_MS, showProjects, startNewProject,
-  startRename,
+  answerDelete, deleteAsk, openProjectAction, openProjectCard, openProjectMenu, openProjectMore, openProjectTitle, projectNameField, RETRY_AFTER_MS, showProjects,
+  startNewProject, startRename,
 } from './projects'
 
 /** Sizes read back from computed styles are rounded; two that differ by less than this are the same size. */
@@ -274,8 +274,9 @@ test('renaming an existing project with Enter keeps the sheet open', PHONE, asyn
 test("a card's controls scroll under the sheet's header, never over its Close button", PHONE, async ({ page }, testInfo) => {
   test.skip(!isPhone(testInfo), 'only the phone shows the cards in a sheet')
   await page.goto('/')
-  await addProject(page)
-  await addProject(page)
+  // Copies of Home rather than new projects: a new one starts empty, and three short cards leave the sheet nothing to scroll.
+  await openProjectAction(page, 'Duplicate')
+  await openProjectAction(page, 'Duplicate')
   await expect(page.getByRole('article')).toHaveCount(3)
   const sheet = page.getByRole('dialog')
   const close = sheet.getByRole('button', { name: 'Close' })

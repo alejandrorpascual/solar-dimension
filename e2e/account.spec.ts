@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { accountAction } from './header'
 import { PHONE } from './phone'
-import { acceptNewProjectName, hideProjects, showProjects, startNewProject } from './projects'
+import { acceptNewProjectName, hideProjects, showAcSizes, showProjects, startNewProject } from './projects'
 
 test('sign up, keep a project across reload and sign-out/sign-in', PHONE, async ({ page }) => {
   const email = `e2e-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
@@ -130,6 +130,7 @@ test('an edit the account refuses as older gives way to the newer copy another d
     Date.now = () => realNow() - lag
   }, TEN_MINUTES_MS)
 
+  await showAcSizes(page)
   await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
 
   await expect(page.getByLabel('Chest freezer: share of each hour it runs')).toBeVisible()

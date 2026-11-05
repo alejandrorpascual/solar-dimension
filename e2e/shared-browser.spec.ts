@@ -2,7 +2,7 @@ import { expect, test, type Page, type Response } from '@playwright/test'
 import { quotesEn } from '../src/i18n/quotes-en'
 import { cloneProject, countQuoteRows, firstProjectId, markEmailVerified, seedFailedQuote } from './db'
 import { accountAction } from './header'
-import { acceptNewProjectName, hideProjects, showProjects, startNewProject } from './projects'
+import { acceptNewProjectName, hideProjects, showAcSizes, showProjects, startNewProject } from './projects'
 import { isProjectRead, pickQuoteFiles, quotePdf } from './quotes'
 
 const PASSWORD = 'correct-horse-battery'
@@ -64,6 +64,7 @@ async function beaThenAnaOnOneBrowser(page: Page): Promise<{ bea: string }> {
   await accountAction(page, 'Sign out')
   await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
   await signUp(page, newEmail('ana'))
+  await showAcSizes(page)
   await addAndSave(page, '2 ton AC · conventional')
   const name = await startNewProject(page)
   await name.fill(CLIENT_PROJECT)

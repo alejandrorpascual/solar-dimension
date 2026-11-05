@@ -2,6 +2,7 @@
 // made in the other (issue #93). The account is read back from the database, not from the page.
 import { expect, test, type Page, type Request, type Route } from '@playwright/test'
 import { savedProject } from './db'
+import { openBatterySettings } from './projects'
 
 const PASSWORD = 'e2e-sync-password-1234'
 const newEmail = () => `e2e-sync-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`
@@ -30,10 +31,11 @@ async function signIn(page: Page, email: string): Promise<void> {
   await synced(page, email)
 }
 
-/** Opens step 2 (hours and battery) once the account's projects are in. */
+/** Opens step 2 (hours and battery) once the account's projects are in, with the battery settings that hold the voltage out. */
 async function openStep2(page: Page, email: string): Promise<void> {
   await page.goto('/?step=2')
   await synced(page, email)
+  await openBatterySettings(page)
 }
 
 const isSave = (request: Request) => request.url().includes('/_serverFn/') && request.method() === 'POST'
@@ -74,6 +76,7 @@ test('two tabs: hours set in tab A show in tab B, volts set in B next keep them,
     await tab.reload()
     await synced(tab, email)
     await expect(hoursShown(tab)).toHaveText('24 h')
+    await openBatterySettings(tab)
     await expect(voltage(tab, 12)).toHaveAttribute('aria-pressed', 'true')
   }
 })

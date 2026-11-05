@@ -67,7 +67,23 @@ test('with the box unticked there is no bundling factor to show, in either langu
 })
 
 test('the Cable run summary shows a chevron, so it reads as something that opens', () => {
-  const summary = /<summary class="elec__summary">([\s\S]*?)<\/summary>/.exec(stepTwo('en'))?.[1] ?? ''
-  expect(summary).toContain('Cable run')
+  const summaries = [...stepTwo('en').matchAll(/<summary class="elec__summary">([\s\S]*?)<\/summary>/g)].map((m) => m[1] ?? '')
+  const summary = summaries.find((s) => s.includes('Cable run')) ?? ''
   expect(summary).toMatch(/<svg[^>]*class="[^"]*lucide-chevron-down/)
+})
+
+test('voltage, chemistry and motors fold under one line, named by its title, that still states their values, in English and Spanish', () => {
+  // The title names the box (aria-labelledby): a heading inside <summary> is flattened by its button role in VoiceOver and Safari.
+  expect(stepTwo('en')).toMatch(/<details class="elec" aria-labelledby="([^"]+)"><summary[^>]*><span class="elec__title" id="\1">Battery and motors<\/span><span[^>]*>48 V · LiFePO₄ lithium · One at a time<\/span>/)
+  expect(stepTwo('es')).toContain('Batería y motores')
+})
+
+test('the 36 V note shows outside the closed box', () => {
+  const html = stepTwo('en', (store) => patchCurrent(store, { volts: 36 }))
+  expect(html.indexOf('Few inverters')).toBeGreaterThan(html.indexOf('</details>'))
+})
+
+test('the hours slider says its value in words, so a screen reader hears "10 hours", not a bare number, in English and Spanish', () => {
+  expect(stepTwo('en')).toMatch(/<input id="hours" type="range"[^>]*aria-valuetext="10 hours"/)
+  expect(stepTwo('es')).toMatch(/<input id="hours" type="range"[^>]*aria-valuetext="10 horas"/)
 })

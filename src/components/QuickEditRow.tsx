@@ -18,7 +18,7 @@ export function QuickEditRow({ item, name, onQty, onDuty }: Props) {
   const { t, locale } = useLocale()
   const average = item.kind === 'continuous' ? '' : ` · ${tr(t, 'averageDraw', { w: fmtW(averageWatts(item), locale) })}`
   return (
-    <li className="qedit__row">
+    <li className="qedit__row" data-item-id={item.id}>
       <div className="qedit__name">
         <span className="qedit__title">{name}</span>
         <span className="num qedit__watts">{fmtW(item.totalWatts, locale)}{average}</span>
