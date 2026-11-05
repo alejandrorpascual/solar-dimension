@@ -42,7 +42,9 @@ describe('stylesheets', () => {
   it('eases the hover of buttons, chips and links with the tile token, and rings their keyboard focus like the stepper', () => {
     const base = sheets.find((s) => s.file === 'base.css')?.css ?? ''
     const hover = base.match(/:where\(([^)]*)\)\s*\{[^}]*transition:[^}]*var\(--dur-fast\)/)
-    const ring = base.match(/:where\(([^)]*)\):focus-visible\s*\{[^}]*outline: 2px solid var\(--accent\)/)
+    const ring = base.match(/:where\(([^)]*)\):focus-visible\s*\{[^}]*outline: var\(--focus-ring\)/)
+    const tokens = sheets.find((s) => s.file === 'tokens.css')?.css ?? ''
+    expect(tokens).toMatch(/--focus-ring: 2px solid var\(--accent\);/)
     for (const selector of ['a', '.btn', '.chip']) expect(hover?.[1].split(/,\s*/)).toContain(selector)
     for (const selector of ['a', 'button', 'select', '.chip']) expect(ring?.[1].split(/,\s*/)).toContain(selector)
     const solar = sheets.find((s) => s.file === 'solar.css')?.css ?? ''

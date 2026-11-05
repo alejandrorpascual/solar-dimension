@@ -84,7 +84,7 @@ for (const language of ['English', 'Español'] as const) {
     for (const width of CARD_WIDTHS) {
       await page.setViewportSize({ width, height: VIEWPORT_HEIGHT })
       await fontsReady(page)
-      expect.soft(await pickerProblems(page, picker, card, card.locator('.stepper-qty')), `${language} at ${width} px`).toEqual([])
+      expect.soft(await pickerProblems(page, picker, card, card.locator('.qstep')), `${language} at ${width} px`).toEqual([])
     }
   })
 
@@ -149,14 +149,14 @@ interface CardControls { name: string; top: number; controlsBottom: number; hasM
 /** Every card in a section: where it starts, and where its Add button or its quantity buttons end. Read in one go. */
 const cardControls = (cards: Locator): Promise<CardControls[]> =>
   cards.evaluateAll((all) => all.map((card) => {
-    const controls = card.querySelector('.stepper-qty, .add')
+    const controls = card.querySelector('.qstep, .add')
     if (!controls) throw new Error('A card has neither an Add button nor quantity buttons.')
     return {
       name: card.querySelector('.card__name')?.textContent ?? '',
       top: card.getBoundingClientRect().top,
       controlsBottom: controls.getBoundingClientRect().bottom,
       hasMeter: card.querySelector('.duty') !== null,
-      isAdded: card.querySelector('.stepper-qty') !== null,
+      isAdded: card.querySelector('.qstep') !== null,
     }
   }))
 

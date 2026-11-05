@@ -105,17 +105,17 @@
 .qunranked .qhead__name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .qrow--failed { border-color: color-mix(in srgb, var(--error) 30%, var(--surface)); }
 .qrow__spacer { flex: 1 1 auto; }
-.qsteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
-.qstep { display: flex; align-items: flex-start; gap: 10px; color: var(--muted); }
-.qstep__dot { flex: 0 0 22px; width: 22px; height: 22px; box-sizing: border-box; display: grid; place-items: center; border: 2px solid var(--line-strong); border-radius: 999px; }
-.qstep__text { display: flex; flex-direction: column; gap: 2px; padding-top: 2px; }
-.qstep__label { font-weight: 600; }
-.qstep--done { color: var(--success); }
-.qstep--done .qstep__dot { border: 0; background: var(--success-tint); }
-.qstep--active { color: var(--accent); }
-.qstep--active .qstep__label, .qstep--failed .qstep__label { font-weight: 700; }
-.qstep--failed { color: var(--error); }
-.qstep--failed .qstep__dot { border: 0; background: var(--error); color: #FFFFFF; }
+.qprogs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
+.qprog { display: flex; align-items: flex-start; gap: 10px; color: var(--muted); }
+.qprog__dot { flex: 0 0 22px; width: 22px; height: 22px; box-sizing: border-box; display: grid; place-items: center; border: 2px solid var(--line-strong); border-radius: 999px; }
+.qprog__text { display: flex; flex-direction: column; gap: 2px; padding-top: 2px; }
+.qprog__label { font-weight: 600; }
+.qprog--done { color: var(--success); }
+.qprog--done .qprog__dot { border: 0; background: var(--success-tint); }
+.qprog--active { color: var(--accent); }
+.qprog--active .qprog__label, .qprog--failed .qprog__label { font-weight: 700; }
+.qprog--failed { color: var(--error); }
+.qprog--failed .qprog__dot { border: 0; background: var(--error); color: #FFFFFF; }
 @media (max-width: 639px) {
   .qunranked__grid { grid-template-columns: minmax(0, 1fr); }
 }

@@ -71,7 +71,11 @@ function CardKit({ summary: s }: { summary: ProjectSummary }) {
         <div><dt className="lab">{t.ui.bank}</dt><dd className="num">{fmtKwh(r.battery.bankWh, locale)}</dd></div>
         <div><dt className="lab">{t.ui.inverter}</dt><dd className="num">{fmtInverter(r.inverter, locale)}</dd></div>
       </dl>
-      <div className="pcard__bar" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(LOAD_BAR_MIN_PERCENT, Math.round(s.loadShare * 100)) / 100})` }} /></div>
+      {/* The caption says what the bar measures; the running load itself is in words on the line under it. */}
+      <div className="pcard__share">
+        <span className="pcard__share-cap">{t.ui.loadShare}</span>
+        <div className="pcard__bar" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(LOAD_BAR_MIN_PERCENT, Math.round(s.loadShare * 100)) / 100})` }} /></div>
+      </div>
       <p className="pcard__load num">{`${fmtW(r.runningW, locale)} ${t.ui.running} · ${batteryCount(t, r.battery.count)} · ${r.cable.gauge}`}</p>
       <p className="pcard__items">{heaviestLine(s, t)}</p>
     </>
@@ -145,7 +149,7 @@ export function ProjectCards({ store, commit, onPicked, onCreated }: Props) {
     <div className="pcards">
       <div className="pcards__head">
         <span className="lab">{t.ui.projects}</span>
-        <button type="button" className="pcards__new" onClick={createProject}>{t.ui.newProject}</button>
+        <button type="button" className="linkbtn pcards__new" onClick={createProject}>{t.ui.newProject}</button>
       </div>
       {currentFirst(summarizeProjects(store.projects, appliances), store.currentId).map((s) => (
         <ProjectCard

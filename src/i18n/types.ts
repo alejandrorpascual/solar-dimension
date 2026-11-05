@@ -41,7 +41,7 @@ export interface LegalPage { title: string; updated: string; sections: readonly 
 export type UiKey =
   | 'siteDescription'
   | 'steps' | 'step1' | 'step2' | 'step3' | 'step4' | 'stepOf'
-  | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled'
+  | 'project' | 'projectName' | 'newProject' | 'duplicate' | 'delete' | 'untitled' | 'loadShare'
   | 'firstProject' | 'projectNumbered' | 'copySuffix' | 'customTag'
   | 'deleteProject' | 'deleteProjectOne' | 'deleteProjectMany' | 'deleteProjectAny' | 'deleteProjectYes'
   | 'q1' | 'q1Help' | 'q1HelpMore' | 'sampleNote' | 'exampleLeft' | 'clearAll' | 'seeList' | 'seeAllAppliances' | 'showAcSizes' | 'hideAcSizes' | 'skipList' | 'filterAdded' | 'acSearchTerms' | 'categoryFilter' | 'acInverter' | 'acInverterHelp' | 'acConventional' | 'acConventionalHelp' | 'acSizeOne' | 'acSizeMany'

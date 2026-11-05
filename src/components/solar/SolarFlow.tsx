@@ -26,7 +26,7 @@ export function SolarFlow({ result: r }: Props) {
       {isNoteOut && clearBox}
       <details className="elec">
         <summary className="elec__summary">
-          <span>{t.ui.clearDay}</span>
+          <h2 className="elec__title">{t.ui.clearDay}</h2>
           <span className="num elec__values">{tr(t, 'flowSummary', { wh: fmtKwh(s.dailyWh, locale), pct: fmtPercent(s.coverRatio, locale) })}</span>
           <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
         </summary>

@@ -50,7 +50,7 @@ export function CableConditions({ electrical: e, onChange, bundleFactor }: Props
   return (
     <details className="elec">
       <summary className="elec__summary">
-        <span>{t.ui.cableRun}</span>
+        <h2 className="elec__title">{t.ui.cableRun}</h2>
         <span className="num elec__values">{summary}</span>
         <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
       </summary>

@@ -175,26 +175,29 @@ function KitBuilderPage() {
 
   return (
     <div className="workspace">
-      <main className="page">
+      {/* The header and the footer are siblings of main, so they read as the page's banner and contentinfo. */}
+      <div className="page">
         <HeaderBar stepper={{ step, onGo: go, hasAppliances: !result.empty }} account={<AccountMenu session={session} busy={syncing || saving} onSignOut={signOut} google={google} step={step} />} />
-        {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
-        {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
-        <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
-        {session.status === 'unreachable' && <div className="warn" role="status">{t.ui.accountUnreachable}</div>}
-        {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
-        {syncing && <div className="muted">{t.ui.syncing}</div>}
-        <section className="stage">
-          <h1 ref={headingRef} tabIndex={-1} className="stage__title">{stepTitle(step, project.name, t)}</h1>
-          {step === 1 && (
-            <>
-              <ApplianceGrid key={project.id} store={store} commit={commit} onAnnounce={status.announce} />
-              <CustomApplianceForm store={store} commit={commit} onAdded={(name) => status.announce(tr(t, 'customAdded', { name }))} />
-            </>
-          )}
-          {step === 2 && <BackupWindow store={store} commit={commit} result={result} />}
-          {step === 3 && <SolarStep store={store} commit={commit} project={project} result={result} />}
-          {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={openCatalogFromKit} isListOpen={isKitListOpen} onListOpen={setKitListOpen} />}
-        </section>
+        <main className="page__main">
+          {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
+          {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
+          <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
+          {session.status === 'unreachable' && <div className="warn" role="status">{t.ui.accountUnreachable}</div>}
+          {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
+          {syncing && <div className="muted">{t.ui.syncing}</div>}
+          <section className="stage">
+            <h1 ref={headingRef} tabIndex={-1} className="stage__title">{stepTitle(step, project.name, t)}</h1>
+            {step === 1 && (
+              <>
+                <ApplianceGrid key={project.id} store={store} commit={commit} onAnnounce={status.announce} />
+                <CustomApplianceForm store={store} commit={commit} onAdded={(name) => status.announce(tr(t, 'customAdded', { name }))} />
+              </>
+            )}
+            {step === 2 && <BackupWindow store={store} commit={commit} result={result} />}
+            {step === 3 && <SolarStep store={store} commit={commit} project={project} result={result} />}
+            {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={openCatalogFromKit} isListOpen={isKitListOpen} onListOpen={setKitListOpen} />}
+          </section>
+        </main>
         <LegalLinks />
         <div className="visually-hidden" role="status">{status.line}</div>
         <WizardFooter
@@ -210,7 +213,7 @@ function KitBuilderPage() {
           onAddAppliances={step === 4 && result.empty ? openCatalogFromKit : undefined}
           isDownloadOpen={railTab === 'download'}
         />
-      </main>
+      </div>
       <aside ref={railRef} className="rail" aria-label={t.ui.projects}>
         <SideRail {...rail} />
       </aside>

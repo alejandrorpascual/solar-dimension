@@ -63,7 +63,7 @@ test('the kit edits appliances and the window in place, shows what moved, and un
   const panel = page.locator('.qedit__panel')
   await panel.getByRole('button', { name: 'Add Refrigerator' }).click()
   await expect(panel.getByLabel('Quantity of Refrigerator')).toHaveValue('2')
-  await expect(page.locator('.stat__delta').first()).toHaveText('+150 W')
+  await expect(page.locator('.stat').filter({ hasText: 'Running load' }).locator('.stat__delta')).toHaveText('+150 W')
 
   await panel.getByLabel('Add an appliance').fill('kettle')
   await panel.getByRole('button', { name: /^Electric kettle/ }).click()
@@ -98,9 +98,9 @@ test('the summary, the Appliances chip and the project card count the same appli
 test('the full list is split into one labeled section per category', async ({ page }) => {
   await page.goto('/')
   const ac = page.getByRole('region', { name: 'Air conditioning', exact: true })
-  await expect(ac.getByRole('heading', { level: 4 })).toHaveCount(0)
+  await expect(ac.getByRole('heading', { level: 3 })).toHaveCount(0)
   await showAcSizes(page)
-  await expect(ac.getByRole('heading', { level: 4 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
+  await expect(ac.getByRole('heading', { level: 3 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
   await expect(ac).not.toContainText('Wi-Fi router + modem')
   await expect(page.getByRole('region', { name: 'Work', exact: true })).toContainText('Wi-Fi router + modem')
 
@@ -137,10 +137,12 @@ test('a condo can type 32 cameras, and the AC list is grouped by compressor type
   await expect(field).toHaveValue('100')
 
   await page.getByRole('button', { name: 'Air conditioning', exact: true }).click()
-  await expect(page.getByRole('main').getByRole('heading', { level: 3 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
+  // With one category picked there is no section heading, so the AC groups are level 2, under the step's level 1.
+  const catalog = page.locator('.catalog')
+  await expect(catalog.getByRole('heading', { level: 2 })).toHaveText(['Inverter air conditioning', 'Conventional air conditioning'])
   await expect(page.getByText('1 ton · 12k BTU', { exact: true })).toHaveCount(2)
   await page.getByRole('searchbox').fill('2 ton')
-  await expect(page.getByRole('main').getByRole('heading', { level: 3 })).toHaveCount(0)
+  await expect(catalog.getByRole('heading', { level: 2 })).toHaveCount(0)
   await expect(page.getByText('2 ton AC · inverter', { exact: true })).toBeVisible()
 })
 
@@ -310,13 +312,21 @@ test('appliances can be added, filtered and a custom load created from volts × 
   await expect(page.getByText('Pool pump')).toHaveCount(0)
 })
 
-test('the custom form explains what is missing', async ({ page }) => {
+test('the custom form explains what is missing on the field it is about, and Enter adds', async ({ page }) => {
   await page.goto('/')
+  const name = page.getByLabel('Name', { exact: true })
   // A click that lands before the page hydrates does nothing; an empty form only shows the error, so clicking again is safe.
   await expect(async () => {
     await page.getByRole('button', { name: 'Add appliance' }).click()
     await expect(page.getByText('Give the appliance a name.')).toBeVisible({ timeout: 1000 })
   }).toPass()
+  await expect(name).toHaveAttribute('aria-invalid', 'true')
+  await expect(name).toHaveAccessibleDescription('Give the appliance a name.')
+  await expect(name).toBeFocused()
+  await name.fill('Pond pump')
+  await page.getByLabel('Running W').fill('400')
+  await page.getByLabel('Running W').press('Enter')
+  await expect(page.getByText('Custom · 400 W')).toBeVisible()
 })
 
 test('the custom form questions watts typed with a thousands separator, and keeps a name to what a saved project holds', async ({ page }) => {

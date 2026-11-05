@@ -70,7 +70,7 @@ export function KitQuickEditBar({ project, result, isDirty, isOpen, panelId, onT
         {isDirty && (
           <div className="qedit__status" role="status">
             <span className="qedit__dot" aria-hidden="true" />{t.ui.saved}
-            <button type="button" className="qedit__undo" onClick={undo}>{t.ui.undo}</button>
+            <button type="button" className="linkbtn qedit__undo" onClick={undo}>{t.ui.undo}</button>
           </div>
         )}
       </div>
@@ -168,7 +168,7 @@ export function KitQuickEditPanel({ id, project, result, onQty, onDuty, onAllApp
           </div>
         )}
       </div>
-      <button type="button" className="qedit__all" onClick={onAllAppliances}>{t.ui.allAppliances}</button>
+      <button type="button" className="linkbtn qedit__all" onClick={onAllAppliances}>{t.ui.allAppliances}</button>
       {groupByKind(result.items).map((g) => (
         <div key={g.kind} className="qedit__group">
           <span className="lab qedit__group-label">{t.kinds[g.kind]}</span>

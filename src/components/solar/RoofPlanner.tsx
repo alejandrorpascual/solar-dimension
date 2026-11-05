@@ -1,3 +1,4 @@
+import { Minus, Plus } from 'lucide-react'
 import { useId } from 'react'
 import { useLocale } from '../../hooks/useLocale'
 import { panelCount, tr } from '../../i18n'
@@ -24,9 +25,9 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
         <label className="lab" htmlFor={roofId}>{t.ui.roofSpace}</label>
         <div className="planner__roof-row">
           <div className="planner__stepper">
-            <button type="button" className="planner__step" aria-label={t.ui.roofLess} disabled={s.roofM2 <= SOLAR.ROOF_RANGE[0]} onClick={() => onRoof(s.roofM2 - SOLAR.ROOF_STEP)}>−</button>
+            <button type="button" className="st planner__step" aria-label={t.ui.roofLess} disabled={s.roofM2 <= SOLAR.ROOF_RANGE[0]} onClick={() => onRoof(s.roofM2 - SOLAR.ROOF_STEP)}><Minus size={16} aria-hidden="true" /></button>
             <output id={roofId} className="in num planner__roof-value" aria-live="polite">{`${s.roofM2} m²`}</output>
-            <button type="button" className="planner__step" aria-label={t.ui.roofMore} disabled={s.roofM2 >= SOLAR.ROOF_RANGE[1]} onClick={() => onRoof(s.roofM2 + SOLAR.ROOF_STEP)}>+</button>
+            <button type="button" className="st planner__step" aria-label={t.ui.roofMore} disabled={s.roofM2 >= SOLAR.ROOF_RANGE[1]} onClick={() => onRoof(s.roofM2 + SOLAR.ROOF_STEP)}><Plus size={16} aria-hidden="true" /></button>
           </div>
           <p className="planner__fits">
             <span className="planner__fits-line">{tr(t, shownFit === 1 ? 'roofFitsOne' : 'roofFitsMany', { panels: panelCount(t, shownFit) })}</span>

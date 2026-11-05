@@ -19,9 +19,9 @@ interface Props {
 
 function StepMark({ step }: { step: ReadStep }) {
   if (step.state === 'active') return <Spinner size={22} />
-  if (step.state === 'done') return <span className="qstep__dot"><Check size={12} strokeWidth={3} aria-hidden="true" /></span>
-  if (step.state === 'failed') return <span className="qstep__dot"><X size={12} strokeWidth={3} aria-hidden="true" /></span>
-  return <span className="qstep__dot" />
+  if (step.state === 'done') return <span className="qprog__dot"><Check size={12} strokeWidth={3} aria-hidden="true" /></span>
+  if (step.state === 'failed') return <span className="qprog__dot"><X size={12} strokeWidth={3} aria-hidden="true" /></span>
+  return <span className="qprog__dot" />
 }
 
 /** A quote not compared yet, as the steps it has been through: uploaded, read (or not), compared with the kit. */
@@ -37,12 +37,12 @@ export function ProgressCard({ u, retries, retry, error, onRetry, onDelete }: Pr
         <h3 className="qrow__name qhead__name" id={nameId}>{u.name}</h3>
         {sub && <p className="qmeta qhead__sub">{sub}</p>}
       </div>
-      <ol className="qsteps">
+      <ol className="qprogs">
         {readSteps(u.quote.status).map((s) => (
-          <li key={s.id} className={`qstep qstep--${s.state}`}>
+          <li key={s.id} className={`qprog qprog--${s.state}`}>
             <StepMark step={s} />
-            <span className="qstep__text">
-              <span className="qstep__label">{stepLabel(t, s, u.quote.status)}</span>
+            <span className="qprog__text">
+              <span className="qprog__label">{stepLabel(t, s, u.quote.status)}</span>
               {s.state === 'failed' && retry === 'retry' && <span className="qmeta">{t.quotes.failedHelp}</span>}
             </span>
           </li>

@@ -84,7 +84,17 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
         <ChecksAttention text={attentionLine(t, r)} />
         {quickEdit}
       </div>
+      {/* Runtime leads: it is the answer the visitor came for, so it comes first and one step larger than the rest. */}
+      {!r.empty && <h2 className="visually-hidden">{t.ui.incSummary}</h2>}
       {!r.empty && <div className={`stats${hasPanels(r) ? ' stats--five' : ''}`}>
+        <div className="stat stat--accent stat--lead">
+          <div className="lab">{t.ui.runtime}</div>
+          <div className="stat__row">
+            <span className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</span>
+            <Delta text={d ? signed(d.runtimeH, (n) => fmtHours(n, locale)) : ''} />
+          </div>
+          {r.battery && !r.empty && <RuntimeRange runtime={r.battery.runtime} t={t} locale={locale} className="stat__sub num" />}
+        </div>
         <div className="stat">
           <div className="lab">{t.ui.runningLoad}</div>
           <div className="stat__row"><span className="stat__v num">{fmtW(r.runningW, locale)}</span><Delta text={d ? signed(d.runningW, w) : ''} /></div>
@@ -97,14 +107,6 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
         <div className="stat">
           <div className="lab">{t.ui.batteryNeeded}</div>
           <div className="stat__row"><span className="stat__v num">{fmtKwh(r.requiredWh, locale)}</span><Delta text={d ? signed(d.requiredWh, (n) => fmtKwh(n, locale)) : ''} /></div>
-        </div>
-        <div className="stat stat--accent">
-          <div className="lab">{t.ui.runtime}</div>
-          <div className="stat__row">
-            <span className="stat__v num">{r.battery && !r.empty ? `~${fmtHours(r.battery.hoursActual, locale)}` : '—'}</span>
-            <Delta text={d ? signed(d.runtimeH, (n) => fmtHours(n, locale)) : ''} />
-          </div>
-          {r.battery && !r.empty && <RuntimeRange runtime={r.battery.runtime} t={t} locale={locale} className="stat__sub num" />}
         </div>
         {hasPanels(r) && (
           <div className="stat stat--sun">
@@ -125,6 +127,7 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
       {!r.empty && <BatteryPicker options={r.batteryOptions} selected={r.batteryUnit} onSelect={onBatteryUnit} />}
       {quickEditPanel}
       <div className="parts">
+        {parts.length > 0 && <h2 className="visually-hidden">{t.ui.incParts}</h2>}
         {parts.length > 0 ? <PartsTable parts={parts} t={t} /> : <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}
       </div>
       {parts.length > 0 && <p className="estimate" role="note">{hasPanels(r) ? `${t.ui.estimateNotice} ${t.ui.solarNotSized}` : t.ui.estimateNotice}</p>}
@@ -136,7 +139,7 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
       )}
       <details className="elec">
         <summary className="elec__summary">
-          <span>{t.ui.incNotes}</span>
+          <h2 className="elec__title">{t.ui.incNotes}</h2>
           <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
         </summary>
         <p className="fine muted">{finePrint(t, r, dod, locale)}</p>

@@ -30,7 +30,7 @@ export const en: Dictionary = {
   ui: {
     siteDescription: 'Size an off-grid solar backup kit: pick the appliances to keep on, set the hours, and get the inverter, batteries, cables and parts list.',
     steps: 'Steps', step1: 'Appliances', step2: 'Backup window', step3: 'Solar panels', step4: 'Your kit', stepOf: 'Step {n} of 4',
-    project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled',
+    project: 'Project', projectName: 'Project name', newProject: '+ New project', duplicate: 'Duplicate', delete: 'Delete', untitled: 'Untitled', loadShare: 'Running load beside your largest project',
     firstProject: 'Home', projectNumbered: 'Project {n}', copySuffix: ' copy', customTag: 'Custom',
     deleteProject: "Delete “{name}”? This can't be undone.",
     deleteProjectOne: "Delete “{name}” and its 1 quote? Its file goes too. This can't be undone.",

@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, applianceNote, tr } from '../i18n'
 import { fmtInt, fmtW } from '../i18n/format'
 import { mayRunOn240V, needsSplitPhase, type CatalogItem } from '../lib/catalog'
 import type { DutyHint } from '../lib/load-kinds'
 import type { SelectedItem } from '../lib/sizing'
-import { clampQty, parseQty } from '../lib/store'
 import { DutyMeter } from './DutyMeter'
+import { QtyStepper } from './QtyStepper'
 
 interface Props {
   item: CatalogItem; title?: string; qty: number
-  onInc: () => void; onDec: () => void; onSet: (n: number) => void; onRemove?: () => void
+  onInc: () => void; onSet: (n: number) => void; onRemove?: () => void
   /** How much of each hour it runs; null for an always-on load, which shows nothing extra. */
   duty?: DutyHint | null
   /** The appliance as sized for this project, once added; the duty bar needs it. */
@@ -18,37 +18,7 @@ interface Props {
   onDuty?: (duty: number | null) => void
 }
 
-/** The count between − and +, typeable for large numbers (a condo's 40 cameras). Commits on blur or Enter. */
-export function QtyField({ qty, label, onSet }: { qty: number; label: string; onSet: (n: number) => void }) {
-  const [draft, setDraft] = useState(String(qty))
-  const [shown, setShown] = useState(qty)
-  if (shown !== qty) {
-    setShown(qty)
-    setDraft(String(qty))
-  }
-  const commit = () => {
-    const n = parseQty(draft)
-    const next = n === null ? qty : clampQty(n)
-    setDraft(String(next))
-    if (next !== qty) onSet(next)
-  }
-  return (
-    <input
-      className="num stepper-qty__n"
-      type="text"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      aria-label={label}
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onFocus={(e) => e.currentTarget.select()}
-      onBlur={commit}
-      onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
-    />
-  )
-}
-
-export function ApplianceCard({ item, title, qty, onInc, onDec, onSet, onRemove, duty = null, selected, onDuty }: Props) {
+export function ApplianceCard({ item, title, qty, onInc, onSet, onRemove, duty = null, selected, onDuty }: Props) {
   const { t, locale } = useLocale()
   const on = qty > 0
   const name = applianceName(t, item)
@@ -89,11 +59,7 @@ export function ApplianceCard({ item, title, qty, onInc, onDec, onSet, onRemove,
         <button type="button" className="x" aria-label={tr(t, 'remove', { name })} onClick={(e) => remove(e.currentTarget)}>×</button>
       )}
       {on ? (
-        <div className="stepper-qty">
-          <button type="button" className="st" aria-label={tr(t, 'removeOne', { name })} onClick={() => change(onDec, qty <= 1)}>−</button>
-          <QtyField qty={qty} label={tr(t, 'qtyOf', { name })} onSet={(n) => change(() => onSet(n), n === 0)} />
-          <button ref={plusRef} type="button" className="st" aria-label={tr(t, 'addOne', { name })} onClick={onInc}>+</button>
-        </div>
+        <QtyStepper name={name} qty={qty} hasBinAtOne={false} plusRef={plusRef} onSet={(n) => change(() => onSet(n), n === 0)} />
       ) : (
         <button ref={addRef} type="button" className="add" aria-label={tr(t, 'addOne', { name })} onClick={() => change(onInc, true)}>{t.ui.add}</button>
       )}

@@ -72,8 +72,8 @@ test('the Cable run summary shows a chevron, so it reads as something that opens
   expect(summary).toMatch(/<svg[^>]*class="[^"]*lucide-chevron-down/)
 })
 
-test('voltage, chemistry and motors fold under one line that still states their values, in English and Spanish', () => {
-  expect(stepTwo('en')).toMatch(/<details class="elec"><summary[^>]*><span>Battery and motors<\/span><span[^>]*>48 V · LiFePO₄ lithium · One at a time<\/span>/)
+test('voltage, chemistry and motors fold under one line, headed by a level-2 heading, that still states their values, in English and Spanish', () => {
+  expect(stepTwo('en')).toMatch(/<details class="elec"><summary[^>]*><h2[^>]*>Battery and motors<\/h2><span[^>]*>48 V · LiFePO₄ lithium · One at a time<\/span>/)
   expect(stepTwo('es')).toContain('Batería y motores')
 })
 

@@ -8,7 +8,7 @@ export function Glossary() {
   return (
     <details className="elec gloss">
       <summary className="elec__summary">
-        <span>{t.glossary.title}</span>
+        <h2 className="elec__title">{t.glossary.title}</h2>
         <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
       </summary>
       <dl className="gloss__list">

@@ -41,7 +41,7 @@ export function ChecksList({ checks, t }: { checks: readonly KitCheck[]; t: Dict
       {isAllPass ? (
         <details className="elec">
           <summary className="elec__summary">
-            <h3 className="checks__fold-title">{t.ui.checks}</h3>
+            <h2 className="elec__title">{t.ui.checks}</h2>
             <span className="num elec__values">{tr(t, 'checksAllPass', { count: checks.length })}</span>
             <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
           </summary>
@@ -49,7 +49,7 @@ export function ChecksList({ checks, t }: { checks: readonly KitCheck[]; t: Dict
         </details>
       ) : (
         <>
-          <h3 className="lab">{t.ui.checks}</h3>
+          <h2 className="lab">{t.ui.checks}</h2>
           <CheckRows checks={checks} t={t} />
         </>
       )}

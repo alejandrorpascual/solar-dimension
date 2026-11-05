@@ -17,7 +17,7 @@ import { ApplianceCard } from './ApplianceCard'
 import { heaviestLine } from './heaviest-line'
 
 type Filter = 'All' | 'Added' | Category
-type Heading = 'h3' | 'h4'
+type Heading = 'h2' | 'h3'
 
 /** Read by components.css, which keeps focus clear of the search row stuck to the top; its chips wrap, so its height varies. */
 const FIND_HEIGHT_PROPERTY = '--find-h'
@@ -43,7 +43,7 @@ function AcHeader({ acType, level: Tag, t }: { acType: CompressorType; level: He
 function SectionHeader({ id, cat, added, t }: { id: string; cat: Category; added: number; t: Dictionary }) {
   return (
     <div className="catalog__head">
-      <h3 id={id} className="catalog__title">{t.categories[cat]}</h3>
+      <h2 id={id} className="catalog__title">{t.categories[cat]}</h2>
       {added > 0 && <span className="catalog__added">{tr(t, 'sectionAdded', { count: added })}</span>}
     </div>
   )
@@ -91,9 +91,9 @@ function ListNote({ store, commit, project, isAddedShown, onToggleAdded, onClear
   return (
     <p ref={noteRef} tabIndex={-1} className="muted toolbar__note">
       {text}
-      {(hasItems || isAddedShown) && <button type="button" className="rq-linkbtn" onClick={onToggleAdded}>{isAddedShown ? t.ui.seeAllAppliances : t.ui.seeList}</button>}
-      {hasItems && <button type="button" className="rq-linkbtn" onClick={clearList}>{t.ui.clearAll}</button>}
-      {cleared && !hasItems && <button type="button" className="rq-linkbtn" onClick={undo}>{t.ui.undo}</button>}
+      {(hasItems || isAddedShown) && <button type="button" className="linkbtn" onClick={onToggleAdded}>{isAddedShown ? t.ui.seeAllAppliances : t.ui.seeList}</button>}
+      {hasItems && <button type="button" className="linkbtn" onClick={clearList}>{t.ui.clearAll}</button>}
+      {cleared && !hasItems && <button type="button" className="linkbtn" onClick={undo}>{t.ui.undo}</button>}
     </p>
   )
 }
@@ -131,7 +131,7 @@ export function ApplianceGrid({ store, commit, onAnnounce }: { store: Store; com
   const filterLabel = (f: Filter) => (f === 'Added' ? tr(t, 'filterAdded', { count: addedCount }) : t.categories[f])
   // A single-category filter already names the section, so its header would only repeat the chip.
   const hasSectionHeaders = shownFilter === 'All'
-  const subLevel: Heading = hasSectionHeaders ? 'h4' : 'h3'
+  const subLevel: Heading = hasSectionHeaders ? 'h3' : 'h2'
   // The list can shrink under a search row stuck to the top of the screen: its results start right under that row.
   const findRef = useRef<HTMLDivElement>(null)
   const catalogRef = useRef<HTMLDivElement>(null)
@@ -181,7 +181,6 @@ export function ApplianceGrid({ store, commit, onAnnounce }: { store: Store; com
         title={entry.isGrouped && item.tons ? acSizeTitle(t, item.tons) : undefined}
         qty={qty}
         onInc={() => commit(setQty(store, item.id, qty + 1))}
-        onDec={() => commit(setQty(store, item.id, qty - 1))}
         onSet={(n) => commit(setQty(store, item.id, n))}
         onRemove={item.isCustom ? () => commit(removeCustom(store, item.id)) : undefined}
         duty={dutyHint(item, project.dutyOverrides)}
@@ -218,7 +217,7 @@ export function ApplianceGrid({ store, commit, onAnnounce }: { store: Store; com
         {isEmpty && (
           <p className="muted toolbar__note">
             {emptyText}
-            <button type="button" className="rq-linkbtn" onClick={() => document.querySelector<HTMLElement>('.custom input')?.focus()}>{t.ui.customAddLink}</button>
+            <button type="button" className="linkbtn" onClick={() => document.querySelector<HTMLElement>('.custom input')?.focus()}>{t.ui.customAddLink}</button>
           </p>
         )}
       </div>
