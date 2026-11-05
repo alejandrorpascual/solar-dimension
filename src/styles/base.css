@@ -15,9 +15,12 @@ a:hover { color: var(--accent-hover); }
 .lab { font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
 .muted { color: var(--muted); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.page { min-height: 100dvh; display: flex; flex-direction: column; gap: var(--space-4); padding: 24px 16px calc(var(--footer-h, 137px) + 7px); max-width: 1280px; margin: 0 auto; }
+.page { min-height: 100dvh; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6) var(--page-x) calc(var(--footer-h, 137px) + var(--space-2)); max-width: 1280px; margin: 0 auto; }
 /* The kit builder's main, between its header and its footer: it keeps the page's column and gap. */
 .page__main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: inherit; }
-@media (min-width: 1024px) { .page { padding: 36px 64px 40px; gap: var(--space-5); } }
+@media (min-width: 1024px) {
+  :root { --page-x: calc(2 * var(--space-8)); }
+  .page { padding: var(--space-8) var(--page-x) var(--space-10); gap: var(--space-5); }
+}
 /* The kit builder's footer stays pinned to the viewport bottom: keyboard focus and scrollIntoView stop above it. */
-html:has(.footer) { scroll-padding-bottom: calc(var(--footer-h, 137px) + 12px); }
+html:has(.footer) { scroll-padding-bottom: calc(var(--footer-h, 137px) + var(--space-3)); }

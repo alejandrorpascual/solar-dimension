@@ -10,7 +10,7 @@ const html = (checks: KitCheck[], locale: 'en' | 'es' = 'en') => renderToStaticM
 
 test('when every check passes they fold to one line that says so, in English and Spanish', () => {
   const passing = [check('a', 'pass'), check('b', 'pass')]
-  expect(html(passing)).toMatch(/<details class="elec"><summary[^>]*>.*All 2 pass.*<\/summary>/)
+  expect(html(passing)).toMatch(/<details class="elec"[^>]*><summary[^>]*>.*All 2 pass.*<\/summary>/)
   expect(html(passing, 'es')).toContain('Las 2 cumplen')
   expect(html(passing)).toContain('a line')
 })

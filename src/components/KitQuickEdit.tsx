@@ -58,7 +58,8 @@ export function KitQuickEditBar({ project, result, isDirty, isOpen, panelId, onT
           <ChevronDown size={14} aria-hidden="true" className="qedit__chev" />
         </button>
         <div className="qedit__window" role="group" aria-label={t.ui.windowLabel}>
-          <span className="qedit__window-label">{t.ui.windowLabel}</span>
+          {/* The group's name says it in full; a phone shows the short word, so the bar keeps one row there (rail.css). */}
+          <span className="qedit__window-label" aria-hidden="true"><span className="qedit__window-long">{t.ui.windowLabel}</span><span className="qedit__window-short">{t.ui.windowLabelShort}</span></span>
           <button type="button" className="qedit__hour" aria-label={t.ui.hourLess} disabled={project.hours <= HOURS_MIN} onClick={() => onHours(project.hours - 1)}>
             <Minus size={14} aria-hidden="true" />
           </button>

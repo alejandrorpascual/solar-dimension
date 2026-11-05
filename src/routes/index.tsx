@@ -125,16 +125,16 @@ function useStatusLine(step: Step, figure: string) {
 /**
  * Shown only under 1280px, where the rail of project cards is hidden (rail.css). The button opens the cards in a
  * sheet: renaming, duplicating and deleting live on the open project's card. The name beside it says which project
- * is open, which steps 2 and 3 show nowhere else.
+ * is open, which steps 2 and 3 show nowhere else. Step 4's heading names it already ("Kit for Home"), so it is left out there.
  */
-function OpenProject({ name, count, onOpen }: { name: string; count: number; onOpen: () => void }) {
+function OpenProject({ name, count, isNameShown, onOpen }: { name: string; count: number; isNameShown: boolean; onOpen: () => void }) {
   const { t } = useLocale()
   return (
     <div className="project-open">
       <button type="button" className="chip project-open__chip" aria-haspopup="dialog" onClick={onOpen}>
         <LayoutGrid size={16} aria-hidden="true" />{tr(t, 'projectsCount', { count })}
       </button>
-      <span className="project-open__name">{name}</span>
+      {isNameShown && <span className="project-open__name">{name}</span>}
     </div>
   )
 }
@@ -181,7 +181,7 @@ function KitBuilderPage() {
         <main className="page__main">
           {hasSignOutFailed && <div className="error" role="alert">{t.ui.signOutFailed}</div>}
           {google.hasFailed && <div className="error" role="alert">{t.quotes.connectGoogleFailed}</div>}
-          <OpenProject name={project.name} count={store.projects.length} onOpen={() => openSheet('projects')} />
+          <OpenProject name={project.name} count={store.projects.length} isNameShown={step !== 4} onOpen={() => openSheet('projects')} />
           {session.status === 'unreachable' && <div className="warn" role="status">{t.ui.accountUnreachable}</div>}
           {syncError && <div className="error" role="status">{t.ui.syncFailed}</div>}
           {syncing && <div className="muted">{t.ui.syncing}</div>}

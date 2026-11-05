@@ -1,4 +1,3 @@
-import { ChevronDown } from 'lucide-react'
 import { useId } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { applianceCount, tr } from '../i18n'
@@ -7,6 +6,7 @@ import { CHEMISTRIES, FEW_INVERTERS_VOLTAGE, VOLTAGES, type ChemistryId, type Vo
 import { HOURS_MAX, HOURS_MIN, type Store } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
 import { currentProject, patchCurrent, setElectricalIn } from '../lib/store'
+import { Fold } from './Fold'
 import { CableConditions, StartsPicker, startsTitle } from './ElectricalSettings'
 
 const PRESET_HOURS = [4, 8, 10, 12, 24, 48] as const
@@ -35,7 +35,8 @@ export function BackupWindow({ store, commit, result }: Props) {
           <label htmlFor="hours">{t.ui.hoursLabel}</label>
           <div className="hours-value num">{p.hours} h</div>
         </div>
-        <input id="hours" type="range" min={HOURS_MIN} max={HOURS_MAX} step={1} value={p.hours} onChange={(e) => setHours(Number(e.target.value))} />
+        <input id="hours" type="range" min={HOURS_MIN} max={HOURS_MAX} step={1} value={p.hours}
+          aria-valuetext={p.hours === 1 ? t.ui.hoursValueTextOne : tr(t, 'hoursValueText', { hours: p.hours })} onChange={(e) => setHours(Number(e.target.value))} />
         <div className="hs presets" role="group" aria-label={t.ui.hoursPresets}>
           {PRESET_HOURS.map((h) => (
             <button key={h} type="button" className={`chip${h === p.hours ? ' chip--on' : ''}`} aria-pressed={h === p.hours} onClick={() => setHours(h)}>{h} h</button>
@@ -43,12 +44,7 @@ export function BackupWindow({ store, commit, result }: Props) {
         </div>
         <div className="note-box">{summary}</div>
       </div>
-      <details className="elec">
-        <summary className="elec__summary">
-          <h2 className="elec__title">{t.ui.batteryDetails}</h2>
-          <span className="num elec__values">{p.volts} V · {t.chemistries[p.chemistry]} · {startsTitle(t, p.electrical.simultaneousStarts)}</span>
-          <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
-        </summary>
+      <Fold title={t.ui.batteryDetails} values={`${p.volts} V · ${t.chemistries[p.chemistry]} · ${startsTitle(t, p.electrical.simultaneousStarts)}`}>
         <div className="window__options">
           <div id={voltageId} className="window__label">{t.ui.batteryVoltage}</div>
           <div className="opt-grid" role="group" aria-labelledby={voltageId}>
@@ -68,7 +64,7 @@ export function BackupWindow({ store, commit, result }: Props) {
           </div>
           <StartsPicker electrical={p.electrical} onChange={setElectrical} />
         </div>
-      </details>
+      </Fold>
       {/* Outside the box: it has to show whether the box is open or not. */}
       {p.volts === FEW_INVERTERS_VOLTAGE && <div className="note-box">{tr(t, 'fewInvertersNote', { volts: FEW_INVERTERS_VOLTAGE })}</div>}
       <CableConditions electrical={p.electrical} onChange={setElectrical} bundleFactor={result.cable.bundleFactor} />

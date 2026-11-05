@@ -144,7 +144,7 @@ test("on a touch screen the quantity field in another project's quick edit is at
   expect(await fontSize(home.getByLabel('Quantity of Refrigerator'))).toBeGreaterThanOrEqual(IOS_NO_ZOOM_PX)
 })
 
-interface CardControls { name: string; top: number; controlsBottom: number; hasMeter: boolean; isAdded: boolean }
+interface CardControls { name: string; top: number; bottom: number; controlsBottom: number; hasMeter: boolean; isAdded: boolean }
 
 /** Every card in a section: where it starts, and where its Add button or its quantity buttons end. Read in one go. */
 const cardControls = (cards: Locator): Promise<CardControls[]> =>
@@ -154,13 +154,17 @@ const cardControls = (cards: Locator): Promise<CardControls[]> =>
     return {
       name: card.querySelector('.card__name')?.textContent ?? '',
       top: card.getBoundingClientRect().top,
+      bottom: card.getBoundingClientRect().bottom,
       controlsBottom: controls.getBoundingClientRect().bottom,
       hasMeter: card.querySelector('.duty') !== null,
       isAdded: card.querySelector('.qstep') !== null,
     }
   }))
 
-test('along a desktop row of appliance cards, the Add buttons and the quantity buttons end level', async ({ page }) => {
+/** The card's bottom padding plus its 1.5 px border: where its last control ends in a card sized to its content. */
+const CARD_END_PX = 14
+
+test('along a desktop row of appliance cards, each card keeps its own height: the added fridge does not stretch the Add-only cards beside it', async ({ page }) => {
   await page.setViewportSize({ width: DESKTOP_WIDTH, height: VIEWPORT_HEIGHT })
   await page.goto('/')
   await expect(cardOf(page, 'Refrigerator').locator('.duty')).toBeVisible()
@@ -171,12 +175,16 @@ test('along a desktop row of appliance cards, the Add buttons and the quantity b
   if (!first) throw new Error('The Kitchen section has no cards.')
   const firstRow = kitchen.filter((card) => Math.abs(card.top - first.top) <= LEVEL_WITHIN_PX)
 
-  // The row has to mix both kinds of card, or level buttons would prove nothing: the added fridge, taller for its
-  // meter, beside cards that only have an Add button.
+  // The row has to mix both kinds of card, or it would prove nothing: the added fridge, taller for its meter, beside
+  // cards that only have an Add button.
   expect(firstRow.filter((card) => card.name === 'Refrigerator' && card.isAdded && card.hasMeter), JSON.stringify(firstRow)).toHaveLength(1)
   expect(firstRow.some((card) => !card.isAdded), JSON.stringify(firstRow)).toBe(true)
-  const bottoms = firstRow.map((card) => card.controlsBottom)
-  expect(Math.max(...bottoms) - Math.min(...bottoms), JSON.stringify(firstRow)).toBeLessThanOrEqual(LEVEL_WITHIN_PX)
+  const fridge = firstRow.find((card) => card.isAdded)!
+  for (const card of firstRow.filter((c) => !c.isAdded)) {
+    // No empty white above Add: the card ends right under its button, and short of the fridge's taller card.
+    expect(card.bottom - card.controlsBottom, JSON.stringify(card)).toBeLessThanOrEqual(CARD_END_PX + LEVEL_WITHIN_PX)
+    expect(card.bottom, JSON.stringify(card)).toBeLessThan(fridge.bottom)
+  }
 })
 
 test('the average on a card says how many units it adds up once there are several', async ({ page }) => {

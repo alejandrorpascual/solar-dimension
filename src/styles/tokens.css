@@ -38,6 +38,8 @@
   --radius-md: 14px;
   --radius-lg: 24px;
   --shadow-card: 0 12px 40px rgba(18, 22, 28, 0.06);
+  /* A piece lifted a hair off its tray: the selected segment of a tab or toggle row, a preview page, a floating chip. */
+  --shadow-raise: 0 1px 3px rgba(18, 22, 28, 0.12);
   /* Menus, popovers and suggestion lists that float over the page. */
   --shadow-pop: 0 18px 48px rgba(18, 22, 28, 0.16), 0 2px 6px rgba(18, 22, 28, 0.06);
   /* The dimmed page behind a sheet. */
@@ -65,6 +67,9 @@
   --space-6: 24px;
   --space-8: 32px;
   --space-10: 40px;
+  /* Side gutters: the page's (the footer and the sticky search row cancel it to run edge to edge) and the stage card's. */
+  --page-x: var(--space-4);
+  --stage-x: var(--space-10);
   --tap: 44px;
   /* Motion: hover and small pops, panels and dialogs, phone sheets, spinners. */
   --dur-fast: 120ms;

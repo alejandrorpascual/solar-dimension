@@ -38,7 +38,7 @@ export function QuotesCard({ project, isSaving }: Props) {
       <section className="qcard" aria-labelledby={titleId}>
         <span className="qcard__icon" aria-hidden="true"><FileText size={20} /></span>
         <div className="qcard__body">
-          <h3 className="qcard__title" id={titleId}>{t.quotes.cardTitle}</h3>
+          <h2 className="qcard__title" id={titleId}>{t.quotes.cardTitle}</h2>
           <p className="qcard__meta">{t.quotes.cardBody}</p>
         </div>
         {/* The card lives on the kit step, so signing in comes back to step 4. Not offered while the account is
@@ -70,7 +70,7 @@ export function QuotesCard({ project, isSaving }: Props) {
       onDragOver={(e) => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
       <span className="qcard__icon" aria-hidden="true">{jobs && jobs.pending > 0 ? <Spinner size={20} /> : <FileText size={20} />}</span>
       <div className="qcard__body">
-        <h3 className="qcard__title" id={titleId}>{jobs ? projectLine(t, jobs) : t.quotes.cardTitle}</h3>
+        <h2 className="qcard__title" id={titleId}>{jobs ? projectLine(t, jobs) : t.quotes.cardTitle}</h2>
         <p className="qcard__meta">{meta}</p>
         {user.canUseQuotes && <p className="qcard__meta" id={hintId}>{t.quotes.oneFilePerQuote}</p>}
       </div>

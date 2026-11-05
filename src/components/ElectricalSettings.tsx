@@ -1,7 +1,7 @@
-import { ChevronDown } from 'lucide-react'
 import { useId } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr, type Dictionary } from '../i18n'
+import { Fold } from './Fold'
 import { AMBIENTS, INSULATIONS, RUN_LENGTH, STARTS, type Electrical } from '../lib/schema'
 
 interface Props {
@@ -48,12 +48,7 @@ export function CableConditions({ electrical: e, onChange, bundleFactor }: Props
   const rangeId = useId()
   const summary = tr(t, 'cableSummary', { length: e.runLengthM, ambient: e.ambientC, insulation: e.insulationC, bundled: e.bundled ? t.ui.cableBundledShort : '' })
   return (
-    <details className="elec">
-      <summary className="elec__summary">
-        <h2 className="elec__title">{t.ui.cableRun}</h2>
-        <span className="num elec__values">{summary}</span>
-        <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
-      </summary>
+    <Fold title={t.ui.cableRun} values={summary}>
       <div className="elec__grid">
         <div className="elec__field">
           <div className="elec__head"><label htmlFor={rangeId}>{t.ui.runLength}</label><span className="num elec__value">{e.runLengthM} m</span></div>
@@ -84,6 +79,6 @@ export function CableConditions({ electrical: e, onChange, bundleFactor }: Props
           <span><span className="elec__check-title">{t.ui.bundledLabel}</span>{e.bundled && <span className="muted elec__check-help">{tr(t, 'bundledHelp', { factor: Math.round(bundleFactor * PERCENT) })}</span>}</span>
         </label>
       </div>
-    </details>
+    </Fold>
   )
 }

@@ -1,8 +1,9 @@
-import { Battery, ChevronDown, Home, Sun } from 'lucide-react'
+import { Battery, Home, Sun } from 'lucide-react'
 import { useLocale } from '../../hooks/useLocale'
 import { batteryCount, panelCount, tr } from '../../i18n'
 import { cssPercent, fmtDecimal, fmtHours, fmtKw, fmtKwh, fmtPercent, fmtW } from '../../i18n/format'
 import type { SizingResult } from '../../lib/sizing'
+import { Fold } from '../Fold'
 
 interface Props { result: SizingResult }
 
@@ -24,12 +25,7 @@ export function SolarFlow({ result: r }: Props) {
   return (
     <>
       {isNoteOut && clearBox}
-      <details className="elec">
-        <summary className="elec__summary">
-          <h2 className="elec__title">{t.ui.clearDay}</h2>
-          <span className="num elec__values">{tr(t, 'flowSummary', { wh: fmtKwh(s.dailyWh, locale), pct: fmtPercent(s.coverRatio, locale) })}</span>
-          <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
-        </summary>
+      <Fold title={t.ui.clearDay} values={tr(t, 'flowSummary', { wh: fmtKwh(s.dailyWh, locale), pct: fmtPercent(s.coverRatio, locale) })}>
         <div className="flow">
           <div className="flow__strip">
             <div className="flow__node flow__node--sun"><Sun size={26} aria-hidden="true" /><span className="num flow__v">{`${fmtDecimal(s.sunHours, 1, locale)} h`}</span><span className="flow__s">{t.ui.flowSun}</span></div>
@@ -54,7 +50,7 @@ export function SolarFlow({ result: r }: Props) {
           </div>
           {s.panels > 0 && <p className="fine muted">{t.ui.solarAssumptions}</p>}
         </div>
-      </details>
+      </Fold>
     </>
   )
 }

@@ -1,16 +1,12 @@
-import { ChevronDown } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale'
 import { glossaryEntries } from '../i18n'
+import { Fold } from './Fold'
 
 /** The kit's terms in plain words. Closed by default, in the same box as the cable settings so it reads as something that opens. */
 export function Glossary() {
   const { t } = useLocale()
   return (
-    <details className="elec gloss">
-      <summary className="elec__summary">
-        <h2 className="elec__title">{t.glossary.title}</h2>
-        <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
-      </summary>
+    <Fold className="gloss" title={t.glossary.title}>
       <dl className="gloss__list">
         {glossaryEntries(t).map((e) => (
           <div key={e.term}>
@@ -19,6 +15,6 @@ export function Glossary() {
           </div>
         ))}
       </dl>
-    </details>
+    </Fold>
   )
 }

@@ -36,6 +36,8 @@ interface Props {
 
 interface CardProps {
   summary: ProjectSummary
+  /** Two or more projects: only then does the load bar beside the heaviest one compare anything. */
+  isCompared: boolean
   isEditing: boolean
   /** Present only on the open project's card. */
   current?: CurrentActions
@@ -60,7 +62,7 @@ function CardTitle({ name, titleId, current, onOpen }: { name: string; titleId: 
 }
 
 /** A project's kit at a glance: runtime, bank and inverter, its load beside the heaviest project's, and what draws the most. */
-function CardKit({ summary: s }: { summary: ProjectSummary }) {
+function CardKit({ summary: s, isCompared }: { summary: ProjectSummary; isCompared: boolean }) {
   const { t, locale } = useLocale()
   const r = s.result
   if (r.empty || !r.battery) return <p className="muted pcard__empty">{t.ui.footerEmpty}</p>
@@ -71,11 +73,14 @@ function CardKit({ summary: s }: { summary: ProjectSummary }) {
         <div><dt className="lab">{t.ui.bank}</dt><dd className="num">{fmtKwh(r.battery.bankWh, locale)}</dd></div>
         <div><dt className="lab">{t.ui.inverter}</dt><dd className="num">{fmtInverter(r.inverter, locale)}</dd></div>
       </dl>
-      {/* The caption says what the bar measures; the running load itself is in words on the line under it. */}
-      <div className="pcard__share">
-        <span className="pcard__share-cap">{t.ui.loadShare}</span>
-        <div className="pcard__bar" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(LOAD_BAR_MIN_PERCENT, Math.round(s.loadShare * 100)) / 100})` }} /></div>
-      </div>
+      {/* The caption says what the bar measures; the running load itself is in words on the line under it. With one
+          project the bar would always be full, so it shows from the second. */}
+      {isCompared && (
+        <div className="pcard__share">
+          <span className="pcard__share-cap">{t.ui.loadShare}</span>
+          <div className="pcard__bar" aria-hidden="true"><span style={{ transform: `scaleX(${Math.max(LOAD_BAR_MIN_PERCENT, Math.round(s.loadShare * 100)) / 100})` }} /></div>
+        </div>
+      )}
       <p className="pcard__load num">{`${fmtW(r.runningW, locale)} ${t.ui.running} · ${batteryCount(t, r.battery.count)} · ${r.cable.gauge}`}</p>
       <p className="pcard__items">{heaviestLine(s, t)}</p>
     </>
@@ -97,7 +102,7 @@ function CardQuickEdit({ id, items, onQty }: { id: string; items: readonly Selec
   )
 }
 
-function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQty }: CardProps) {
+function ProjectCard({ summary: s, isCompared, isEditing, current, onOpen, onToggleEdit, onQty }: CardProps) {
   const isCurrent = current !== undefined
   const { t } = useLocale()
   const titleId = useId()
@@ -123,7 +128,7 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
       {current?.isConfirmingDelete && (
         <InlineConfirm look="card" question={deleteProjectText(t, p.name, quoteCount)} yes={t.ui.deleteProjectYes} onYes={current.onDelete} onCancel={current.onCancelDelete} />
       )}
-      <CardKit summary={s} />
+      <CardKit summary={s} isCompared={isCompared} />
       {jobs && (
         <Link className="pcard__quotes" to="/projects/$projectId/quotes" params={{ projectId: p.id }}>
           <FileText size={14} aria-hidden="true" />{projectLine(t, jobs)}
@@ -148,13 +153,14 @@ export function ProjectCards({ store, commit, onPicked, onCreated }: Props) {
   return (
     <div className="pcards">
       <div className="pcards__head">
-        <span className="lab">{t.ui.projects}</span>
+        <h2 className="lab pcards__title">{t.ui.projects}</h2>
         <button type="button" className="linkbtn pcards__new" onClick={createProject}>{t.ui.newProject}</button>
       </div>
       {currentFirst(summarizeProjects(store.projects, appliances), store.currentId).map((s) => (
         <ProjectCard
           key={s.project.id}
           summary={s}
+          isCompared={store.projects.length > 1}
           current={s.project.id === store.currentId ? currentActions : undefined}
           isEditing={editingId === s.project.id}
           onOpen={() => { commit(selectProject(store, s.project.id)); onPicked?.() }}

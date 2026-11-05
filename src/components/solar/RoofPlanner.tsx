@@ -63,7 +63,8 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
           <label htmlFor={sunId}>{t.ui.sunHours}</label>
           <span className="num planner__sun-value">{`${fmtDecimal(s.sunHours, 1, locale)} h`}</span>
         </div>
-        <input id={sunId} type="range" min={SOLAR.SUN_RANGE[0]} max={SOLAR.SUN_RANGE[1]} step={SOLAR.SUN_STEP} value={s.sunHours} onChange={(e) => onSun(Number(e.target.value))} />
+        <input id={sunId} type="range" min={SOLAR.SUN_RANGE[0]} max={SOLAR.SUN_RANGE[1]} step={SOLAR.SUN_STEP} value={s.sunHours}
+          aria-valuetext={tr(t, 'sunValueText', { hours: fmtDecimal(s.sunHours, 1, locale) })} onChange={(e) => onSun(Number(e.target.value))} />
         <span className="muted planner__hint">{t.ui.sunHint}</span>
       </div>
     </div>

@@ -63,7 +63,7 @@ function summaryLine(locale: Locale, qty: Record<string, number>): string {
   view.locale = locale
   const result = compute({ qty, hours: 10, volts: 48, chemistry: 'lifepo4' }, CATALOG_SNAPSHOT)
   const html = renderToStaticMarkup(createElement(KitSummary, { result, baseline: null, projectName: 'Home', oversize: null, quickEdit: null, onBatteryUnit: () => {} }))
-  return /<p class="muted">([^<]*)<\/p>/.exec(html)?.[1] ?? ''
+  return (/<p class="muted">(.*?)<\/p>/.exec(html)?.[1] ?? '').replace(/<[^>]+>/g, '')
 }
 
 test('the summary counts appliances, as the chip and the project card do, and names the units when they differ', () => {
@@ -86,9 +86,24 @@ function twoFailingKitHtml(locale: Locale): string {
 
 test('a kit with 2 failing checks says so right under its summary, as a button to the checks, in English and Spanish', () => {
   const en = twoFailingKitHtml('en')
-  expect(en).toMatch(/<p class="muted">Backs up [^<]*<\/p><button type="button" class="attn"[^>]*>.*2 checks need attention<\/span><\/button>/)
+  expect(en).toMatch(/<p class="muted">Backs up .*?<\/p><button type="button" class="attn"[^>]*>.*2 checks need attention<\/span><\/button>/)
   expect(en).toContain('<section class="checks" aria-label="Checks" id="kit-checks" tabindex="-1">')
   expect(twoFailingKitHtml('es')).toMatch(/<button type="button" class="attn"[^>]*>.*2 verificaciones necesitan atención<\/span><\/button>/)
+})
+
+test('why Runtime is past the hours asked is said in the intro and under the figure, for the stylesheet to pick by width, in English and Spanish', () => {
+  const why = { en: 'The bank is sized for the 8 h you asked for. Batteries come whole, so these last longer.', es: 'El banco se dimensiona para las 8 h que pediste. Las baterías vienen enteras, así que estas duran más.' }
+  for (const locale of ['en', 'es'] as const) {
+    const html = twoFailingKitHtml(locale)
+    expect(html).toContain(`<span class="kit__why"> ${why[locale]}</span>`)
+    expect(html).toMatch(new RegExp(`<div class="stat stat--accent stat--lead"><dt class="lab">[^<]+</dt>.*<dd class="stat__sub stat__why">${why[locale]}</dd></div>`))
+  }
+})
+
+test('the kit figures are a description list: each name a term, each value its description', () => {
+  const html = twoFailingKitHtml('en')
+  expect(html).toMatch(/<dl class="stats"><div class="stat stat--accent stat--lead"><dt class="lab">Runtime<\/dt><dd class="stat__row"><span class="stat__v num">~/)
+  expect(html).toContain('<dt class="lab">Running load</dt><dd class="stat__row">')
 })
 
 test('a kit that passes every check shows no attention line', () => {
