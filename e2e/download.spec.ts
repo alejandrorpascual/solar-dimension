@@ -3,7 +3,7 @@ import { expect, test, type Download, type Page } from '@playwright/test'
 import { readSheetPdf } from '../src/lib/pdf-fixtures'
 import { switchLanguage } from './header'
 import { PHONE } from './phone'
-import { showDownload } from './projects'
+import { openBatterySettings, openInclude, showDownload } from './projects'
 
 async function downloadAs(page: Page, format: RegExp, button: string): Promise<Download> {
   await page.getByRole('radio', { name: format }).check()
@@ -81,6 +81,7 @@ test('the kit downloads as a CSV parts list and a PDF spec sheet', PHONE, async 
   expect(text).toContain('Part,Specification,Note,Quantity')
   expect(text).not.toContain('Interconnects')
 
+  await openInclude(page)
   await expect(page.getByRole('checkbox', { name: 'Summary figures' })).toBeDisabled()
   await page.getByRole('checkbox', { name: 'Appliance list' }).uncheck()
   const partsOnly = await downloadAs(page, /^Parts list \(CSV\)/, 'Download CSV')
@@ -230,6 +231,7 @@ test('the parts list comes first, and the load schedule gets a PDF page of its o
   await expect(sheet.locator('h3')).toHaveText(['Parts list', 'Load schedule', 'Checks'])
   expect(await pdfPageCount(await downloadAs(page, /^Spec sheet \(PDF\)/, 'Download PDF'))).toBe(2)
 
+  await openInclude(page)
   await page.getByRole('checkbox', { name: 'Appliance list' }).uncheck()
   await expect(sheet.locator('h3')).toHaveText(['Parts list', 'Checks'])
   // With no load schedule there is no page break, but the last check still prints on page two. Page one had 10.8 px to
@@ -278,6 +280,7 @@ test('notes and failing checks stay on the sheet and in the files with their Inc
   await page.goto('/?step=1')
   await page.getByRole('button', { name: 'Add Electric water heater' }).click()
   await page.getByRole('button', { name: 'Step 2: Backup window' }).click()
+  await openBatterySettings(page)
   await page.getByRole('button', { name: /^12 V/ }).click()
   await page.getByRole('button', { name: 'Step 4: Your kit' }).click()
   await showDownload(page)
@@ -286,6 +289,7 @@ test('notes and failing checks stay on the sheet and in the files with their Inc
   const marks = (name: string) => sheet.getByRole('img', { name, includeHidden: true })
   await expect(sheet.getByText('Read before quoting · Checks to resolve: 3 · Notes: 3')).toBeVisible()
   await expect(marks('Passes')).toHaveCount(3)
+  await openInclude(page)
   await page.getByRole('checkbox', { name: 'Checks' }).uncheck()
   await page.getByRole('checkbox', { name: 'Assumptions' }).uncheck()
   await expect(sheet.getByText(/usually runs on 240 V\. You need a split-phase \(240 V\) inverter/)).toBeVisible()
@@ -339,6 +343,7 @@ for (const { lang, download, format, button } of [
     await showDownload(page, download)
     // The PDF pages are cut from this same image, so what is printed here is printed there.
     await page.getByRole('radio', { name: format }).check()
+    await openInclude(page)
     const ticked = page.getByRole('checkbox', { checked: true, disabled: false })
     while (await ticked.count() > 0) await ticked.first().uncheck()
     const image = await downloadAs(page, format, button)
@@ -352,6 +357,7 @@ test('the checks print last on the sheet and can be left out', async ({ page }) 
   const sheet = page.locator('.ksheet').filter({ visible: true })
   await expect(sheet.getByText('Battery continuous current')).toBeVisible()
   await expect(sheet.getByText('Average', { exact: true })).toBeVisible()
+  await openInclude(page)
   await page.getByRole('checkbox', { name: 'Checks' }).uncheck()
   await expect(sheet.locator('h3')).toHaveText(['Parts list', 'Load schedule'])
 })

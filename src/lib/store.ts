@@ -84,6 +84,20 @@ export function withSetAside(store: Store, setAside: readonly Project[], isOwn: 
   return { ...store, projects, currentId }
 }
 
+/** Whether a project still holds exactly the example list every new project starts with, unedited. */
+export function isSampleList(p: Project): boolean {
+  const added = Object.entries(p.qty).filter(([, n]) => n > 0)
+  return p.custom.length === 0
+    && Object.keys(p.dutyOverrides).length === 0
+    && added.length === Object.keys(DEFAULT_QTY).length
+    && added.every(([id, n]) => DEFAULT_QTY[id] === n)
+}
+
+/** The open project with no appliances, to start a list of one's own. */
+export function clearAppliances(store: Store): Store {
+  return patchCurrent(store, { qty: {}, dutyOverrides: {} })
+}
+
 export function currentProject(store: Store): Project {
   return store.projects.find((p) => p.id === store.currentId) ?? store.projects[0]!
 }

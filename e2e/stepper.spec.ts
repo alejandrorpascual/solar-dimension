@@ -152,10 +152,12 @@ test('the step an empty project is on is drawn as the current one, never as lock
   await page.goto('/')
   await removeEveryAppliance(page)
   const steps = stepButtons(page)
-  // The footer is not gated on purpose: step 2 has its own "go back and add an appliance" message.
-  const forward = ['Next: backup window', 'Next: solar panels', 'Build my kit']
-  for (const [i, next] of forward.entries()) {
-    await page.getByRole('button', { name: next }).click()
+  // Next agrees with the stepper: off and saying why. An old link can still land on a later step.
+  const next = page.getByRole('button', { name: 'Next: backup window' })
+  await expect(next).toBeDisabled()
+  await expect(next).toHaveAttribute('title', LOCK_TEXT.English)
+  for (const i of [0, 1, 2]) {
+    await page.goto(`/?step=${i + 2}`)
     const current = steps[i + 1]
     await expect(current).toHaveAttribute('aria-current', 'step')
     await expect(current).toBeEnabled()

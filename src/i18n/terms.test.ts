@@ -41,7 +41,7 @@ test('Spanish keeps "pico" for the inverter\'s potencia pico and the battery\'s 
 
 test('copy that names a load\'s start-up says start-up power, in English and Spanish', () => {
   const lines = (d: Dictionary) => [
-    d.ui.q1Help, d.ui.runningSurgeLine, d.ui.surgeOptional, d.ui.errSurge, d.ui.startupPeak, d.ui.footer1,
+    d.ui.q1HelpMore, d.ui.runningSurgeLine, d.ui.surgeOptional, d.ui.errSurge, d.ui.startupPeak, d.ui.footer1,
     d.ui.inverterNote, d.ui.inverterNoteTight, d.ui.inverterNotePeak, d.ui.inverterNoteTightPeak,
     d.ui.checkSurgeOk, d.ui.checkSurgeOkMany, d.ui.checkSurgeOkNoStart, d.ui.checkSurgeOkManyNoStart,
     d.quotes.needsSurge, d.quotes.gapSurge, d.warnings.lockedRotor(BASE), ...VARIANTS.map((p) => d.warnings.surgeDuration(p)),

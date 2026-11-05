@@ -23,6 +23,33 @@ export async function showDownload(page: Page, label = 'Download'): Promise<void
   await page.getByRole('tab', { name: label }).click()
 }
 
+/** Opens a closed disclosure and leaves an open one alone. */
+async function openDetails(box: Locator): Promise<void> {
+  if ((await box.getAttribute('open')) === null) await box.locator('summary').click()
+}
+
+/** Step 2's voltage, chemistry and motors: the first box under the hours, closed until asked for. */
+export const openBatterySettings = (page: Page) => openDetails(page.locator('.window > details').first())
+
+/** The Download tab's Include boxes, closed until asked for. Over the rail and the sheet, the one that shows. */
+export const openInclude = (page: Page) => openDetails(page.locator('.dl__include').filter({ visible: true }))
+
+/** The kit's checks fold to one line while they all pass; a list with one that needs attention is already out. */
+export async function openChecks(page: Page, name = 'Checks'): Promise<void> {
+  const fold = page.getByRole('region', { name }).locator('details')
+  if ((await fold.count()) > 0) await openDetails(fold)
+}
+
+/** Filters step 1's appliances: the chips from 1024 px, the select under it. Retried: a change before hydration does nothing. */
+export async function pickCategory(page: Page, name: string): Promise<void> {
+  const select = page.getByLabel('Category', { exact: true })
+  if (!(await select.isVisible())) return page.getByRole('button', { name, exact: true }).click()
+  await expect(async () => {
+    await select.selectOption({ label: name })
+    await expect(page.locator('.catalog__title')).toHaveCount(0, { timeout: RETRY_AFTER_MS }) // One category needs no section titles.
+  }).toPass()
+}
+
 /** Closes the projects sheet if one is open, so the page underneath can be used. */
 export async function hideProjects(page: Page): Promise<void> {
   const dialog = page.getByRole('dialog')

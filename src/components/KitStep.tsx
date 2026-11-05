@@ -1,3 +1,4 @@
+import { useId, useState } from 'react'
 import { useCatalog } from '../hooks/useCatalog'
 import { useUndoSnapshot } from '../hooks/useUndoSnapshot'
 import { oversizeNote } from '../lib/oversize'
@@ -5,7 +6,7 @@ import { computeProject } from '../lib/project-summary'
 import type { Project, Store } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
 import { hasSameLoads, patchCurrent, restoreProject, setDutyIn, setHoursIn, setQtyIn } from '../lib/store'
-import { KitQuickEdit } from './KitQuickEdit'
+import { KitQuickEditBar, KitQuickEditPanel } from './KitQuickEdit'
 import { KitSummary } from './KitSummary'
 import { QuotesCard } from './quotes/QuotesCard'
 
@@ -21,6 +22,8 @@ interface Props {
 /** Step 3: the kit, edited in place. Quick edits remember the project as it was before them, for the deltas and Undo. */
 export function KitStep({ store, commit, project, result, isSaving, onAllAppliances }: Props) {
   const appliances = useCatalog()
+  const [isListOpen, setListOpen] = useState(false)
+  const panelId = useId()
   const undo = useUndoSnapshot(project, project.id)
   const isDirty = undo.snapshot !== null && !hasSameLoads(undo.snapshot, project)
   const quickEdit = (next: Store) => {
@@ -40,17 +43,27 @@ export function KitStep({ store, commit, project, result, isSaving, onAllApplian
         projectName={project.name}
         oversize={oversizeNote(project, appliances)}
         quickEdit={
-          <KitQuickEdit
+          <KitQuickEditBar
             project={project}
             result={result}
             isDirty={isDirty}
-            onQty={(itemId, n) => quickEdit(setQtyIn(store, project.id, itemId, n))}
+            isOpen={isListOpen}
+            panelId={panelId}
+            onToggle={() => setListOpen(!isListOpen)}
             onHours={(hours) => quickEdit(setHoursIn(store, project.id, hours))}
-            onDuty={(itemId, duty) => quickEdit(setDutyIn(store, project.id, itemId, duty))}
             onUndo={restore}
-            onAllAppliances={onAllAppliances}
           />
         }
+        quickEditPanel={isListOpen && (
+          <KitQuickEditPanel
+            id={panelId}
+            project={project}
+            result={result}
+            onQty={(itemId, n) => quickEdit(setQtyIn(store, project.id, itemId, n))}
+            onDuty={(itemId, duty) => quickEdit(setDutyIn(store, project.id, itemId, duty))}
+            onAllAppliances={onAllAppliances}
+          />
+        )}
         onBatteryUnit={(id) => commit(patchCurrent(store, { batteryUnit: id }))}
       />
       <QuotesCard project={project} isSaving={isSaving} />

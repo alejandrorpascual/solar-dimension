@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale'
 import { applianceCount, tr } from '../i18n'
 import { fmtKwh, fmtW } from '../i18n/format'
@@ -5,7 +6,7 @@ import { CHEMISTRIES, FEW_INVERTERS_VOLTAGE, VOLTAGES, type ChemistryId, type Vo
 import { HOURS_MAX, HOURS_MIN, type Store } from '../lib/schema'
 import type { SizingResult } from '../lib/sizing'
 import { currentProject, patchCurrent, setElectricalIn } from '../lib/store'
-import { CableConditions, StartsPicker } from './ElectricalSettings'
+import { CableConditions, StartsPicker, startsTitle } from './ElectricalSettings'
 
 const PRESET_HOURS = [4, 8, 10, 12, 24, 48] as const
 
@@ -26,20 +27,25 @@ export function BackupWindow({ store, commit, result }: Props) {
   return (
     <div className="window">
       <p className="muted">{t.ui.q2Help}</p>
-      <div className="window__cols">
-        <div className="window__hours">
-          <div className="window__hours-head">
-            <label htmlFor="hours">{t.ui.hoursLabel}</label>
-            <div className="hours-value num">{p.hours} h</div>
-          </div>
-          <input id="hours" type="range" min={HOURS_MIN} max={HOURS_MAX} step={1} value={p.hours} onChange={(e) => setHours(Number(e.target.value))} />
-          <div className="hs presets">
-            {PRESET_HOURS.map((h) => (
-              <button key={h} type="button" className={`chip${h === p.hours ? ' chip--on' : ''}`} aria-pressed={h === p.hours} onClick={() => setHours(h)}>{h} h</button>
-            ))}
-          </div>
-          <div className="note-box">{summary}</div>
+      <div className="window__hours">
+        <div className="window__hours-head">
+          <label htmlFor="hours">{t.ui.hoursLabel}</label>
+          <div className="hours-value num">{p.hours} h</div>
         </div>
+        <input id="hours" type="range" min={HOURS_MIN} max={HOURS_MAX} step={1} value={p.hours} onChange={(e) => setHours(Number(e.target.value))} />
+        <div className="hs presets">
+          {PRESET_HOURS.map((h) => (
+            <button key={h} type="button" className={`chip${h === p.hours ? ' chip--on' : ''}`} aria-pressed={h === p.hours} onClick={() => setHours(h)}>{h} h</button>
+          ))}
+        </div>
+        <div className="note-box">{summary}</div>
+      </div>
+      <details className="elec">
+        <summary className="elec__summary">
+          <span>{t.ui.batteryDetails}</span>
+          <span className="num elec__values">{p.volts} V · {t.chemistries[p.chemistry]} · {startsTitle(t, p.electrical.simultaneousStarts)}</span>
+          <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
+        </summary>
         <div className="window__options">
           <div className="window__label">{t.ui.batteryVoltage}</div>
           <div className="opt-grid">
@@ -49,7 +55,6 @@ export function BackupWindow({ store, commit, result }: Props) {
               </button>
             ))}
           </div>
-          {p.volts === FEW_INVERTERS_VOLTAGE && <div className="note-box">{tr(t, 'fewInvertersNote', { volts: FEW_INVERTERS_VOLTAGE })}</div>}
           <div className="window__label">{t.ui.batteryChemistry}</div>
           <div className="opt-grid">
             {(Object.keys(CHEMISTRIES) as ChemistryId[]).map((k) => (
@@ -60,7 +65,9 @@ export function BackupWindow({ store, commit, result }: Props) {
           </div>
           <StartsPicker electrical={p.electrical} onChange={setElectrical} />
         </div>
-      </div>
+      </details>
+      {/* Outside the box: it has to show whether the box is open or not. */}
+      {p.volts === FEW_INVERTERS_VOLTAGE && <div className="note-box">{tr(t, 'fewInvertersNote', { volts: FEW_INVERTERS_VOLTAGE })}</div>}
       <CableConditions electrical={p.electrical} onChange={setElectrical} bundleFactor={result.cable.bundleFactor} />
     </div>
   )

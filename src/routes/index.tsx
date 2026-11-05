@@ -20,7 +20,7 @@ import { useProjectStore } from '../hooks/useProjectStore'
 import { useRootData } from '../hooks/useRootData'
 import { useSignOut } from '../hooks/useSignOut'
 import { applianceCount, batteryCount, inverterSize, panelCount, tr, type Dictionary, type Locale } from '../i18n'
-import { fmtKw, fmtKwh, fmtW } from '../i18n/format'
+import { fmtHours, fmtKw, fmtKwh, fmtW } from '../i18n/format'
 import { signedInUser } from '../lib/account-session'
 import { attentionLine } from '../lib/kit-checks'
 import { computeProject } from '../lib/project-summary'
@@ -38,6 +38,11 @@ export const Route = createFileRoute('/')({
   component: KitBuilderPage,
 })
 
+/** The figure the kit's quick edit moves, in the footer so it stays in view while the list is edited. */
+function runtimeLine(r: SizingResult, t: Dictionary, locale: Locale): string {
+  return `${t.ui.runtime} ~${fmtHours(r.battery?.hoursActual ?? 0, locale)}`
+}
+
 function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary, locale: Locale): string {
   if (step === 1) return tr(t, 'footer1', { name, appliances: applianceCount(t, r.items.length, r.units), running: fmtW(r.runningW, locale), peak: fmtW(r.surgeW, locale) })
   if (step === 2) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) })
@@ -47,7 +52,17 @@ function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary,
   }
   if (r.empty || !r.battery) return t.ui.footerEmpty
   const base = { batteries: batteryCount(t, r.battery.count), inverter: inverterSize(t, r.inverter, locale), gauge: r.cable.gauge }
-  return r.solar ? tr(t, 'footer4Solar', { ...base, panels: panelCount(t, r.solar.panels) }) : tr(t, 'footer3', base)
+  const kit = r.solar ? tr(t, 'footer4Solar', { ...base, panels: panelCount(t, r.solar.panels) }) : tr(t, 'footer3', base)
+  return `${runtimeLine(r, t, locale)} · ${kit}`
+}
+
+/** The footer line under 1024px, one row where it can be. The name shows beside the projects button there; undefined when the full line is already short. */
+function footerSlim(step: Step, r: SizingResult, t: Dictionary, locale: Locale): string | undefined {
+  if (step === 2) return undefined
+  if (r.empty) return t.ui.stepLocked
+  if (step === 1) return `${applianceCount(t, r.items.length, r.units)} · ${fmtW(r.runningW, locale)} ${t.ui.running}`
+  if (step === 3) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) })
+  return r.battery ? `${runtimeLine(r, t, locale)} · ${batteryCount(t, r.battery.count)}` : undefined
 }
 
 /** The question each step asks; the kit step names the project it is for. */
@@ -145,10 +160,11 @@ function KitBuilderPage() {
         <WizardFooter
           step={step}
           summary={footerSummary(step, project.name, result, t, locale)}
+          summarySlim={footerSlim(step, result, t, locale)}
           attention={attentionLine(t, result)}
+          nextLocked={result.empty ? t.ui.stepLocked : null}
           onBack={() => go((step - 1) as Step)}
           onNext={() => go((step + 1) as Step)}
-          onStartOver={() => go(1)}
           onDownload={showDownload}
         />
       </main>

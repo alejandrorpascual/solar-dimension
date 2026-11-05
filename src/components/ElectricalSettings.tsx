@@ -1,7 +1,7 @@
 import { ChevronDown } from 'lucide-react'
 import { useId } from 'react'
 import { useLocale } from '../hooks/useLocale'
-import { tr } from '../i18n'
+import { tr, type Dictionary } from '../i18n'
 import { AMBIENTS, INSULATIONS, RUN_LENGTH, STARTS, type Electrical } from '../lib/schema'
 
 interface Props {
@@ -14,6 +14,9 @@ const STARTS_COPY = {
   2: ['startsTwo', 'startsTwoHelp'],
   all: ['startsAll', 'startsAllHelp'],
 } as const
+
+/** The chosen start-up option's title, for the line that sums up a closed disclosure. */
+export const startsTitle = (t: Dictionary, starts: Electrical['simultaneousStarts']): string => t.ui[STARTS_COPY[starts][0]]
 
 /** How many motors may start in the same instant; it sets the start-up peak the inverter and the bank must ride. */
 export function StartsPicker({ electrical, onChange }: Props) {

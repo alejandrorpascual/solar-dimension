@@ -67,7 +67,17 @@ test('with the box unticked there is no bundling factor to show, in either langu
 })
 
 test('the Cable run summary shows a chevron, so it reads as something that opens', () => {
-  const summary = /<summary class="elec__summary">([\s\S]*?)<\/summary>/.exec(stepTwo('en'))?.[1] ?? ''
-  expect(summary).toContain('Cable run')
+  const summaries = [...stepTwo('en').matchAll(/<summary class="elec__summary">([\s\S]*?)<\/summary>/g)].map((m) => m[1] ?? '')
+  const summary = summaries.find((s) => s.includes('Cable run')) ?? ''
   expect(summary).toMatch(/<svg[^>]*class="[^"]*lucide-chevron-down/)
+})
+
+test('voltage, chemistry and motors fold under one line that still states their values, in English and Spanish', () => {
+  expect(stepTwo('en')).toMatch(/<details class="elec"><summary[^>]*><span>Battery and motors<\/span><span[^>]*>48 V · LiFePO₄ lithium · One at a time<\/span>/)
+  expect(stepTwo('es')).toContain('Batería y motores')
+})
+
+test('the 36 V note shows outside the closed box', () => {
+  const html = stepTwo('en', (store) => patchCurrent(store, { volts: 36 }))
+  expect(html.indexOf('Few inverters')).toBeGreaterThan(html.indexOf('</details>'))
 })

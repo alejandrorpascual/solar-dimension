@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, tr, type Dictionary } from '../i18n'
@@ -8,7 +8,7 @@ import type { Store } from '../lib/schema'
 import { dutyHint } from '../lib/load-kinds'
 import { catalog } from '../lib/sizing'
 import { selectItems } from '../lib/sizing/loads'
-import { currentProject, removeCustom, setDutyIn, setQty } from '../lib/store'
+import { clearAppliances, currentProject, isSampleList, removeCustom, setDutyIn, setQty } from '../lib/store'
 import { ApplianceCard } from './ApplianceCard'
 
 type Filter = 'All' | Category
@@ -49,7 +49,14 @@ export function ApplianceGrid({ store, commit }: { store: Store; commit: (s: Sto
   const appliances = useCatalog()
   const [filter, setFilter] = useState<Filter>('All')
   const [query, setQuery] = useState('')
+  const noteRef = useRef<HTMLParagraphElement>(null)
   const project = currentProject(store)
+  const isSample = isSampleList(project)
+  // The button goes with the list, so focus moves to the line that says what to do next. Not the search: on a phone that opens the keyboard.
+  const clearList = () => {
+    noteRef.current?.focus()
+    commit(clearAppliances(store))
+  }
   const needle = query.trim().toLowerCase()
   const matches = (a: CatalogItem) =>
     !needle || a.name.toLowerCase().includes(needle) || applianceName(t, a).toLowerCase().includes(needle) || a.id.toLowerCase().includes(needle)
@@ -85,10 +92,22 @@ export function ApplianceGrid({ store, commit }: { store: Store; commit: (s: Sto
   return (
     <div className="grid-block">
       <div className="toolbar">
-        <p className="muted">{t.ui.q1Help}</p>
-        <input className="in toolbar__search" type="search" aria-label={t.ui.search} placeholder={t.ui.search} value={query} onChange={(e) => setQuery(e.target.value)} />
+        <div className="toolbar__intro">
+          <p ref={noteRef} tabIndex={-1} className="muted toolbar__note">
+            {isSample ? t.ui.sampleNote : t.ui.q1Help}
+            {isSample && <button type="button" className="rq-linkbtn" onClick={clearList}>{t.ui.clearAll}</button>}
+          </p>
+          <p className="muted toolbar__more">{t.ui.q1HelpMore}</p>
+        </div>
+        <div className="toolbar__find">
+          <input className="in toolbar__search" type="search" aria-label={t.ui.search} placeholder={t.ui.search} value={query} onChange={(e) => setQuery(e.target.value)} />
+          {/* Under 1024px, where the chips below would take three rows of a phone's first screen. */}
+          <select className="in toolbar__filter" aria-label={t.ui.categoryFilter} value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
+            {filters.map((f) => <option key={f} value={f}>{t.categories[f]}</option>)}
+          </select>
+        </div>
       </div>
-      <div className="hs">
+      <div className="hs toolbar__chips">
         {filters.map((f) => (
           <button key={f} type="button" className={`chip${f === filter ? ' chip--on' : ''}`} aria-pressed={f === filter} onClick={() => setFilter(f)}>{t.categories[f]}</button>
         ))}

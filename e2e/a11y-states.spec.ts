@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { PHONE } from './phone'
-import { RETRY_AFTER_MS } from './projects'
+import { openBatterySettings, RETRY_AFTER_MS } from './projects'
 
 /** A group of toggle buttons: each option's accessible name, matched from its start (an option may add a hint after it). */
 type Group = Record<string, RegExp>
@@ -46,6 +46,7 @@ async function sliderReads(page: Page): Promise<{ value: string; max: string | n
 
 test('step 2: choosing a voltage, chemistry and hour preset moves the pressed state to that option only', async ({ page }) => {
   await page.goto('/?step=2')
+  await openBatterySettings(page)
   // The Home project starts at 48 V, LiFePO₄ and 10 h.
   await expectOnlyPressed(page, VOLTAGES, '48 V')
   await expectOnlyPressed(page, CHEMISTRIES, 'LiFePO₄ lithium')

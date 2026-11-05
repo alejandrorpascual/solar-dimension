@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { applianceCount, tr, type Dictionary } from '../i18n'
@@ -52,8 +53,10 @@ interface Props {
   projectName: string
   /** Why the bank is far bigger than the load needs, when another voltage sizes a smaller one. */
   oversize: OversizeNote | null
-  /** The edit bar (KitQuickEdit), placed under the summary line. */
+  /** The edit bar (KitQuickEditBar), placed under the summary line. */
   quickEdit: ReactNode
+  /** The appliance list the bar opens, under the figures it changes. */
+  quickEditPanel?: ReactNode
   onBatteryUnit: (id: string | null) => void
 }
 
@@ -63,7 +66,7 @@ function Delta({ text }: { text: string }) {
   return text ? <span className="stat__delta num">{text}</span> : null
 }
 
-export function KitSummary({ result: r, baseline, projectName, oversize, quickEdit, onBatteryUnit }: Props) {
+export function KitSummary({ result: r, baseline, projectName, oversize, quickEdit, quickEditPanel, onBatteryUnit }: Props) {
   const { t, locale } = useLocale()
   const parts = buildParts(r, t, locale)
   const checks = kitChecks(t, r, locale)
@@ -79,7 +82,7 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
         <ChecksAttention text={attentionLine(t, r)} />
         {quickEdit}
       </div>
-      <div className={`stats${hasPanels(r) ? ' stats--five' : ''}`}>
+      {!r.empty && <div className={`stats${hasPanels(r) ? ' stats--five' : ''}`}>
         <div className="stat">
           <div className="lab">{t.ui.runningLoad}</div>
           <div className="stat__row"><span className="stat__v num">{fmtW(r.runningW, locale)}</span><Delta text={d ? signed(d.runningW, w) : ''} /></div>
@@ -108,7 +111,7 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
             <div className="stat__sub num">{tr(t, 'solarRechargeSub', { wh: fmtKwh(r.solar.dailyWh, locale) })}</div>
           </div>
         )}
-      </div>
+      </div>}
       {oversize && (
         <p className="note-box">
           {tr(t, oversize.isSmallestBank ? 'oversizeNoteSmallest' : 'oversizeNote', {
@@ -118,6 +121,7 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
         </p>
       )}
       {!r.empty && <BatteryPicker options={r.batteryOptions} selected={r.batteryUnit} onSelect={onBatteryUnit} />}
+      {quickEditPanel}
       <div className="parts">
         {parts.length > 0 ? <PartsTable parts={parts} t={t} /> : <p className="muted">{tr(t, 'nothingSelected', { name: projectName })}</p>}
       </div>
@@ -128,7 +132,13 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
           {notes.map((n) => <div key={warningKey(n)}>{warningText(t, n, r)}</div>)}
         </div>
       )}
-      <p className="fine muted">{finePrint(t, r, dod, locale)}</p>
+      <details className="elec">
+        <summary className="elec__summary">
+          <span>{t.ui.incNotes}</span>
+          <ChevronDown size={16} aria-hidden="true" className="elec__chev" />
+        </summary>
+        <p className="fine muted">{finePrint(t, r, dod, locale)}</p>
+      </details>
       <Glossary />
     </div>
   )
