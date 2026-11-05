@@ -5,7 +5,7 @@ import { useLocale } from '../hooks/useLocale'
 import { applianceName, tr } from '../i18n'
 import { fmtW } from '../i18n/format'
 import { searchAppliances, searchTexts } from '../lib/appliance-search'
-import { forPicker } from '../lib/catalog'
+import { forPicker, type CatalogItem } from '../lib/catalog'
 import { HOURS_MAX, HOURS_MIN, type Project } from '../lib/schema'
 import { groupByKind } from '../lib/load-kinds'
 import { catalog, type SizingResult } from '../lib/sizing'
@@ -98,7 +98,16 @@ export function KitQuickEditPanel({ id, project, result, onQty, onDuty, onAllApp
   const searchRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
   const nameOf = (item: { id: string; name: string; isCustom?: boolean }) => applianceName(t, item)
-  const suggestions = searchAppliances(catalog(forPicker(appliances), project.custom), query, (a) => searchTexts(t, a), new Set(result.items.map((i) => i.id)))
+  const all = catalog(forPicker(appliances), project.custom)
+  const textsOf = (a: CatalogItem) => searchTexts(t, a)
+  const listedIds = new Set(result.items.map((i) => i.id))
+  const suggestions = searchAppliances(all, query, textsOf, listedIds)
+  // What the words find that is on the list already: said by name, so a match is never reported as a miss.
+  const listed = searchAppliances(all.filter((a) => listedIds.has(a.id)), query, textsOf, new Set())
+  const goToRow = (itemId: string) => {
+    const rows = rowsOf(panelRef.current)
+    rows.find((row) => row.getAttribute('data-item-id') === itemId)?.querySelector<HTMLElement>('.stepper-qty__n')?.focus()
+  }
   // A suggestion is gone once added: focus stays where the next one is typed.
   const add = (itemId: string) => {
     searchRef.current?.focus()
@@ -150,7 +159,12 @@ export function KitQuickEditPanel({ id, project, result, onQty, onDuty, onAllApp
                 <span className="qedit__sug-add">{t.ui.add}</span>
               </button>
             ))}
-            {suggestions.length === 0 && <p className="muted qedit__none">{t.ui.noSearchMatch}</p>}
+            {listed.map((a) => (
+              <button key={a.id} type="button" className="qedit__sug" onClick={() => goToRow(a.id)}>
+                <span className="qedit__sug-name">{tr(t, 'alreadyOnList', { name: nameOf(a) })}</span>
+              </button>
+            ))}
+            {suggestions.length === 0 && listed.length === 0 && <p className="muted qedit__none">{t.ui.noSearchMatch}</p>}
           </div>
         )}
       </div>

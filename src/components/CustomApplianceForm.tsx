@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocale } from '../hooks/useLocale'
 import { tr } from '../i18n'
 import { fmtInt } from '../i18n/format'
@@ -12,6 +12,16 @@ export function CustomApplianceForm({ store, commit, onAdded }: { store: Store; 
   const [form, setForm] = useState<CustomForm>(EMPTY_FORM)
   const [error, setError] = useState<CustomError | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
+  // Counts adds, so the focus below runs once each add has rendered.
+  const [added, setAdded] = useState(0)
+  // The form empties for the next one. Focus waits for the render: the first custom appliance adds a section to the list
+  // above, which pushes the form down, under the footer. scrollIntoView keeps clear of it through the page's scroll-padding.
+  useEffect(() => {
+    if (added === 0) return
+    const name = nameRef.current
+    name?.focus({ preventScroll: true })
+    name?.scrollIntoView({ block: 'nearest' })
+  }, [added])
   const set = (patch: Partial<CustomForm>) => { setForm({ ...form, ...patch }); setError(null) }
 
   const project = currentProject(store)
@@ -22,14 +32,13 @@ export function CustomApplianceForm({ store, commit, onAdded }: { store: Store; 
     if (!res.ok) { setError(res.error); return }
     commit(addCustom(store, res.item))
     setForm(EMPTY_FORM)
+    setAdded(added + 1)
     onAdded(res.item.name)
-    // The form empties for the next one, and Add sits where the footer can cover it.
-    nameRef.current?.focus()
   }
 
   const isVa = form.mode === 'va'
   return (
-    <div className="custom">
+    <div className={`custom${isVa ? ' custom--va' : ''}`}>
       <div className="custom__head">
         <div>
           <div className="custom__title">{t.ui.customTitle}</div>
@@ -58,7 +67,7 @@ export function CustomApplianceForm({ store, commit, onAdded }: { store: Store; 
         ) : (
           <label className="field"><span className="lab">{t.ui.runningW}</span><input className="in" type="number" min="0" placeholder="750" value={form.watts} onChange={(e) => set({ watts: e.target.value })} /></label>
         )}
-        <label className="field"><span className="lab">{t.ui.surgeOptional}</span><input className="in" type="number" min="0" placeholder={t.ui.sameAsRunning} value={form.surge} onChange={(e) => set({ surge: e.target.value })} /></label>
+        <label className="field field--surge"><span className="lab">{t.ui.surgeOptional}</span><input className="in" type="number" min="0" placeholder={t.ui.sameAsRunning} value={form.surge} onChange={(e) => set({ surge: e.target.value })} /></label>
         <label className="field"><span className="lab">{t.ui.dutyPctLabel}</span><input className="in" type="number" min={CUSTOM_DUTY_MIN_PCT} max="100" placeholder="100" value={form.dutyPct} onChange={(e) => set({ dutyPct: e.target.value })} /></label>
         <button type="button" className="btn btn--primary custom__submit" onClick={submit}>{t.ui.addAppliance}</button>
       </div>

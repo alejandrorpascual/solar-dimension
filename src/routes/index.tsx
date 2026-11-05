@@ -45,6 +45,8 @@ function runtimeLine(r: SizingResult, t: Dictionary, locale: Locale): string {
 }
 
 function footerSummary(step: Step, name: string, r: SizingResult, t: Dictionary, locale: Locale): string {
+  // An empty list: the line says why Next is off rather than a row of zeros.
+  if (step === 1 && r.empty) return `${name} · ${t.ui.stepLocked}`
   if (step === 1) return tr(t, 'footer1', { name, appliances: applianceCount(t, r.items.length, r.units), running: fmtW(r.runningW, locale), peak: fmtW(r.surgeW, locale) })
   if (step === 2) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale), need: fmtKwh(r.requiredWh, locale) })
   if (step === 3) {

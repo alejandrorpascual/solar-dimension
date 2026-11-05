@@ -66,7 +66,7 @@ export type UiKey =
   | 'notFound' | 'backHome' | 'errorTitle' | 'serverError' | 'reload' | 'updating' | 'accountUnreachable'
   | 'projects' | 'projectsCount' | 'current' | 'quickEdit' | 'done' | 'projectMeta' | 'heaviestMore' | 'bank' | 'inverter' | 'close'
   | 'appliancesOnly' | 'appliancesAndUnits' | 'appliancesCount' | 'windowLabel' | 'hourLess' | 'hourMore' | 'hoursShort' | 'saved' | 'undo' | 'allAppliances'
-  | 'addApplianceSearch' | 'noSearchMatch'
+  | 'addApplianceSearch' | 'noSearchMatch' | 'alreadyOnList'
   | 'download' | 'downloadFor' | 'format' | 'include' | 'includeCount' | 'batteryDetails' | 'checksAllPass' | 'preview' | 'previewOpen' | 'previewTitle' | 'previewPage' | 'previewImage'
   | 'fmtPdf' | 'fmtPdfHint' | 'fmtPng' | 'fmtPngHint' | 'fmtCsv' | 'fmtCsvHint'
   | 'incSummary' | 'incAppliances' | 'incParts' | 'incNotes' | 'incRequester'

@@ -59,7 +59,7 @@ test('the Added filter lists only what is on the list, and a card taken off stay
   await expect(page.locator('.card--on')).toHaveCount(5)
 })
 
-test('a new project opens on the appliances step, where the example list is explained', PHONE, async ({ page }) => {
+test('a new project opens on the appliances step with no appliances, and Next says why it is off', PHONE, async ({ page }) => {
   await page.goto('/?step=4')
   const field = await startNewProject(page)
   await expect(field).toBeFocused()
@@ -68,7 +68,13 @@ test('a new project opens on the appliances step, where the example list is expl
   await expect(page).toHaveURL(/step=1/)
   await hideProjects(page)
   await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
-  await expect(page.locator('.toolbar__note')).toContainText('An example list to start from: Refrigerator,')
+  const note = page.locator('.toolbar__note')
+  await expect(note).toHaveText('Add each one and set how many.')
+  await expect(page.locator('.card--on')).toHaveCount(0)
+  const next = page.getByRole('button', { name: 'Next: backup window' })
+  await expect(next).toBeDisabled()
+  await expect(next).toHaveAttribute('title', 'Add at least one appliance first')
+  await expect(page.locator('footer.footer .footer__summary')).toContainText('Add at least one appliance first')
 })
 
 test('All appliances from the kit comes back with the list still open', PHONE, async ({ page }) => {
@@ -126,6 +132,58 @@ test('Add moves focus to the card\'s +, and taking the last one off moves it bac
   await page.getByRole('button', { name: 'Remove one Chest freezer' }).click()
   await expect(add).toBeFocused()
   await expect(add).toHaveText('Add')
+})
+
+for (const viewport of [WIDE, { width: 1100, height: 800 }]) {
+  test(`at ${viewport.width} px a second click where Add was adds a second one`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    await page.goto('/')
+    const add = page.locator('.card', { hasText: 'Chest freezer' }).getByRole('button', { name: 'Add Chest freezer' })
+    const box = await add.boundingBox()
+    if (!box) throw new Error('the Chest freezer card has no Add button on screen')
+    const [x, y] = [box.x + box.width / 2, box.y + box.height / 2]
+    const count = page.getByLabel('Quantity of Chest freezer')
+    await expect(async () => {
+      await page.mouse.click(x, y)
+      await expect(count).toBeVisible({ timeout: RETRY_AFTER_MS })
+    }).toPass()
+    await page.mouse.click(x, y)
+    await expect(count).toHaveValue('2')
+  })
+}
+
+test('the kit\'s appliance search names one already on the list and takes focus to its count', async ({ page }) => {
+  await page.goto('/?step=4')
+  await expect(async () => {
+    await page.getByRole('button', { name: /^Appliances · / }).click({ timeout: RETRY_AFTER_MS })
+    await expect(page.locator('.qedit__panel')).toBeVisible({ timeout: RETRY_AFTER_MS })
+  }).toPass()
+  const search = page.getByLabel('Add an appliance')
+  await search.fill('refrigerator')
+  await expect(page.getByText('Nothing matches.', { exact: false })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Refrigerator is already on your list' }).click()
+  await expect(page.locator('.qedit__panel').getByLabel('Quantity of Refrigerator')).toBeFocused()
+  await search.fill('zzzz')
+  await expect(page.getByText('Nothing matches. Find it under All appliances, or add your own there.')).toBeVisible()
+})
+
+test('after a custom appliance is added, focus lands on the emptied Name field above the footer', async ({ page }) => {
+  await page.setViewportSize(WIDE)
+  await page.goto('/')
+  const form = page.locator('.custom')
+  const name = form.getByLabel('Name')
+  await name.fill('Pond pump')
+  await form.getByLabel('Running W').fill('400')
+  await expect(async () => {
+    await form.getByRole('button', { name: 'Add appliance' }).click({ timeout: RETRY_AFTER_MS })
+    await expect(page.locator('.card', { hasText: 'Pond pump' })).toBeVisible({ timeout: RETRY_AFTER_MS })
+  }).toPass()
+  await expect(name).toBeFocused()
+  await expect(name).toHaveValue('')
+  await expect.poll(async () => {
+    const [field, footer] = [await name.boundingBox(), await page.locator('footer.footer').boundingBox()]
+    return field && footer ? footer.y - (field.y + field.height) : -1
+  }).toBeGreaterThanOrEqual(0)
 })
 
 for (const viewport of [WIDE, PHONE_SCREEN]) {

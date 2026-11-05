@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useCatalog } from '../hooks/useCatalog'
+import { useHeightProperty } from '../hooks/useHeightProperty'
 import { useLocale } from '../hooks/useLocale'
 import { tr, type Dictionary } from '../i18n'
 import { matchesQuery, searchTexts } from '../lib/appliance-search'
@@ -17,6 +18,9 @@ import { heaviestLine } from './heaviest-line'
 
 type Filter = 'All' | 'Added' | Category
 type Heading = 'h3' | 'h4'
+
+/** Read by components.css, which keeps focus clear of the search row stuck to the top; its chips wrap, so its height varies. */
+const FIND_HEIGHT_PROPERTY = '--find-h'
 
 /** Twelve near-identical cards, so the All view folds them behind one row. */
 const FOLDED_CATEGORY: Category = 'Air conditioning'
@@ -131,6 +135,7 @@ export function ApplianceGrid({ store, commit, onAnnounce }: { store: Store; com
   // The list can shrink under a search row stuck to the top of the screen: its results start right under that row.
   const findRef = useRef<HTMLDivElement>(null)
   const catalogRef = useRef<HTMLDivElement>(null)
+  useHeightProperty(findRef, FIND_HEIGHT_PROPERTY)
   useEffect(() => {
     const top = catalogRef.current?.getBoundingClientRect().top ?? 0
     const find = findRef.current
@@ -195,16 +200,17 @@ export function ApplianceGrid({ store, commit, onAnnounce }: { store: Store; com
         </div>
         <div ref={findRef} className="toolbar__find">
           <input className="in toolbar__search" type="search" aria-label={t.ui.search} placeholder={t.ui.search} value={query} onChange={(e) => setQuery(e.target.value)} />
-          {/* Under 1024px, where the chips below would take three rows of a phone's first screen. */}
+          {/* Under 1024px, where the chips beside it would take three rows of a phone's first screen. */}
           <select className="in toolbar__filter" aria-label={t.ui.categoryFilter} value={shownFilter} onChange={(e) => pickFilter(e.target.value as Filter)}>
             {filters.map((f) => <option key={f} value={f}>{filterLabel(f)}</option>)}
           </select>
+          {/* From 1024px, in the search's row: beside it where there is room, so the first cards show above the footer. */}
+          <div className="hs toolbar__chips">
+            {filters.map((f) => (
+              <button key={f} type="button" className={`chip${f === shownFilter ? ' chip--on' : ''}`} aria-pressed={f === shownFilter} onClick={() => pickFilter(f)}>{filterLabel(f)}</button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="hs toolbar__chips">
-        {filters.map((f) => (
-          <button key={f} type="button" className={`chip${f === shownFilter ? ' chip--on' : ''}`} aria-pressed={f === shownFilter} onClick={() => pickFilter(f)}>{filterLabel(f)}</button>
-        ))}
       </div>
       {addedCount > 0 && <button type="button" className="btn skip-link" onClick={() => document.querySelector<HTMLElement>('.footer .btn--primary')?.focus()}>{t.ui.skipList}</button>}
       <div ref={catalogRef} className="catalog">

@@ -1,5 +1,6 @@
 import { Download } from 'lucide-react'
-import { useEffect, useRef, type RefObject } from 'react'
+import { useRef } from 'react'
+import { useHeightProperty } from '../hooks/useHeightProperty'
 import { useLocale } from '../hooks/useLocale'
 import { ChecksAttention } from './ChecksAttention'
 import type { Step } from './Stepper'
@@ -23,33 +24,16 @@ interface Props {
   isDownloadOpen?: boolean
 }
 
-/** Read by base.css and quotes.css, which leave that much room under the page and above the footer for it. */
-const FOOTER_HEIGHT_PROPERTY = '--footer-h'
-
 /**
- * Keeps the footer's height in FOOTER_HEIGHT_PROPERTY. It is not a constant on a phone: the summary wraps, so a long
- * project name or the attention pill beside it makes the footer taller.
+ * Read by base.css and quotes.css, which leave that much room under the page and above the footer for it. It is not a
+ * constant on a phone: the summary wraps, so a long project name or the attention pill beside it makes the footer taller.
  */
-function useFooterHeight(element: RefObject<HTMLElement | null>): void {
-  useEffect(() => {
-    const footer = element.current
-    if (!footer) return
-    const root = document.documentElement
-    const publish = () => root.style.setProperty(FOOTER_HEIGHT_PROPERTY, `${footer.offsetHeight}px`)
-    publish()
-    const observer = new ResizeObserver(publish)
-    observer.observe(footer)
-    return () => {
-      observer.disconnect()
-      root.style.removeProperty(FOOTER_HEIGHT_PROPERTY)
-    }
-  }, [element])
-}
+const FOOTER_HEIGHT_PROPERTY = '--footer-h'
 
 export function WizardFooter({ step, summary, summarySlim, attention, nextLocked, onBack, onNext, onDownload, onBackToKit, onAddAppliances, isDownloadOpen }: Props) {
   const { t } = useLocale()
   const element = useRef<HTMLElement>(null)
-  useFooterHeight(element)
+  useHeightProperty(element, FOOTER_HEIGHT_PROPERTY)
   return (
     <footer className="footer" ref={element}>
       <div className="footer__line">

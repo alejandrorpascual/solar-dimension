@@ -24,6 +24,15 @@ describe('project store', () => {
     expect(p.batteryUnit).toBeNull()
   })
 
+  test('a new project starts with no appliances, while the first visit keeps the example list', () => {
+    const first = initialStore()
+    expect(isSampleList(currentProject(first))).toBe(true)
+    const added = currentProject(addProject(first, 'Cabin'))
+    expect(added.qty).toEqual({})
+    expect(added.custom).toEqual([])
+    expect(isSampleList(currentProject(first))).toBe(true)
+  })
+
   test('new and duplicated projects keep the battery choice rules', () => {
     const chosen = patchCurrent(initialStore(), { batteryUnit: '12-200' })
     expect(currentProject(chosen).batteryUnit).toBe('12-200')

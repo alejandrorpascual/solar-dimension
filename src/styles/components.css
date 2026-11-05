@@ -58,15 +58,16 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 .btn--quiet { border-color: var(--line-strong); }
 .in { font-size: 15px; min-height: var(--tap); padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--field-line); background: var(--surface); color: var(--ink); width: 100%; }
 .in:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-/* iOS Safari zooms the page in when a field under 16 px gets focus; zoomed, it scrolls the page under any open dialog
-   (and react-aria stops tracking the keyboard), so the field you tapped ends up behind the keyboard. */
-@media (pointer: coarse) { .in { font-size: 16px; } }
 /* A row of chips wraps onto more lines rather than scrolling sideways, so every option shows at any width. */
 .hs { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (min-width: 1024px) {
   .btn { flex: 0 0 auto; min-height: 48px; padding: 0 22px; }
   .in { font-size: 14px; min-height: 40px; }
 }
+/* iOS Safari zooms the page in when a field under 16 px gets focus; zoomed, it scrolls the page under any open dialog
+   (and react-aria stops tracking the keyboard), so the field you tapped ends up behind the keyboard. After the 14 px
+   rule above, so a touch tablet wider than 1024 px keeps 16 px too. */
+@media (pointer: coarse) { .in { font-size: 16px; } }
 
 
 /* Stage and footer */
@@ -108,7 +109,7 @@ a.btn--primary, a.btn--primary:hover { color: #FFFFFF; }
 .toolbar__note:focus { outline: none; }
 .toolbar__more { display: none; }
 .toolbar__find { display: flex; gap: 8px; }
-html:has(.toolbar__find) { scroll-padding-top: 72px; }
+html:has(.toolbar__find) { scroll-padding-top: calc(var(--find-h, 60px) + 12px); }
 .toolbar__find { position: sticky; top: 0; z-index: 5; margin: 0 -16px; padding: 8px 16px; background: var(--ground); border-bottom: 1px solid var(--line); }
 /* A landscape phone: the row and the footer would take a third of the screen. */
 @media (max-height: 480px) {
@@ -116,13 +117,13 @@ html:has(.toolbar__find) { scroll-padding-top: 72px; }
   .toolbar__find { position: static; }
 }
 @media (max-width: 1023.98px) {
-  .catalog { margin-top: 0; padding-top: 8px; }
+  .catalog { padding-top: 8px; }
 }
 .toolbar__search { flex: 1 1 0; min-width: 0; }
 .toolbar__filter { flex: 0 0 40%; width: 40%; }
 .toolbar__chips { display: none; }
 /* One section per category; a hairline and extra air mark where one category ends and the next begins. */
-.catalog { display: flex; flex-direction: column; gap: 28px; margin-top: 8px; }
+.catalog { display: flex; flex-direction: column; gap: 28px; }
 .catalog__section + .catalog__section { padding-top: 24px; border-top: 1px solid var(--line); }
 .catalog__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .catalog__title { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
@@ -170,7 +171,7 @@ html:has(.toolbar__find) { scroll-padding-top: 72px; }
 .st:hover { border-color: var(--accent); color: var(--accent); }
 .x { width: 32px; height: 32px; border-radius: 999px; border: 0; background: #E6EAF0; color: var(--muted); font-size: 15px; flex-shrink: 0; }
 .x:hover { background: var(--ink); color: #FFFFFF; }
-.custom { border: 1.5px dashed var(--line-strong); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.custom { border: 1.5px dashed var(--line-strong); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; container-type: inline-size; }
 .custom__head { display: flex; flex-direction: column; gap: 8px; }
 .custom__title { font-family: var(--font-display); font-size: 17px; font-weight: 700; }
 .custom__hint { font-size: 13px; }
@@ -178,6 +179,8 @@ html:has(.toolbar__find) { scroll-padding-top: 72px; }
 .custom__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
 .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 120px; }
 .field--grow { flex: 1 1 100%; }
+/* Wide enough for "igual que en marcha" beside a number field's arrows. */
+.field--surge { flex-basis: 180px; }
 .seg { flex: 1 1 0; font-size: 13px; font-weight: 600; min-height: 40px; padding: 0 10px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); }
 .seg--on { background: var(--ink); color: #FFFFFF; border-color: var(--ink); }
 .custom__submit { flex: 1 1 100%; min-height: var(--tap); }
@@ -191,10 +194,12 @@ html:has(.toolbar__find) { scroll-padding-top: 72px; }
 @media (min-width: 1024px) {
   .toolbar__more { display: block; }
   /* Cancels .stage's side padding, so its rule runs edge to edge on the card's ground. */
-  .toolbar__find { margin: 0 -40px; padding: 8px 40px; background: var(--surface); }
-  .toolbar__search { flex: 0 1 360px; }
+  /* The chips share the search's row while they have 400px beside it, and take a row of their own under it after that. */
+  .toolbar__find { flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; margin: 0 -40px; padding: 6px 40px; background: var(--surface); }
+  .toolbar__search { flex: 0 1 260px; }
   .toolbar__filter { display: none; }
-  .toolbar__chips { display: flex; }
+  .toolbar__chips { display: flex; flex: 1 1 400px; }
+  .toolbar__chips .chip { min-height: 34px; }
   .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
   .card { flex-direction: column; flex-wrap: nowrap; align-items: stretch; min-height: 104px; padding: 14px 16px; border-radius: 16px; }
   /* Stacked, the meter follows the specs; a card stretched to its row's height puts the spare height above its buttons. */
@@ -206,16 +211,42 @@ html:has(.toolbar__find) { scroll-padding-top: 72px; }
   .card .x { position: absolute; }
   .card { position: relative; }
   .card .x { top: 12px; right: 12px; width: 28px; height: 28px; }
-  .add { min-height: 36px; align-self: flex-start; }
+  /* At the card's right edge, as in the phone's row: once added, + takes Add's place, so a second click counts up. Narrow
+     enough that the middle of "Agregar" still falls on the 36px +. */
+  .add { min-height: 36px; padding: 0 10px; align-self: flex-end; }
+  .card .stepper-qty { align-self: flex-end; }
   .st { width: 36px; height: 36px; font-size: 18px; }
   .custom { padding: 18px 20px; }
   .custom__head { flex-direction: row; justify-content: space-between; align-items: center; }
   .custom__modes { flex: 0 0 auto; }
   .seg { flex: 0 0 auto; padding: 0 14px; min-height: 38px; }
-  .custom__row { flex-wrap: nowrap; }
-  .field { flex: 0 0 130px; }
-  .field--grow { flex: 1 1 0; }
-  .custom__submit { flex: 0 0 auto; min-height: 40px; }
+  .custom__submit { min-height: 40px; }
+}
+/* With a mouse the note's links need no finger-sized box, and the first row of cards gets the height. */
+@media (min-width: 1024px) and (pointer: fine) {
+  .toolbar__note { min-height: 24px; }
+  .toolbar__note .rq-linkbtn { min-height: 24px; }
+}
+/* The row follows the width the form has, not the screen's: the side rail narrows it from 1280 px. The name takes a line
+   of its own, then the figures and Add share one; a form wide enough for all of them, which Volts × amps needs more of,
+   puts the name beside them. */
+@container (min-width: 480px) {
+  .custom__row .field { flex: 1 1 100px; }
+  .custom__row .field--surge { flex-basis: 180px; }
+  .custom__row .field--grow { flex: 1 1 100%; }
+  .custom__submit { flex: 0 0 auto; margin-left: auto; }
+}
+@container (min-width: 800px) {
+  .custom:not(.custom--va) .custom__row { flex-wrap: nowrap; }
+  .custom:not(.custom--va) .field { flex: 0 0 120px; }
+  .custom:not(.custom--va) .field--surge { flex-basis: 180px; }
+  .custom:not(.custom--va) .field--grow { flex: 1 1 0; min-width: 0; }
+}
+@container (min-width: 940px) {
+  .custom--va .custom__row { flex-wrap: nowrap; }
+  .custom--va .field { flex: 0 0 120px; }
+  .custom--va .field--surge { flex-basis: 180px; }
+  .custom--va .field--grow { flex: 1 1 0; min-width: 0; }
 }
 
 /* Step 2: backup window */

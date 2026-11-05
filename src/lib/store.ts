@@ -25,9 +25,10 @@ function nextId(projects: readonly Project[]): string {
 
 const now = (): number => Date.now()
 
-function newProject(projects: readonly Project[], name: string, id: string = nextId(projects), updatedAt: number = now()): Project {
+/** `qty` is the appliance list it starts with: the example list for a first visit's project, none for one added later. */
+function newProject(projects: readonly Project[], name: string, qty: Record<string, number>, id: string = nextId(projects), updatedAt: number = now()): Project {
   return {
-    id, name, qty: { ...DEFAULT_QTY }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4',
+    id, name, qty: { ...qty }, custom: [], hours: DEFAULT_HOURS, volts: 48, chemistry: 'lifepo4',
     batteryUnit: null, solar: null, requester: null, dutyOverrides: {}, electrical: { ...DEFAULT_ELECTRICAL }, updatedAt,
   }
 }
@@ -37,7 +38,7 @@ function newProject(projects: readonly Project[], name: string, id: string = nex
  * any saved copy outranks it.
  */
 export function initialStore(t: Dictionary = DEFAULT_NAMES): Store {
-  const p = newProject([], t.ui.firstProject, SEED_ID, 0)
+  const p = newProject([], t.ui.firstProject, DEFAULT_QTY, SEED_ID, 0)
   return { version: 1, projects: [p], currentId: p.id }
 }
 
@@ -122,8 +123,9 @@ export function numberedName(store: Store, t: Dictionary): string {
   return tr(t, 'projectNumbered', { n: store.projects.length + 1 })
 }
 
+/** A project of one's own, opened: it starts with no appliances. Only a first visit's project has the example list. */
 export function addProject(store: Store, name: string = numberedName(store, DEFAULT_NAMES)): Store {
-  const p = newProject(store.projects, name)
+  const p = newProject(store.projects, name, {})
   return { ...store, projects: [...store.projects, p], currentId: p.id }
 }
 

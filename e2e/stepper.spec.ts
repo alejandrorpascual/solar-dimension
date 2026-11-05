@@ -47,7 +47,7 @@ const SUBPIXEL = 0.5
 const RAIL_MIN_WIDTH = 1280
 /** As long as a project name can be, so it cannot fit beside the button on a phone. */
 const LONG_NAME = 'Grandmother’s beach house, upstairs flat and the garage shed'
-/** How many units a new project starts with: its 6 appliances, with two phone chargers among them. */
+/** How many units a first visit's project starts with: the example list's 6 appliances, with two phone chargers among them. */
 const STARTING_APPLIANCES = Object.values(DEFAULT_QTY).reduce((sum, qty) => sum + qty, 0)
 
 /** Web fonts swap in late on a cold browser and change every width in the header; measure after they settle. */
@@ -56,7 +56,7 @@ const fontsReady = (page: Page) => page.evaluate(() => document.fonts.ready.then
 const stepButtons = (page: Page, language: Language = 'English'): Locator[] =>
   STEP_NAMES[language].map((name) => page.getByRole('button', { name, exact: true }))
 
-/** Takes every appliance out of a new Home project with the cards' own "Remove one …" buttons, on step 1. */
+/** Takes every appliance out of a first visit's Home project with the cards' own "Remove one …" buttons, on step 1. */
 async function removeEveryAppliance(page: Page): Promise<void> {
   const removeOne = page.getByRole('button', { name: /^Remove one / })
   // The footer counts appliances and names the units when they differ: "5 appliances (6 units)", else "6 appliances".
@@ -68,7 +68,8 @@ async function removeEveryAppliance(page: Page): Promise<void> {
   }).toPass()
   // Hydrated from here on, so each click takes one unit off: exactly as many clicks as there are units left.
   for (let left = STARTING_APPLIANCES - 1; left > 0; left--) await removeOne.first().click()
-  await expect(footerCount(0)).toBeVisible()
+  // Empty, the footer says why Next is off instead of counting zeros.
+  await expect(page.locator('footer.footer').getByText(`Home · ${LOCK_TEXT.English}`, { exact: true })).toBeVisible()
   await expect(removeOne).toHaveCount(0)
 }
 
