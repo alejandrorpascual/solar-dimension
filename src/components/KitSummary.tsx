@@ -72,13 +72,13 @@ export function KitSummary({ result: r, baseline, projectName, oversize, quickEd
   const checks = kitChecks(t, r, locale)
   const notes = uncheckedWarnings(r)
   const dod = Math.round(CHEMISTRIES[r.chemistry].dod * 100)
-  const summary = r.empty ? t.ui.kitEmpty : tr(t, 'kitSummary', { appliances: applianceCount(t, r.items.length, r.units), hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
+  const summary = tr(t, 'kitSummary', { appliances: applianceCount(t, r.items.length, r.units), hours: r.hours, volts: r.volts, chemistry: t.chemistries[r.chemistry] })
   const d = baseline ? kitDeltas(baseline, r) : null
   const w = (n: number) => fmtW(n, locale)
   return (
     <div className="kit">
       <div className="kit__head">
-        <p className="muted">{summary}</p>
+        {!r.empty && <p className="muted">{summary}</p>}
         <ChecksAttention text={attentionLine(t, r)} />
         {quickEdit}
       </div>

@@ -15,6 +15,12 @@ interface Props {
   onBack: () => void; onNext: () => void
   /** The kit step's main action: opens the Download tab, in the side rail where it shows and in a sheet elsewhere. */
   onDownload: () => void
+  /** Step 1 was opened from the kit: the main action goes back there. */
+  onBackToKit?: () => void
+  /** The kit step has no appliances, so nothing to download yet: the main action goes to add some. */
+  onAddAppliances?: () => void
+  /** The rail's Download tab is open, and from 1280px its button shows beside this one. */
+  isDownloadOpen?: boolean
 }
 
 /** Read by base.css and quotes.css, which leave that much room under the page and above the footer for it. */
@@ -40,7 +46,7 @@ function useFooterHeight(element: RefObject<HTMLElement | null>): void {
   }, [element])
 }
 
-export function WizardFooter({ step, summary, summarySlim, attention, nextLocked, onBack, onNext, onDownload }: Props) {
+export function WizardFooter({ step, summary, summarySlim, attention, nextLocked, onBack, onNext, onDownload, onBackToKit, onAddAppliances, isDownloadOpen }: Props) {
   const { t } = useLocale()
   const element = useRef<HTMLElement>(null)
   useFooterHeight(element)
@@ -60,12 +66,13 @@ export function WizardFooter({ step, summary, summarySlim, attention, nextLocked
       <div className="footer__actions">
         {step > 1 && <button type="button" className="btn" onClick={onBack}>{t.ui.back}</button>}
         {step < 4 && (
-          <button type="button" className="btn btn--primary" disabled={nextLocked !== null} title={nextLocked ?? undefined} onClick={onNext}>
-            {step === 1 ? t.ui.next : step === 2 ? t.ui.nextSolar : t.ui.buildKit}
+          <button type="button" className="btn btn--primary" disabled={nextLocked !== null} title={nextLocked ?? undefined} onClick={onBackToKit ?? onNext}>
+            {onBackToKit ? t.ui.backToKit : step === 1 ? t.ui.next : step === 2 ? t.ui.nextSolar : t.ui.buildKit}
           </button>
         )}
-        {step === 4 && (
-          <button type="button" className="btn btn--primary footer__download" onClick={onDownload}>
+        {step === 4 && onAddAppliances && <button type="button" className="btn btn--primary" onClick={onAddAppliances}>{t.ui.addAppliances}</button>}
+        {step === 4 && !onAddAppliances && (
+          <button type="button" className={`btn btn--primary footer__download${isDownloadOpen ? ' footer__download--open' : ''}`} onClick={onDownload}>
             <Download size={18} aria-hidden="true" />{t.ui.download}
           </button>
         )}

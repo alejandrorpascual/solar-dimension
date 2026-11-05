@@ -3,8 +3,9 @@
 .solar { display: flex; flex-direction: column; gap: 14px; }
 .solar__choice { max-width: 640px; }
 .solar__skipped { max-width: 640px; }
-.solar__cols { display: flex; flex-direction: column; gap: 20px; }
+.solar__cols { display: flex; flex-direction: column; gap: 14px; }
 .planner { display: flex; flex-direction: column; gap: 14px; }
+.planner__tiles { display: flex; flex-direction: column; gap: 14px; }
 .planner__roof { display: flex; flex-direction: column; gap: 6px; container-type: inline-size; }
 .planner__roof-row { display: flex; flex-direction: column; gap: 8px; }
 .planner__stepper { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -33,7 +34,7 @@
 .planner__sun-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 600; }
 .planner__sun-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--accent); }
 .planner__hint { font-size: 12px; }
-.flow { display: flex; flex-direction: column; gap: 14px; container-type: inline-size; }
+.flow { display: flex; flex-direction: column; gap: 14px; container-type: inline-size; padding: 2px 16px 16px; }
 .flow__strip { display: grid; grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr) 32px minmax(0, 1fr) 32px minmax(0, 1fr); gap: 6px; align-items: stretch; }
 .flow__node { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 12px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); min-width: 0; }
 .flow__node--sun { background: var(--sun-tint); border-color: var(--sun-line); color: var(--sun-ink); }
@@ -56,7 +57,12 @@
 .cover__notes { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 4px; }
 .note-box--sun { background: var(--sun-tint); color: var(--sun-ink); }
 @media (min-width: 1024px) {
-  .solar__cols { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px; align-items: start; }
+  /* The roof and sun sit beside what they set, so a tap and its result share a screen. */
+  .planner { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto 1fr; grid-template-areas: 'roof tiles' 'sun tiles'; column-gap: 40px; row-gap: 20px; }
+  .planner__roof { grid-area: roof; }
+  .planner__sun { grid-area: sun; }
+  .planner__tiles { grid-area: tiles; }
+  .planner__grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .flow__strip { grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr) 36px minmax(0, 1fr) 36px minmax(0, 1fr); gap: 8px; }
   .flow__node { padding: 14px 6px; border-radius: 14px; }
   .flow__v { font-size: 18px; }

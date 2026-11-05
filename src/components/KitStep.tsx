@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId } from 'react'
 import { useCatalog } from '../hooks/useCatalog'
 import { useUndoSnapshot } from '../hooks/useUndoSnapshot'
 import { oversizeNote } from '../lib/oversize'
@@ -17,12 +17,14 @@ interface Props {
   result: SizingResult
   isSaving: boolean
   onAllAppliances: () => void
+  /** Kept by the page, so the list is still open on coming back from the appliances step. */
+  isListOpen: boolean
+  onListOpen: (isOpen: boolean) => void
 }
 
 /** Step 3: the kit, edited in place. Quick edits remember the project as it was before them, for the deltas and Undo. */
-export function KitStep({ store, commit, project, result, isSaving, onAllAppliances }: Props) {
+export function KitStep({ store, commit, project, result, isSaving, onAllAppliances, isListOpen, onListOpen }: Props) {
   const appliances = useCatalog()
-  const [isListOpen, setListOpen] = useState(false)
   const panelId = useId()
   const undo = useUndoSnapshot(project, project.id)
   const isDirty = undo.snapshot !== null && !hasSameLoads(undo.snapshot, project)
@@ -49,7 +51,7 @@ export function KitStep({ store, commit, project, result, isSaving, onAllApplian
             isDirty={isDirty}
             isOpen={isListOpen}
             panelId={panelId}
-            onToggle={() => setListOpen(!isListOpen)}
+            onToggle={() => onListOpen(!isListOpen)}
             onHours={(hours) => quickEdit(setHoursIn(store, project.id, hours))}
             onUndo={restore}
           />

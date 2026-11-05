@@ -25,16 +25,17 @@ import { signedInUser } from '../lib/account-session'
 import { attentionLine } from '../lib/kit-checks'
 import { computeProject } from '../lib/project-summary'
 import { patchCurrent } from '../lib/store'
-import type { SizingResult } from '../lib/sizing'
+import { hasPanels, type SizingResult } from '../lib/sizing'
 import { parseStep, type Step } from '../lib/steps'
 
-interface Search { step: Step }
+/** `from` says step 1 was opened from the kit, so its main action goes back there. */
+interface Search { step: Step; from?: 'kit' }
 
 /** From this width the rail sits beside the page (rail.css); narrower screens open its content in a sheet. */
 const RAIL_SHOWN = '(min-width: 1280px)'
 
 export const Route = createFileRoute('/')({
-  validateSearch: (search: Record<string, unknown>): Search => ({ step: parseStep(search.step) }),
+  validateSearch: (search: Record<string, unknown>): Search => ({ step: parseStep(search.step), ...(search.from === 'kit' ? { from: 'kit' as const } : {}) }),
   component: KitBuilderPage,
 })
 
@@ -61,7 +62,10 @@ function footerSlim(step: Step, r: SizingResult, t: Dictionary, locale: Locale):
   if (step === 2) return undefined
   if (r.empty) return t.ui.stepLocked
   if (step === 1) return `${applianceCount(t, r.items.length, r.units)} · ${fmtW(r.runningW, locale)} ${t.ui.running}`
-  if (step === 3) return tr(t, 'footer2', { hours: r.hours, volts: r.volts, load: fmtKwh(r.loadWh, locale) })
+  if (step === 3) {
+    const base = { hours: r.hours, volts: r.volts }
+    return hasPanels(r) ? tr(t, 'footerPanelsSlim', { ...base, panels: panelCount(t, r.solar.panels), kw: fmtKw(r.solar.arrayW, locale) }) : tr(t, 'footerNoPanelsSlim', base)
+  }
   return r.battery ? `${runtimeLine(r, t, locale)} · ${batteryCount(t, r.battery.count)}` : undefined
 }
 
@@ -75,7 +79,8 @@ function stepTitle(step: Step, name: string, t: Dictionary): string {
 
 /**
  * The step's heading, focused when the step changes (Next, Back, the stepper) so a screen reader announces the new
- * step. Not on the first render: a page that just loaded keeps focus where the browser put it.
+ * step. Not on the first render: a page that just loaded keeps focus where the browser put it. Nor while focus is in the
+ * rail or its sheet, where a new project moves the page to step 1 with its name field in use.
  */
 function useStepHeadingFocus(step: Step) {
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -83,7 +88,7 @@ function useStepHeadingFocus(step: Step) {
   useEffect(() => {
     if (shownStep.current === step) return
     shownStep.current = step
-    headingRef.current?.focus()
+    if (!document.activeElement?.closest('.rail, .rsheet')) headingRef.current?.focus()
   }, [step])
   return headingRef
 }
@@ -106,7 +111,7 @@ function OpenProject({ name, count, onOpen }: { name: string; count: number; onO
 }
 
 function KitBuilderPage() {
-  const { step } = Route.useSearch()
+  const { step, from } = Route.useSearch()
   const { t, locale } = useLocale()
   const navigate = useNavigate({ from: '/' })
   const { session } = useRootData()
@@ -118,6 +123,8 @@ function KitBuilderPage() {
   const result = computeProject(project, appliances)
   const go = (next: Step) => navigate({ search: { step: next } })
   const headingRef = useStepHeadingFocus(step)
+  const openCatalogFromKit = () => navigate({ search: { step: 1, from: 'kit' } })
+  const [isKitListOpen, setKitListOpen] = useState(false)
   // The rail sits beside the page on wide screens; narrower ones open the same content in a sheet.
   const [railTab, setRailTab] = useState<RailTab>('projects')
   const [isSheetOpen, setSheetOpen] = useState(false)
@@ -132,7 +139,7 @@ function KitBuilderPage() {
     flushSync(() => setRailTab('download'))
     railRef.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus()
   }
-  const rail = { store, commit, tab: railTab, onTab: setRailTab, download: <DownloadPanel project={project} result={result} onRequesterChange={(requester) => commit(patchCurrent(store, { requester }))} /> }
+  const rail = { store, commit, tab: railTab, onTab: setRailTab, onProjectCreated: () => go(1), download: <DownloadPanel project={project} result={result} onRequesterChange={(requester) => commit(patchCurrent(store, { requester }))} /> }
 
   return (
     <div className="workspace">
@@ -148,13 +155,13 @@ function KitBuilderPage() {
           <h1 ref={headingRef} tabIndex={-1} className="stage__title">{stepTitle(step, project.name, t)}</h1>
           {step === 1 && (
             <>
-              <ApplianceGrid store={store} commit={commit} />
+              <ApplianceGrid key={project.id} store={store} commit={commit} />
               <CustomApplianceForm store={store} commit={commit} />
             </>
           )}
           {step === 2 && <BackupWindow store={store} commit={commit} result={result} />}
           {step === 3 && <SolarStep store={store} commit={commit} project={project} result={result} />}
-          {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={() => go(1)} />}
+          {step === 4 && <KitStep store={store} commit={commit} project={project} result={result} isSaving={saving || syncing} onAllAppliances={openCatalogFromKit} isListOpen={isKitListOpen} onListOpen={setKitListOpen} />}
         </section>
         <LegalLinks />
         <WizardFooter
@@ -166,6 +173,9 @@ function KitBuilderPage() {
           onBack={() => go((step - 1) as Step)}
           onNext={() => go((step + 1) as Step)}
           onDownload={showDownload}
+          onBackToKit={step === 1 && from === 'kit' ? () => go(4) : undefined}
+          onAddAppliances={step === 4 && result.empty ? openCatalogFromKit : undefined}
+          isDownloadOpen={railTab === 'download'}
         />
       </main>
       <aside ref={railRef} className="rail" aria-label={t.ui.projects}>

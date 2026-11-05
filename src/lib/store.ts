@@ -93,6 +93,11 @@ export function isSampleList(p: Project): boolean {
     && added.every(([id, n]) => DEFAULT_QTY[id] === n)
 }
 
+/** How many of the example list's appliances the project still has at their example quantity. */
+export function exampleItemsLeft(p: Project): number {
+  return Object.entries(DEFAULT_QTY).filter(([id, n]) => p.qty[id] === n).length
+}
+
 /** The open project with no appliances, to start a list of one's own. */
 export function clearAppliances(store: Store): Store {
   return patchCurrent(store, { qty: {}, dutyOverrides: {} })

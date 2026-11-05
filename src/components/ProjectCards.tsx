@@ -29,6 +29,8 @@ interface Props {
    * in it does not call this, and neither does renaming an existing project. The desktop rail passes nothing.
    */
   onPicked?: () => void
+  /** Called when a project is created: a new one holds the example list, which the appliances step explains. */
+  onCreated?: () => void
 }
 
 /** "Refrigerator, 2× TV and 3 more" from the heaviest appliances. */
@@ -139,11 +141,11 @@ function ProjectCard({ summary: s, isEditing, current, onOpen, onToggleEdit, onQ
 }
 
 /** Every saved project with its kit at a glance, the open one first; quick edit changes a project without opening it. */
-export function ProjectCards({ store, commit, onPicked }: Props) {
+export function ProjectCards({ store, commit, onPicked, onCreated }: Props) {
   const { t } = useLocale()
   const appliances = useCatalog()
   const [editingId, setEditingId] = useState<string | null>(null)
-  const { createProject, currentActions } = useProjectRename({ store, commit, onPicked })
+  const { createProject, currentActions } = useProjectRename({ store, commit, onPicked, onCreated })
   return (
     <div className="pcards">
       <div className="pcards__head">

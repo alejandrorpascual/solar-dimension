@@ -34,24 +34,26 @@ export function RoofPlanner({ solar: s, onRoof, onPanels, onSun }: Props) {
           </p>
         </div>
       </div>
-      <div className="planner__head">
-        <span className="lab">{t.ui.plannerLabel}</span>
-        <span className="muted num">{tr(t, 'plannerTile', { w: `${SOLAR.PANEL_W} W` })}</span>
-      </div>
-      <div className="planner__grid" role="group" aria-label={t.ui.plannerLabel}>
-        {tiles.map((i) => {
-          const on = i < s.panels
-          return (
-            <button key={i} type="button" className={`tile${on ? ' tile--on' : ''}`} aria-pressed={on}
-              aria-label={tr(t, on ? 'removePanel' : 'addPanel', { n: i + 1 })} onClick={() => onPanels(on ? nextWirable(i + 1, -1, s.volts) : nextWirable(i, 1, s.volts))} />
-          )
-        })}
-      </div>
-      <div className="planner__count">
-        <span className="num planner__big">{tr(t, 'panelsLine', { panels: panelCount(t, s.panels), kw: fmtKw(s.arrayW, locale) })}</span>
-        {!s.isTooShort && (s.isRecommended
-          ? <span className="planner__pill">{s.isRoofLimited ? t.ui.recommendedPillLimited : t.ui.recommendedPill}</span>
-          : <button type="button" className="chip" onClick={() => onPanels(null)}>{tr(t, 'backToRecommended', { n: s.recommended })}</button>)}
+      <div className="planner__tiles">
+        <div className="planner__count">
+          <span className="num planner__big">{tr(t, 'panelsLine', { panels: panelCount(t, s.panels), kw: fmtKw(s.arrayW, locale) })}</span>
+          {!s.isTooShort && (s.isRecommended
+            ? <span className="planner__pill">{s.isRoofLimited ? t.ui.recommendedPillLimited : t.ui.recommendedPill}</span>
+            : <button type="button" className="chip" onClick={() => onPanels(null)}>{tr(t, 'backToRecommended', { n: s.recommended })}</button>)}
+        </div>
+        <div className="planner__head">
+          <span className="lab">{t.ui.plannerLabel}</span>
+          <span className="muted num">{tr(t, 'plannerTile', { w: `${SOLAR.PANEL_W} W` })}</span>
+        </div>
+        <div className="planner__grid" role="group" aria-label={t.ui.plannerLabel}>
+          {tiles.map((i) => {
+            const on = i < s.panels
+            return (
+              <button key={i} type="button" className={`tile${on ? ' tile--on' : ''}`} aria-pressed={on}
+                aria-label={tr(t, on ? 'removePanel' : 'addPanel', { n: i + 1 })} onClick={() => onPanels(on ? nextWirable(i + 1, -1, s.volts) : nextWirable(i, 1, s.volts))} />
+            )
+          })}
+        </div>
       </div>
       <div className="planner__sun">
         <div className="planner__sun-head">

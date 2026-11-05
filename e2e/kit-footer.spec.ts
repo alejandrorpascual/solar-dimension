@@ -36,6 +36,10 @@ for (const width of [1440, 1280]) test.describe(`at ${width} px, where the rail 
     await expect(tab).toBeFocused()
     await expect(rail.getByRole('button', { name: 'Download PDF' })).toBeVisible()
     await expect(page.getByRole('dialog')).toHaveCount(0)
+    // Download PDF is now the one main action: the footer's button gives way until the tab is left.
+    await expect(download).toBeHidden()
+    await rail.getByRole('tab', { name: /^Projects/ }).click()
+    await expect(download).toBeVisible()
   })
 })
 

@@ -29,6 +29,8 @@ interface Args {
   commit: (s: Store) => void
   /** Called after Enter in the name field of a project that was just created; see ProjectCards. */
   onPicked?: () => void
+  /** Called when a project is created, so the page can open it on its first step; see createProject. */
+  onCreated?: () => void
 }
 
 /**
@@ -69,7 +71,7 @@ function useDeleteAsk(openId: string) {
 }
 
 /** Renaming on the open project's card: which rename is in progress, where focus goes after it, and the card's actions. */
-export function useProjectRename({ store, commit, onPicked }: Args) {
+export function useProjectRename({ store, commit, onPicked, onCreated }: Args) {
   const { t } = useLocale()
   const open = currentProject(store)
   const [renaming, setRenaming] = useRenaming(open.id)
@@ -88,6 +90,7 @@ export function useProjectRename({ store, commit, onPicked }: Args) {
     const created = currentProject(next)
     commit(next)
     setRenaming({ id: created.id, original: created.name, isNew: true })
+    onCreated?.()
   }
   const closeRename = (via: RenameClose) => {
     if (!renaming) return

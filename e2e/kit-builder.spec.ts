@@ -281,7 +281,7 @@ test('project cards show each kit and quick edit a project without opening it', 
 
   await home.getByRole('button', { name: 'Home', exact: true }).click()
   await hideProjects(page)
-  await expect(page.getByRole('heading', { name: 'Kit for Home' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Which appliances need to stay on?' })).toBeVisible()
 })
 
 test('appliances can be added, filtered and a custom load created from volts × amps', async ({ page }) => {
@@ -293,7 +293,7 @@ test('appliances can be added, filtered and a custom load created from volts × 
     await page.getByRole('button', { name: 'Add 2 ton AC · conventional' }).click()
     await expect(removeAc).toBeVisible({ timeout: 1000 })
   }).toPass()
-  await page.getByRole('button', { name: 'All' }).click()
+  await page.getByRole('button', { name: 'All', exact: true }).click()
   await page.getByLabel('Search appliances').fill('fridge')
   await expect(page.getByText('Refrigerator', { exact: true })).toBeVisible()
   await expect(page.getByText('Chest freezer')).toHaveCount(0)

@@ -4,7 +4,7 @@ import { useCatalog } from '../hooks/useCatalog'
 import { useLocale } from '../hooks/useLocale'
 import { applianceName, tr } from '../i18n'
 import { fmtW } from '../i18n/format'
-import { searchAppliances } from '../lib/appliance-search'
+import { searchAppliances, searchTexts } from '../lib/appliance-search'
 import { forPicker } from '../lib/catalog'
 import { HOURS_MAX, HOURS_MIN, type Project } from '../lib/schema'
 import { groupByKind } from '../lib/load-kinds'
@@ -85,7 +85,7 @@ export function KitQuickEditPanel({ id, project, result, onQty, onDuty, onAllApp
   const panelRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const nameOf = (item: { id: string; name: string; isCustom?: boolean }) => applianceName(t, item)
-  const suggestions = searchAppliances(catalog(forPicker(appliances), project.custom), query, nameOf, new Set(result.items.map((i) => i.id)))
+  const suggestions = searchAppliances(catalog(forPicker(appliances), project.custom), query, (a) => searchTexts(t, a), new Set(result.items.map((i) => i.id)))
   // A suggestion is gone once added: focus stays where the next one is typed.
   const add = (itemId: string) => {
     searchRef.current?.focus()

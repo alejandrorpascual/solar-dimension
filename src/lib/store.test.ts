@@ -6,7 +6,7 @@ import { computeProject } from './project-summary'
 import { compute } from './sizing'
 import {
   addCustom, addProject, clampHours, clearAppliances, currentProject, deleteProject, duplicateProject, initialStore, parseQty, patchCurrent, patchProject,
-  hasSameLoads, isSampleList, nameFirstProject, numberedName, rekeySeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
+  exampleItemsLeft, hasSameLoads, isSampleList, nameFirstProject, numberedName, rekeySeed, removeCustom, removeUnreadCustom, restoreProject, selectProject, setDutyIn, setElectricalIn, setHoursIn, setQty, setQtyIn,
   renameProject, setSolarIn, takenLoadIds, unreadCustomCount, withSetAside, withSolarPanels, withSolarRoof, withSolarSun,
 } from './store'
 import { DEFAULT_ELECTRICAL, PROJECT_NAME_MAX, ProjectSchema, StoreSchema, type Project, type Store } from './schema'
@@ -605,5 +605,15 @@ describe('the example list', () => {
     expect(after.dutyOverrides).toEqual({})
     expect({ name: after.name, hours: after.hours, volts: after.volts }).toEqual({ name: before.name, hours: before.hours, volts: before.volts })
     expect(isSampleList(after)).toBe(false)
+  })
+})
+
+describe('exampleItemsLeft', () => {
+  test('counts the example appliances still at their example quantity', () => {
+    const store = initialStore()
+    expect(exampleItemsLeft(currentProject(store))).toBe(6)
+    expect(exampleItemsLeft(currentProject(setQty(store, 'fridge', 2)))).toBe(5)
+    expect(exampleItemsLeft(currentProject(setQty(store, 'microwave', 1)))).toBe(6)
+    expect(exampleItemsLeft(currentProject(clearAppliances(store)))).toBe(0)
   })
 })
