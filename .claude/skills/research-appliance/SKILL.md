@@ -8,16 +8,17 @@ description: Research an appliance's running watts, start surge and duty cycle, 
 Arguments: `<description> [--target local|prod]` (default `local`).
 
 ## Setup
-- Never `cat`, `Read`, `rg` or otherwise print any `.env*` file: `.env.local` holds the token and the production database URL. Shell variables and functions don't survive between commands, so start every command that calls the API with this line. It reads the token, stops if the token or the address is missing, and defines `api`: a `curl` that sends the token and always ends with the HTTP status on a line of its own.
+- Never `cat`, `Read`, `rg` or otherwise print any `.env*` file: `.env.local` holds the token and the production database URL. The guard-secrets hook blocks any command that names one, so call the API only through `.claude/bin/catalog-api.sh`. It reads the token itself (from `.env.local` here, else the main checkout's), only calls `<base>/api/catalog/…`, and prints the body then the HTTP status on a line of its own:
   ```bash
-  TOKEN=$(sed -n 's/^CATALOG_API_TOKEN=//p' .env.local | tr -d '"') && BASE=http://localhost:3000 && : "${TOKEN:?CATALOG_API_TOKEN is not in .env.local}" "${BASE:?CATALOG_API_URL is not in .env.local}" && api() { curl -sS -m 30 -w '\n%{http_code}\n' -H "Authorization: Bearer $TOKEN" "$@"; }
+  .claude/bin/catalog-api.sh GET /api/catalog/database
+  .claude/bin/catalog-api.sh POST '/api/catalog/appliances?dryRun=true' <file> <endpoint>
   ```
-  For `--target prod`, put `BASE=$(sed -n 's/^CATALOG_API_URL=//p' .env.local | tr -d '"')` in place of `BASE=http://localhost:3000`.
+  For `--target prod`, put `--target prod` before `GET`/`POST`: the base becomes `CATALOG_API_URL`. Below, `api …` means this script: `api "$BASE/api/catalog/appliances"` is `catalog-api.sh GET /api/catalog/appliances`, and a POST's `X-Expect-Database` value is its last argument.
 - Read the status before the body, every time:
   - `000`: no server answered on that target. Say so and stop. After the write in step 6 it means you don't know whether the write landed: say that, and run the dry run again to see.
   - No status at all, and the shell names a key that is not in `.env.local`: tell the user which key and stop. Do not open the file to look.
   - A status this skill does not list is not a success. Before the write, stop and tell the user. After the write in step 6, treat it like `000`.
-- Never print, echo or log the token or any database URL. Pass the token only through `api`.
+- Never print, echo or log the token or any database URL. Pass the token only through `catalog-api.sh`.
 
 ## Which database a target writes to
 `--target` picks the server, not the database: a server writes to the database it was started with. `.env.local` points at the **production** database, and `vercel env pull .env.local` keeps restoring that, so a local server started from it (`npm run dev`, `npm run start`) writes to production. Only a server started on another Neon branch does not.
